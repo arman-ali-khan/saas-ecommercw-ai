@@ -4,10 +4,12 @@ import {
     Card,
     CardContent,
     CardDescription,
+    CardFooter,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Star, Edit, Trash2 } from 'lucide-react';
 
 // Mock data
 const reviews = [
@@ -19,37 +21,55 @@ const reviews = [
 export default function ReviewsPage() {
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>আমার রিভিউ</CardTitle>
-                <CardDescription>আপনি যে পণ্যগুলির জন্য রিভিউ দিয়েছেন।</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {reviews.map(review => (
-                    <div key={review.id} className="border p-4 rounded-md">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="font-semibold">{review.productName}</h3>
-                                <p className="text-sm text-muted-foreground">{review.date}</p>
-                            </div>
-                             <div className="flex items-center gap-1">
-                                {Array.from({ length: 5 }, (_, i) => (
-                                    <Star
-                                        key={i}
-                                        className={`h-5 w-5 ${
-                                        i < review.rating ? 'text-primary fill-primary' : 'text-muted-foreground/30'
-                                        }`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                        <p className="text-muted-foreground mt-2">{review.comment}</p>
-                    </div>
-                ))}
-                 {reviews.length === 0 && (
-                    <p className="text-muted-foreground text-center py-8">আপনি এখনো কোনো রিভিউ দেননি।</p>
-                )}
-            </CardContent>
-        </Card>
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-2xl font-bold">আমার রিভিউ</h1>
+                <p className="text-muted-foreground">আপনি যে পণ্যগুলির জন্য রিভিউ দিয়েছেন।</p>
+            </div>
+            
+            {reviews.length > 0 ? (
+                <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
+                    {reviews.map(review => (
+                        <Card key={review.id} className="flex flex-col">
+                             <CardHeader>
+                                <div className="flex justify-between items-start gap-4">
+                                    <CardTitle className="text-xl">{review.productName}</CardTitle>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                        {Array.from({ length: 5 }, (_, i) => (
+                                            <Star
+                                                key={i}
+                                                className={`h-5 w-5 ${
+                                                i < review.rating ? 'text-primary fill-primary' : 'text-muted-foreground/30'
+                                                }`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                                <CardDescription>{review.date}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-grow">
+                                <p className="text-muted-foreground">{review.comment}</p>
+                            </CardContent>
+                            <CardFooter className="flex justify-end gap-2">
+                                <Button variant="outline" size="sm">
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    সম্পাদনা
+                                </Button>
+                                <Button variant="destructive" size="sm">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    মুছুন
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            ) : (
+                <Card>
+                    <CardContent className="text-center py-16">
+                        <p className="text-muted-foreground">আপনি এখনো কোনো রিভিউ দেননি।</p>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
     )
 }
