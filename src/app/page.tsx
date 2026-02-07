@@ -37,6 +37,7 @@ export default function SaasLandingPage() {
   const pricingTiers = [
     {
       name: 'শুরু',
+      id: 'free',
       price: 'বিনামূল্যে',
       period: '',
       description: 'আপনার যাত্রা শুরু করার জন্য আদর্শ।',
@@ -50,6 +51,7 @@ export default function SaasLandingPage() {
     },
     {
       name: 'প্রো',
+      id: 'pro',
       price: '৳ ৯৯৯',
       period: '/মাস',
       description: 'আপনার ব্যবসা বাড়ানোর জন্য শক্তিশালী সরঞ্জাম।',
@@ -64,6 +66,7 @@ export default function SaasLandingPage() {
     },
     {
       name: 'এন্টারপ্রাইজ',
+      id: 'enterprise',
       price: 'কাস্টম',
       period: '',
       description: 'বড় আকারের ব্যবসার জন্য উপযুক্ত সমাধান।',
@@ -93,7 +96,7 @@ export default function SaasLandingPage() {
             </p>
             <div className="mt-8 flex justify-center gap-4">
               <Button asChild size="lg">
-                <Link href="/register">
+                <Link href="/get-started">
                   বিনামূল্যে শুরু করুন <ArrowRight className="ml-2" />
                 </Link>
               </Button>
@@ -174,7 +177,7 @@ export default function SaasLandingPage() {
                   </CardContent>
                   <CardFooter>
                      <Button asChild className="w-full" variant={tier.isFeatured ? 'default' : 'secondary'}>
-                        <Link href="/register">{tier.cta}</Link>
+                        <Link href={`/get-started?step=subscription&plan=${tier.id}`}>{tier.cta}</Link>
                      </Button>
                   </CardFooter>
                 </Card>
@@ -203,7 +206,7 @@ export default function SaasLandingPage() {
             </p>
             <div className="mt-8">
                 <Button asChild size="lg">
-                    <Link href="/register">
+                    <Link href="/get-started">
                     বিনামূল্যে শুরু করুন <ArrowRight className="ml-2" />
                     </Link>
                 </Button>

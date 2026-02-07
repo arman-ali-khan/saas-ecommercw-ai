@@ -65,7 +65,7 @@ export default function SaasHeader() {
              </SheetClose>
              <SheetClose asChild>
                <Button asChild className="w-full">
-                 <Link href="/register">সাইন আপ করুন</Link>
+                 <Link href="/get-started">শুরু করুন</Link>
                </Button>
              </SheetClose>
            </div>
@@ -131,7 +131,7 @@ export default function SaasHeader() {
                 <Link href="/login">লগ ইন</Link>
               </Button>
               <Button asChild>
-                <Link href="/register">সাইন আপ করুন</Link>
+                <Link href="/get-started">শুরু করুন</Link>
               </Button>
             </div>
           )}

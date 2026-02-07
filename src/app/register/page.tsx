@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +28,10 @@ const formSchema = z.object({
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const siteName = searchParams.get('siteName');
+  const domain = searchParams.get('domain');
+
   const { register } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,6 +46,8 @@ export default function RegisterPage() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     const registeredUser = register(values.name, values.fullName, values.email, values.password);
     if (registeredUser) {
+      // Logic for what to do with siteName and domain would go here.
+      // For this prototype, we just redirect.
       // The auth context handles redirection now.
       // router.push(`/${registeredUser.name}/profile`);
     }
@@ -51,9 +57,11 @@ export default function RegisterPage() {
       <div className="flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">অ্যাকাউন্ট তৈরি করুন</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              {siteName ? `"${siteName}" এর জন্য অ্যাকাউন্ট তৈরি করুন` : 'অ্যাকাউন্ট তৈরি করুন'}
+            </CardTitle>
             <CardDescription>
-              আমাদের সাথে আপনার যাত্রা শুরু করতে বাংলা ন্যাচারালস-এ যোগ দিন।
+              {siteName ? 'আপনার নতুন দোকান পরিচালনা করতে একটি অ্যাডমিন অ্যাকাউন্ট তৈরি করুন।' : 'আমাদের সাথে আপনার যাত্রা শুরু করতে বাংলা ন্যাচারালস-এ যোগ দিন।'}
             </CardDescription>
           </CardHeader>
           <CardContent>
