@@ -7,11 +7,12 @@ import { useEffect } from 'react';
 
 export default function ProfileLayout({
   children,
-  params: { username },
+  params,
 }: {
   children: React.ReactNode;
   params: { username: string };
 }) {
+  const { username } = params;
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
