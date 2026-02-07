@@ -58,6 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('bangla-naturals-user', JSON.stringify(userToStore));
         setUser(userToStore);
         toast({ title: 'লগইন সফল', description: `আবারও স্বাগতম, ${userToStore.name}!` });
+        router.push(`/profile/${userToStore.id}`);
         return userToStore;
       }
       toast({
@@ -101,6 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('bangla-naturals-user', JSON.stringify(newUser));
       setUser(newUser);
       toast({ title: 'নিবন্ধন সফল', description: `স্বাগতম, ${name}!` });
+      router.push(`/profile/${newUser.id}`);
       return newUser;
     } catch (e) {
       console.error('Registration failed', e);

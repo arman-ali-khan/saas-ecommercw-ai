@@ -41,7 +41,7 @@ export default function Header() {
   ];
   
   if (user?.email === 'admin@example.com') {
-      navLinks.push({ href: `${basePath}/admin`, label: 'অ্যাডমিন' });
+      navLinks.push({ href: user ? `/admin/${user.id}`: '/login', label: 'অ্যাডমিন' });
   }
 
 
@@ -154,14 +154,14 @@ export default function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={`/${user.name}/profile`}>
+                  <Link href={`/profile/${user.id}`}>
                     <User className="mr-2 h-4 w-4" />
                     <span>প্রোফাইল</span>
                   </Link>
                 </DropdownMenuItem>
                 {user.name && (
                    <DropdownMenuItem asChild>
-                     <Link href={`/${user.name}/admin`}>
+                     <Link href={`/admin/${user.id}`}>
                        <LayoutDashboard className="mr-2 h-4 w-4" />
                        <span>ড্যাশবোর্ড</span>
                      </Link>
