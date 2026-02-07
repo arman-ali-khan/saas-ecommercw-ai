@@ -1,3 +1,76 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "home-hero",
+      "description": "A lush mango orchard in Bangladesh.",
+      "imageUrl": "https://images.unsplash.com/photo-1755842546386-b689d6a3e84c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxtYW5nbyUyMG9yY2hhcmR8ZW58MHx8fHwxNzcwNDY0MjYzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mango orchard"
+    },
+    {
+      "id": "mango-1",
+      "description": "A basket of ripe, golden mangoes.",
+      "imageUrl": "https://images.unsplash.com/photo-1759162339512-c2e0f23d4dff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxyaXBlJTIwbWFuZ29lc3xlbnwwfHx8fDE3NzA0NjQyNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ripe mangoes"
+    },
+    {
+      "id": "mango-2",
+      "description": "Close-up of a sliced mango showing its vibrant color.",
+      "imageUrl": "https://images.unsplash.com/photo-1722942469918-a8726909b540?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzbGljZWQlMjBtYW5nb3xlbnwwfHx8fDE3NzA0NjQyNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sliced mango"
+    },
+    {
+      "id": "mango-3",
+      "description": "Mangoes hanging from a tree.",
+      "imageUrl": "https://images.unsplash.com/photo-1692102972494-7852d3e21d3f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtYW5nbyUyMHRyZWV8ZW58MHx8fHwxNzcwNDY0MjYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mango tree"
+    },
+    {
+      "id": "dates-1",
+      "description": "A bowl of fresh, plump dates.",
+      "imageUrl": "https://images.unsplash.com/photo-1648288719097-a47aceb942bc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZnJlc2glMjBkYXRlc3xlbnwwfHx8fDE3NzA0NjQyNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fresh dates"
+    },
+    {
+      "id": "dates-2",
+      "description": "Dates arranged beautifully on a wooden surface.",
+      "imageUrl": "https://images.unsplash.com/photo-1511725842588-c6f9e48b7a3e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxkYXRlcyUyMHdvb2R8ZW58MHx8fHwxNzcwNDY0MjYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dates wood"
+    },
+    {
+      "id": "molasses-1",
+      "description": "Thick, dark molasses being poured from a jar.",
+      "imageUrl": "https://images.unsplash.com/photo-1660728684136-0cdf1a0c2e02?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cG91cmluZyUyMG1vbGFzc2VzfGVufDB8fHx8MTc3MDQ2NDI2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pouring molasses"
+    },
+    {
+      "id": "molasses-2",
+      "description": "A traditional pot used for making date palm molasses.",
+      "imageUrl": "https://picsum.photos/seed/402/600/400",
+      "imageHint": "molasses pot"
+    },
+    {
+      "id": "honey-1",
+      "description": "Golden honey dripping from a wooden honey dipper.",
+      "imageUrl": "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxob25leSUyMGRpcHBlcnxlbnwwfHx8fDE3NzA0NjQyNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "honey dipper"
+    },
+    {
+      "id": "honey-2",
+      "description": "A jar of pure honey with a honeycomb inside.",
+      "imageUrl": "https://images.unsplash.com/photo-1587049352824-f7e128d4ebe5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxob25leSUyMGphcnxlbnwwfHx8fDE3NzA0NTQwNDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "honey jar"
+    },
+    {
+      "id": "about-story",
+      "description": "A farmer smiling in a sunny field.",
+      "imageUrl": "https://images.unsplash.com/photo-1510583085145-1b347ee019ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmYXJtZXIlMjBzbWlsaW5nfGVufDB8fHx8MTc3MDQ2NDI2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "farmer smiling"
+    },
+    {
+      "id": "about-traceability",
+      "description": "A hand holding a fresh mango, with the orchard in the background.",
+      "imageUrl": "https://images.unsplash.com/photo-1622664040213-006e17dd7207?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxoYW5kJTIwaG9sZGluZyUyMG1hbmdvfGVufDB8fHx8MTc3MDQ2NDI2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "hand holding mango"
+    }
+  ]
 }
