@@ -77,7 +77,7 @@ export default function FloatingChatButton() {
     }
   }, [chatMessages, isOpen]);
 
-  if (pathname.startsWith('/admin')) {
+  if (pathname.includes('/admin')) {
     return null;
   }
 
