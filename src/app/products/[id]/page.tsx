@@ -16,7 +16,7 @@ import { useCart } from '@/context/cart-context';
 import {
   Facebook,
   Twitter,
-  ShoppingCart,
+  ShoppingBag,
   Plus,
   Minus,
   Wand2,
@@ -125,7 +125,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               </Button>
             </div>
             <Button size="lg" onClick={handleAddToCart} className="flex-grow">
-              <ShoppingCart className="mr-2 h-5 w-5" /> কার্টে যোগ করুন
+              <ShoppingBag className="mr-2 h-5 w-5" /> ব্যাগে যোগ করুন
             </Button>
           </div>
 

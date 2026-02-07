@@ -15,7 +15,7 @@ import {
   SheetClose,
 } from './ui/sheet';
 import {
-  ShoppingCart as ShoppingCartIcon,
+  ShoppingBag as ShoppingBagIcon,
   Trash2,
   Plus,
   Minus,
@@ -35,18 +35,18 @@ export default function ShoppingCart() {
     <Sheet>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <ShoppingCartIcon className="h-6 w-6" />
+          <ShoppingBagIcon className="h-6 w-6" />
           {cartCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               {cartCount}
             </span>
           )}
-          <span className="sr-only">শপিং কার্ট খুলুন</span>
+          <span className="sr-only">শপিং ব্যাগ খুলুন</span>
         </Button>
       </SheetTrigger>
       <SheetContent className="flex flex-col">
         <SheetHeader>
-          <SheetTitle>শপিং কার্ট ({cartCount})</SheetTitle>
+          <SheetTitle>শপিং ব্যাগ ({cartCount})</SheetTitle>
         </SheetHeader>
         {cartItems.length > 0 ? (
           <>
@@ -134,8 +134,8 @@ export default function ShoppingCart() {
           </>
         ) : (
           <div className="flex-grow flex flex-col items-center justify-center text-center">
-            <ShoppingCartIcon className="w-24 h-24 text-muted-foreground/50 mb-4" />
-            <h3 className="font-semibold text-xl">আপনার কার্ট খালি</h3>
+            <ShoppingBagIcon className="w-24 h-24 text-muted-foreground/50 mb-4" />
+            <h3 className="font-semibold text-xl">আপনার ব্যাগ খালি</h3>
             <p className="text-muted-foreground mt-2">
               মনে হচ্ছে আপনি এখনো কিছু যোগ করেননি।
             </p>

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import type { Product } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Button } from './ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { useCart } from '@/context/cart-context';
 
 interface ProductCardProps {
@@ -49,8 +49,8 @@ export default function ProductCard({ product, username }: ProductCardProps) {
           {product.price.toFixed(2)} {product.currency}
         </p>
         <Button onClick={handleAddToCart}>
-          <ShoppingCart className="w-4 h-4 mr-2" />
-          কার্টে যোগ করুন
+          <ShoppingBag className="w-4 h-4 mr-2" />
+          ব্যাগে যোগ করুন
         </Button>
       </CardFooter>
     </Card>

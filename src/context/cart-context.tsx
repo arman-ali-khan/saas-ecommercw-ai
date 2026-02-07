@@ -65,8 +65,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       return [...prevItems, { ...product, quantity }];
     });
     toast({
-      title: 'কার্টে যোগ করা হয়েছে',
-      description: `${quantity} x ${product.name} আপনার কার্টে যোগ করা হয়েছে।`,
+      title: 'ব্যাগে যোগ করা হয়েছে',
+      description: `${quantity} x ${product.name} আপনার ব্যাগে যোগ করা হয়েছে।`,
     });
   };
 
@@ -75,7 +75,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       prevItems.filter((item) => item.id !== productId)
     );
     toast({
-      title: 'কার্ট থেকে সরানো হয়েছে',
+      title: 'ব্যাগ থেকে সরানো হয়েছে',
       variant: 'destructive',
     });
   };

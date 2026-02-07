@@ -15,7 +15,7 @@ import {
   SheetClose,
 } from './ui/sheet';
 import {
-  ShoppingCart as ShoppingCartIcon,
+  ShoppingBag as ShoppingBagIcon,
   Trash2,
   Plus,
   Minus,
@@ -46,7 +46,7 @@ export default function FixedCartButton() {
             className="h-auto rounded-r-none p-4 flex flex-col items-center justify-center gap-2 shadow-lg text-secondary-foreground"
           >
             <div className="relative">
-              <ShoppingCartIcon className="h-6 w-6" />
+              <ShoppingBagIcon className="h-6 w-6" />
               <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                 {cartCount}
               </span>
@@ -59,7 +59,7 @@ export default function FixedCartButton() {
       </SheetTrigger>
       <SheetContent className="flex flex-col">
         <SheetHeader>
-          <SheetTitle>শপিং কার্ট ({cartCount})</SheetTitle>
+          <SheetTitle>শপিং ব্যাগ ({cartCount})</SheetTitle>
         </SheetHeader>
         {cartItems.length > 0 ? (
           <>
@@ -147,8 +147,8 @@ export default function FixedCartButton() {
           </>
         ) : (
           <div className="flex-grow flex flex-col items-center justify-center text-center">
-            <ShoppingCartIcon className="w-24 h-24 text-muted-foreground/50 mb-4" />
-            <h3 className="font-semibold text-xl">আপনার কার্ট খালি</h3>
+            <ShoppingBagIcon className="w-24 h-24 text-muted-foreground/50 mb-4" />
+            <h3 className="font-semibold text-xl">আপনার ব্যাগ খালি</h3>
             <p className="text-muted-foreground mt-2">
               মনে হচ্ছে আপনি এখনো কিছু যোগ করেননি।
             </p>
