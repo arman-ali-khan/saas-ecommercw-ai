@@ -32,6 +32,10 @@ export default function ProductsPage() {
     () => [...new Set(allProducts.map((p) => p.category))],
     [allProducts]
   );
+  const allOrigins = useMemo(
+    () => [...new Set(allProducts.map((p) => p.origin))],
+    [allProducts]
+  );
   const maxPrice = useMemo(
     () => Math.ceil(Math.max(...allProducts.map((p) => p.price))),
     [allProducts]
@@ -40,6 +44,7 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('name-asc');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedOrigins, setSelectedOrigins] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, maxPrice]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -51,6 +56,13 @@ export default function ProductsPage() {
     setCurrentPage(1);
   };
   
+  const handleOriginChange = (origin: string, checked: boolean) => {
+    setSelectedOrigins((prev) =>
+      checked ? [...prev, origin] : prev.filter((o) => o !== origin)
+    );
+    setCurrentPage(1);
+  };
+
   const handlePriceChange = (value: number[]) => {
       setPriceRange(value);
       setCurrentPage(1);
@@ -80,6 +92,12 @@ export default function ProductsPage() {
         selectedCategories.includes(p.category)
       );
     }
+    
+    if (selectedOrigins.length > 0) {
+        products = products.filter((p) =>
+          selectedOrigins.includes(p.origin)
+        );
+      }
 
     products = products.filter(
       (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
@@ -101,7 +119,7 @@ export default function ProductsPage() {
     });
 
     return products;
-  }, [searchQuery, selectedCategories, priceRange, sortOrder, allProducts]);
+  }, [searchQuery, selectedCategories, selectedOrigins, priceRange, sortOrder, allProducts]);
 
   const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice(
@@ -113,6 +131,7 @@ export default function ProductsPage() {
     setSearchQuery('');
     setSortOrder('name-asc');
     setSelectedCategories([]);
+    setSelectedOrigins([]);
     setPriceRange([0, maxPrice]);
     setCurrentPage(1);
   };
@@ -125,13 +144,30 @@ export default function ProductsPage() {
           {allCategories.map((category) => (
             <div key={category} className="flex items-center space-x-2">
               <Checkbox
-                id={`filter-${category}`}
+                id={`filter-category-${category}`}
                 checked={selectedCategories.includes(category)}
                 onCheckedChange={(checked) =>
                   handleCategoryChange(category, !!checked)
                 }
               />
-              <Label htmlFor={`filter-${category}`}>{category}</Label>
+              <Label htmlFor={`filter-category-${category}`}>{category}</Label>
+            </div>
+          ))}
+        </div>
+      </div>
+       <div>
+        <h3 className="text-lg font-semibold mb-3">Origin</h3>
+        <div className="space-y-2">
+          {allOrigins.map((origin) => (
+            <div key={origin} className="flex items-center space-x-2">
+              <Checkbox
+                id={`filter-origin-${origin}`}
+                checked={selectedOrigins.includes(origin)}
+                onCheckedChange={(checked) =>
+                  handleOriginChange(origin, !!checked)
+                }
+              />
+              <Label htmlFor={`filter-origin-${origin}`}>{origin}</Label>
             </div>
           ))}
         </div>
@@ -151,7 +187,7 @@ export default function ProductsPage() {
           <span>{priceRange[1]} {paginatedProducts[0]?.currency}</span>
         </div>
       </div>
-      {(selectedCategories.length > 0 || priceRange[0] > 0 || priceRange[1] < maxPrice) && (
+      {(selectedCategories.length > 0 || selectedOrigins.length > 0 || priceRange[0] > 0 || priceRange[1] < maxPrice) && (
         <Button variant="outline" onClick={clearFilters} className="w-full">
             <X className="mr-2 h-4 w-4" /> Clear All Filters
         </Button>
