@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   Popover,
@@ -9,14 +9,73 @@ import {
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Send, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { MessageSquare, Send, X, Leaf } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
+type ChatMessage = {
+  id: number;
+  text: string;
+  sender: 'user' | 'bot';
+};
 
 export default function FloatingChatButton() {
   const pathname = usePathname();
-  const [message, setMessage] = useState('');
-  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
+
+  // Load messages from localStorage on mount
+  useEffect(() => {
+    try {
+      const storedMessages = localStorage.getItem('chat-messages');
+      if (storedMessages) {
+        setChatMessages(JSON.parse(storedMessages));
+      } else {
+        // Set initial welcome message if no history
+        setChatMessages([
+          {
+            id: 1,
+            text: 'Hello! How can we help you today? Ask us anything about our products or your order.',
+            sender: 'bot',
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to parse chat messages from localStorage', error);
+      // Set initial welcome message on error
+      setChatMessages([
+        {
+          id: 1,
+          text: 'Hello! How can we help you today? Ask us anything about our products or your order.',
+          sender: 'bot',
+        },
+      ]);
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    // We only save when there are messages to prevent overwriting with empty array on first load
+    if (chatMessages.length > 0) {
+      try {
+        localStorage.setItem('chat-messages', JSON.stringify(chatMessages));
+      } catch (error) {
+        console.error('Failed to save chat messages to localStorage', error);
+      }
+    }
+  }, [chatMessages]);
+
+  // Scroll to bottom when new messages are added
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        lastMessageRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [chatMessages, isOpen]);
 
   if (pathname.startsWith('/admin')) {
     return null;
@@ -25,13 +84,24 @@ export default function FloatingChatButton() {
   const handleSendMessage = () => {
     if (message.trim() === '') return;
 
-    // In a real app, this would send the message to a backend service.
-    console.log('Sending message to admin:', message);
-    toast({
-      title: 'Message Sent!',
-      description: "We've received your message and will get back to you soon.",
-    });
+    const userMessage: ChatMessage = {
+      id: Date.now(),
+      text: message,
+      sender: 'user',
+    };
+
+    setChatMessages((prev) => [...prev, userMessage]);
     setMessage('');
+
+    // Simulate bot response
+    setTimeout(() => {
+      const botResponse: ChatMessage = {
+        id: Date.now() + 1,
+        text: 'Thanks for reaching out! An agent will be with you shortly.',
+        sender: 'bot',
+      };
+      setChatMessages((prev) => [...prev, botResponse]);
+    }, 1500);
   };
 
   return (
@@ -39,11 +109,7 @@ export default function FloatingChatButton() {
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button size="icon" className="rounded-full w-14 h-14 shadow-lg">
-            {isOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <MessageSquare className="h-6 w-6" />
-            )}
+            {isOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
             <span className="sr-only">Open Chat</span>
           </Button>
         </PopoverTrigger>
@@ -60,15 +126,38 @@ export default function FloatingChatButton() {
                 We typically reply within a few minutes.
               </p>
             </div>
-            <div className="flex-grow p-4 bg-background overflow-y-auto">
-              {/* This is where chat history would be rendered */}
-              <div className="flex justify-center items-center h-full">
-                <p className="text-muted-foreground text-center px-4">
-                  Hello! How can we help you today? Ask us anything about our
-                  products or your order.
-                </p>
+            <ScrollArea className="flex-grow bg-background">
+              <div className="p-4 space-y-4">
+                {chatMessages.map((chat, index) => (
+                  <div
+                    key={chat.id}
+                    ref={index === chatMessages.length - 1 ? lastMessageRef : null}
+                    className={cn(
+                      'flex items-end gap-2',
+                      chat.sender === 'user' ? 'justify-end' : 'justify-start'
+                    )}
+                  >
+                    {chat.sender === 'bot' && (
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary-foreground border">
+                          <Leaf className="h-5 w-5 text-accent" />
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div
+                      className={cn(
+                        'max-w-[75%] rounded-lg px-3 py-2 text-sm shadow-sm',
+                        chat.sender === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {chat.text}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            </ScrollArea>
             <div className="p-2 border-t bg-background">
               <div className="flex items-center gap-2">
                 <Input
