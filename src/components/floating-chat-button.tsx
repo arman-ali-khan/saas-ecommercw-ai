@@ -8,15 +8,15 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { MessageSquare, Send } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { MessageSquare, Send, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function FloatingChatButton() {
   const pathname = usePathname();
   const [message, setMessage] = useState('');
   const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(false);
 
   if (pathname.startsWith('/admin')) {
     return null;
@@ -36,35 +36,63 @@ export default function FloatingChatButton() {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      <Popover>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button size="icon" className="rounded-full w-14 h-14 shadow-lg">
-            <MessageSquare className="h-6 w-6" />
+            {isOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <MessageSquare className="h-6 w-6" />
+            )}
             <span className="sr-only">Open Chat</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent side="top" align="end" sideOffset={16} className="w-80">
-          <div className="grid gap-4">
-            <div className="space-y-2 text-center">
-              <h4 className="font-medium leading-none">Chat with us</h4>
-              <p className="text-sm text-muted-foreground">
-                Have a question? We're here to help!
+        <PopoverContent
+          side="top"
+          align="end"
+          sideOffset={16}
+          className="w-80 sm:w-96 rounded-lg shadow-2xl p-0 overflow-hidden"
+        >
+          <div className="flex flex-col h-[50vh] max-h-[450px]">
+            <div className="p-4 bg-primary text-primary-foreground">
+              <h4 className="font-bold text-lg">Chat with Bangla Naturals</h4>
+              <p className="text-sm text-primary-foreground/90">
+                We typically reply within a few minutes.
               </p>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="chat-message" className="sr-only">
-                Your message
-              </Label>
-              <Textarea
-                id="chat-message"
-                placeholder="Type your message here..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={4}
-              />
-              <Button onClick={handleSendMessage} className="w-full">
-                Send Message <Send className="ml-2 h-4 w-4" />
-              </Button>
+            <div className="flex-grow p-4 bg-background overflow-y-auto">
+              {/* This is where chat history would be rendered */}
+              <div className="flex justify-center items-center h-full">
+                <p className="text-muted-foreground text-center px-4">
+                  Hello! How can we help you today? Ask us anything about our
+                  products or your order.
+                </p>
+              </div>
+            </div>
+            <div className="p-2 border-t bg-background">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="chat-message"
+                  placeholder="Type your message..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  className="flex-grow"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  size="icon"
+                  className="shrink-0"
+                  aria-label="Send Message"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </PopoverContent>
