@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 type Message = {
   id: string;
@@ -83,6 +84,7 @@ export default function LiveQuestionsAdminPage() {
   
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
   
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -244,8 +246,10 @@ export default function LiveQuestionsAdminPage() {
             )}
             
             {message.imageUrl && (
-              <div className="relative aspect-video w-64 max-w-full rounded-md overflow-hidden my-2 cursor-pointer">
-                {/* In a real app, you would open this in a modal onClick */}
+              <div 
+                className="relative aspect-video w-64 max-w-full rounded-md overflow-hidden my-2 cursor-pointer" 
+                onClick={() => setViewingImage(message.imageUrl!)}
+              >
                 <Image src={message.imageUrl} alt="Attached image" fill className="object-cover" />
               </div>
             )}
@@ -264,155 +268,170 @@ export default function LiveQuestionsAdminPage() {
   }
 
   return (
-    <Card className="h-[calc(100vh-5rem)] flex flex-col md:flex-row overflow-hidden">
-      <div
-        className={cn(
-          'w-full flex-col md:w-1/3 lg:w-1/4 border-b md:border-b-0 md:border-r',
-          selectedConversationId ? 'hidden md:flex' : 'flex'
-        )}
-      >
-        <div className="p-4 border-b">
-           <CardTitle>কথোপকথন</CardTitle>
-           <CardDescription>সরাসরি গ্রাহকদের উত্তর দিন</CardDescription>
-        </div>
-        <ScrollArea className="flex-1">
-          <div className="p-2">
-            {conversations.map((convo) => (
-              <button
-                key={convo.id}
-                onClick={() => setSelectedConversationId(convo.id)}
-                className={cn(
-                  'w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors',
-                  selectedConversationId === convo.id && 'md:bg-muted',
-                  'hover:bg-muted/50'
-                )}
-              >
-                <Avatar>
-                  <AvatarImage src={convo.avatar} alt={convo.customerName} />
-                  <AvatarFallback>{convo.customerName.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-grow truncate">
-                  <p className="font-semibold">{convo.customerName}</p>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {convo.messages[convo.messages.length - 1].text || 'Image'}
-                  </p>
-                </div>
-              </button>
-            ))}
+    <>
+      <Card className="h-[calc(100vh-5rem)] flex flex-col md:flex-row overflow-hidden">
+        <div
+          className={cn(
+            'w-full flex-col md:w-1/3 lg:w-1/4 border-b md:border-b-0 md:border-r',
+            selectedConversationId ? 'hidden md:flex' : 'flex'
+          )}
+        >
+          <div className="p-4 border-b">
+            <CardTitle>কথোপকথন</CardTitle>
+            <CardDescription>সরাসরি গ্রাহকদের উত্তর দিন</CardDescription>
           </div>
-        </ScrollArea>
-      </div>
-
-      <div
-        className={cn(
-          'flex-grow flex-col',
-          selectedConversationId ? 'flex' : 'hidden md:flex'
-        )}
-      >
-        {selectedConversation ? (
-          <>
-            <div className="p-4 border-b flex items-center gap-3">
-               <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden mr-2"
-                onClick={() => setSelectedConversationId(null)}
-              >
-                <ArrowLeft className="h-6 w-6" />
-              </Button>
-              <Avatar>
-                <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.customerName} />
-                <AvatarFallback>{selectedConversation.customerName.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold">{selectedConversation.customerName}</p>
-                <p className="text-xs text-green-500">সক্রিয়</p>
-              </div>
-            </div>
-            <ScrollArea className="flex-grow p-4" viewportRef={scrollViewportRef}>
-              <div className="space-y-4">
-                {selectedConversation.messages.map((message) => (
-                  <div key={message.id} className={cn(
-                      'flex items-end gap-2 max-w-[80%] group',
-                      message.sender === 'agent' ? 'ml-auto flex-row-reverse' : 'mr-auto'
-                    )}>
-                      {message.sender === 'agent' && <MessageActions message={message} />}
-                      {message.sender === 'user' && (
-                       <Avatar className="h-8 w-8 self-end">
-                         <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.customerName} />
-                         <AvatarFallback>{selectedConversation.customerName.charAt(0)}</AvatarFallback>
-                       </Avatar>
-                      )}
-                    <MessageBubble message={message} conversation={selectedConversation} />
-                    {message.sender === 'user' && <MessageActions message={message} />}
+          <ScrollArea className="flex-1">
+            <div className="p-2">
+              {conversations.map((convo) => (
+                <button
+                  key={convo.id}
+                  onClick={() => setSelectedConversationId(convo.id)}
+                  className={cn(
+                    'w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors',
+                    selectedConversationId === convo.id && 'md:bg-muted',
+                    'hover:bg-muted/50'
+                  )}
+                >
+                  <Avatar>
+                    <AvatarImage src={convo.avatar} alt={convo.customerName} />
+                    <AvatarFallback>{convo.customerName.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-grow truncate">
+                    <p className="font-semibold">{convo.customerName}</p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {convo.messages[convo.messages.length - 1].text || 'Image'}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-            
-            <div className="p-2 border-t bg-background">
-                {(replyingTo || editingMessage) && (
-                    <div className="px-2 pb-2 text-sm">
-                        <div className="flex justify-between items-center bg-muted p-2 rounded-md">
-                            {replyingTo && (
-                                <div>
-                                    <p className="font-semibold text-muted-foreground">Replying to {replyingTo.sender === 'agent' ? 'yourself' : selectedConversation?.customerName}</p>
-                                    <p className="text-muted-foreground truncate">{replyingTo.text}</p>
-                                </div>
-                            )}
-                            {editingMessage && (
-                                <div>
-                                    <p className="font-semibold text-muted-foreground">Editing message</p>
-                                </div>
-                            )}
-                            <Button variant="ghost" size="icon" onClick={() => { setReplyingTo(null); handleCancelEdit(); }}>
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                )}
-                <div className="flex items-end gap-2">
-                    <input type="file" ref={fileInputRef} onChange={handleImageSend} accept="image/*" className="hidden" />
-                    <Button variant="ghost" size="icon" className="shrink-0" onClick={() => fileInputRef.current?.click()}>
-                        <Paperclip className="h-5 w-5" />
-                        <span className="sr-only">Attach image</span>
-                    </Button>
-                    <div className="relative flex-grow">
-                        <Textarea
-                        placeholder={editingMessage ? "Edit message..." : "আপনার উত্তর লিখুন..."}
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                if (!newMessage.trim()) return;
-                                editingMessage ? handleSaveEdit() : handleSendMessage();
-                            }
-                        }}
-                        className="pr-12 min-h-[40px] max-h-[150px] resize-none"
-                        rows={1}
-                        />
-                        <Button
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                        onClick={editingMessage ? handleSaveEdit : handleSendMessage}
-                        disabled={!newMessage.trim()}
-                        >
-                        <Send className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
+                </button>
+              ))}
             </div>
+          </ScrollArea>
+        </div>
 
-          </>
-        ) : (
-          <div className="hidden md:flex flex-grow flex-col items-center justify-center text-center text-muted-foreground">
-            <MessageSquare className="h-16 w-16 mb-4" />
-            <h3 className="text-xl font-semibold">কথোপকথন নির্বাচন করুন</h3>
-            <p>একটি কথোপকথন নির্বাচন করে বার্তা দেখা শুরু করুন।</p>
-          </div>
-        )}
-      </div>
-    </Card>
+        <div
+          className={cn(
+            'flex-grow flex-col',
+            selectedConversationId ? 'flex' : 'hidden md:flex'
+          )}
+        >
+          {selectedConversation ? (
+            <>
+              <div className="p-4 border-b flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden mr-2"
+                  onClick={() => setSelectedConversationId(null)}
+                >
+                  <ArrowLeft className="h-6 w-6" />
+                </Button>
+                <Avatar>
+                  <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.customerName} />
+                  <AvatarFallback>{selectedConversation.customerName.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold">{selectedConversation.customerName}</p>
+                  <p className="text-xs text-green-500">সক্রিয়</p>
+                </div>
+              </div>
+              <ScrollArea className="flex-grow p-4" viewportRef={scrollViewportRef}>
+                <div className="space-y-4">
+                  {selectedConversation.messages.map((message) => (
+                    <div key={message.id} className={cn(
+                        'flex items-end gap-2 max-w-[80%] group',
+                        message.sender === 'agent' ? 'ml-auto flex-row-reverse' : 'mr-auto'
+                      )}>
+                        {message.sender === 'agent' && <MessageActions message={message} />}
+                        {message.sender === 'user' && (
+                        <Avatar className="h-8 w-8 self-end">
+                          <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.customerName} />
+                          <AvatarFallback>{selectedConversation.customerName.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        )}
+                      <MessageBubble message={message} conversation={selectedConversation} />
+                      {message.sender === 'user' && <MessageActions message={message} />}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              
+              <div className="p-2 border-t bg-background">
+                  {(replyingTo || editingMessage) && (
+                      <div className="px-2 pb-2 text-sm">
+                          <div className="flex justify-between items-center bg-muted p-2 rounded-md">
+                              {replyingTo && (
+                                  <div>
+                                      <p className="font-semibold text-muted-foreground">Replying to {replyingTo.sender === 'agent' ? 'yourself' : selectedConversation?.customerName}</p>
+                                      <p className="text-muted-foreground truncate">{replyingTo.text}</p>
+                                  </div>
+                              )}
+                              {editingMessage && (
+                                  <div>
+                                      <p className="font-semibold text-muted-foreground">Editing message</p>
+                                  </div>
+                              )}
+                              <Button variant="ghost" size="icon" onClick={() => { setReplyingTo(null); handleCancelEdit(); }}>
+                                  <X className="h-4 w-4" />
+                              </Button>
+                          </div>
+                      </div>
+                  )}
+                  <div className="flex items-end gap-2">
+                      <input type="file" ref={fileInputRef} onChange={handleImageSend} accept="image/*" className="hidden" />
+                      <Button variant="ghost" size="icon" className="shrink-0" onClick={() => fileInputRef.current?.click()}>
+                          <Paperclip className="h-5 w-5" />
+                          <span className="sr-only">Attach image</span>
+                      </Button>
+                      <div className="relative flex-grow">
+                          <Textarea
+                          placeholder={editingMessage ? "Edit message..." : "আপনার উত্তর লিখুন..."}
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          onKeyPress={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  if (!newMessage.trim()) return;
+                                  editingMessage ? handleSaveEdit() : handleSendMessage();
+                              }
+                          }}
+                          className="pr-12 min-h-[40px] max-h-[150px] resize-none"
+                          rows={1}
+                          />
+                          <Button
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                          onClick={editingMessage ? handleSaveEdit : handleSendMessage}
+                          disabled={!newMessage.trim()}
+                          >
+                          <Send className="h-4 w-4" />
+                          </Button>
+                      </div>
+                  </div>
+              </div>
+
+            </>
+          ) : (
+            <div className="hidden md:flex flex-grow flex-col items-center justify-center text-center text-muted-foreground">
+              <MessageSquare className="h-16 w-16 mb-4" />
+              <h3 className="text-xl font-semibold">কথোপকথন নির্বাচন করুন</h3>
+              <p>একটি কথোপকথন নির্বাচন করে বার্তা দেখা শুরু করুন।</p>
+            </div>
+          )}
+        </div>
+      </Card>
+      <Dialog open={!!viewingImage} onOpenChange={(open) => !open && setViewingImage(null)}>
+        <DialogContent className="max-w-4xl w-auto p-0 bg-transparent border-0 shadow-none">
+          {viewingImage && (
+              <Image
+                src={viewingImage}
+                alt="Image Preview"
+                width={1920}
+                height={1080}
+                className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+              />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
