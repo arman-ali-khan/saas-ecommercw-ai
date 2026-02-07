@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -16,9 +17,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
+// Using a more specific name to avoid confusion with the User 'name' property which is the username
 const profileSchema = z.object({
-  name: z.string().min(2, { message: 'নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
+  username: z.string().min(2, { message: 'ব্যবহারকারীর নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }).regex(/^[a-zA-Z0-9]+$/, 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।'),
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
 });
 
@@ -27,14 +33,44 @@ const passwordSchema = z.object({
     newPassword: z.string().min(6, { message: 'নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' }),
 });
 
+type UsernameStatus = 'IDLE' | 'CHECKING' | 'AVAILABLE' | 'TAKEN' | 'INVALID';
+
 export default function SettingsPage() {
     const { toast } = useToast();
-    const { user } = useAuth();
-
+    const { user, updateUser, checkUsername } = useAuth();
+    const router = useRouter();
+    const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('IDLE');
+    
     const profileForm = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
-        defaultValues: { name: user?.name || '', email: user?.email || '' },
+        defaultValues: { username: user?.name || '', email: user?.email || '' },
     });
+
+    const watchedUsername = profileForm.watch('username');
+
+    const checkUsernameAvailability = useCallback(
+        async (name: string) => {
+            if (!user || name === user.name) {
+                setUsernameStatus('IDLE');
+                return;
+            }
+            setUsernameStatus('CHECKING');
+            const status = await checkUsername(name, user.id);
+            setUsernameStatus(status);
+        },
+        [user, checkUsername]
+    );
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+          if (watchedUsername) {
+            checkUsernameAvailability(watchedUsername);
+          }
+        }, 500); // Debounce time
+    
+        return () => clearTimeout(timer);
+    }, [watchedUsername, checkUsernameAvailability]);
+
 
     const passwordForm = useForm<z.infer<typeof passwordSchema>>({
         resolver: zodResolver(passwordSchema),
@@ -42,14 +78,51 @@ export default function SettingsPage() {
     });
 
     function onProfileSubmit(values: z.infer<typeof profileSchema>) {
-        console.log(values);
-        toast({ title: 'প্রোফাইল আপডেট হয়েছে!' });
+        if (!user) return;
+        if (usernameStatus === 'TAKEN' || usernameStatus === 'INVALID') {
+            toast({
+                variant: 'destructive',
+                title: 'পরিবর্তনগুলি সংরক্ষণ করা যায়নি',
+                description: 'দয়া করে ব্যবহারকারীর নামের সমস্যাটি সমাধান করুন।',
+            });
+            return;
+        }
+
+        const updatedUser = updateUser(user.id, { name: values.username });
+
+        if (updatedUser) {
+            toast({ title: 'প্রোফাইল আপডেট হয়েছে!' });
+            // If username changed, redirect to the new page
+            if (updatedUser.name !== user.name) {
+                router.push(`/${updatedUser.name}/profile/settings`);
+            }
+        }
     }
 
     function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
         console.log(values);
         toast({ title: 'পাসওয়ার্ড পরিবর্তন হয়েছে!' });
         passwordForm.reset();
+    }
+
+    const UsernameStatusIndicator = () => {
+        if (usernameStatus === 'IDLE') return null;
+        
+        const messages: Record<UsernameStatus, {text: string; icon: React.ReactNode; className: string;}> = {
+            IDLE: { text: '', icon: null, className: '' },
+            CHECKING: { text: 'যাচাই করা হচ্ছে...', icon: <Loader2 className="animate-spin" />, className: 'text-muted-foreground' },
+            AVAILABLE: { text: 'ব্যবহারকারীর নামটি উপলব্ধ', icon: <CheckCircle2 />, className: 'text-green-500' },
+            TAKEN: { text: 'এই ব্যবহারকারীর নামটি ইতিমধ্যে ব্যবহৃত হচ্ছে', icon: <XCircle />, className: 'text-destructive' },
+            INVALID: { text: 'শুধুমাত্র অক্ষর এবং সংখ্যা অনুমোদিত', icon: <XCircle />, className: 'text-destructive' },
+        };
+        const currentStatus = messages[usernameStatus];
+        
+        return (
+            <div className={cn('flex items-center gap-2 text-sm', currentStatus.className)}>
+                {currentStatus.icon}
+                <span>{currentStatus.text}</span>
+            </div>
+        )
     }
 
   return (
@@ -64,13 +137,16 @@ export default function SettingsPage() {
             <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
               <FormField
                 control={profileForm.control}
-                name="name"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>পুরো নাম</FormLabel>
+                    <FormLabel>ব্যবহারকারীর নাম</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
+                    <FormDescription>
+                        <UsernameStatusIndicator />
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -84,11 +160,12 @@ export default function SettingsPage() {
                     <FormControl>
                       <Input {...field} readOnly />
                     </FormControl>
+                    <FormDescription>ইমেল পরিবর্তন করা যাবে না।</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit">পরিবর্তনগুলি সংরক্ষণ করুন</Button>
+              <Button type="submit" disabled={usernameStatus === 'CHECKING'}>পরিবর্তনগুলি সংরক্ষণ করুন</Button>
             </form>
           </Form>
         </CardContent>

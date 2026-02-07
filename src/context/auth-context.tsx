@@ -20,6 +20,8 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => User | null;
   logout: () => void;
   isLoading: boolean;
+  updateUser: (userId: string, updates: { name?: string; email?: string }) => User | null;
+  checkUsername: (username: string, userId: string) => Promise<'AVAILABLE' | 'TAKEN' | 'INVALID'>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -131,8 +133,74 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/');
   };
 
+  const updateUser = (userId: string, updates: { name?: string; email?: string }): User | null => {
+    try {
+      const storedUsers = localStorage.getItem('bangla-naturals-users');
+      const users: (User & { passwordHash: string })[] = storedUsers ? JSON.parse(storedUsers) : [];
+      
+      const userIndex = users.findIndex(u => u.id === userId);
+      if (userIndex === -1) {
+          toast({ variant: 'destructive', title: 'Error', description: 'User not found.' });
+          return null;
+      }
+
+      if (updates.name) {
+          if (/[^a-zA-Z0-9]/.test(updates.name)) {
+               toast({
+                variant: 'destructive',
+                title: 'অবৈধ ব্যবহারকারীর নাম',
+                description: 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।',
+              });
+              return null;
+          }
+          const isUsernameTaken = users.some(u => u.name.toLowerCase() === updates.name?.toLowerCase() && u.id !== userId);
+          if (isUsernameTaken) {
+              toast({ variant: 'destructive', title: 'ব্যবহারকারীর নাম বিদ্যমান', description: 'এই ব্যবহারকারীর নামটি ইতিমধ্যে ব্যবহৃত হচ্ছে।' });
+              return null;
+          }
+      }
+      
+      const currentUser = users[userIndex];
+      const updatedUserWithPassword = { ...currentUser, ...updates };
+      users[userIndex] = updatedUserWithPassword;
+
+      const { passwordHash, ...userToStore } = updatedUserWithPassword;
+
+      localStorage.setItem('bangla-naturals-users', JSON.stringify(users));
+      localStorage.setItem('bangla-naturals-user', JSON.stringify(userToStore));
+      setUser(userToStore);
+
+      return userToStore;
+    } catch (e) {
+      console.error('Update failed', e);
+      toast({
+        variant: 'destructive',
+        title: 'একটি ত্রুটি ঘটেছে',
+        description: 'আপনার প্রোফাইল আপডেট করা যায়নি।',
+      });
+      return null;
+    }
+  };
+
+  const checkUsername = async (username: string, userId: string): Promise<'AVAILABLE' | 'TAKEN' | 'INVALID'> => {
+    if (/[^a-zA-Z0-9]/.test(username)) {
+        return 'INVALID';
+    }
+    try {
+        const storedUsers = localStorage.getItem('bangla-naturals-users');
+        const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+        const isTaken = users.some(u => u.name.toLowerCase() === username.toLowerCase() && u.id !== userId);
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        return isTaken ? 'TAKEN' : 'AVAILABLE';
+    } catch {
+        return 'TAKEN';
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading, updateUser, checkUsername }}>
       {children}
     </AuthContext.Provider>
   );
