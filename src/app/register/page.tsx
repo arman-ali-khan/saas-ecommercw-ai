@@ -29,8 +29,8 @@ const formSchema = z.object({
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const siteName = searchParams.get('siteName');
-  const domain = searchParams.get('domain');
+  const siteName = searchParams.get('siteName') || '';
+  const domain = searchParams.get('domain') || '';
 
   const { register } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,13 +44,7 @@ export default function RegisterPage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const registeredUser = register(values.name, values.fullName, values.email, values.password);
-    if (registeredUser) {
-      // Logic for what to do with siteName and domain would go here.
-      // For this prototype, we just redirect.
-      // The auth context handles redirection now.
-      // router.push(`/${registeredUser.name}/profile`);
-    }
+    register(values.name, values.fullName, values.email, values.password, domain, siteName);
   }
 
   return (

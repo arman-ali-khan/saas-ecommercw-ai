@@ -30,9 +30,9 @@ export default function Header() {
   const { user, logout, isLoading } = useAuth();
   
   const segments = pathname.split('/').filter(Boolean);
-  const KNOWN_ROOT_PATHS = ['admin', 'login', 'register', 'profile'];
-  const username = segments.length > 0 && !KNOWN_ROOT_PATHS.includes(segments[0]) ? segments[0] : null;
-  const basePath = username ? `/${username}` : '';
+  const KNOWN_ROOT_PATHS = ['admin', 'login', 'register', 'profile', 'get-started'];
+  const domain = segments.length > 0 && !KNOWN_ROOT_PATHS.includes(segments[0]) ? segments[0] : (user ? user.domain : null);
+  const basePath = domain ? `/${domain}` : '';
 
   const navLinks = [
     { href: basePath || '/', label: 'হোম' },
@@ -40,8 +40,8 @@ export default function Header() {
     { href: `${basePath}/about`, label: 'আমাদের সম্পর্কে' },
   ];
   
-  if (user?.email === 'admin@example.com' && user?.name) {
-      navLinks.push({ href: `/${user.name}/admin`, label: 'অ্যাডমিন' });
+  if (user?.email === 'admin@example.com' && user?.domain) {
+      navLinks.push({ href: `/${user.domain}/admin`, label: 'অ্যাডমিন' });
   }
 
 
@@ -54,8 +54,10 @@ export default function Header() {
     label: string;
     className?: string;
   }) => {
-    // Exact match for home, partial for others
-    const isActive = href === (basePath || '/') ? pathname === href : pathname.startsWith(href);
+    // Exact match for home, partial for others.
+    const isActive = href === (basePath || '/') 
+      ? pathname === href 
+      : (pathname.startsWith(href) && href.length > (basePath || '/').length);
     
     return (
       <Link
@@ -81,7 +83,7 @@ export default function Header() {
              </SheetClose>
              <SheetClose asChild>
                <Button asChild className="w-full">
-                 <Link href="/register">সাইন আপ</Link>
+                 <Link href="/get-started">সাইন আপ</Link>
                </Button>
              </SheetClose>
            </div>
@@ -139,7 +141,7 @@ export default function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{user.fullName.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -154,14 +156,14 @@ export default function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={`/${user.name}/profile`}>
+                  <Link href={`/${user.domain}/profile`}>
                     <User className="mr-2 h-4 w-4" />
                     <span>প্রোফাইল</span>
                   </Link>
                 </DropdownMenuItem>
-                {user.name && (
+                {user.domain && (
                    <DropdownMenuItem asChild>
-                     <Link href={`/${user.name}/admin`}>
+                     <Link href={`/${user.domain}/admin`}>
                        <LayoutDashboard className="mr-2 h-4 w-4" />
                        <span>ড্যাশবোর্ড</span>
                      </Link>
@@ -180,7 +182,7 @@ export default function Header() {
                 <Link href="/login">লগ ইন</Link>
               </Button>
               <Button asChild>
-                <Link href="/register">সাইন আপ করুন</Link>
+                <Link href="/get-started">সাইন আপ করুন</Link>
               </Button>
             </div>
           )}

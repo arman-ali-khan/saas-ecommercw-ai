@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Facebook, Twitter } from 'lucide-react';
 import Logo from './logo';
+import { useAuth } from '@/context/auth-context';
 
 const TikTokIcon = () => (
   <svg
@@ -28,10 +29,11 @@ const TikTokIcon = () => (
 
 export default function Footer() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const segments = pathname.split('/').filter(Boolean);
-  const KNOWN_ROOT_PATHS = ['admin', 'login', 'register', 'profile'];
-  const username = segments.length > 0 && !KNOWN_ROOT_PATHS.includes(segments[0]) ? segments[0] : null;
-  const basePath = username ? `/${username}` : '';
+  const KNOWN_ROOT_PATHS = ['admin', 'login', 'register', 'profile', 'get-started'];
+  const domain = segments.length > 0 && !KNOWN_ROOT_PATHS.includes(segments[0]) ? segments[0] : (user ? user.domain : null);
+  const basePath = domain ? `/${domain}` : '';
   
   return (
     <footer className="bg-secondary text-secondary-foreground">

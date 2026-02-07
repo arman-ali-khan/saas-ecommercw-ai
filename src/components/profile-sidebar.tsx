@@ -16,7 +16,7 @@ export default function ProfileSidebar({ username }: { username: string }) {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  if (!user || user.name !== username) {
+  if (!user || user.domain !== username) {
     return null;
   }
 

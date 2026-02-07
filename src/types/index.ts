@@ -22,4 +22,6 @@ export interface User {
   name: string;
   fullName: string;
   email: string;
+  domain: string;
+  siteName: string;
 }

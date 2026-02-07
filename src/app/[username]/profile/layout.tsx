@@ -20,17 +20,18 @@ export default function ProfileLayout({
     if (!isLoading && !user) {
       router.push('/login');
     }
-    if (!isLoading && user && user.name !== username) {
-      // Redirect to the correct user's page, preserving the sub-path
+    // If there is a user, and the domain in the URL doesn't match the user's domain,
+    // redirect them to their own profile page.
+    if (!isLoading && user && user.domain !== username) {
       const newPath = pathname.replace(
         `/${username}/`,
-        `/${user.name}/`
+        `/${user.domain}/`
       );
       router.replace(newPath);
     }
   }, [user, isLoading, username, router, pathname]);
 
-  if (isLoading || !user || user.name !== username) {
+  if (isLoading || !user || user.domain !== username) {
     // You can return a loading skeleton here
     return <div>Loading...</div>;
   }

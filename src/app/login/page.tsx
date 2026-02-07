@@ -25,7 +25,6 @@ const formSchema = z.object({
 });
 
 export default function LoginPage() {
-  const router = useRouter();
   const { login } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,10 +35,7 @@ export default function LoginPage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const loggedInUser = login(values.email, values.password);
-    if (loggedInUser) {
-      router.push(`/${loggedInUser.name}/profile`);
-    }
+    login(values.email, values.password);
   }
 
   return (

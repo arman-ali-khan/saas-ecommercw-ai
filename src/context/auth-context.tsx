@@ -17,10 +17,10 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => User | null;
-  register: (name: string, fullName: string, email: string, password: string) => User | null;
+  register: (name: string, fullName: string, email: string, password: string, domain: string, siteName: string) => User | null;
   logout: () => void;
   isLoading: boolean;
-  updateUser: (userId: string, updates: { name?: string; fullName?: string; email?: string }) => User | null;
+  updateUser: (userId: string, updates: { fullName?: string; }) => User | null;
   checkUsername: (username: string, userId: string) => Promise<'AVAILABLE' | 'TAKEN' | 'INVALID'>;
 }
 
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('bangla-naturals-user', JSON.stringify(userToStore));
         setUser(userToStore);
         toast({ title: 'লগইন সফল', description: `আবারও স্বাগতম, ${userToStore.fullName}!` });
-        router.push(`/${userToStore.name}/profile`);
+        router.push(`/${userToStore.domain}/profile`);
         return userToStore;
       }
       toast({
@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = (name: string, fullName: string, email: string, password: string): User | null => {
+  const register = (name: string, fullName: string, email: string, password: string, domain: string, siteName: string): User | null => {
     try {
       const storedUsers = localStorage.getItem('bangla-naturals-users');
       const users: (User & { passwordHash: string })[] = storedUsers
@@ -96,6 +96,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
       
+      if (users.some((u) => u.name.toLowerCase() === name.toLowerCase())) {
+        toast({
+          variant: 'destructive',
+          title: 'ব্যবহারকারীর নাম বিদ্যমান',
+          description: 'এই ব্যবহারকারীর নামটি ইতিমধ্যে ব্যবহৃত হচ্ছে।',
+        });
+        return null;
+      }
+      
+      if (domain && users.some((u) => u.domain.toLowerCase() === domain.toLowerCase())) {
+        toast({
+          variant: 'destructive',
+          title: 'ডোমেইন নাম বিদ্যমান',
+          description: 'এই ডোমেইন নামটি ইতিমধ্যে ব্যবহৃত হচ্ছে।',
+        });
+        return null;
+      }
+
       if (/[^a-zA-Z0-9]/.test(name)) {
         toast({
           variant: 'destructive',
@@ -104,8 +122,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         return null;
       }
+      
+      if (!domain) {
+        toast({
+          variant: 'destructive',
+          title: 'নিবন্ধন ব্যর্থ',
+          description: 'ডোমেইন নাম প্রয়োজন।',
+        });
+        return null;
+      }
 
-      const newUser: User = { id: Date.now().toString(), name, fullName, email };
+      const newUser: User = { id: Date.now().toString(), name, fullName, email, domain, siteName };
       const newUserWithPassword = { ...newUser, passwordHash: password }; // Store password directly for demo
 
       users.push(newUserWithPassword);
@@ -113,7 +140,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('bangla-naturals-user', JSON.stringify(newUser));
       setUser(newUser);
       toast({ title: 'নিবন্ধন সফল', description: `স্বাগতম, ${fullName}!` });
-      router.push(`/${newUser.name}/profile`);
+      router.push(`/${newUser.domain}/profile`);
       return newUser;
     } catch (e) {
       console.error('Registration failed', e);
@@ -133,7 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/');
   };
 
-  const updateUser = (userId: string, updates: { name?: string; fullName?: string; email?: string }): User | null => {
+  const updateUser = (userId: string, updates: { fullName?: string; }): User | null => {
     try {
       const storedUsers = localStorage.getItem('bangla-naturals-users');
       const users: (User & { passwordHash: string })[] = storedUsers ? JSON.parse(storedUsers) : [];
@@ -142,22 +169,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (userIndex === -1) {
           toast({ variant: 'destructive', title: 'Error', description: 'User not found.' });
           return null;
-      }
-
-      if (updates.name) {
-          if (/[^a-zA-Z0-9]/.test(updates.name)) {
-               toast({
-                variant: 'destructive',
-                title: 'অবৈধ ব্যবহারকারীর নাম',
-                description: 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।',
-              });
-              return null;
-          }
-          const isUsernameTaken = users.some(u => u.name.toLowerCase() === updates.name?.toLowerCase() && u.id !== userId);
-          if (isUsernameTaken) {
-              toast({ variant: 'destructive', title: 'ব্যবহারকারীর নাম বিদ্যমান', description: 'এই ব্যবহারকারীর নামটি ইতিমধ্যে ব্যবহৃত হচ্ছে।' });
-              return null;
-          }
       }
       
       const currentUser = users[userIndex];
