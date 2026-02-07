@@ -45,69 +45,71 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex items-center justify-center">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">অ্যাকাউন্ট তৈরি করুন</CardTitle>
-          <CardDescription>
-            আমাদের সাথে আপনার যাত্রা শুরু করতে বাংলা ন্যাচারালস-এ যোগ দিন।
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>পুরো নাম</FormLabel>
-                    <FormControl>
-                      <Input placeholder="আপনার নাম" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ইমেল</FormLabel>
-                    <FormControl>
-                      <Input placeholder="you@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>পাসওয়ার্ড</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full">
-                অ্যাকাউন্ট তৈরি করুন
-              </Button>
-            </form>
-          </Form>
-          <div className="mt-6 text-center text-sm">
-            ইতিমধ্যে একটি অ্যাকাউন্ট আছে?{' '}
-            <Link href="/login" className="font-medium text-primary hover:underline">
-              সাইন ইন
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">অ্যাকাউন্ট তৈরি করুন</CardTitle>
+            <CardDescription>
+              আমাদের সাথে আপনার যাত্রা শুরু করতে বাংলা ন্যাচারালস-এ যোগ দিন।
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>পুরো নাম</FormLabel>
+                      <FormControl>
+                        <Input placeholder="আপনার নাম" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ইমেল</FormLabel>
+                      <FormControl>
+                        <Input placeholder="you@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>পাসওয়ার্ড</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full">
+                  অ্যাকাউন্ট তৈরি করুন
+                </Button>
+              </form>
+            </Form>
+            <div className="mt-6 text-center text-sm">
+              ইতিমধ্যে একটি অ্যাকাউন্ট আছে?{' '}
+              <Link href="/login" className="font-medium text-primary hover:underline">
+                সাইন ইন
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
   );
 }

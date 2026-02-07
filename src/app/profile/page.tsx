@@ -21,39 +21,43 @@ export default function ProfilePage() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader className="items-center text-center">
-             <Skeleton className="h-24 w-24 rounded-full" />
-             <Skeleton className="h-8 w-40 mt-4" />
-             <Skeleton className="h-4 w-48 mt-2" />
-          </CardHeader>
-          <CardContent className="text-center">
-             <Skeleton className="h-10 w-full mt-4" />
-          </CardContent>
-        </Card>
-      </div>
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader className="items-center text-center">
+               <Skeleton className="h-24 w-24 rounded-full" />
+               <Skeleton className="h-8 w-40 mt-4" />
+               <Skeleton className="h-4 w-48 mt-2" />
+            </CardHeader>
+            <CardContent className="text-center">
+               <Skeleton className="h-10 w-full mt-4" />
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="flex items-center justify-center">
-      <Card className="w-full max-w-md">
-        <CardHeader className="items-center text-center">
-            <Avatar className="h-24 w-24 text-4xl">
-                <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <CardTitle className="text-2xl font-bold mt-4">{user.name}</CardTitle>
-            <CardDescription>{user.email}</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-            <p className="text-muted-foreground mb-6">এটি আপনার প্রোফাইল পৃষ্ঠা। আরও বৈশিষ্ট্য শীঘ্রই আসছে!</p>
-            <Button onClick={logout} variant="destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              লগআউট
-            </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="items-center text-center">
+              <Avatar className="h-24 w-24 text-4xl">
+                  <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <CardTitle className="text-2xl font-bold mt-4">{user.name}</CardTitle>
+              <CardDescription>{user.email}</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+              <p className="text-muted-foreground mb-6">এটি আপনার প্রোফাইল পৃষ্ঠা। আরও বৈশিষ্ট্য শীঘ্রই আসছে!</p>
+              <Button onClick={logout} variant="destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                লগআউট
+              </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
   );
 }
