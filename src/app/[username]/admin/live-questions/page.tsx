@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,6 +64,20 @@ export default function LiveQuestionsAdminPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
 
+  // This hook will add/remove a class from the body to hide the bottom nav
+  useEffect(() => {
+    const isMobileChatView = selectedConversationId && window.innerWidth < 768;
+    if (isMobileChatView) {
+      document.body.classList.add('chat-view-active');
+    } else {
+      document.body.classList.remove('chat-view-active');
+    }
+    // Cleanup function to remove the class when the component unmounts
+    return () => {
+      document.body.classList.remove('chat-view-active');
+    };
+  }, [selectedConversationId]);
+
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   
   const handleSendMessage = () => {
@@ -88,7 +102,7 @@ export default function LiveQuestionsAdminPage() {
 
 
   return (
-    <Card className="h-[calc(100vh-5rem)] flex md:flex-row overflow-hidden">
+    <Card className="h-[calc(100vh-5rem)] flex flex-col md:flex-row overflow-hidden">
       {/* Conversation List */}
       <div
         className={cn(

@@ -83,3 +83,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .chat-view-active .admin-bottom-nav {
+    display: none;
+  }
+}

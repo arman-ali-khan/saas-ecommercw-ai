@@ -47,7 +47,7 @@ export default function AdminBottomNav({ username }: { username: string }) {
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border z-50 p-1">
+    <div className="admin-bottom-nav md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border z-50 p-1">
       <div className="grid h-16 grid-cols-5 gap-1">
         <Sheet>
           <SheetTrigger asChild>
