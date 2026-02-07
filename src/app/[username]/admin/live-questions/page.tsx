@@ -7,12 +7,10 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Card,
-  CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { MessageSquare, Send } from 'lucide-react';
+import { MessageSquare, Send, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Message = {
@@ -63,7 +61,7 @@ const mockConversations: Conversation[] = [
 
 export default function LiveQuestionsAdminPage() {
   const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(conversations[0]?.id || null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
@@ -90,14 +88,19 @@ export default function LiveQuestionsAdminPage() {
 
 
   return (
-    <Card className="h-[calc(100vh-5rem)] flex flex-col md:flex-row">
+    <Card className="h-[calc(100vh-5rem)] flex md:flex-row overflow-hidden">
       {/* Conversation List */}
-      <div className="w-full md:w-1/3 lg:w-1/4 border-b md:border-b-0 md:border-r">
+      <div
+        className={cn(
+          'w-full flex-col md:w-1/3 lg:w-1/4 border-b md:border-b-0 md:border-r',
+          selectedConversationId ? 'hidden md:flex' : 'flex'
+        )}
+      >
         <div className="p-4 border-b">
            <CardTitle>কথোপকথন</CardTitle>
            <CardDescription>সরাসরি গ্রাহকদের উত্তর দিন</CardDescription>
         </div>
-        <ScrollArea className="h-[20vh] md:h-full">
+        <ScrollArea className="flex-1">
           <div className="p-2">
             {conversations.map((convo) => (
               <button
@@ -105,9 +108,8 @@ export default function LiveQuestionsAdminPage() {
                 onClick={() => setSelectedConversationId(convo.id)}
                 className={cn(
                   'w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors',
-                  selectedConversationId === convo.id
-                    ? 'bg-muted'
-                    : 'hover:bg-muted/50'
+                  selectedConversationId === convo.id && 'md:bg-muted', // Only show active state on desktop
+                  'hover:bg-muted/50'
                 )}
               >
                 <Avatar>
@@ -127,10 +129,23 @@ export default function LiveQuestionsAdminPage() {
       </div>
 
       {/* Chat View */}
-      <div className="flex-grow flex flex-col">
+      <div
+        className={cn(
+          'flex-grow flex-col',
+          selectedConversationId ? 'flex' : 'hidden md:flex'
+        )}
+      >
         {selectedConversation ? (
           <>
             <div className="p-4 border-b flex items-center gap-3">
+               <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden mr-2"
+                onClick={() => setSelectedConversationId(null)}
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </Button>
               <Avatar>
                 <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.customerName} />
                 <AvatarFallback>{selectedConversation.customerName.charAt(0)}</AvatarFallback>
@@ -199,7 +214,7 @@ export default function LiveQuestionsAdminPage() {
             </div>
           </>
         ) : (
-          <div className="flex-grow flex flex-col items-center justify-center text-center text-muted-foreground">
+          <div className="hidden md:flex flex-grow flex-col items-center justify-center text-center text-muted-foreground">
             <MessageSquare className="h-16 w-16 mb-4" />
             <h3 className="text-xl font-semibold">কথোপকথন নির্বাচন করুন</h3>
             <p>একটি কথোপকথন নির্বাচন করে বার্তা দেখা শুরু করুন।</p>
