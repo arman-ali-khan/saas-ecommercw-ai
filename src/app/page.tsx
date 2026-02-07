@@ -16,7 +16,9 @@ import {
 } from '@/components/ui/carousel';
 
 export default function Home() {
-  const featuredProducts = getProducts().slice(0, 3);
+  const allProducts = getProducts();
+  const featuredProducts = allProducts.slice(0, 3);
+  const categories = [...new Set(allProducts.map((p) => p.category))];
   const aboutImage = PlaceHolderImages.find(
     (img) => img.id === 'about-traceability'
   );
@@ -286,6 +288,32 @@ export default function Home() {
           </Carousel>
         </div>
       </section>
+
+      {categories.map((category) => {
+        const categoryProducts = allProducts
+          .filter((p) => p.category === category)
+          .slice(0, 3);
+
+        if (categoryProducts.length === 0) return null;
+
+        return (
+          <section key={category}>
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl font-headline font-bold">{category}</h2>
+              <Button asChild variant="ghost">
+                <Link href="/products">
+                  সব দেখুন <ArrowRight className="ml-2" />
+                </Link>
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {categoryProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
