@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('bangla-naturals-user', JSON.stringify(userToStore));
         setUser(userToStore);
         toast({ title: 'লগইন সফল', description: `আবারও স্বাগতম, ${userToStore.name}!` });
-        router.push(`/profile/${userToStore.id}`);
+        router.push(`/${userToStore.name}/profile`);
         return userToStore;
       }
       toast({
@@ -93,6 +93,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         return null;
       }
+      
+      if (/[^a-zA-Z0-9]/.test(name)) {
+        toast({
+          variant: 'destructive',
+          title: 'নিবন্ধন ব্যর্থ',
+          description: 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।',
+        });
+        return null;
+      }
 
       const newUser: User = { id: Date.now().toString(), name, email };
       const newUserWithPassword = { ...newUser, passwordHash: password }; // Store password directly for demo
@@ -102,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('bangla-naturals-user', JSON.stringify(newUser));
       setUser(newUser);
       toast({ title: 'নিবন্ধন সফল', description: `স্বাগতম, ${name}!` });
-      router.push(`/profile/${newUser.id}`);
+      router.push(`/${newUser.name}/profile`);
       return newUser;
     } catch (e) {
       console.error('Registration failed', e);

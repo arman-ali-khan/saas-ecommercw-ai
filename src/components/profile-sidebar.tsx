@@ -12,20 +12,20 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 
-export default function ProfileSidebar({ userID }: { userID: string }) {
+export default function ProfileSidebar({ username }: { username: string }) {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  if (!user || user.id !== userID) {
+  if (!user || user.name !== username) {
     return null;
   }
 
   const navLinks = [
-    { href: `/profile/${user.id}`, label: 'ড্যাশবোর্ড', icon: User },
-    { href: `/admin/${user.id}/products`, label: 'পণ্য পরিচালনা', icon: Package },
-    { href: `/admin/${user.id}/orders`, label: 'অর্ডার পরিচালনা', icon: ShoppingBag },
-    { href: `/profile/${user.id}/addresses`, label: 'ঠিকানা বই', icon: MapPin },
-    { href: `/profile/${user.id}/settings`, label: 'অ্যাকাউন্ট সেটিংস', icon: Settings },
+    { href: `/${username}/profile`, label: 'ড্যাশবোর্ড', icon: User },
+    { href: `/${username}/admin/products`, label: 'পণ্য পরিচালনা', icon: Package },
+    { href: `/${username}/admin/orders`, label: 'অর্ডার পরিচালনা', icon: ShoppingBag },
+    { href: `/${username}/profile/addresses`, label: 'ঠিকানা বই', icon: MapPin },
+    { href: `/${username}/profile/settings`, label: 'অ্যাকাউন্ট সেটিংস', icon: Settings },
   ];
 
   const NavLink = ({

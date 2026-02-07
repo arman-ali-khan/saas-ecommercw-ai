@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/context/auth-context';
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
+  name: z.string().min(2, { message: 'নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }).regex(/^[a-zA-Z0-9]+$/, 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।'),
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
   password: z.string().min(6, { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' }),
 });
@@ -40,7 +40,8 @@ export default function RegisterPage() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     const registeredUser = register(values.name, values.email, values.password);
     if (registeredUser) {
-      router.push(`/${registeredUser.name}/profile`);
+      // The auth context handles redirection now.
+      // router.push(`/${registeredUser.name}/profile`);
     }
   }
 
@@ -62,9 +63,9 @@ export default function RegisterPage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>পুরো নাম</FormLabel>
+                      <FormLabel>ব্যবহারকারীর নাম</FormLabel>
                       <FormControl>
-                        <Input placeholder="আপনার নাম" {...field} />
+                        <Input placeholder="আপনার ব্যবহারকারীর নাম (কোনো স্পেস নেই)" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

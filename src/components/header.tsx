@@ -40,8 +40,8 @@ export default function Header() {
     { href: `${basePath}/about`, label: 'আমাদের সম্পর্কে' },
   ];
   
-  if (user?.email === 'admin@example.com') {
-      navLinks.push({ href: user ? `/admin/${user.id}`: '/login', label: 'অ্যাডমিন' });
+  if (user?.email === 'admin@example.com' && user?.name) {
+      navLinks.push({ href: `/${user.name}/admin`, label: 'অ্যাডমিন' });
   }
 
 
@@ -154,14 +154,14 @@ export default function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={`/profile/${user.id}`}>
+                  <Link href={`/${user.name}/profile`}>
                     <User className="mr-2 h-4 w-4" />
                     <span>প্রোফাইল</span>
                   </Link>
                 </DropdownMenuItem>
                 {user.name && (
                    <DropdownMenuItem asChild>
-                     <Link href={`/admin/${user.id}`}>
+                     <Link href={`/${user.name}/admin`}>
                        <LayoutDashboard className="mr-2 h-4 w-4" />
                        <span>ড্যাশবোর্ড</span>
                      </Link>
