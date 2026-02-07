@@ -84,15 +84,6 @@ export default function SettingsPage() {
                   </FormItem>
                 )}
               />
-              <FormItem>
-                <FormLabel>ব্যবহারকারীর নাম</FormLabel>
-                <FormControl>
-                  <Input value={user?.name || ''} readOnly />
-                </FormControl>
-                <FormDescription>
-                  ব্যবহারকারীর নাম পরিবর্তন করা যাবে না।
-                </FormDescription>
-              </FormItem>
                <FormItem>
                 <FormLabel>ইমেল</FormLabel>
                 <FormControl>
