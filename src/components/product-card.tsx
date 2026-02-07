@@ -1,18 +1,27 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Product } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Button } from './ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
+import { useCart } from '@/context/cart-context';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { addToCart } = useCart();
+
+  const handleAddToCart = () => {
+    addToCart(product, 1);
+  };
+
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-      <Link href={`/products/${product.id}`} className="flex flex-col h-full">
+      <Link href={`/products/${product.id}`} className="block">
         <CardHeader className="p-0">
           <div className="relative w-full h-56">
             <Image
@@ -29,15 +38,16 @@ export default function ProductCard({ product }: ProductCardProps) {
           <h3 className="text-xl font-headline font-semibold">{product.name}</h3>
           <p className="text-muted-foreground mt-1">{product.description}</p>
         </CardContent>
-        <CardFooter className="p-4 mt-auto flex justify-between items-center">
-          <p className="text-lg font-bold text-primary">
-            {product.price.toFixed(2)} {product.currency}
-          </p>
-          <Button variant="ghost" size="sm">
-            View <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </CardFooter>
       </Link>
+      <CardFooter className="p-4 mt-auto flex justify-between items-center">
+        <p className="text-lg font-bold text-primary">
+          {product.price.toFixed(2)} {product.currency}
+        </p>
+        <Button onClick={handleAddToCart}>
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          Add to Cart
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
