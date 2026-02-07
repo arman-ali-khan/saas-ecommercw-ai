@@ -36,9 +36,9 @@ export default function LoginPage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const success = login(values.email, values.password);
-    if (success) {
-      router.push('/profile');
+    const loggedInUser = login(values.email, values.password);
+    if (loggedInUser) {
+      router.push(`/${loggedInUser.name}/profile`);
     }
   }
 

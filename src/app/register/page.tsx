@@ -38,9 +38,9 @@ export default function RegisterPage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const success = register(values.name, values.email, values.password);
-    if (success) {
-      router.push('/profile');
+    const registeredUser = register(values.name, values.email, values.password);
+    if (registeredUser) {
+      router.push(`/${registeredUser.name}/profile`);
     }
   }
 

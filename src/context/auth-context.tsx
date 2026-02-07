@@ -16,8 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
-  register: (name: string, email: string, password: string) => boolean;
+  login: (email: string, password: string) => User | null;
+  register: (name: string, email: string, password: string) => User | null;
   logout: () => void;
   isLoading: boolean;
 }
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = (email: string, password: string): boolean => {
+  const login = (email: string, password: string): User | null => {
     try {
       const storedUsers = localStorage.getItem('bangla-naturals-users');
       const users: (User & { passwordHash: string })[] = storedUsers
@@ -58,14 +58,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('bangla-naturals-user', JSON.stringify(userToStore));
         setUser(userToStore);
         toast({ title: 'লগইন সফল', description: `আবারও স্বাগতম, ${userToStore.name}!` });
-        return true;
+        return userToStore;
       }
       toast({
         variant: 'destructive',
         title: 'লগইন ব্যর্থ',
         description: 'অবৈধ ইমেল বা পাসওয়ার্ড।',
       });
-      return false;
+      return null;
     } catch (e) {
       console.error('Login failed', e);
       toast({
@@ -73,11 +73,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: 'একটি ত্রুটি ঘটেছে',
         description: 'আপনার লগইন অনুরোধ প্রক্রিয়া করা যায়নি।',
       });
-      return false;
+      return null;
     }
   };
 
-  const register = (name: string, email: string, password: string): boolean => {
+  const register = (name: string, email: string, password: string): User | null => {
     try {
       const storedUsers = localStorage.getItem('bangla-naturals-users');
       const users: (User & { passwordHash: string })[] = storedUsers
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           title: 'নিবন্ধন ব্যর্থ',
           description: 'এই ইমেল দিয়ে একটি অ্যাকাউন্ট ইতিমধ্যে বিদ্যমান।',
         });
-        return false;
+        return null;
       }
 
       const newUser: User = { id: Date.now().toString(), name, email };
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('bangla-naturals-user', JSON.stringify(newUser));
       setUser(newUser);
       toast({ title: 'নিবন্ধন সফল', description: `স্বাগতম, ${name}!` });
-      return true;
+      return newUser;
     } catch (e) {
       console.error('Registration failed', e);
       toast({
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: 'একটি ত্রুটি ঘটেছে',
         description: 'আপনার নিবন্ধন অনুরোধ প্রক্রিয়া করা যায়নি।',
       });
-      return false;
+      return null;
     }
   };
 
