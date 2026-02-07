@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Package,
   ShoppingBag,
   MapPin,
   Settings,
   User,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
@@ -22,8 +22,8 @@ export default function ProfileSidebar({ username }: { username: string }) {
 
   const navLinks = [
     { href: `/${username}/profile`, label: 'ড্যাশবোর্ড', icon: User },
-    { href: `/${username}/admin/products`, label: 'পণ্য পরিচালনা', icon: Package },
-    { href: `/${username}/admin/orders`, label: 'অর্ডার পরিচালনা', icon: ShoppingBag },
+    { href: `/${username}/profile/orders`, label: 'আমার অর্ডার', icon: ShoppingBag },
+    { href: `/${username}/profile/reviews`, label: 'আমার রিভিউ', icon: Star },
     { href: `/${username}/profile/addresses`, label: 'ঠিকানা বই', icon: MapPin },
     { href: `/${username}/profile/settings`, label: 'অ্যাকাউন্ট সেটিংস', icon: Settings },
   ];
