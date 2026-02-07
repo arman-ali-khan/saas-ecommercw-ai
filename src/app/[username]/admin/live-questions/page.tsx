@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,6 +15,7 @@ import {
   Trash2,
   MoreHorizontal,
   X,
+  Paperclip,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -31,6 +33,7 @@ type Message = {
   timestamp: string;
   replyingToId?: string;
   edited?: boolean;
+  imageUrl?: string;
 };
 
 type Conversation = {
@@ -50,6 +53,8 @@ const mockConversations: Conversation[] = [
       { id: 'msg1', text: 'নমস্কার, এই সুন্দরবনের মধু কি আসল?', sender: 'user', timestamp: '10:30 AM' },
       { id: 'msg2', text: 'জি, আমাদের সকল মধু সরাসরি সুন্দরবন থেকে সংগ্রহ করা এবং ১০০% খাঁটি।', sender: 'agent', timestamp: '10:31 AM' },
       { id: 'msg3', text: 'খুব ভালো। আমি ১ কেজি অর্ডার করতে চাই। কিভাবে করব?', sender: 'user', timestamp: '10:32 AM', replyingToId: 'msg2' },
+      { id: 'msg-img-1', text: 'এই আমের ছবি দেখুন। এটা কি হিমসাগর?', sender: 'user', timestamp: '10:35 AM', imageUrl: 'https://images.unsplash.com/photo-1759162339512-c2e0f23d4dff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxyaXBlJTIwbWFuZ29lc3xlbnwwfHx8fDE3NzA0NjQyNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080' },
+      { id: 'msg-img-2', text: 'হ্যাঁ, এটা হিমসাগর আম বলে মনে হচ্ছে। খুব সুন্দর!', sender: 'agent', timestamp: '10:36 AM' },
     ],
   },
   {
@@ -80,6 +85,7 @@ export default function LiveQuestionsAdminPage() {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const isMobileChatView = selectedConversationId && window.innerWidth < 768;
@@ -129,6 +135,30 @@ export default function LiveQuestionsAdminPage() {
     setReplyingTo(null);
   };
 
+  const handleImageSend = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0] && selectedConversation) {
+      const file = event.target.files[0];
+      const imageUrl = URL.createObjectURL(file);
+
+      const message: Message = {
+        id: `msg-${Date.now()}`,
+        text: '',
+        sender: 'agent',
+        timestamp: new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' }),
+        imageUrl,
+      };
+
+      updateConversations({
+        ...selectedConversation,
+        messages: [...selectedConversation.messages, message],
+      });
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleStartEdit = (message: Message) => {
     setEditingMessage(message);
     setNewMessage(message.text);
@@ -136,7 +166,7 @@ export default function LiveQuestionsAdminPage() {
   };
 
   const handleSaveEdit = () => {
-    if (!editingMessage || !selectedConversation) return;
+    if (!editingMessage || !selectedConversation || !newMessage.trim()) return;
 
     const updatedMessages = selectedConversation.messages.map(m => 
       m.id === editingMessage.id ? { ...m, text: newMessage, edited: true } : m
@@ -212,11 +242,23 @@ export default function LiveQuestionsAdminPage() {
                     <p className="text-xs opacity-70 truncate">{originalMessage.text}</p>
                 </div>
             )}
-            <p>{message.text}</p>
+            
+            {message.imageUrl && (
+              <div className="relative aspect-video w-64 max-w-full rounded-md overflow-hidden my-2 cursor-pointer">
+                {/* In a real app, you would open this in a modal onClick */}
+                <Image src={message.imageUrl} alt="Attached image" fill className="object-cover" />
+              </div>
+            )}
+
+            {message.text && <p>{message.text}</p>}
+
             <p className={cn(
                 "text-xs mt-1",
                 message.sender === 'agent' ? 'text-primary-foreground/70' : 'text-muted-foreground/70'
-            )}>{message.timestamp}</p>
+            )}>
+              {message.edited && <span className="italic">edited ・ </span>}
+              {message.timestamp}
+            </p>
         </div>
     );
   }
@@ -252,7 +294,7 @@ export default function LiveQuestionsAdminPage() {
                 <div className="flex-grow truncate">
                   <p className="font-semibold">{convo.customerName}</p>
                   <p className="text-sm text-muted-foreground truncate">
-                    {convo.messages[convo.messages.length - 1].text}
+                    {convo.messages[convo.messages.length - 1].text || 'Image'}
                   </p>
                 </div>
               </button>
@@ -329,27 +371,36 @@ export default function LiveQuestionsAdminPage() {
                         </div>
                     </div>
                 )}
-                <div className="relative">
-                    <Textarea
-                    placeholder={editingMessage ? "Edit message..." : "আপনার উত্তর লিখুন..."}
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        editingMessage ? handleSaveEdit() : handleSendMessage();
-                        }
-                    }}
-                    className="pr-12 min-h-[40px] max-h-[150px]"
-                    rows={1}
-                    />
-                    <Button
-                    size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                    onClick={editingMessage ? handleSaveEdit : handleSendMessage}
-                    >
-                    <Send className="h-4 w-4" />
+                <div className="flex items-end gap-2">
+                    <input type="file" ref={fileInputRef} onChange={handleImageSend} accept="image/*" className="hidden" />
+                    <Button variant="ghost" size="icon" className="shrink-0" onClick={() => fileInputRef.current?.click()}>
+                        <Paperclip className="h-5 w-5" />
+                        <span className="sr-only">Attach image</span>
                     </Button>
+                    <div className="relative flex-grow">
+                        <Textarea
+                        placeholder={editingMessage ? "Edit message..." : "আপনার উত্তর লিখুন..."}
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                if (!newMessage.trim()) return;
+                                editingMessage ? handleSaveEdit() : handleSendMessage();
+                            }
+                        }}
+                        className="pr-12 min-h-[40px] max-h-[150px] resize-none"
+                        rows={1}
+                        />
+                        <Button
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                        onClick={editingMessage ? handleSaveEdit : handleSendMessage}
+                        disabled={!newMessage.trim()}
+                        >
+                        <Send className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
             </div>
 
