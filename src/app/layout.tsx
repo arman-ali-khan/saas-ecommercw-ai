@@ -5,6 +5,7 @@ import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { Toaster } from '@/components/ui/toaster';
 import FixedCartButton from '@/components/fixed-cart-button';
+import FloatingChatButton from '@/components/floating-chat-button';
 
 export const metadata: Metadata = {
   title: 'Bangla Naturals',
@@ -40,6 +41,7 @@ export default function RootLayout({
             <Footer />
           </div>
           <FixedCartButton />
+          <FloatingChatButton />
           <Toaster />
         </CartProvider>
       </body>
