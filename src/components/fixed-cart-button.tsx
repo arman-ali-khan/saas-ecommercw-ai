@@ -21,6 +21,7 @@ import {
   Minus,
 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
+import { usePathname } from 'next/navigation';
 
 export default function FixedCartButton() {
   const {
@@ -30,8 +31,9 @@ export default function FixedCartButton() {
     updateQuantity,
     removeFromCart,
   } = useCart();
+  const pathname = usePathname();
 
-  if (cartCount === 0) {
+  if (cartCount === 0 || pathname.startsWith('/admin')) {
     return null;
   }
 
