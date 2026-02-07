@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu } from 'lucide-react';
+import { Menu, User, LogOut } from 'lucide-react';
 
 import Logo from './logo';
 import { Button } from './ui/button';
@@ -12,8 +12,18 @@ import {
   SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from './ui/avatar';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -24,6 +34,7 @@ const navLinks = [
 
 export default function Header() {
   const pathname = usePathname();
+  const { user, logout, isLoading } = useAuth();
 
   const NavLink = ({
     href,
@@ -48,6 +59,23 @@ export default function Header() {
       </Link>
     );
   };
+  
+  const AuthNavMobile = () => {
+      if (isLoading) return null;
+      if (user) return null;
+      return (
+           <div className="border-t pt-6 mt-6 space-y-4">
+             <SheetClose asChild>
+                <Link href="/login" className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground">Log In</Link>
+             </SheetClose>
+             <SheetClose asChild>
+               <Button asChild className="w-full">
+                 <Link href="/register">Sign Up</Link>
+               </Button>
+             </SheetClose>
+           </div>
+      )
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -62,9 +90,11 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="left">
               <div className="flex flex-col p-6">
-                <Link href="/" className="mb-8">
-                  <Logo />
-                </Link>
+                <SheetClose asChild>
+                  <Link href="/" className="mb-8">
+                    <Logo />
+                  </Link>
+                </SheetClose>
                 <nav className="flex flex-col gap-6">
                   {navLinks.map((link) => (
                     <SheetClose asChild key={link.href}>
@@ -72,6 +102,7 @@ export default function Header() {
                     </SheetClose>
                   ))}
                 </nav>
+                <AuthNavMobile />
               </div>
             </SheetContent>
           </Sheet>
@@ -91,6 +122,49 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           <ShoppingCart />
+           {isLoading ? <div className="h-10 w-10"></div> :
+            user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="hidden md:flex items-center gap-2">
+              <Button variant="ghost" asChild>
+                <Link href="/login">Log In</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/register">Sign Up</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </header>
