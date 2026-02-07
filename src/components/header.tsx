@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, User, LogOut } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 import Logo from './logo';
@@ -41,7 +41,7 @@ export default function Header() {
   ];
   
   if (user?.email === 'admin@example.com') {
-      navLinks.push({ href: '/admin', label: 'অ্যাডমিন' });
+      navLinks.push({ href: `${basePath}/admin`, label: 'অ্যাডমিন' });
   }
 
 
@@ -159,6 +159,14 @@ export default function Header() {
                     <span>প্রোফাইল</span>
                   </Link>
                 </DropdownMenuItem>
+                {user.name && (
+                   <DropdownMenuItem asChild>
+                     <Link href={`/${user.name}/admin`}>
+                       <LayoutDashboard className="mr-2 h-4 w-4" />
+                       <span>ড্যাশবোর্ড</span>
+                     </Link>
+                   </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />

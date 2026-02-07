@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LogOut } from 'lucide-react';
+import { LogOut, LayoutDashboard } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, logout, isLoading } = useAuth();
@@ -21,39 +22,52 @@ export default function ProfilePage() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader className="items-center text-center">
-             <Skeleton className="h-24 w-24 rounded-full" />
-             <Skeleton className="h-8 w-40 mt-4" />
-             <Skeleton className="h-4 w-48 mt-2" />
-          </CardHeader>
-          <CardContent className="text-center">
-             <Skeleton className="h-10 w-full mt-4" />
-          </CardContent>
-        </Card>
-      </div>
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader className="items-center text-center">
+              <Skeleton className="h-24 w-24 rounded-full" />
+              <Skeleton className="h-8 w-40 mt-4" />
+              <Skeleton className="h-4 w-48 mt-2" />
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="flex items-center justify-center">
-      <Card className="w-full max-w-md">
-        <CardHeader className="items-center text-center">
+    <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="items-center text-center">
             <Avatar className="h-24 w-24 text-4xl">
-                <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <CardTitle className="text-2xl font-bold mt-4">{user.name}</CardTitle>
             <CardDescription>{user.email}</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-            <p className="text-muted-foreground mb-6">এটি আপনার প্রোফাইল পৃষ্ঠা। আরও বৈশিষ্ট্য শীঘ্রই আসছে!</p>
-            <Button onClick={logout} variant="destructive">
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-muted-foreground">
+              এটি আপনার প্রোফাইল পৃষ্ঠা। আপনার স্টোর পরিচালনা করতে ড্যাশবোর্ডে যান।
+            </p>
+            <Button asChild className="w-full">
+              <Link href={`/${user.name}/admin`}>
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                আপনার ড্যাশবোর্ডে যান
+              </Link>
+            </Button>
+            <Button onClick={logout} variant="destructive" className="w-full">
               <LogOut className="mr-2 h-4 w-4" />
               লগআউট
             </Button>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
   );
 }

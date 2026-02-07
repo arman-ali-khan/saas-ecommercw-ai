@@ -18,22 +18,22 @@ import {
 import { cn } from '@/lib/utils';
 import Logo from './logo';
 
-const adminNavLinks = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/products', label: 'Products', icon: Package },
-  { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
-  { href: '/admin/featured-products', label: 'Featured Products', icon: Star },
-  { href: '/admin/section-manager', label: 'Section Manager', icon: LayoutList },
-  { href: '/admin/uncompleted', label: 'Uncompleted', icon: FileClock },
-  { href: '/admin/payments', label: 'Payments', icon: CreditCard },
-  { href: '/admin/pages', label: 'Page Manager', icon: FileText },
-  { href: '/admin/reviews', label: 'Reviews', icon: MessageSquare },
-  { href: '/admin/live-questions', label: 'Live Questions', icon: Bot },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
-];
-
-export default function AdminSidebar() {
+export default function AdminSidebar({ username }: { username: string }) {
   const pathname = usePathname();
+  
+  const adminNavLinks = [
+    { href: `/${username}/admin`, label: 'Dashboard', icon: LayoutDashboard },
+    { href: `/${username}/admin/products`, label: 'Products', icon: Package },
+    { href: `/${username}/admin/orders`, label: 'Orders', icon: ShoppingBag },
+    { href: `/${username}/admin/featured-products`, label: 'Featured Products', icon: Star },
+    { href: `/${username}/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
+    { href: `/${username}/admin/uncompleted`, label: 'Uncompleted', icon: FileClock },
+    { href: `/${username}/admin/payments`, label: 'Payments', icon: CreditCard },
+    { href: `/${username}/admin/pages`, label: 'Page Manager', icon: FileText },
+    { href: `/${username}/admin/reviews`, label: 'Reviews', icon: MessageSquare },
+    { href: `/${username}/admin/live-questions`, label: 'Live Questions', icon: Bot },
+    { href: `/${username}/admin/settings`, label: 'Settings', icon: Settings },
+  ];
 
   const NavLink = ({
     href,
@@ -63,7 +63,7 @@ export default function AdminSidebar() {
     <div className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:block">
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-20 items-center border-b border-sidebar-border px-6">
-          <Link href="/admin">
+          <Link href={`/${username}/admin`}>
             <Logo />
           </Link>
         </div>
