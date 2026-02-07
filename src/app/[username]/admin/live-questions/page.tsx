@@ -1,23 +1,35 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import {
-  Card,
-  CardDescription,
-  CardTitle,
-} from '@/components/ui/card';
-import { MessageSquare, Send, ArrowLeft } from 'lucide-react';
+  MessageSquare,
+  Send,
+  ArrowLeft,
+  Reply,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  X,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Textarea } from '@/components/ui/textarea';
 
 type Message = {
   id: string;
   text: string;
   sender: 'user' | 'agent';
   timestamp: string;
+  replyingToId?: string;
 };
 
 type Conversation = {
@@ -36,7 +48,7 @@ const mockConversations: Conversation[] = [
     messages: [
       { id: 'msg1', text: 'নমস্কার, এই সুন্দরবনের মধু কি আসল?', sender: 'user', timestamp: '10:30 AM' },
       { id: 'msg2', text: 'জি, আমাদের সকল মধু সরাসরি সুন্দরবন থেকে সংগ্রহ করা এবং ১০০% খাঁটি।', sender: 'agent', timestamp: '10:31 AM' },
-      { id: 'msg3', text: 'খুব ভালো। আমি ১ কেজি অর্ডার করতে চাই। কিভাবে করব?', sender: 'user', timestamp: '10:32 AM' },
+      { id: 'msg3', text: 'খুব ভালো। আমি ১ কেজি অর্ডার করতে চাই। কিভাবে করব?', sender: 'user', timestamp: '10:32 AM', replyingToId: 'msg2' },
     ],
   },
   {
@@ -45,7 +57,7 @@ const mockConversations: Conversation[] = [
     avatar: 'https://picsum.photos/seed/customer2/40/40',
     messages: [
       { id: 'msg4', text: 'আমার অর্ডার #ORD002 এর স্ট্যাটাস কি?', sender: 'user', timestamp: '9:15 AM' },
-       { id: 'msg5', text: 'আমি চেক করছি। অনুগ্রহ করে এক মুহূর্ত অপেক্ষা করুন।', sender: 'agent', timestamp: '9:16 AM' },
+      { id: 'msg5', text: 'আমি চেক করছি। অনুগ্রহ করে এক মুহূর্ত অপেক্ষা করুন।', sender: 'agent', timestamp: '9:16 AM' },
     ],
   },
   {
@@ -58,13 +70,16 @@ const mockConversations: Conversation[] = [
   },
 ];
 
-
 export default function LiveQuestionsAdminPage() {
   const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
+  
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
 
-  // This hook will add/remove a class from the body to hide the bottom nav
   useEffect(() => {
     const isMobileChatView = selectedConversationId && window.innerWidth < 768;
     if (isMobileChatView) {
@@ -72,38 +87,137 @@ export default function LiveQuestionsAdminPage() {
     } else {
       document.body.classList.remove('chat-view-active');
     }
-    // Cleanup function to remove the class when the component unmounts
     return () => {
       document.body.classList.remove('chat-view-active');
     };
   }, [selectedConversationId]);
 
+  useEffect(() => {
+    if (scrollViewportRef.current) {
+      scrollViewportRef.current.scrollTop = scrollViewportRef.current.scrollHeight;
+    }
+  }, [selectedConversationId, conversations]);
+
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
+
+  const updateConversations = (updatedConvo: Conversation) => {
+    setConversations(prev =>
+      prev.map(convo =>
+        convo.id === updatedConvo.id ? updatedConvo : convo
+      )
+    );
+  };
   
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedConversationId) return;
+    if (!newMessage.trim() || !selectedConversation) return;
 
     const message: Message = {
       id: `msg-${Date.now()}`,
       text: newMessage,
       sender: 'agent',
-      timestamp: new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' }),
+      replyingToId: replyingTo?.id,
     };
 
-    setConversations(prev => 
-      prev.map(convo => 
-        convo.id === selectedConversationId 
-          ? { ...convo, messages: [...convo.messages, message] }
-          : convo
-      )
+    updateConversations({
+      ...selectedConversation,
+      messages: [...selectedConversation.messages, message]
+    });
+
+    setNewMessage('');
+    setReplyingTo(null);
+  };
+
+  const handleStartEdit = (message: Message) => {
+    setEditingMessage(message);
+    setNewMessage(message.text);
+    setReplyingTo(null);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingMessage || !selectedConversation) return;
+
+    const updatedMessages = selectedConversation.messages.map(m => 
+      m.id === editingMessage.id ? { ...m, text: newMessage, edited: true } : m
     );
+
+    updateConversations({
+      ...selectedConversation,
+      messages: updatedMessages
+    });
+
+    setEditingMessage(null);
     setNewMessage('');
   };
 
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setNewMessage('');
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    if (!selectedConversation) return;
+    
+    // Also remove any replies to this message
+    const updatedMessages = selectedConversation.messages.filter(m => m.id !== messageId && m.replyingToId !== messageId);
+    updateConversations({ ...selectedConversation, messages: updatedMessages });
+  };
+
+  const MessageActions = ({ message }: { message: Message }) => (
+    <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+                <MoreHorizontal className="h-4 w-4" />
+            </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => setReplyingTo(message)}>
+                <Reply className="mr-2 h-4 w-4" />
+                <span>Reply</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleStartEdit(message)}>
+                <Edit className="mr-2 h-4 w-4" />
+                <span>Edit</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteMessage(message.id)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>Delete</span>
+            </DropdownMenuItem>
+        </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const MessageBubble = ({ message, conversation }: { message: Message, conversation: Conversation }) => {
+    const originalMessage = message.replyingToId
+      ? conversation.messages.find(m => m.id === message.replyingToId)
+      : null;
+    
+    return (
+        <div className={cn(
+            'rounded-lg px-3 py-2 text-sm max-w-full break-words',
+            message.sender === 'agent'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted'
+          )}>
+            {originalMessage && (
+                <div className="mb-2 p-2 rounded-md bg-black/10 border-l-2 border-accent">
+                    <p className="font-semibold text-xs opacity-80">
+                        {originalMessage.sender === 'agent' ? 'You' : conversation.customerName}
+                    </p>
+                    <p className="text-xs opacity-70 truncate">{originalMessage.text}</p>
+                </div>
+            )}
+            <p>{message.text}</p>
+            <p className={cn(
+                "text-xs mt-1",
+                message.sender === 'agent' ? 'text-primary-foreground/70' : 'text-muted-foreground/70'
+            )}>{message.timestamp}</p>
+        </div>
+    );
+  }
 
   return (
     <Card className="h-[calc(100vh-5rem)] flex flex-col md:flex-row overflow-hidden">
-      {/* Conversation List */}
       <div
         className={cn(
           'w-full flex-col md:w-1/3 lg:w-1/4 border-b md:border-b-0 md:border-r',
@@ -122,7 +236,7 @@ export default function LiveQuestionsAdminPage() {
                 onClick={() => setSelectedConversationId(convo.id)}
                 className={cn(
                   'w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors',
-                  selectedConversationId === convo.id && 'md:bg-muted', // Only show active state on desktop
+                  selectedConversationId === convo.id && 'md:bg-muted',
                   'hover:bg-muted/50'
                 )}
               >
@@ -142,7 +256,6 @@ export default function LiveQuestionsAdminPage() {
         </ScrollArea>
       </div>
 
-      {/* Chat View */}
       <div
         className={cn(
           'flex-grow flex-col',
@@ -169,63 +282,71 @@ export default function LiveQuestionsAdminPage() {
                 <p className="text-xs text-green-500">সক্রিয়</p>
               </div>
             </div>
-            <ScrollArea className="flex-grow p-4">
+            <ScrollArea className="flex-grow p-4" viewportRef={scrollViewportRef}>
               <div className="space-y-4">
                 {selectedConversation.messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      'flex items-end gap-2 max-w-[80%]',
+                  <div key={message.id} className={cn(
+                      'flex items-end gap-2 max-w-[80%] group',
                       message.sender === 'agent' ? 'ml-auto flex-row-reverse' : 'mr-auto'
-                    )}
-                  >
-                    {message.sender === 'user' && (
-                       <Avatar className="h-8 w-8">
+                    )}>
+                      {message.sender === 'agent' && <MessageActions message={message} />}
+                      {message.sender === 'user' && (
+                       <Avatar className="h-8 w-8 self-end">
                          <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.customerName} />
                          <AvatarFallback>{selectedConversation.customerName.charAt(0)}</AvatarFallback>
                        </Avatar>
-                    )}
-                    <div
-                      className={cn(
-                        'rounded-lg px-3 py-2 text-sm',
-                        message.sender === 'agent'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
                       )}
-                    >
-                      <p>{message.text}</p>
-                      <p className={cn(
-                          "text-xs mt-1",
-                           message.sender === 'agent' ? 'text-primary-foreground/70' : 'text-muted-foreground/70'
-                        )}>{message.timestamp}</p>
-                    </div>
+                    <MessageBubble message={message} conversation={selectedConversation} />
                   </div>
                 ))}
               </div>
             </ScrollArea>
-            <div className="p-4 border-t bg-background">
-              <div className="relative">
-                <Input
-                  placeholder="আপনার উত্তর লিখুন..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  className="pr-12"
-                />
-                <Button
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                  onClick={handleSendMessage}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
+            
+            <div className="p-2 border-t bg-background">
+                {(replyingTo || editingMessage) && (
+                    <div className="px-2 pb-2 text-sm">
+                        <div className="flex justify-between items-center bg-muted p-2 rounded-md">
+                            {replyingTo && (
+                                <div>
+                                    <p className="font-semibold text-muted-foreground">Replying to {replyingTo.sender === 'agent' ? 'yourself' : selectedConversation?.customerName}</p>
+                                    <p className="text-muted-foreground truncate">{replyingTo.text}</p>
+                                </div>
+                            )}
+                            {editingMessage && (
+                                <div>
+                                    <p className="font-semibold text-muted-foreground">Editing message</p>
+                                </div>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => { setReplyingTo(null); handleCancelEdit(); }}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
+                <div className="relative">
+                    <Textarea
+                    placeholder={editingMessage ? "Edit message..." : "আপনার উত্তর লিখুন..."}
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        editingMessage ? handleSaveEdit() : handleSendMessage();
+                        }
+                    }}
+                    className="pr-12 min-h-[40px] max-h-[150px]"
+                    rows={1}
+                    />
+                    <Button
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                    onClick={editingMessage ? handleSaveEdit : handleSendMessage}
+                    >
+                    <Send className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
+
           </>
         ) : (
           <div className="hidden md:flex flex-grow flex-col items-center justify-center text-center text-muted-foreground">
