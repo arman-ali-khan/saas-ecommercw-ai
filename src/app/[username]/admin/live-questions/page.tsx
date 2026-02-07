@@ -30,6 +30,7 @@ type Message = {
   sender: 'user' | 'agent';
   timestamp: string;
   replyingToId?: string;
+  edited?: boolean;
 };
 
 type Conversation = {
@@ -175,14 +176,18 @@ export default function LiveQuestionsAdminPage() {
                 <Reply className="mr-2 h-4 w-4" />
                 <span>Reply</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleStartEdit(message)}>
-                <Edit className="mr-2 h-4 w-4" />
-                <span>Edit</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteMessage(message.id)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                <span>Delete</span>
-            </DropdownMenuItem>
+            {message.sender === 'agent' && (
+                <>
+                    <DropdownMenuItem onClick={() => handleStartEdit(message)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        <span>Edit</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteMessage(message.id)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        <span>Delete</span>
+                    </DropdownMenuItem>
+                </>
+            )}
         </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -297,6 +302,7 @@ export default function LiveQuestionsAdminPage() {
                        </Avatar>
                       )}
                     <MessageBubble message={message} conversation={selectedConversation} />
+                    {message.sender === 'user' && <MessageActions message={message} />}
                   </div>
                 ))}
               </div>
