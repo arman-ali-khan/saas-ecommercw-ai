@@ -62,7 +62,7 @@ export default function ProfilePage() {
                 </Avatar>
                 <div>
                     <CardTitle className="text-2xl font-bold">
-                    স্বাগতম, {user.name}!
+                    স্বাগতম, {user.fullName}!
                     </CardTitle>
                     <CardDescription>{user.email}</CardDescription>
                 </div>

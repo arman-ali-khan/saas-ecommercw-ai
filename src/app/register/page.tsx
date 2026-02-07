@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/context/auth-context';
 
 const formSchema = z.object({
+  fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
   name: z.string().min(2, { message: 'নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }).regex(/^[a-zA-Z0-9]+$/, 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।'),
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
   password: z.string().min(6, { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' }),
@@ -31,6 +32,7 @@ export default function RegisterPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      fullName: '',
       name: '',
       email: '',
       password: '',
@@ -38,7 +40,7 @@ export default function RegisterPage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const registeredUser = register(values.name, values.email, values.password);
+    const registeredUser = register(values.name, values.fullName, values.email, values.password);
     if (registeredUser) {
       // The auth context handles redirection now.
       // router.push(`/${registeredUser.name}/profile`);
@@ -58,6 +60,19 @@ export default function RegisterPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>পুরো নাম</FormLabel>
+                      <FormControl>
+                        <Input placeholder="আপনার পুরো নাম" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="name"

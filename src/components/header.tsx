@@ -146,7 +146,7 @@ export default function Header() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                    <p className="text-sm font-medium leading-none">{user.fullName}</p>
                     <p className="text-xs leading-none text-muted-foreground">
                       {user.email}
                     </p>
@@ -180,7 +180,7 @@ export default function Header() {
                 <Link href="/login">লগ ইন</Link>
               </Button>
               <Button asChild>
-                <Link href="/register">সাইন আপ</Link>
+                <Link href="/register">সাইন আপ করুন</Link>
               </Button>
             </div>
           )}

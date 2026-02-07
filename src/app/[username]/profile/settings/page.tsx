@@ -22,8 +22,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Using a more specific name to avoid confusion with the User 'name' property which is the username
 const profileSchema = z.object({
+  fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
   username: z.string().min(2, { message: 'ব্যবহারকারীর নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }).regex(/^[a-zA-Z0-9]+$/, 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।'),
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
 });
@@ -47,7 +47,7 @@ export default function SettingsPage() {
     
     const profileForm = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
-        defaultValues: { username: user?.name || '', email: user?.email || '' },
+        defaultValues: { fullName: user?.fullName || '', username: user?.name || '', email: user?.email || '' },
     });
 
     const watchedUsername = profileForm.watch('username');
@@ -92,7 +92,7 @@ export default function SettingsPage() {
             return;
         }
 
-        const updatedUser = updateUser(user.id, { name: values.username });
+        const updatedUser = updateUser(user.id, { name: values.username, fullName: values.fullName });
 
         if (updatedUser) {
             toast({ title: 'প্রোফাইল আপডেট হয়েছে!' });
@@ -139,6 +139,19 @@ export default function SettingsPage() {
         <CardContent>
           <Form {...profileForm}>
             <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
+              <FormField
+                control={profileForm.control}
+                name="fullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>পুরো নাম</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={profileForm.control}
                 name="username"

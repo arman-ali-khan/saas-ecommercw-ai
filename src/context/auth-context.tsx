@@ -17,10 +17,10 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => User | null;
-  register: (name: string, email: string, password: string) => User | null;
+  register: (name: string, fullName: string, email: string, password: string) => User | null;
   logout: () => void;
   isLoading: boolean;
-  updateUser: (userId: string, updates: { name?: string; email?: string }) => User | null;
+  updateUser: (userId: string, updates: { name?: string; fullName?: string; email?: string }) => User | null;
   checkUsername: (username: string, userId: string) => Promise<'AVAILABLE' | 'TAKEN' | 'INVALID'>;
 }
 
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { passwordHash, ...userToStore } = foundUser;
         localStorage.setItem('bangla-naturals-user', JSON.stringify(userToStore));
         setUser(userToStore);
-        toast({ title: 'লগইন সফল', description: `আবারও স্বাগতম, ${userToStore.name}!` });
+        toast({ title: 'লগইন সফল', description: `আবারও স্বাগতম, ${userToStore.fullName}!` });
         router.push(`/${userToStore.name}/profile`);
         return userToStore;
       }
@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = (name: string, email: string, password: string): User | null => {
+  const register = (name: string, fullName: string, email: string, password: string): User | null => {
     try {
       const storedUsers = localStorage.getItem('bangla-naturals-users');
       const users: (User & { passwordHash: string })[] = storedUsers
@@ -105,14 +105,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      const newUser: User = { id: Date.now().toString(), name, email };
+      const newUser: User = { id: Date.now().toString(), name, fullName, email };
       const newUserWithPassword = { ...newUser, passwordHash: password }; // Store password directly for demo
 
       users.push(newUserWithPassword);
       localStorage.setItem('bangla-naturals-users', JSON.stringify(users));
       localStorage.setItem('bangla-naturals-user', JSON.stringify(newUser));
       setUser(newUser);
-      toast({ title: 'নিবন্ধন সফল', description: `স্বাগতম, ${name}!` });
+      toast({ title: 'নিবন্ধন সফল', description: `স্বাগতম, ${fullName}!` });
       router.push(`/${newUser.name}/profile`);
       return newUser;
     } catch (e) {
@@ -133,7 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/');
   };
 
-  const updateUser = (userId: string, updates: { name?: string; email?: string }): User | null => {
+  const updateUser = (userId: string, updates: { name?: string; fullName?: string; email?: string }): User | null => {
     try {
       const storedUsers = localStorage.getItem('bangla-naturals-users');
       const users: (User & { passwordHash: string })[] = storedUsers ? JSON.parse(storedUsers) : [];
