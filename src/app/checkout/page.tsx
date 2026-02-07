@@ -3,7 +3,6 @@
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
@@ -19,6 +18,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const checkoutSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -28,7 +29,7 @@ const checkoutSchema = z.object({
 });
 
 export default function CheckoutPage() {
-  const { cartItems, cartTotal, cartCount } = useCart();
+  const { cartItems, cartTotal, cartCount, isLoading } = useCart();
   const router = useRouter();
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
@@ -41,9 +42,28 @@ export default function CheckoutPage() {
     },
   });
 
-  if (cartCount === 0 && typeof window !== 'undefined') {
-    router.push('/products');
-    return null;
+  useEffect(() => {
+    if (!isLoading && cartCount === 0) {
+      router.push('/products');
+    }
+  }, [isLoading, cartCount, router]);
+
+  if (isLoading || cartCount === 0) {
+    return (
+      <div className="grid md:grid-cols-2 gap-12">
+        <div className="md:order-2 space-y-4">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+        <div className="md:order-1 space-y-4">
+          <Skeleton className="h-12 w-1/2" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>
+    );
   }
 
   function onSubmit(values: z.infer<typeof checkoutSchema>) {

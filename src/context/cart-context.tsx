@@ -1,7 +1,13 @@
 'use client';
 
 import type { CartItem, Product } from '@/types';
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useEffect,
+} from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CartContextType {
@@ -11,13 +17,40 @@ interface CartContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   cartTotal: number;
   cartCount: number;
+  isLoading: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Load cart from localStorage on mount
+    try {
+      const storedCart = localStorage.getItem('bangla-naturals-cart');
+      if (storedCart) {
+        setCartItems(JSON.parse(storedCart));
+      }
+    } catch (error) {
+      console.error('Failed to parse cart from localStorage', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Save cart to localStorage whenever it changes
+    if (!isLoading) {
+      try {
+        localStorage.setItem('bangla-naturals-cart', JSON.stringify(cartItems));
+      } catch (error) {
+        console.error('Failed to save cart to localStorage', error);
+      }
+    }
+  }, [cartItems, isLoading]);
 
   const addToCart = (product: Product, quantity: number) => {
     setCartItems((prevItems) => {
@@ -79,6 +112,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         updateQuantity,
         cartTotal,
         cartCount,
+        isLoading,
       }}
     >
       {children}
