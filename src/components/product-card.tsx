@@ -10,18 +10,23 @@ import { useCart } from '@/context/cart-context';
 
 interface ProductCardProps {
   product: Product;
+  username?: string;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, username }: ProductCardProps) {
   const { addToCart } = useCart();
 
   const handleAddToCart = () => {
     addToCart(product, 1);
   };
 
+  const productUrl = username
+    ? `/${username}/products/${product.id}`
+    : `/products/${product.id}`;
+
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-      <Link href={`/products/${product.id}`} className="block">
+      <Link href={productUrl} className="block">
         <CardHeader className="p-0">
           <div className="relative w-full h-56">
             <Image

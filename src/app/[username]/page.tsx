@@ -34,7 +34,7 @@ export default function UserPage({ params }: { params: { username: string } }) {
       title: 'প্রকৃতির আসল স্বাদ',
       description:
         'বাংলাদেশের হৃদয় থেকে আসা সেরা প্রাকৃতিক পণ্য আবিষ্কার করুন। বিশুদ্ধ, খাঁটি, এবং আপনার দোরগোড়ায় পৌঁছে দেওয়া হয়।',
-      link: '/products',
+      link: `/${params.username}/products`,
       linkText: 'সব পণ্য দেখুন',
     },
     {
@@ -43,7 +43,7 @@ export default function UserPage({ params }: { params: { username: string } }) {
       title: 'বন্য, অপরিশোধিত সুন্দরবনের মধু',
       description:
         'বিশ্বের বৃহত্তম ম্যানগ্রোভ বন থেকে মধুর এক অনন্য অভিজ্ঞতা অর্জন করুন।',
-      link: '/products/sundarban-honey',
+      link: `/${params.username}/products/sundarban-honey`,
       linkText: 'মধু আবিষ্কার করুন',
     },
     {
@@ -52,7 +52,7 @@ export default function UserPage({ params }: { params: { username: string } }) {
       title: 'প্রিমিয়াম মরিয়ম খেজুর',
       description:
         'সমৃদ্ধ, চিবানো এবং ক্যারামেলের মতো। যেকোনো অনুষ্ঠানের জন্য একটি স্বাস্থ্যকর এবং সুস্বাদু ট্রিট।',
-      link: '/products/dates-mariam',
+      link: `/${params.username}/products/dates-mariam`,
       linkText: 'খেজুর অন্বেষণ করুন',
     },
   ];
@@ -78,7 +78,11 @@ export default function UserPage({ params }: { params: { username: string } }) {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              username={params.username}
+            />
           ))}
         </div>
       </section>
@@ -113,7 +117,7 @@ export default function UserPage({ params }: { params: { username: string } }) {
                 </p>
               </CardContent>
               <Button asChild variant="secondary" className="mt-6 w-fit">
-                <Link href="/about">
+                <Link href={`/${params.username}/about`}>
                   আরও জানুন <ArrowRight className="ml-2" />
                 </Link>
               </Button>
@@ -144,7 +148,7 @@ export default function UserPage({ params }: { params: { username: string } }) {
                 </p>
               </CardContent>
               <Button asChild variant="secondary" className="mt-6 w-fit">
-                <Link href="/about">
+                <Link href={`/${params.username}/about`}>
                   আরও জানুন <ArrowRight className="ml-2" />
                 </Link>
               </Button>
@@ -175,7 +179,7 @@ export default function UserPage({ params }: { params: { username: string } }) {
                 </p>
               </CardContent>
               <Button asChild variant="secondary" className="mt-6 w-fit">
-                <Link href="/about">
+                <Link href={`/${params.username}/about`}>
                   আরও জানুন <ArrowRight className="ml-2" />
                 </Link>
               </Button>
@@ -218,7 +222,7 @@ export default function UserPage({ params }: { params: { username: string } }) {
                       </p>
                     </CardContent>
                     <Button asChild variant="secondary" className="mt-6 w-fit">
-                      <Link href="/about">
+                      <Link href={`/${params.username}/about`}>
                         আরও জানুন <ArrowRight className="ml-2" />
                       </Link>
                     </Button>
@@ -251,7 +255,7 @@ export default function UserPage({ params }: { params: { username: string } }) {
                       </p>
                     </CardContent>
                     <Button asChild variant="secondary" className="mt-6 w-fit">
-                      <Link href="/about">
+                      <Link href={`/${params.username}/about`}>
                         আরও জানুন <ArrowRight className="ml-2" />
                       </Link>
                     </Button>
@@ -284,7 +288,7 @@ export default function UserPage({ params }: { params: { username: string } }) {
                       </p>
                     </CardContent>
                     <Button asChild variant="secondary" className="mt-6 w-fit">
-                      <Link href="/about">
+                      <Link href={`/${params.username}/about`}>
                         আরও জানুন <ArrowRight className="ml-2" />
                       </Link>
                     </Button>
@@ -310,14 +314,18 @@ export default function UserPage({ params }: { params: { username: string } }) {
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-headline font-bold">{category}</h2>
               <Button asChild variant="ghost">
-                <Link href="/products">
+                <Link href={`/${params.username}/products`}>
                   সব দেখুন <ArrowRight className="ml-2" />
                 </Link>
               </Button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {categoryProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  username={params.username}
+                />
               ))}
             </div>
           </section>

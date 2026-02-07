@@ -1,0 +1,176 @@
+'use client';
+import { useState } from 'react';
+import Image from 'next/image';
+import { notFound } from 'next/navigation';
+import { getProductById } from '@/lib/products';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
+import { useCart } from '@/context/cart-context';
+import {
+  Facebook,
+  Twitter,
+  ShoppingCart,
+  Plus,
+  Minus,
+  Wand2,
+} from 'lucide-react';
+import { AiShareTool } from '@/components/ai-share-tool';
+import { Separator } from '@/components/ui/separator';
+
+const TikTokIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12.52.02c1.31-.02 2.61.01 3.91.02.08 1.53.01 3.07.01 4.6 0 1.1.35 2.21 1.22 3.01.91.82 2.1 1.25 3.32 1.19.08 1.5.01 3 .01 4.5a5.42 5.42 0 0 1-5.12 5.14c-1.53.08-3.07.01-4.6.01-1.1 0-2.21-.35-3.01-1.22-.82-.91-1.25-2.1-1.19-3.32-.08-1.5-.01-3-.01-4.5a5.42 5.42 0 0 1 5.12-5.14Z"></path><path d="M9 8.5h4"></path><path d="M9 12.5h4"></path><path d="M13.5 4.5v4"></path>
+    </svg>
+  );
+
+type ProductPageProps = {
+  params: {
+    id: string;
+    username: string;
+  };
+};
+
+export default function ProductPage({ params }: ProductPageProps) {
+  const [quantity, setQuantity] = useState(1);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const { addToCart } = useCart();
+  const product = getProductById(params.id);
+
+  if (!product) {
+    notFound();
+  }
+
+  const handleAddToCart = () => {
+    addToCart(product, quantity);
+  };
+
+  const currentUrl =
+    typeof window !== 'undefined'
+      ? window.location.href
+      : `https://banglanaturals.example.com/products/${product.id}`;
+  const shareText = `বাংলা ন্যাচারালস থেকে ${product.name} দেখুন!`;
+
+  return (
+    <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+      <Carousel className="w-full">
+        <CarouselContent>
+          {product.images.map((image, index) => (
+            <CarouselItem key={index}>
+              <div className="relative w-full h-[50vh] rounded-lg overflow-hidden shadow-lg">
+                <Image
+                  src={image.imageUrl}
+                  alt={`${product.name} image ${index + 1}`}
+                  data-ai-hint={image.imageHint}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious className="ml-16" />
+        <CarouselNext className="mr-16" />
+      </Carousel>
+
+      <div className="flex flex-col">
+        <h1 className="text-4xl font-headline font-bold">{product.name}</h1>
+        <p className="text-2xl font-semibold text-primary mt-2">
+          {product.price.toFixed(2)} {product.currency}
+        </p>
+        <p className="text-lg text-muted-foreground mt-4">
+          {product.longDescription}
+        </p>
+
+        <Separator className="my-6" />
+
+        <div className="space-y-4">
+          <p>
+            <span className="font-semibold">উৎপত্তি:</span> {product.origin}
+          </p>
+          <p>
+            <span className="font-semibold">আমাদের গল্প:</span> {product.story}
+          </p>
+        </div>
+
+        <div className="mt-8 flex flex-col sm:flex-row gap-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <Input
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value)))}
+              className="w-16 text-center"
+              min="1"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setQuantity(quantity + 1)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button size="lg" onClick={handleAddToCart} className="flex-grow">
+            <ShoppingCart className="mr-2 h-5 w-5" /> কার্টে যোগ করুন
+          </Button>
+        </div>
+
+        <div className="mt-8">
+          <h3 className="font-semibold mb-2">এই পণ্যটি শেয়ার করুন:</h3>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="icon">
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="ফেসবুকে শেয়ার করুন"
+              >
+                <Facebook className="h-5 w-5" />
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="icon">
+              <a
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(shareText)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="টুইটারে শেয়ার করুন"
+              >
+                <Twitter className="h-5 w-5" />
+              </a>
+            </Button>
+            <Button variant="outline" size="icon" disabled>
+                <TikTokIcon />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsAiModalOpen(true)}
+              className="px-3"
+            >
+              <Wand2 className="h-5 w-5 mr-2" />
+              এআই শেয়ার
+            </Button>
+          </div>
+        </div>
+      </div>
+      <AiShareTool
+        product={product}
+        open={isAiModalOpen}
+        onOpenChange={setIsAiModalOpen}
+      />
+    </div>
+  );
+}
