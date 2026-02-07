@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 
-export default function ShoppingCart() {
+export default function FixedCartButton() {
   const {
     cartItems,
     cartCount,
@@ -31,18 +31,29 @@ export default function ShoppingCart() {
     removeFromCart,
   } = useCart();
 
+  if (cartCount === 0) {
+    return null;
+  }
+
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <ShoppingCartIcon className="h-6 w-6" />
-          {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              {cartCount}
+        <div className="fixed top-1/2 right-0 -translate-y-1/2 z-50">
+          <Button
+            variant="secondary"
+            className="h-auto rounded-r-none p-4 flex flex-col items-center justify-center gap-2 shadow-lg text-secondary-foreground"
+          >
+            <div className="relative">
+              <ShoppingCartIcon className="h-6 w-6" />
+              <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                {cartCount}
+              </span>
+            </div>
+            <span className="text-sm font-bold">
+              {cartTotal.toFixed(2)} {cartItems[0]?.currency}
             </span>
-          )}
-          <span className="sr-only">Open shopping cart</span>
-        </Button>
+          </Button>
+        </div>
       </SheetTrigger>
       <SheetContent className="flex flex-col">
         <SheetHeader>
