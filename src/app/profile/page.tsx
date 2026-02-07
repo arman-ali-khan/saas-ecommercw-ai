@@ -47,10 +47,10 @@ export default function ProfilePage() {
             <CardDescription>{user.email}</CardDescription>
         </CardHeader>
         <CardContent className="text-center">
-            <p className="text-muted-foreground mb-6">This is your profile page. More features coming soon!</p>
+            <p className="text-muted-foreground mb-6">এটি আপনার প্রোফাইল পৃষ্ঠা। আরও বৈশিষ্ট্য শীঘ্রই আসছে!</p>
             <Button onClick={logout} variant="destructive">
               <LogOut className="mr-2 h-4 w-4" />
-              Logout
+              লগআউট
             </Button>
         </CardContent>
       </Card>

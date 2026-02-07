@@ -18,29 +18,29 @@ export default function Home() {
     {
       id: 'slide-1',
       image: PlaceHolderImages.find((img) => img.id === 'home-hero'),
-      title: 'The True Taste of Nature',
+      title: 'প্রকৃতির আসল স্বাদ',
       description:
-        'Discover the finest natural products from the heart of Bangladesh. Pure, authentic, and delivered to your door.',
+        'বাংলাদেশের হৃদয় থেকে আসা সেরা প্রাকৃতিক পণ্য আবিষ্কার করুন। বিশুদ্ধ, খাঁটি, এবং আপনার দোরগোড়ায় পৌঁছে দেওয়া হয়।',
       link: '/products',
-      linkText: 'Shop All Products',
+      linkText: 'সব পণ্য দেখুন',
     },
     {
       id: 'slide-2',
       image: PlaceHolderImages.find((img) => img.id === 'honey-2'),
-      title: 'Wild, Raw Sundarbans Honey',
+      title: 'বন্য, অপরিশোধিত সুন্দরবনের মধু',
       description:
-        "Experience the unique, full-bodied flavor of honey from the world's largest mangrove forest.",
+        "বিশ্বের বৃহত্তম ম্যানগ্রোভ বন থেকে মধুর এক অনন্য অভিজ্ঞতা অর্জন করুন।",
       link: '/products/sundarban-honey',
-      linkText: 'Discover Honey',
+      linkText: 'মধু আবিষ্কার করুন',
     },
     {
       id: 'slide-3',
       image: PlaceHolderImages.find((img) => img.id === 'dates-1'),
-      title: 'Premium Mariam Dates',
+      title: 'প্রিমিয়াম মরিয়ম খেজুর',
       description:
-        'Rich, chewy, and caramel-like. A healthy and delicious treat for any occasion.',
+        'সমৃদ্ধ, চিবানো এবং ক্যারামেলের মতো। যেকোনো অনুষ্ঠানের জন্য একটি স্বাস্থ্যকর এবং সুস্বাদু ট্রিট।',
       link: '/products/dates-mariam',
-      linkText: 'Explore Dates',
+      linkText: 'খেজুর অন্বেষণ করুন',
     },
   ];
 
@@ -52,7 +52,7 @@ export default function Home() {
 
       <section>
         <h2 className="text-3xl font-headline font-bold text-center mb-8">
-          Featured Products
+          বিশেষ পণ্য
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {featuredProducts.map((product) => (
@@ -67,18 +67,16 @@ export default function Home() {
             <CardHeader>
               <Leaf className="w-12 h-12 text-accent" />
               <CardTitle className="font-headline text-3xl mt-4">
-                From Our Land, To Your Home
+                আমাদের ভূমি থেকে, আপনার ঘরে
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-lg text-muted-foreground mb-6">
-                We are committed to bringing you products that are as natural as
-                the land they come from. Learn about our story, our process, and
-                our promise of quality and traceability.
+                আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক। আমাদের গল্প, প্রক্রিয়া এবং গুণমান ও স্বচ্ছতার প্রতিশ্রুতি সম্পর্কে জানুন।
               </p>
               <Button asChild variant="secondary">
                 <Link href="/about">
-                  Our Story & Traceability{' '}
+                  আমাদের গল্প এবং ট্রেসেবিলিটি{' '}
                   <ArrowRight className="ml-2" />
                 </Link>
               </Button>

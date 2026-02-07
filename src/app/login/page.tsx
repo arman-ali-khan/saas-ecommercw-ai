@@ -20,8 +20,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/context/auth-context';
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(1, { message: 'Password is required.' }),
+  email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
+  password: z.string().min(1, { message: 'পাসওয়ার্ড প্রয়োজন।' }),
 });
 
 export default function LoginPage() {
@@ -46,9 +46,9 @@ export default function LoginPage() {
     <div className="flex items-center justify-center">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Welcome Back!</CardTitle>
+          <CardTitle className="text-2xl font-bold">আবারও স্বাগতম!</CardTitle>
           <CardDescription>
-            Sign in to continue to your account.
+            আপনার অ্যাকাউন্টে চালিয়ে যেতে সাইন ইন করুন।
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -59,7 +59,7 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>ইমেল</FormLabel>
                     <FormControl>
                       <Input placeholder="you@example.com" {...field} />
                     </FormControl>
@@ -72,7 +72,7 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>পাসওয়ার্ড</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
@@ -81,14 +81,14 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full">
-                Sign In
+                সাইন ইন
               </Button>
             </form>
           </Form>
           <div className="mt-6 text-center text-sm">
-            Don&apos;t have an account?{' '}
+            অ্যাকাউন্ট নেই?{' '}
             <Link href="/register" className="font-medium text-primary hover:underline">
-              Sign up
+              সাইন আপ
             </Link>
           </div>
         </CardContent>

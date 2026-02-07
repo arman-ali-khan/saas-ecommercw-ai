@@ -22,10 +22,10 @@ import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const checkoutSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  address: z.string().min(5, 'Please enter a valid address'),
-  city: z.string().min(2, 'Please enter a valid city'),
-  phone: z.string().min(10, 'Please enter a valid phone number'),
+  name: z.string().min(2, 'নাম কমপক্ষে ২ অক্ষরের হতে হবে'),
+  address: z.string().min(5, 'অনুগ্রহ করে একটি বৈধ ঠিকানা লিখুন'),
+  city: z.string().min(2, 'অনুগ্রহ করে একটি বৈধ শহর লিখুন'),
+  phone: z.string().min(10, 'অনুগ্রহ করে একটি বৈধ ফোন নম্বর লিখুন'),
 });
 
 export default function CheckoutPage() {
@@ -68,7 +68,7 @@ export default function CheckoutPage() {
 
   function onSubmit(values: z.infer<typeof checkoutSchema>) {
     console.log(values);
-    alert('Order placed successfully! (This is a demo)');
+    alert('অর্ডার সফলভাবে স্থাপন করা হয়েছে! (এটি একটি ডেমো)');
   }
 
   return (
@@ -76,7 +76,7 @@ export default function CheckoutPage() {
       <div className="md:order-2">
         <Card>
           <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
+            <CardTitle>অর্ডার সারাংশ</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -105,19 +105,19 @@ export default function CheckoutPage() {
             <Separator className="my-4" />
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>Subtotal</span>
+                <span>উপমোট</span>
                 <span>
                   {cartTotal.toFixed(2)} {cartItems[0]?.currency}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Shipping</span>
-                <span>Free</span>
+                <span>শিপিং</span>
+                <span>বিনামূল্যে</span>
               </div>
             </div>
             <Separator className="my-4" />
             <div className="flex justify-between font-bold text-lg">
-              <span>Total</span>
+              <span>মোট</span>
               <span>
                 {cartTotal.toFixed(2)} {cartItems[0]?.currency}
               </span>
@@ -128,7 +128,7 @@ export default function CheckoutPage() {
 
       <div className="md:order-1">
         <h1 className="text-3xl font-headline font-bold mb-6">
-          Shipping Details
+          শিপিং বিবরণ
         </h1>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -137,9 +137,9 @@ export default function CheckoutPage() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>পুরো নাম</FormLabel>
                   <FormControl>
-                    <Input placeholder="Your Name" {...field} />
+                    <Input placeholder="আপনার নাম" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,9 +150,9 @@ export default function CheckoutPage() {
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>ঠিকানা</FormLabel>
                   <FormControl>
-                    <Input placeholder="123 Main St, Apt 4B" {...field} />
+                    <Input placeholder="বাসা/রাস্তা নং" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -163,9 +163,9 @@ export default function CheckoutPage() {
               name="city"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>City</FormLabel>
+                  <FormLabel>শহর</FormLabel>
                   <FormControl>
-                    <Input placeholder="Dhaka" {...field} />
+                    <Input placeholder="ঢাকা" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -176,7 +176,7 @@ export default function CheckoutPage() {
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
+                  <FormLabel>ফোন নম্বর</FormLabel>
                   <FormControl>
                     <Input placeholder="01712345678" {...field} />
                   </FormControl>
@@ -186,17 +186,16 @@ export default function CheckoutPage() {
             />
             <div className="mt-8">
               <h2 className="text-2xl font-headline font-bold mb-4">
-                Payment
+                পেমেন্ট
               </h2>
               <div className="rounded-md border bg-muted p-4 text-center">
                 <p className="text-muted-foreground">
-                  Payment gateway integration coming soon. For now, please enjoy
-                  the demo.
+                  পেমেন্ট গেটওয়ে শীঘ্রই আসছে। আপাতত, ডেমো উপভোগ করুন।
                 </p>
               </div>
             </div>
             <Button type="submit" className="w-full" size="lg">
-              Place Order
+              অর্ডার দিন
             </Button>
           </form>
         </Form>

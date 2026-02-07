@@ -26,10 +26,10 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 
 const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/products', label: 'Products' },
-  { href: '/about', label: 'About Us' },
-  { href: '/admin', label: 'Admin' },
+  { href: '/', label: 'হোম' },
+  { href: '/products', label: 'পণ্য' },
+  { href: '/about', label: 'আমাদের সম্পর্কে' },
+  { href: '/admin', label: 'অ্যাডমিন' },
 ];
 
 export default function Header() {
@@ -66,11 +66,11 @@ export default function Header() {
       return (
            <div className="border-t pt-6 mt-6 space-y-4">
              <SheetClose asChild>
-                <Link href="/login" className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground">Log In</Link>
+                <Link href="/login" className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground">লগ ইন</Link>
              </SheetClose>
              <SheetClose asChild>
                <Button asChild className="w-full">
-                 <Link href="/register">Sign Up</Link>
+                 <Link href="/register">সাইন আপ</Link>
                </Button>
              </SheetClose>
            </div>
@@ -85,7 +85,7 @@ export default function Header() {
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu className="h-6 w-6" />
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">মেনু খুলুন</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
@@ -145,23 +145,23 @@ export default function Header() {
                 <DropdownMenuItem asChild>
                   <Link href="/profile">
                     <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
+                    <span>প্রোফাইল</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>লগ আউট</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <div className="hidden md:flex items-center gap-2">
               <Button variant="ghost" asChild>
-                <Link href="/login">Log In</Link>
+                <Link href="/login">লগ ইন</Link>
               </Button>
               <Button asChild>
-                <Link href="/register">Sign Up</Link>
+                <Link href="/register">সাইন আপ</Link>
               </Button>
             </div>
           )}

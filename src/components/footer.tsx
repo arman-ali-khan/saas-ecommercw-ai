@@ -32,20 +32,19 @@ export default function Footer() {
               <Logo />
             </Link>
             <p className="max-w-xs text-secondary-foreground/80">
-              Bringing the authentic taste of Bangladesh&apos;s natural bounty
-              to your home.
+              আপনার বাড়িতে বাংলাদেশের প্রাকৃতিক সম্পদের খাঁটি স্বাদ নিয়ে আসা।
             </p>
           </div>
           <div className="grid grid-cols-2 gap-8">
             <div>
-              <h3 className="font-headline font-semibold mb-4">Shop</h3>
+              <h3 className="font-headline font-semibold mb-4">কেনাকাটা</h3>
               <ul className="space-y-2">
                 <li>
                   <Link
                     href="/products"
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
-                    All Products
+                    সব পণ্য
                   </Link>
                 </li>
                 <li>
@@ -53,7 +52,7 @@ export default function Footer() {
                     href="/products/mango-himsagar"
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
-                    Mangoes
+                    আম
                   </Link>
                 </li>
                 <li>
@@ -61,20 +60,20 @@ export default function Footer() {
                     href="/products/sundarban-honey"
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
-                    Honey
+                    মধু
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h3 className="font-headline font-semibold mb-4">About</h3>
+              <h3 className="font-headline font-semibold mb-4">আমাদের সম্পর্কে</h3>
               <ul className="space-y-2">
                 <li>
                   <Link
                     href="/about"
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
-                    Our Story
+                    আমাদের গল্প
                   </Link>
                 </li>
                 <li>
@@ -82,14 +81,14 @@ export default function Footer() {
                     href="/about"
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
-                    Traceability
+                    ট্রেসেবিলিটি
                   </Link>
                 </li>
               </ul>
             </div>
           </div>
           <div>
-            <h3 className="font-headline font-semibold mb-4">Follow Us</h3>
+            <h3 className="font-headline font-semibold mb-4">আমাদের অনুসরণ করুন</h3>
             <div className="flex space-x-4">
               <Link
                 href="#"
@@ -116,7 +115,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-8 border-t border-border pt-8 text-center text-sm text-secondary-foreground/60">
-          <p>&copy; {new Date().getFullYear()} Bangla Naturals. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} বাংলা ন্যাচারালস। সর্বস্বত্ব সংরক্ষিত।</p>
         </div>
       </div>
     </footer>

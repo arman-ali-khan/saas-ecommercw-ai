@@ -38,7 +38,7 @@ export default function FloatingChatButton() {
         setChatMessages([
           {
             id: 1,
-            text: 'Hello! How can we help you today? Ask us anything about our products or your order.',
+            text: 'নমস্কার! আজ আমরা আপনাকে কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।',
             sender: 'bot',
           },
         ]);
@@ -49,7 +49,7 @@ export default function FloatingChatButton() {
       setChatMessages([
         {
           id: 1,
-          text: 'Hello! How can we help you today? Ask us anything about our products or your order.',
+          text: 'নমস্কার! আজ আমরা আপনাকে কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।',
           sender: 'bot',
         },
       ]);
@@ -97,7 +97,7 @@ export default function FloatingChatButton() {
     setTimeout(() => {
       const botResponse: ChatMessage = {
         id: Date.now() + 1,
-        text: 'Thanks for reaching out! An agent will be with you shortly.',
+        text: 'যোগাযোগ করার জন্য ধন্যবাদ! একজন এজেন্ট শীঘ্রই আপনার সাথে থাকবেন।',
         sender: 'bot',
       };
       setChatMessages((prev) => [...prev, botResponse]);
@@ -110,7 +110,7 @@ export default function FloatingChatButton() {
         <PopoverTrigger asChild>
           <Button size="icon" className="rounded-full w-14 h-14 shadow-lg">
             {isOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
-            <span className="sr-only">Open Chat</span>
+            <span className="sr-only">চ্যাট খুলুন</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent
@@ -121,9 +121,9 @@ export default function FloatingChatButton() {
         >
           <div className="flex flex-col h-[50vh] max-h-[450px]">
             <div className="p-4 bg-primary text-primary-foreground">
-              <h4 className="font-bold text-lg">Chat with Bangla Naturals</h4>
+              <h4 className="font-bold text-lg">বাংলা ন্যাচারালস-এর সাথে চ্যাট করুন</h4>
               <p className="text-sm text-primary-foreground/90">
-                We typically reply within a few minutes.
+                আমরা সাধারণত কয়েক মিনিটের মধ্যে উত্তর দিই।
               </p>
             </div>
             <ScrollArea className="flex-grow bg-background">
@@ -162,7 +162,7 @@ export default function FloatingChatButton() {
               <div className="flex items-center gap-2">
                 <Input
                   id="chat-message"
-                  placeholder="Type your message..."
+                  placeholder="আপনার বার্তা টাইপ করুন..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={(e) => {
@@ -177,7 +177,7 @@ export default function FloatingChatButton() {
                   onClick={handleSendMessage}
                   size="icon"
                   className="shrink-0"
-                  aria-label="Send Message"
+                  aria-label="বার্তা পাঠান"
                 >
                   <Send className="h-4 w-4" />
                 </Button>

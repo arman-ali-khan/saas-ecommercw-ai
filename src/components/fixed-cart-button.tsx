@@ -59,7 +59,7 @@ export default function FixedCartButton() {
       </SheetTrigger>
       <SheetContent className="flex flex-col">
         <SheetHeader>
-          <SheetTitle>Shopping Cart ({cartCount})</SheetTitle>
+          <SheetTitle>শপিং কার্ট ({cartCount})</SheetTitle>
         </SheetHeader>
         {cartItems.length > 0 ? (
           <>
@@ -132,14 +132,14 @@ export default function FixedCartButton() {
             <SheetFooter className="mt-auto">
               <div className="w-full space-y-4">
                 <div className="flex justify-between font-bold text-lg">
-                  <span>Subtotal</span>
+                  <span>উপমোট</span>
                   <span>
                     {cartTotal.toFixed(2)} {cartItems[0]?.currency}
                   </span>
                 </div>
                 <SheetClose asChild>
                   <Button asChild className="w-full" size="lg">
-                    <Link href="/checkout">Proceed to Checkout</Link>
+                    <Link href="/checkout">চেকআউটে এগিয়ে যান</Link>
                   </Button>
                 </SheetClose>
               </div>
@@ -148,13 +148,13 @@ export default function FixedCartButton() {
         ) : (
           <div className="flex-grow flex flex-col items-center justify-center text-center">
             <ShoppingCartIcon className="w-24 h-24 text-muted-foreground/50 mb-4" />
-            <h3 className="font-semibold text-xl">Your cart is empty</h3>
+            <h3 className="font-semibold text-xl">আপনার কার্ট খালি</h3>
             <p className="text-muted-foreground mt-2">
-              Looks like you haven&apos;t added anything yet.
+              মনে হচ্ছে আপনি এখনো কিছু যোগ করেননি।
             </p>
             <SheetClose asChild>
               <Button asChild className="mt-6">
-                <Link href="/products">Start Shopping</Link>
+                <Link href="/products">কেনাকাটা শুরু করুন</Link>
               </Button>
             </SheetClose>
           </div>

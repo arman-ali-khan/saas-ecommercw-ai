@@ -20,9 +20,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/context/auth-context';
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  name: z.string().min(2, { message: 'নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
+  email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
+  password: z.string().min(6, { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' }),
 });
 
 export default function RegisterPage() {
@@ -48,9 +48,9 @@ export default function RegisterPage() {
     <div className="flex items-center justify-center">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
+          <CardTitle className="text-2xl font-bold">অ্যাকাউন্ট তৈরি করুন</CardTitle>
           <CardDescription>
-            Join Bangla Naturals to start your journey with us.
+            আমাদের সাথে আপনার যাত্রা শুরু করতে বাংলা ন্যাচারালস-এ যোগ দিন।
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -61,9 +61,9 @@ export default function RegisterPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>পুরো নাম</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your Name" {...field} />
+                      <Input placeholder="আপনার নাম" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -74,7 +74,7 @@ export default function RegisterPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>ইমেল</FormLabel>
                     <FormControl>
                       <Input placeholder="you@example.com" {...field} />
                     </FormControl>
@@ -87,7 +87,7 @@ export default function RegisterPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>পাসওয়ার্ড</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
@@ -96,14 +96,14 @@ export default function RegisterPage() {
                 )}
               />
               <Button type="submit" className="w-full">
-                Create Account
+                অ্যাকাউন্ট তৈরি করুন
               </Button>
             </form>
           </Form>
           <div className="mt-6 text-center text-sm">
-            Already have an account?{' '}
+            ইতিমধ্যে একটি অ্যাকাউন্ট আছে?{' '}
             <Link href="/login" className="font-medium text-primary hover:underline">
-              Sign in
+              সাইন ইন
             </Link>
           </div>
         </CardContent>

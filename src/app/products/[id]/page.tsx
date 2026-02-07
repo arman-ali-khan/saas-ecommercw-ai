@@ -54,7 +54,7 @@ export default function ProductPage({ params }: ProductPageProps) {
     typeof window !== 'undefined'
       ? window.location.href
       : `https://banglanaturals.example.com/products/${product.id}`;
-  const shareText = `Check out ${product.name} from Bangla Naturals!`;
+  const shareText = `বাংলা ন্যাচারালস থেকে ${product.name} দেখুন!`;
 
   return (
     <div className="grid md:grid-cols-2 gap-8 md:gap-12">
@@ -92,10 +92,10 @@ export default function ProductPage({ params }: ProductPageProps) {
 
         <div className="space-y-4">
           <p>
-            <span className="font-semibold">Origin:</span> {product.origin}
+            <span className="font-semibold">উৎপত্তি:</span> {product.origin}
           </p>
           <p>
-            <span className="font-semibold">Our Story:</span> {product.story}
+            <span className="font-semibold">আমাদের গল্প:</span> {product.story}
           </p>
         </div>
 
@@ -124,19 +124,19 @@ export default function ProductPage({ params }: ProductPageProps) {
             </Button>
           </div>
           <Button size="lg" onClick={handleAddToCart} className="flex-grow">
-            <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
+            <ShoppingCart className="mr-2 h-5 w-5" /> কার্টে যোগ করুন
           </Button>
         </div>
 
         <div className="mt-8">
-          <h3 className="font-semibold mb-2">Share this product:</h3>
+          <h3 className="font-semibold mb-2">এই পণ্যটি শেয়ার করুন:</h3>
           <div className="flex gap-2">
             <Button asChild variant="outline" size="icon">
               <a
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Share on Facebook"
+                aria-label="ফেসবুকে শেয়ার করুন"
               >
                 <Facebook className="h-5 w-5" />
               </a>
@@ -146,7 +146,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                 href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(shareText)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Share on Twitter"
+                aria-label="টুইটারে শেয়ার করুন"
               >
                 <Twitter className="h-5 w-5" />
               </a>
@@ -160,7 +160,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               className="px-3"
             >
               <Wand2 className="h-5 w-5 mr-2" />
-              AI Share
+              এআই শেয়ার
             </Button>
           </div>
         </div>

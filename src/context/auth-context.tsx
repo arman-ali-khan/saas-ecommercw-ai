@@ -57,21 +57,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { passwordHash, ...userToStore } = foundUser;
         localStorage.setItem('bangla-naturals-user', JSON.stringify(userToStore));
         setUser(userToStore);
-        toast({ title: 'Login Successful', description: `Welcome back, ${userToStore.name}!` });
+        toast({ title: 'লগইন সফল', description: `আবারও স্বাগতম, ${userToStore.name}!` });
         return true;
       }
       toast({
         variant: 'destructive',
-        title: 'Login Failed',
-        description: 'Invalid email or password.',
+        title: 'লগইন ব্যর্থ',
+        description: 'অবৈধ ইমেল বা পাসওয়ার্ড।',
       });
       return false;
     } catch (e) {
       console.error('Login failed', e);
       toast({
         variant: 'destructive',
-        title: 'An error occurred',
-        description: 'Could not process your login request.',
+        title: 'একটি ত্রুটি ঘটেছে',
+        description: 'আপনার লগইন অনুরোধ প্রক্রিয়া করা যায়নি।',
       });
       return false;
     }
@@ -87,8 +87,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (users.some((u) => u.email === email)) {
         toast({
           variant: 'destructive',
-          title: 'Registration Failed',
-          description: 'An account with this email already exists.',
+          title: 'নিবন্ধন ব্যর্থ',
+          description: 'এই ইমেল দিয়ে একটি অ্যাকাউন্ট ইতিমধ্যে বিদ্যমান।',
         });
         return false;
       }
@@ -100,14 +100,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('bangla-naturals-users', JSON.stringify(users));
       localStorage.setItem('bangla-naturals-user', JSON.stringify(newUser));
       setUser(newUser);
-      toast({ title: 'Registration Successful', description: `Welcome, ${name}!` });
+      toast({ title: 'নিবন্ধন সফল', description: `স্বাগতম, ${name}!` });
       return true;
     } catch (e) {
       console.error('Registration failed', e);
       toast({
         variant: 'destructive',
-        title: 'An error occurred',
-        description: 'Could not process your registration.',
+        title: 'একটি ত্রুটি ঘটেছে',
+        description: 'আপনার নিবন্ধন অনুরোধ প্রক্রিয়া করা যায়নি।',
       });
       return false;
     }
@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     localStorage.removeItem('bangla-naturals-user');
     setUser(null);
-    toast({ title: 'Logged Out', description: "You have been successfully logged out." });
+    toast({ title: 'লগ আউট', description: "আপনি সফলভাবে লগ আউট হয়েছেন।" });
     router.push('/');
   };
 

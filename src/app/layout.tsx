@@ -9,8 +9,8 @@ import FixedCartButton from '@/components/fixed-cart-button';
 import FloatingChatButton from '@/components/floating-chat-button';
 
 export const metadata: Metadata = {
-  title: 'Bangla Naturals',
-  description: 'Vibrant e-commerce for natural Bangladeshi products.',
+  title: 'বাংলা ন্যাচারালস',
+  description: 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Orbitron:wght@700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;700&family=Orbitron:wght@700&display=swap"
           rel="stylesheet"
         />
       </head>

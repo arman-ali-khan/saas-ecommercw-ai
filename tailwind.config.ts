@@ -17,7 +17,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Lato', 'sans-serif'],
+        body: ['Hind Siliguri', 'sans-serif'],
         headline: ['Orbitron', 'sans-serif'],
         code: ['monospace'],
       },

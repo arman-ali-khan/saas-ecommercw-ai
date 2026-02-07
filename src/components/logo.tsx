@@ -12,7 +12,7 @@ const Logo = ({ className }: { className?: string }) => {
       <div className="bg-primary p-2 rounded-full">
         <Leaf className="h-5 w-5 text-primary-foreground" />
       </div>
-      <span>Bangla Naturals</span>
+      <span>বাংলা ন্যাচারালস</span>
     </div>
   );
 };

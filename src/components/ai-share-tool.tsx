@@ -37,7 +37,7 @@ export function AiShareTool({
     // This is a mock generation for demonstration purposes.
     // In a real application, you would call your GenAI flow here.
     setTimeout(() => {
-      const post = `Love ${interests}? Then you'll be obsessed with ${product.name} from Bangla Naturals! 🌿 It's a taste of pure, natural goodness from ${product.origin}. ${product.description} Get yours now! #BanglaNaturals #${product.name.replace(/\s+/g, '')}`;
+      const post = `${interests} ভালোবাসেন? তাহলে আপনি বাংলা ন্যাচারালস এর ${product.name} এর প্রতি আসক্ত হয়ে যাবেন! 🌿 এটি ${product.origin} থেকে আসা বিশুদ্ধ, প্রাকৃতিক ভালোর স্বাদ। ${product.description} এখনই আপনারটি সংগ্রহ করুন! #BanglaNaturals #${product.name.replace(/\s+/g, '')}`;
       setGeneratedPost(post);
       setIsLoading(false);
     }, 1500);
@@ -46,7 +46,7 @@ export function AiShareTool({
   const handleCopy = () => {
     navigator.clipboard.writeText(generatedPost);
     toast({
-      title: 'Copied to clipboard!',
+      title: 'ক্লিপবোর্ডে কপি করা হয়েছে!',
     });
   };
 
@@ -55,42 +55,41 @@ export function AiShareTool({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Wand2 className="text-primary" /> AI-Powered Share Tool
+            <Wand2 className="text-primary" /> এআই-চালিত শেয়ার টুল
           </DialogTitle>
           <DialogDescription>
-            Let our AI craft the perfect social media post to share{' '}
-            {product.name} with your friends.
+            আমাদের এআই-কে আপনার বন্ধুদের সাথে {product.name} শেয়ার করার জন্য নিখুঁত সোশ্যাল মিডিয়া পোস্ট তৈরি করতে দিন।
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="interests" className="text-right">
-              Interests
+              আগ্রহ
             </Label>
             <Input
               id="interests"
               value={interests}
               onChange={(e) => setInterests(e.target.value)}
               className="col-span-3"
-              placeholder="e.g., healthy food, desserts"
+              placeholder="যেমন, স্বাস্থ্যকর খাবার, মিষ্টি"
             />
           </div>
           <Button onClick={handleGenerate} disabled={isLoading}>
-            {isLoading ? 'Generating...' : 'Generate Post'}
+            {isLoading ? 'তৈরি হচ্ছে...' : 'পোস্ট তৈরি করুন'}
           </Button>
           {generatedPost && (
             <div className="space-y-2">
-              <Label>Generated Post:</Label>
+              <Label>তৈরি করা পোস্ট:</Label>
               <Textarea value={generatedPost} readOnly rows={5} />
               <Button onClick={handleCopy} variant="outline" className="w-full">
-                <Copy className="mr-2 h-4 w-4" /> Copy Text
+                <Copy className="mr-2 h-4 w-4" /> লেখা কপি করুন
               </Button>
             </div>
           )}
         </div>
         <DialogFooter>
           <p className="text-xs text-muted-foreground text-center w-full">
-            AI can make mistakes. Check important info.
+            এআই ভুল করতে পারে। গুরুত্বপূর্ণ তথ্য যাচাই করুন।
           </p>
         </DialogFooter>
       </DialogContent>

@@ -110,9 +110,9 @@ export default function ProductsPage() {
         case 'price-desc':
           return b.price - a.price;
         case 'name-asc':
-          return a.name.localeCompare(b.name);
+          return a.name.localeCompare(b.name, 'bn');
         case 'name-desc':
-          return b.name.localeCompare(a.name);
+          return b.name.localeCompare(a.name, 'bn');
         default:
           return 0;
       }
@@ -139,7 +139,7 @@ export default function ProductsPage() {
   const Filters = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-3">Categories</h3>
+        <h3 className="text-lg font-semibold mb-3">বিভাগ</h3>
         <div className="space-y-2">
           {allCategories.map((category) => (
             <div key={category} className="flex items-center space-x-2">
@@ -156,7 +156,7 @@ export default function ProductsPage() {
         </div>
       </div>
        <div>
-        <h3 className="text-lg font-semibold mb-3">Origin</h3>
+        <h3 className="text-lg font-semibold mb-3">উৎপত্তি</h3>
         <div className="space-y-2">
           {allOrigins.map((origin) => (
             <div key={origin} className="flex items-center space-x-2">
@@ -173,7 +173,7 @@ export default function ProductsPage() {
         </div>
       </div>
       <div>
-        <h3 className="text-lg font-semibold mb-3">Price Range</h3>
+        <h3 className="text-lg font-semibold mb-3">মূল্য পরিসীমা</h3>
         <Slider
           min={0}
           max={maxPrice}
@@ -189,7 +189,7 @@ export default function ProductsPage() {
       </div>
       {(selectedCategories.length > 0 || selectedOrigins.length > 0 || priceRange[0] > 0 || priceRange[1] < maxPrice) && (
         <Button variant="outline" onClick={clearFilters} className="w-full">
-            <X className="mr-2 h-4 w-4" /> Clear All Filters
+            <X className="mr-2 h-4 w-4" /> সব ফিল্টার মুছুন
         </Button>
       )}
     </div>
@@ -202,17 +202,17 @@ export default function ProductsPage() {
         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
         disabled={currentPage === 1}
       >
-        Previous
+        পূর্ববর্তী
       </Button>
       <span className="text-sm text-muted-foreground">
-        Page {currentPage} of {totalPages}
+        পৃষ্ঠা {totalPages} এর মধ্যে {currentPage}
       </span>
       <Button
         variant="outline"
         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
         disabled={currentPage === totalPages}
       >
-        Next
+        পরবর্তী
       </Button>
     </div>
   );
@@ -221,7 +221,7 @@ export default function ProductsPage() {
     <div className="grid lg:grid-cols-4 gap-8">
       <aside className="hidden lg:block lg:col-span-1">
         <div className="sticky top-24">
-          <h2 className="text-2xl font-bold mb-4">Filters</h2>
+          <h2 className="text-2xl font-bold mb-4">ফিল্টার</h2>
           <Filters />
         </div>
       </aside>
@@ -231,7 +231,7 @@ export default function ProductsPage() {
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Search products..."
+              placeholder="পণ্য খুঁজুন..."
               value={searchQuery}
               onChange={handleSearchChange}
               className="pl-10"
@@ -240,25 +240,25 @@ export default function ProductsPage() {
           <div className="flex items-center gap-4 w-full sm:w-auto">
             <Select value={sortOrder} onValueChange={handleSortChange}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Sort by" />
+                <SelectValue placeholder="সাজান" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="name-asc">Name: A-Z</SelectItem>
-                <SelectItem value="name-desc">Name: Z-A</SelectItem>
-                <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                <SelectItem value="name-asc">নাম: ক-ঁ</SelectItem>
+                <SelectItem value="name-desc">নাম: ঁ-ক</SelectItem>
+                <SelectItem value="price-asc">দাম: কম থেকে বেশি</SelectItem>
+                <SelectItem value="price-desc">দাম: বেশি থেকে কম</SelectItem>
               </SelectContent>
             </Select>
             <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="lg:hidden">
                   <ListFilter className="h-5 w-5" />
-                  <span className="sr-only">Filters</span>
+                  <span className="sr-only">ফিল্টার</span>
                 </Button>
               </SheetTrigger>
               <SheetContent>
                 <SheetHeader>
-                  <SheetTitle>Filters</SheetTitle>
+                  <SheetTitle>ফিল্টার</SheetTitle>
                 </SheetHeader>
                 <div className="mt-8">
                   <Filters />
@@ -279,12 +279,12 @@ export default function ProductsPage() {
           </>
         ) : (
           <div className="text-center py-16">
-            <h3 className="text-2xl font-semibold">No Products Found</h3>
+            <h3 className="text-2xl font-semibold">কোনো পণ্য পাওয়া যায়নি</h3>
             <p className="text-muted-foreground mt-2">
-              Try adjusting your filters or search terms.
+              আপনার ফিল্টার বা অনুসন্ধানের শব্দ পরিবর্তন করে চেষ্টা করুন।
             </p>
             <Button onClick={clearFilters} className="mt-6">
-              Clear Filters
+              ফিল্টার মুছুন
             </Button>
           </div>
         )}

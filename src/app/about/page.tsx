@@ -13,12 +13,12 @@ export default function AboutPage() {
     <div className="space-y-16">
       <div className="text-center">
         <h1 className="text-4xl md:text-5xl font-headline font-bold">
-          Our Connection to the Land
+          জমির সাথে আমাদের সংযোগ
         </h1>
         <p className="mt-4 max-w-3xl mx-auto text-lg text-muted-foreground">
-          Bangla Naturals was born from a simple desire: to share the pure,
-          unadulterated flavors of Bangladesh with the world, starting with our
-          own community.
+          বাংলা ন্যাচারালস-এর জন্ম একটি সাধারণ ইচ্ছা থেকে: বাংলাদেশের খাঁটি,
+          বিশুদ্ধ স্বাদ বিশ্বের কাছে পৌঁছে দেওয়া, যা আমাদের নিজস্ব সম্প্রদায়
+          থেকে শুরু হয়েছে।
         </p>
       </div>
 
@@ -27,23 +27,23 @@ export default function AboutPage() {
           <CardHeader>
             <Sprout className="w-12 h-12 text-accent" />
             <CardTitle className="font-headline text-3xl mt-4">
-              Our Story
+              আমাদের গল্প
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-muted-foreground">
             <p>
-              It all started in a small family orchard, with mango trees that
-              have been nurtured for generations. We realized that the taste of
-              a mango plucked straight from the tree, the richness of pure honey,
-              and the smoky sweetness of fresh Nolen Gur were experiences that
-              many in the city were missing out on.
+              সব শুরু হয়েছিল একটি ছোট পারিবারিক বাগানে, যেখানে আম গাছগুলো
+              প্রজন্মের পর প্রজন্ম ধরে লালিত-পালিত হয়ে আসছে। আমরা বুঝতে
+              পেরেছিলাম যে গাছ থেকে সরাসরি পেড়ে আনা আমের স্বাদ, খাঁটি মধুর
+              সমৃদ্ধি এবং তাজা নলেন গুড়ের ধোঁয়াটে মিষ্টি স্বাদ এমন এক অভিজ্ঞতা যা
+              শহরের অনেকেই মিস করছিল।
             </p>
             <p>
-              We decided to bridge that gap. We began partnering with local
-              farmers and artisans who share our passion for quality and natural
-              methods. Bangla Naturals is more than a brand; it&apos;s a
-              community of growers, makers, and customers who appreciate the
-              true taste of nature.
+              আমরা সেই ব্যবধান পূরণ করার সিদ্ধান্ত নিয়েছি। আমরা স্থানীয় কৃষক এবং
+              কারিগরদের সাথে অংশীদারিত্ব শুরু করেছি যারা গুণমান এবং প্রাকৃতিক
+              পদ্ধতির প্রতি আমাদের আবেগ ভাগ করে নেয়। বাংলা ন্যাচারালস একটি ব্র্যান্ডের
+              চেয়েও বেশি কিছু; এটি উৎপাদক, নির্মাতা এবং গ্রাহকদের একটি সম্প্রদায়
+              যারা প্রকৃতির আসল স্বাদকে প্রশংসা করে।
             </p>
           </CardContent>
         </div>
@@ -76,21 +76,21 @@ export default function AboutPage() {
           <CardHeader>
             <Map className="w-12 h-12 text-accent" />
             <CardTitle className="font-headline text-3xl mt-4">
-              Our Promise of Traceability
+              আমাদের ট্রেসেবিলিটির প্রতিশ্রুতি
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-muted-foreground">
             <p>
-              You deserve to know where your food comes from. We believe in
-              complete transparency. For every product, we provide information
-              about its origin, the community that grew it, and the journey it
-              took to reach your home.
+              আপনার খাবার কোথা থেকে আসে তা জানার অধিকার আপনার আছে। আমরা সম্পূর্ণ
+              স্বচ্ছতায় বিশ্বাস করি। প্রতিটি পণ্যের জন্য, আমরা তার উৎস, যে
+              সম্প্রদায় এটি উৎপাদন করেছে এবং আপনার বাড়িতে পৌঁছানোর যাত্রা
+              সম্পর্কে তথ্য সরবরাহ করি।
             </p>
             <p>
-              This commitment ensures that you receive the highest quality
-              products while also supporting the local communities and
-              sustainable practices that make it all possible. It&apos;s a
-              connection you can taste and trust.
+              এই প্রতিশ্রুতি নিশ্চিত করে যে আপনি সর্বোচ্চ মানের পণ্য পাচ্ছেন এবং
+              একই সাথে স্থানীয় সম্প্রদায় ও টেকসই অনুশীলনকে সমর্থন করছেন যা এই
+              সবকিছু সম্ভব করে তুলেছে। এটি এমন একটি সংযোগ যা আপনি স্বাদ এবং
+              বিশ্বাসের সাথে অনুভব করতে পারেন।
             </p>
           </CardContent>
         </div>
@@ -99,11 +99,11 @@ export default function AboutPage() {
       <div className="text-center">
         <Heart className="w-16 h-16 text-primary mx-auto mb-4" />
         <h2 className="text-3xl font-headline font-bold">
-          Join Our Community
+          আমাদের সম্প্রদায়ে যোগ দিন
         </h2>
         <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
-          When you choose Bangla Naturals, you&apos;re not just buying a
-          product; you&apos;re becoming part of a story.
+          আপনি যখন বাংলা ন্যাচারালস বেছে নেন, তখন আপনি শুধু একটি পণ্য কিনছেন না;
+          আপনি একটি গল্পের অংশ হয়ে উঠছেন।
         </p>
       </div>
     </div>

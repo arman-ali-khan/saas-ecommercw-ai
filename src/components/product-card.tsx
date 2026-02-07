@@ -45,7 +45,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         </p>
         <Button onClick={handleAddToCart}>
           <ShoppingCart className="w-4 h-4 mr-2" />
-          Add to Cart
+          কার্টে যোগ করুন
         </Button>
       </CardFooter>
     </Card>
