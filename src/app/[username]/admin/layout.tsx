@@ -4,11 +4,12 @@ import AdminSidebar from '@/components/admin-sidebar';
 
 export default function AdminLayout({
   children,
-  params: { username },
+  params,
 }: {
   children: React.ReactNode;
   params: { username: string };
 }) {
+  const { username } = params;
   return (
     <div className="fixed inset-0 bg-background z-50 grid w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <AdminSidebar username={username} />
