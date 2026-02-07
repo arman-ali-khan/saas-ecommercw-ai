@@ -3,6 +3,7 @@ import './globals.css';
 import { CartProvider } from '@/context/cart-context';
 import { AuthProvider } from '@/context/auth-context';
 import { Toaster } from '@/components/ui/toaster';
+import SiteLayout from '@/components/site-layout';
 
 export const metadata: Metadata = {
   title: 'বাংলা ন্যাচারালস',
@@ -31,7 +32,7 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background text-foreground">
         <AuthProvider>
           <CartProvider>
-            {children}
+            <SiteLayout>{children}</SiteLayout>
             <Toaster />
           </CartProvider>
         </AuthProvider>
