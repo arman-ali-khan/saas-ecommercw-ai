@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
       
-      if (domain && users.some((u) => u.domain.toLowerCase() === domain.toLowerCase())) {
+      if (domain && users.some((u) => u.domain && u.domain.toLowerCase() === domain.toLowerCase())) {
         toast({
           variant: 'destructive',
           title: 'ডোমেইন নাম বিদ্যমান',
