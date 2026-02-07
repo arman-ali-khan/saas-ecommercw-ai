@@ -77,6 +77,18 @@
       "description": "A person carefully inspecting fresh produce.",
       "imageUrl": "https://images.unsplash.com/photo-1571771894828-34f3cc154b52?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmcnVpdCUyMGluc3BlY3Rpb258ZW58MHx8fHwxNzcwNDgxNTM1fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "quality inspection"
+    },
+    {
+      "id": "saas-hero",
+      "description": "An abstract, futuristic digital storefront concept.",
+      "imageUrl": "https://images.unsplash.com/photo-1628882194944-7839358a5e39?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxkaWdpdGFsJTIwc3RvcmV8ZW58MHx8fHwxNzcwNTM1ODg3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "digital store"
+    },
+    {
+      "id": "saas-avatar-1",
+      "description": "Portrait of a smiling customer.",
+      "imageUrl": "https://images.unsplash.com/photo-1554151228-14d9def656e4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzbWlsaW5nJTIwY3VzdG9tZXJ8ZW58MHx8fHwxNzcwNTM1OTQyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "smiling customer"
     }
   ]
 }
