@@ -14,6 +14,7 @@ const products: Product[] = [
     origin: 'Rajshahi, Bangladesh',
     story:
       'Sourced directly from the famed orchards of Rajshahi, our Himsagar mangoes are grown using traditional methods, ensuring each fruit is packed with authentic flavor.',
+    category: 'Fruits',
   },
   {
     id: 'dates-mariam',
@@ -27,6 +28,7 @@ const products: Product[] = [
     origin: 'Saudi Arabia (Imported)',
     story:
       'We carefully select and import the finest Mariam dates to bring you a taste of luxury. Each date is hand-picked to ensure it meets our high standards of quality and freshness.',
+    category: 'Fruits',
   },
   {
     id: 'date-molasses',
@@ -40,6 +42,7 @@ const products: Product[] = [
     origin: 'Jessore, Bangladesh',
     story:
       'Our Nolen Gur is made by skilled artisans in Jessore who have perfected the craft over generations. The process is slow and natural, capturing the true essence of the date palm sap.',
+    category: 'Sweeteners',
   },
   {
     id: 'sundarban-honey',
@@ -53,6 +56,7 @@ const products: Product[] = [
     origin: 'Sundarbans, Bangladesh',
     story:
       'Brave honey hunters (Mawals) venture deep into the Sundarbans to collect this precious honey. We partner with them to ensure sustainable collection practices that protect both the forest and their livelihoods.',
+    category: 'Honey',
   },
 ];
 

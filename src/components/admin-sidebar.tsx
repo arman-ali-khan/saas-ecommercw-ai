@@ -12,6 +12,8 @@ import {
   MessageSquare,
   Settings,
   Bot,
+  Star,
+  LayoutList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from './logo';
@@ -20,6 +22,8 @@ const adminNavLinks = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/admin/featured-products', label: 'Featured Products', icon: Star },
+  { href: '/admin/section-manager', label: 'Section Manager', icon: LayoutList },
   { href: '/admin/uncompleted', label: 'Uncompleted', icon: FileClock },
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
   { href: '/admin/pages', label: 'Page Manager', icon: FileText },

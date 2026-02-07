@@ -10,6 +10,7 @@ export interface Product {
   images: typeof PlaceHolderImages;
   origin: string;
   story: string;
+  category: string;
 }
 
 export interface CartItem extends Product {
