@@ -5,13 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getProducts } from '@/lib/products';
 import ProductCard from '@/components/product-card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { ArrowRight, Leaf } from 'lucide-react';
+import { ArrowRight, Leaf, Users, Heart } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 
 export default function Home() {
   const featuredProducts = getProducts().slice(0, 3);
   const aboutImage = PlaceHolderImages.find(
     (img) => img.id === 'about-traceability'
+  );
+  const storyImage = PlaceHolderImages.find((img) => img.id === 'about-story');
+  const qualityImage = PlaceHolderImages.find(
+    (img) => img.id === 'quality-promise'
   );
 
   const heroSlides = [
@@ -29,7 +40,7 @@ export default function Home() {
       image: PlaceHolderImages.find((img) => img.id === 'honey-2'),
       title: 'বন্য, অপরিশোধিত সুন্দরবনের মধু',
       description:
-        "বিশ্বের বৃহত্তম ম্যানগ্রোভ বন থেকে মধুর এক অনন্য অভিজ্ঞতা অর্জন করুন।",
+        'বিশ্বের বৃহত্তম ম্যানগ্রোভ বন থেকে মধুর এক অনন্য অভিজ্ঞতা অর্জন করুন।',
       link: '/products/sundarban-honey',
       linkText: 'মধু আবিষ্কার করুন',
     },
@@ -62,38 +73,218 @@ export default function Home() {
       </section>
 
       <section>
-        <Card className="overflow-hidden md:grid md:grid-cols-2 md:gap-8 items-center">
-          <div className="p-8 md:p-12">
-            <CardHeader>
-              <Leaf className="w-12 h-12 text-accent" />
-              <CardTitle className="font-headline text-3xl mt-4">
-                আমাদের ভূমি থেকে, আপনার ঘরে
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-lg text-muted-foreground mb-6">
-                আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক। আমাদের গল্প, প্রক্রিয়া এবং গুণমান ও স্বচ্ছতার প্রতিশ্রুতি সম্পর্কে জানুন।
-              </p>
-              <Button asChild variant="secondary">
+        <h2 className="text-3xl font-headline font-bold text-center mb-8">
+          কেন আমরা আলাদা
+        </h2>
+        <div className="hidden lg:grid grid-cols-3 gap-6">
+          <Card className="overflow-hidden flex flex-col">
+            <div className="relative h-64 w-full">
+              {aboutImage && (
+                <Image
+                  src={aboutImage.imageUrl}
+                  alt={aboutImage.description}
+                  data-ai-hint={aboutImage.imageHint}
+                  fill
+                  className="object-cover"
+                />
+              )}
+            </div>
+            <div className="p-6 flex flex-col flex-grow">
+              <CardHeader className="p-0">
+                <Leaf className="w-10 h-10 text-accent mb-4" />
+                <CardTitle className="font-headline text-2xl">
+                  আমাদের ভূমি থেকে, আপনার ঘরে
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 mt-4 flex-grow">
+                <p className="text-muted-foreground">
+                  আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।
+                </p>
+              </CardContent>
+              <Button asChild variant="secondary" className="mt-6 w-fit">
                 <Link href="/about">
-                  আমাদের গল্প এবং ট্রেসেবিলিটি{' '}
-                  <ArrowRight className="ml-2" />
+                  আরও জানুন <ArrowRight className="ml-2" />
                 </Link>
               </Button>
-            </CardContent>
-          </div>
-          <div className="h-64 md:h-full w-full relative">
-            {aboutImage && (
-              <Image
-                src={aboutImage.imageUrl}
-                alt={aboutImage.description}
-                data-ai-hint={aboutImage.imageHint}
-                fill
-                className="object-cover"
-              />
-            )}
-          </div>
-        </Card>
+            </div>
+          </Card>
+          <Card className="overflow-hidden flex flex-col">
+            <div className="relative h-64 w-full">
+              {storyImage && (
+                <Image
+                  src={storyImage.imageUrl}
+                  alt={storyImage.description}
+                  data-ai-hint={storyImage.imageHint}
+                  fill
+                  className="object-cover"
+                />
+              )}
+            </div>
+            <div className="p-6 flex flex-col flex-grow">
+              <CardHeader className="p-0">
+                <Users className="w-10 h-10 text-accent mb-4" />
+                <CardTitle className="font-headline text-2xl">
+                  কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 mt-4 flex-grow">
+                <p className="text-muted-foreground">
+                  আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।
+                </p>
+              </CardContent>
+              <Button asChild variant="secondary" className="mt-6 w-fit">
+                <Link href="/about">
+                  আরও জানুন <ArrowRight className="ml-2" />
+                </Link>
+              </Button>
+            </div>
+          </Card>
+          <Card className="overflow-hidden flex flex-col">
+            <div className="relative h-64 w-full">
+              {qualityImage && (
+                <Image
+                  src={qualityImage.imageUrl}
+                  alt={qualityImage.description}
+                  data-ai-hint={qualityImage.imageHint}
+                  fill
+                  className="object-cover"
+                />
+              )}
+            </div>
+            <div className="p-6 flex flex-col flex-grow">
+              <CardHeader className="p-0">
+                <Heart className="w-10 h-10 text-accent mb-4" />
+                <CardTitle className="font-headline text-2xl">
+                  বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 mt-4 flex-grow">
+                <p className="text-muted-foreground">
+                  প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।
+                </p>
+              </CardContent>
+              <Button asChild variant="secondary" className="mt-6 w-fit">
+                <Link href="/about">
+                  আরও জানুন <ArrowRight className="ml-2" />
+                </Link>
+              </Button>
+            </div>
+          </Card>
+        </div>
+
+        <div className="lg:hidden">
+          <Carousel
+            opts={{
+              align: 'start',
+              loop: true,
+            }}
+            className="w-full"
+          >
+            <CarouselContent>
+              <CarouselItem>
+                <Card className="overflow-hidden">
+                  <div className="relative h-64 w-full">
+                    {aboutImage && (
+                      <Image
+                        src={aboutImage.imageUrl}
+                        alt={aboutImage.description}
+                        data-ai-hint={aboutImage.imageHint}
+                        fill
+                        className="object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <CardHeader className="p-0">
+                      <Leaf className="w-10 h-10 text-accent mb-4" />
+                      <CardTitle className="font-headline text-2xl">
+                        আমাদের ভূমি থেকে, আপনার ঘরে
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 mt-4">
+                      <p className="text-muted-foreground">
+                        আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।
+                      </p>
+                    </CardContent>
+                    <Button asChild variant="secondary" className="mt-6 w-fit">
+                      <Link href="/about">
+                        আরও জানুন <ArrowRight className="ml-2" />
+                      </Link>
+                    </Button>
+                  </div>
+                </Card>
+              </CarouselItem>
+              <CarouselItem>
+                <Card className="overflow-hidden">
+                  <div className="relative h-64 w-full">
+                    {storyImage && (
+                      <Image
+                        src={storyImage.imageUrl}
+                        alt={storyImage.description}
+                        data-ai-hint={storyImage.imageHint}
+                        fill
+                        className="object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <CardHeader className="p-0">
+                      <Users className="w-10 h-10 text-accent mb-4" />
+                      <CardTitle className="font-headline text-2xl">
+                        কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 mt-4">
+                      <p className="text-muted-foreground">
+                        আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।
+                      </p>
+                    </CardContent>
+                    <Button asChild variant="secondary" className="mt-6 w-fit">
+                      <Link href="/about">
+                        আরও জানুন <ArrowRight className="ml-2" />
+                      </Link>
+                    </Button>
+                  </div>
+                </Card>
+              </CarouselItem>
+              <CarouselItem>
+                <Card className="overflow-hidden">
+                  <div className="relative h-64 w-full">
+                    {qualityImage && (
+                      <Image
+                        src={qualityImage.imageUrl}
+                        alt={qualityImage.description}
+                        data-ai-hint={qualityImage.imageHint}
+                        fill
+                        className="object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <CardHeader className="p-0">
+                      <Heart className="w-10 h-10 text-accent mb-4" />
+                      <CardTitle className="font-headline text-2xl">
+                        বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 mt-4">
+                      <p className="text-muted-foreground">
+                        প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।
+                      </p>
+                    </CardContent>
+                    <Button asChild variant="secondary" className="mt-6 w-fit">
+                      <Link href="/about">
+                        আরও জানুন <ArrowRight className="ml-2" />
+                      </Link>
+                    </Button>
+                  </div>
+                </Card>
+              </CarouselItem>
+            </CarouselContent>
+            <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
+            <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
+          </Carousel>
+        </div>
       </section>
     </div>
   );
