@@ -31,6 +31,10 @@ const profileSchema = z.object({
 const passwordSchema = z.object({
     currentPassword: z.string().min(1, { message: 'বর্তমান পাসওয়ার্ড প্রয়োজন।' }),
     newPassword: z.string().min(6, { message: 'নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' }),
+    confirmPassword: z.string().min(6, { message: 'অনুগ্রহ করে আপনার নতুন পাসওয়ার্ড নিশ্চিত করুন।' }),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "পাসওয়ার্ড দুটি মিলছে না।",
+    path: ["confirmPassword"],
 });
 
 type UsernameStatus = 'IDLE' | 'CHECKING' | 'AVAILABLE' | 'TAKEN' | 'INVALID';
@@ -74,7 +78,7 @@ export default function SettingsPage() {
 
     const passwordForm = useForm<z.infer<typeof passwordSchema>>({
         resolver: zodResolver(passwordSchema),
-        defaultValues: { currentPassword: '', newPassword: '' },
+        defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
     });
 
     function onProfileSubmit(values: z.infer<typeof profileSchema>) {
@@ -198,6 +202,19 @@ export default function SettingsPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>নতুন পাসওয়ার্ড</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={passwordForm.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>নতুন পাসওয়ার্ড নিশ্চিত করুন</FormLabel>
                     <FormControl>
                       <Input type="password" {...field} />
                     </FormControl>
