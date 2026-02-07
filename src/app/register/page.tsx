@@ -48,7 +48,6 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
@@ -126,6 +125,5 @@ export default function RegisterPage() {
           </CardContent>
         </Card>
       </div>
-    </main>
   );
 }
