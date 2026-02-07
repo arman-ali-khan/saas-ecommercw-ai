@@ -21,6 +21,7 @@ import {
   Minus,
 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
+import { usePathname } from 'next/navigation';
 
 export default function ShoppingCart() {
   const {
@@ -30,6 +31,12 @@ export default function ShoppingCart() {
     updateQuantity,
     removeFromCart,
   } = useCart();
+  
+  const pathname = usePathname();
+  const segments = pathname.split('/').filter(Boolean);
+  const KNOWN_ROOT_PATHS = ['admin', 'login', 'register', 'profile'];
+  const username = segments.length > 0 && !KNOWN_ROOT_PATHS.includes(segments[0]) ? segments[0] : null;
+  const checkoutUrl = username ? `/${username}/checkout` : '/checkout'; // Fallback, though should always have username here.
 
   return (
     <Sheet>
@@ -126,7 +133,7 @@ export default function ShoppingCart() {
                 </div>
                 <SheetClose asChild>
                   <Button asChild className="w-full" size="lg">
-                    <Link href="/checkout">চেকআউটে এগিয়ে যান</Link>
+                    <Link href={checkoutUrl}>চেকআউটে এগিয়ে যান</Link>
                   </Button>
                 </SheetClose>
               </div>
@@ -141,7 +148,7 @@ export default function ShoppingCart() {
             </p>
             <SheetClose asChild>
               <Button asChild className="mt-6">
-                <Link href="/products">কেনাকাটা শুরু করুন</Link>
+                <Link href={username ? `/${username}/products` : '/products'}>কেনাকাটা শুরু করুন</Link>
               </Button>
             </SheetClose>
           </div>

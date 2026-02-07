@@ -23,7 +23,7 @@ import {
 import { ScrollArea } from './ui/scroll-area';
 import { usePathname } from 'next/navigation';
 
-export default function FixedCartButton() {
+export default function FixedCartButton({ username }: { username: string }) {
   const {
     cartItems,
     cartCount,
@@ -36,6 +36,8 @@ export default function FixedCartButton() {
   if (cartCount === 0 || pathname.startsWith('/admin')) {
     return null;
   }
+  
+  const checkoutUrl = `/${username}/checkout`;
 
   return (
     <Sheet>
@@ -139,7 +141,7 @@ export default function FixedCartButton() {
                 </div>
                 <SheetClose asChild>
                   <Button asChild className="w-full" size="lg">
-                    <Link href="/checkout">চেকআউটে এগিয়ে যান</Link>
+                    <Link href={checkoutUrl}>চেকআউটে এগিয়ে যান</Link>
                   </Button>
                 </SheetClose>
               </div>
@@ -154,7 +156,7 @@ export default function FixedCartButton() {
             </p>
             <SheetClose asChild>
               <Button asChild className="mt-6">
-                <Link href="/products">কেনাকাটা শুরু করুন</Link>
+                <Link href={`/${username}/products`}>কেনাকাটা শুরু করুন</Link>
               </Button>
             </SheetClose>
           </div>

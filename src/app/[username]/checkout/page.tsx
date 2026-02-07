@@ -28,7 +28,7 @@ const checkoutSchema = z.object({
   phone: z.string().min(10, 'অনুগ্রহ করে একটি বৈধ ফোন নম্বর লিখুন'),
 });
 
-export default function CheckoutPage() {
+export default function CheckoutPage({ params }: { params: { username: string } }) {
   const { cartItems, cartTotal, cartCount, isLoading } = useCart();
   const router = useRouter();
 
@@ -44,9 +44,9 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!isLoading && cartCount === 0) {
-      router.push('/products');
+      router.push(`/${params.username}/products`);
     }
-  }, [isLoading, cartCount, router]);
+  }, [isLoading, cartCount, router, params.username]);
 
   if (isLoading || cartCount === 0) {
     return (

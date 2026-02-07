@@ -10,7 +10,7 @@ import { useCart } from '@/context/cart-context';
 
 interface ProductCardProps {
   product: Product;
-  username?: string;
+  username: string;
 }
 
 export default function ProductCard({ product, username }: ProductCardProps) {
@@ -20,9 +20,7 @@ export default function ProductCard({ product, username }: ProductCardProps) {
     addToCart(product, 1);
   };
 
-  const productUrl = username
-    ? `/${username}/products/${product.id}`
-    : `/products/${product.id}`;
+  const productUrl = `/${username}/products/${product.id}`;
 
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">

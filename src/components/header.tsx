@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Menu, User, LogOut } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 import Logo from './logo';
 import { Button } from './ui/button';
@@ -22,19 +23,27 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { cn } from '@/lib/utils';
-import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-
-const navLinks = [
-  { href: '/', label: 'হোম' },
-  { href: '/products', label: 'পণ্য' },
-  { href: '/about', label: 'আমাদের সম্পর্কে' },
-  { href: '/admin', label: 'অ্যাডমিন' },
-];
 
 export default function Header() {
   const pathname = usePathname();
   const { user, logout, isLoading } = useAuth();
+  
+  const segments = pathname.split('/').filter(Boolean);
+  const KNOWN_ROOT_PATHS = ['admin', 'login', 'register', 'profile'];
+  const username = segments.length > 0 && !KNOWN_ROOT_PATHS.includes(segments[0]) ? segments[0] : null;
+  const basePath = username ? `/${username}` : '';
+
+  const navLinks = [
+    { href: basePath || '/', label: 'হোম' },
+    { href: `${basePath}/products`, label: 'পণ্য' },
+    { href: `${basePath}/about`, label: 'আমাদের সম্পর্কে' },
+  ];
+  
+  if (user?.email === 'admin@example.com') {
+      navLinks.push({ href: '/admin', label: 'অ্যাডমিন' });
+  }
+
 
   const NavLink = ({
     href,
@@ -45,7 +54,9 @@ export default function Header() {
     label: string;
     className?: string;
   }) => {
-    const isActive = pathname === href;
+    // Exact match for home, partial for others
+    const isActive = href === (basePath || '/') ? pathname === href : pathname.startsWith(href);
+    
     return (
       <Link
         href={href}
@@ -91,7 +102,7 @@ export default function Header() {
             <SheetContent side="left">
               <div className="flex flex-col p-6">
                 <SheetClose asChild>
-                  <Link href="/" className="mb-8">
+                  <Link href={basePath || '/'} className="mb-8">
                     <Logo />
                   </Link>
                 </SheetClose>
@@ -109,7 +120,7 @@ export default function Header() {
         </div>
 
         <div className="hidden md:flex">
-          <Link href="/">
+          <Link href={basePath || '/'}>
             <Logo />
           </Link>
         </div>

@@ -1,4 +1,8 @@
+
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Facebook, Twitter } from 'lucide-react';
 import Logo from './logo';
 
@@ -23,12 +27,18 @@ const TikTokIcon = () => (
 );
 
 export default function Footer() {
+  const pathname = usePathname();
+  const segments = pathname.split('/').filter(Boolean);
+  const KNOWN_ROOT_PATHS = ['admin', 'login', 'register', 'profile'];
+  const username = segments.length > 0 && !KNOWN_ROOT_PATHS.includes(segments[0]) ? segments[0] : null;
+  const basePath = username ? `/${username}` : '';
+  
   return (
     <footer className="bg-secondary text-secondary-foreground">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="flex flex-col items-start">
-            <Link href="/" className="mb-4">
+            <Link href={basePath || '/'} className="mb-4">
               <Logo />
             </Link>
             <p className="max-w-xs text-secondary-foreground/80">
@@ -41,7 +51,7 @@ export default function Footer() {
               <ul className="space-y-2">
                 <li>
                   <Link
-                    href="/products"
+                    href={`${basePath}/products`}
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
                     সব পণ্য
@@ -49,7 +59,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <Link
-                    href="/products/mango-himsagar"
+                    href={`${basePath}/products/mango-himsagar`}
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
                     আম
@@ -57,7 +67,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <Link
-                    href="/products/sundarban-honey"
+                    href={`${basePath}/products/sundarban-honey`}
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
                     মধু
@@ -70,7 +80,7 @@ export default function Footer() {
               <ul className="space-y-2">
                 <li>
                   <Link
-                    href="/about"
+                    href={`${basePath}/about`}
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
                     আমাদের গল্প
@@ -78,7 +88,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <Link
-                    href="/about"
+                    href={`${basePath}/about`}
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
                     ট্রেসেবিলিটি
