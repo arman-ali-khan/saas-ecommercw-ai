@@ -194,6 +194,15 @@ export default function ManageProductPage() {
 
 
   const onSubmit = async (values: ProductFormData) => {
+    if (isSubscriptionPending) {
+      toast({
+        variant: 'destructive',
+        title: 'Action Disabled',
+        description: 'Your subscription is pending approval. You cannot create products.',
+      });
+      return;
+    }
+
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication error' });
       return;
