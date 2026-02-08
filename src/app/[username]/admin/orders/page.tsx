@@ -1,8 +1,9 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/stores/auth';
 import { format } from 'date-fns';
@@ -38,7 +39,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -69,6 +69,8 @@ type Order = {
 const orderStatuses = ['processing', 'shipped', 'delivered', 'canceled'];
 
 export default function OrdersAdminPage() {
+    const params = useParams();
+    const username = params.username as string;
     const { user } = useAuth();
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
@@ -76,7 +78,6 @@ export default function OrdersAdminPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [newStatus, setNewStatus] = useState('');
 
@@ -100,12 +101,7 @@ export default function OrdersAdminPage() {
             setIsLoading(true);
             fetchOrders().finally(() => setIsLoading(false));
         }
-    }, [user]);
-
-    const handleViewDetails = (order: Order) => {
-        setSelectedOrder(order);
-        setIsDetailModalOpen(true);
-    };
+    }, [user, toast]);
 
     const handleUpdateStatusClick = (order: Order) => {
         setSelectedOrder(order);
@@ -221,9 +217,11 @@ export default function OrdersAdminPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
-                                                        <DropdownMenuItem onClick={() => handleViewDetails(order)}>
+                                                        <DropdownMenuItem asChild>
+                                                          <Link href={`/${username}/admin/orders/${order.id}`}>
                                                             <Eye className="mr-2 h-4 w-4" />
                                                             অর্ডার দেখুন
+                                                          </Link>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleUpdateStatusClick(order)}>
                                                             <Truck className="mr-2 h-4 w-4" />
@@ -262,9 +260,11 @@ export default function OrdersAdminPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleViewDetails(order)}>
-                                                        <Eye className="mr-2 h-4 w-4" />
-                                                        অর্ডার দেখুন
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/${username}/admin/orders/${order.id}`}>
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            অর্ডার দেখুন
+                                                        </Link>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleUpdateStatusClick(order)}>
                                                         <Truck className="mr-2 h-4 w-4" />
@@ -295,49 +295,6 @@ export default function OrdersAdminPage() {
                     )}
                 </CardContent>
             </Card>
-
-            {/* View Details Dialog */}
-            <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>অর্ডার #{selectedOrder?.order_number}</DialogTitle>
-                        <DialogDescription>
-                            {selectedOrder?.shipping_info.name} কর্তৃক {selectedOrder ? format(new Date(selectedOrder.created_at), 'PPp') : ''} তারিখে দেওয়া হয়েছে।
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                            <h4 className="font-semibold">গ্রাহকের বিবরণ</h4>
-                            <p className="text-muted-foreground text-sm">
-                                {selectedOrder?.shipping_info.name}<br />
-                                {selectedOrder?.shipping_info.address}, {selectedOrder?.shipping_info.city}<br />
-                                {selectedOrder?.shipping_info.phone}
-                            </p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-4">
-                            <h4 className="font-semibold">অর্ডার করা পণ্য</h4>
-                            {selectedOrder?.cart_items.map(item => (
-                                <div key={item.id} className="flex items-center gap-4">
-                                    <div className="relative h-14 w-14 rounded-md overflow-hidden border">
-                                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                                    </div>
-                                    <div className="flex-grow">
-                                        <p className="font-medium">{item.name}</p>
-                                        <p className="text-sm text-muted-foreground">{item.quantity} x {item.price.toFixed(2)} BDT</p>
-                                    </div>
-                                    <p className="font-medium">{(item.quantity * item.price).toFixed(2)} BDT</p>
-                                </div>
-                            ))}
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between font-bold text-lg">
-                            <span>মোট</span>
-                            <span>{selectedOrder?.total.toFixed(2)} BDT</span>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
 
             {/* Update Status Dialog */}
             <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
@@ -373,5 +330,3 @@ export default function OrdersAdminPage() {
         </>
     )
 }
-
-    
