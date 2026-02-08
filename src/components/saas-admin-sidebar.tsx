@@ -8,6 +8,7 @@ import {
   CreditCard,
   Building,
   LogOut,
+  Shapes,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -39,6 +40,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard`, label: 'Dashboard', icon: Home },
     { href: `/dashboard/users`, label: 'Users', icon: Users },
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard },
+    { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/`, label: 'View Landing Page', icon: Building },
   ];
 
