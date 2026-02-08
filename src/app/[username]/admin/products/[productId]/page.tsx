@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -90,6 +90,7 @@ export default function ManageProductPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false); // Ref for submission lock
 
   const isSubscriptionPending =
     user?.subscription_status === 'pending' ||
@@ -194,6 +195,10 @@ export default function ManageProductPage() {
 
 
   const onSubmit = async (values: ProductFormData) => {
+    if (isSubmittingRef.current) {
+      return;
+    }
+
     if (isSubscriptionPending) {
       toast({
         variant: 'destructive',
@@ -207,13 +212,15 @@ export default function ManageProductPage() {
       toast({ variant: 'destructive', title: 'Authentication error' });
       return;
     }
-    // Filter out any potential empty image objects before submitting
+
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    
     const finalValues = {
       ...values,
       images: values.images.filter((img) => img.imageUrl),
     };
 
-    setIsSubmitting(true);
     let error;
 
     if (isNew) {
@@ -233,6 +240,7 @@ export default function ManageProductPage() {
     }
 
     if (error) {
+      isSubmittingRef.current = false; // Reset lock on error
       setIsSubmitting(false);
       toast({
         variant: 'destructive',
@@ -243,6 +251,7 @@ export default function ManageProductPage() {
       toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
       router.push(`/${username}/admin/products`);
       router.refresh();
+      // No need to reset lock on success, component will unmount
     }
   };
 
