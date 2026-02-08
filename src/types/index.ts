@@ -9,7 +9,7 @@ export interface Product {
   site_id: string; // The user's ID
   name: string;
   description: string;
-  longDescription: string;
+  long_description: string;
   price: number;
   currency: string;
   images: ProductImage[];
@@ -43,4 +43,12 @@ export interface Plan {
   period: string | null;
   description: string;
   features: string[];
+}
+
+export interface Category {
+  id: number;
+  site_id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
 }

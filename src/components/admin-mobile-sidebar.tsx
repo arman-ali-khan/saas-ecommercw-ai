@@ -15,6 +15,7 @@ import {
   Star,
   LayoutList,
   Home,
+  Tags,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from './logo';
@@ -33,6 +34,7 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
     { href: `/${username}`, label: 'View Store', icon: Home },
     { href: `/${username}/admin`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/${username}/admin/products`, label: 'Products', icon: Package },
+    { href: `/${username}/admin/categories`, label: 'Categories', icon: Tags },
     { href: `/${username}/admin/orders`, label: 'Orders', icon: ShoppingBag },
     { href: `/${username}/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/${username}/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
