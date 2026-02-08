@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +31,8 @@ import { MoreHorizontal, Mail, Eye, Loader2 } from 'lucide-react';
 
 
 export default function UncompletedOrdersPage() {
+    const params = useParams();
+    const username = params.username as string;
     const { user } = useAuth();
     const { toast } = useToast();
     const [uncompletedOrders, setUncompletedOrders] = useState<UncompletedOrder[]>([]);
@@ -138,9 +142,11 @@ export default function UncompletedOrdersPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
-                                                    <DropdownMenuItem>
-                                                        <Eye className="mr-2 h-4 w-4" />
-                                                        কার্ট দেখুন
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/${username}/admin/uncompleted/${order.id}`}>
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            বিস্তারিত দেখুন
+                                                        </Link>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem disabled={!order.customer_info?.name || order.customer_info.name === 'Unknown Visitor'}>
                                                         <Mail className="mr-2 h-4 w-4" />
@@ -172,9 +178,11 @@ export default function UncompletedOrdersPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem>
-                                                    <Eye className="mr-2 h-4 w-4" />
-                                                    কার্ট দেখুন
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/${username}/admin/uncompleted/${order.id}`}>
+                                                        <Eye className="mr-2 h-4 w-4" />
+                                                        বিস্তারিত দেখুন
+                                                    </Link>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem disabled={!order.customer_info?.name || order.customer_info.name === 'Unknown Visitor'}>
                                                     <Mail className="mr-2 h-4 w-4" />

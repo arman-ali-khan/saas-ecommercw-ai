@@ -61,6 +61,13 @@ export interface UncompletedOrder {
       city?: string;
       phone?: string;
   };
+  cart_items: {
+    id: string;
+    name: string;
+    quantity: number;
+    price: number;
+    imageUrl: string;
+  }[];
   cart_total: number;
   status: string;
   created_at: string;
