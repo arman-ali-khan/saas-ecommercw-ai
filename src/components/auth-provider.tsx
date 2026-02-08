@@ -51,6 +51,7 @@ export default function AuthProvider({
                     .from('profiles')
                     .insert({
                         id: session.user.id,
+                        email: session.user.email,
                         username: user_metadata.username,
                         full_name: user_metadata.full_name,
                         domain: user_metadata.domain,

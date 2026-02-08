@@ -40,6 +40,7 @@ type UserProfile = {
     id: string;
     username: string;
     full_name: string;
+    email: string;
     domain: string;
     site_name: string;
     site_description: string;
@@ -64,6 +65,7 @@ export default function UsersAdminPage() {
                 id,
                 username,
                 full_name,
+                email,
                 domain,
                 site_name,
                 site_description
@@ -178,6 +180,7 @@ export default function UsersAdminPage() {
                                                         <div>
                                                             <p className="font-semibold">{user.full_name}</p>
                                                             <p className="text-sm text-muted-foreground">@{user.username}</p>
+                                                            <p className="text-sm text-muted-foreground">{user.email}</p>
                                                         </div>
                                                     </div>
                                                 </TableCell>
@@ -229,6 +232,7 @@ export default function UsersAdminPage() {
                                                 <div>
                                                     <CardTitle className="text-lg">{user.full_name}</CardTitle>
                                                     <CardDescription>@{user.username}</CardDescription>
+                                                    <CardDescription className="pt-1">{user.email}</CardDescription>
                                                 </div>
                                             </div>
                                         </CardHeader>

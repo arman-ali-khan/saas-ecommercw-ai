@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ type UserProfile = {
     id: string;
     username: string;
     full_name: string;
+    email: string;
     domain: string;
     site_name: string;
     site_description: string;
@@ -144,6 +145,11 @@ export default function EditUserPage() {
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                            <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl><Input value={user.email || 'Not available'} disabled /></FormControl>
+                                <FormDescription>User's email address (cannot be changed).</FormDescription>
+                            </FormItem>
                             <FormField
                                 control={form.control}
                                 name="full_name"

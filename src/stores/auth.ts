@@ -88,6 +88,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
                 data: {
                     username,
                     full_name: fullName,
+                    email: email,
                     domain,
                     site_name: siteName,
                     site_description: siteDescription,
