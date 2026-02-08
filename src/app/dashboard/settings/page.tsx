@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -27,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Globe, BarChart, CreditCard, Loader2, Facebook, Twitter } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import ImageUploader from '@/components/image-uploader';
 import Image from 'next/image';
@@ -35,7 +36,7 @@ import Image from 'next/image';
 const saasSettingsSchema = z.object({
   platformName: z.string().min(2, { message: 'Platform name must be at least 2 characters.' }),
   platformDescription: z.string().min(10, { message: 'Platform description must be at least 10 characters.' }),
-  logo_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  logo_url: z.string().optional(),
   social_facebook: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_twitter: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_tiktok: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
@@ -64,8 +65,7 @@ const TikTokIcon = () => (
 
 export default function SaasSettingsPage() {
   const { toast } = useToast();
-  const [isSaasLoading, setIsSaasLoading] = useState(true);
-  const [isPaymentLoading, setIsPaymentLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   const saasForm = useForm<z.infer<typeof saasSettingsSchema>>({
     resolver: zodResolver(saasSettingsSchema),
@@ -92,8 +92,7 @@ export default function SaasSettingsPage() {
   });
   
   const fetchSettings = useCallback(async () => {
-    setIsSaasLoading(true);
-    setIsPaymentLoading(true);
+    setIsLoading(true);
 
     try {
         const { data, error } = await supabase
@@ -120,13 +119,12 @@ export default function SaasSettingsPage() {
                 acceptedBankingMethods: data.accepted_banking_methods || [],
             });
         } else if (error && error.code !== 'PGRST116') {
-            toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
+            toast({ variant: 'destructive', title: 'Error fetching settings', description: `Could not load settings. This is likely a database permissions issue. Error: ${error.message}` });
         }
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
     } finally {
-        setIsSaasLoading(false);
-        setIsPaymentLoading(false);
+        setIsLoading(false);
     }
   }, [saasForm, paymentForm, toast]);
   
@@ -136,7 +134,7 @@ export default function SaasSettingsPage() {
 
 
   async function onSaasSubmit(values: z.infer<typeof saasSettingsSchema>) {
-    setIsSaasLoading(true);
+    setIsLoading(true);
     try {
       const { error } = await supabase
         .from('saas_settings')
@@ -162,12 +160,12 @@ export default function SaasSettingsPage() {
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
     } finally {
-      setIsSaasLoading(false);
+      setIsLoading(false);
     }
   }
 
   async function onPaymentSubmit(values: z.infer<typeof paymentSettingsSchema>) {
-    setIsPaymentLoading(true);
+    setIsLoading(true);
     try {
         const { error } = await supabase
             .from('saas_settings')
@@ -194,7 +192,7 @@ export default function SaasSettingsPage() {
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
     } finally {
-        setIsPaymentLoading(false);
+        setIsLoading(false);
     }
   }
 
@@ -207,6 +205,16 @@ export default function SaasSettingsPage() {
   };
 
   const logoUrl = saasForm.watch('logo_url');
+
+  const isLogoUrlValid = useMemo(() => {
+    if (!logoUrl) return false;
+    try {
+      const url = new URL(logoUrl);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, [logoUrl]);
 
   return (
     <div className='space-y-6'>
@@ -274,11 +282,15 @@ export default function SaasSettingsPage() {
                       <FormItem>
                         <FormLabel>Platform Logo</FormLabel>
                         <div className="flex items-center gap-4">
-                          {logoUrl && (
+                           {isLogoUrlValid ? (
                             <div className="relative h-16 w-16 shrink-0 rounded-md border p-1 bg-white">
-                              <Image src={logoUrl} alt="Logo preview" fill className="object-contain" />
+                                <Image src={logoUrl!} alt="Logo preview" fill className="object-contain" />
                             </div>
-                          )}
+                           ) : (
+                            <div className="h-16 w-16 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                                <p className="text-xs text-muted-foreground text-center">Invalid URL</p>
+                            </div>
+                           )}
                            <div className='flex-grow space-y-2'>
                               <FormControl>
                                 <Input placeholder="https://example.com/logo.png" {...field} />
@@ -346,8 +358,8 @@ export default function SaasSettingsPage() {
                       />
                   </div>
                   
-                  <Button type="submit" disabled={isSaasLoading}>
-                    {isSaasLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save General Settings
                   </Button>
                 </form>
@@ -417,8 +429,8 @@ export default function SaasSettingsPage() {
                         </FormItem>
                         )}
                     />
-                    <Button type="submit" disabled={isSaasLoading}>
-                        {isSaasLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button type="submit" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save SEO Settings
                     </Button>
                 </form>
@@ -525,8 +537,8 @@ export default function SaasSettingsPage() {
                                 )}
                             />
                             <div className="pt-4">
-                                <Button type="submit" disabled={isPaymentLoading}>
-                                    {isPaymentLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" disabled={isLoading}>
+                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Save Payment Settings
                                 </Button>
                             </div>
