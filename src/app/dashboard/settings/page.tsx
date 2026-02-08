@@ -24,9 +24,11 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Globe, BarChart, CreditCard, Power, PowerOff } from 'lucide-react';
+import { Globe, BarChart, CreditCard } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 
-const settingsSchema = z.object({
+const saasSettingsSchema = z.object({
   platformName: z.string().min(2, { message: 'Platform name must be at least 2 characters.' }),
   platformDescription: z.string().min(10, { message: 'Platform description must be at least 10 characters.' }),
   seoTitle: z.string().optional(),
@@ -34,19 +36,24 @@ const settingsSchema = z.object({
   seoKeywords: z.string().optional(),
 });
 
-// Mock payment gateways state
-const paymentGateways = [
-    { id: 'stripe', name: 'Stripe', connected: true },
-    { id: 'paypal', name: 'PayPal', connected: false },
-    { id: 'bkash', name: 'bKash', connected: false },
+const availableBankingMethods = [
+  { id: 'bkash', label: 'বিকাশ' },
+  { id: 'nagad', label: 'নগদ' },
+  { id: 'rocket', label: 'রকেট' },
+  { id: 'upay', label: 'উপায়' },
 ];
 
+const paymentSettingsSchema = z.object({
+  mobileBankingEnabled: z.boolean().default(false),
+  mobileBankingNumber: z.string().optional(),
+  acceptedBankingMethods: z.array(z.string()).default([]),
+});
 
 export default function SaasSettingsPage() {
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof settingsSchema>>({
-    resolver: zodResolver(settingsSchema),
+  const saasForm = useForm<z.infer<typeof saasSettingsSchema>>({
+    resolver: zodResolver(saasSettingsSchema),
     defaultValues: {
       platformName: 'বাংলা ন্যাচারালস',
       platformDescription: 'আপনার নিজস্ব ই-কমার্স সাম্রাজ্য তৈরি করার প্ল্যাটফর্ম।',
@@ -56,11 +63,28 @@ export default function SaasSettingsPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof settingsSchema>) {
+  const paymentForm = useForm<z.infer<typeof paymentSettingsSchema>>({
+    resolver: zodResolver(paymentSettingsSchema),
+    defaultValues: {
+      mobileBankingEnabled: true,
+      mobileBankingNumber: '01234567890',
+      acceptedBankingMethods: ['bkash', 'nagad'],
+    },
+  });
+
+  function onSaasSubmit(values: z.infer<typeof saasSettingsSchema>) {
     console.log('Saving SaaS settings:', values);
     toast({
       title: 'Settings Saved!',
       description: 'Your platform settings have been successfully updated.',
+    });
+  }
+
+  function onPaymentSubmit(values: z.infer<typeof paymentSettingsSchema>) {
+    console.log('Saving Subscription Payment settings:', values);
+    toast({
+      title: 'Payment Settings Saved!',
+      description: 'Subscription payment settings have been updated.',
     });
   }
 
@@ -84,10 +108,10 @@ export default function SaasSettingsPage() {
               <CardDescription>Update your platform's public-facing name and description.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <Form {...saasForm}>
+                <form onSubmit={saasForm.handleSubmit(onSaasSubmit)} className="space-y-8">
                   <FormField
-                    control={form.control}
+                    control={saasForm.control}
                     name="platformName"
                     render={({ field }) => (
                       <FormItem>
@@ -103,7 +127,7 @@ export default function SaasSettingsPage() {
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={saasForm.control}
                     name="platformDescription"
                     render={({ field }) => (
                       <FormItem>
@@ -136,10 +160,10 @@ export default function SaasSettingsPage() {
               <CardDescription>Manage SEO settings for your main landing page.</CardDescription>
             </CardHeader>
             <CardContent>
-               <Form {...form}>
-                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+               <Form {...saasForm}>
+                 <form onSubmit={saasForm.handleSubmit(onSaasSubmit)} className="space-y-8">
                     <FormField
-                        control={form.control}
+                        control={saasForm.control}
                         name="seoTitle"
                         render={({ field }) => (
                         <FormItem>
@@ -155,7 +179,7 @@ export default function SaasSettingsPage() {
                         )}
                     />
                     <FormField
-                        control={form.control}
+                        control={saasForm.control}
                         name="seoDescription"
                         render={({ field }) => (
                         <FormItem>
@@ -175,7 +199,7 @@ export default function SaasSettingsPage() {
                         )}
                     />
                     <FormField
-                        control={form.control}
+                        control={saasForm.control}
                         name="seoKeywords"
                         render={({ field }) => (
                         <FormItem>
@@ -200,26 +224,105 @@ export default function SaasSettingsPage() {
         <TabsContent value="payments">
             <Card>
                 <CardHeader>
-                    <CardTitle>Payment Gateway Integrations</CardTitle>
-                    <CardDescription>Connect and manage payment providers for your subscriptions.</CardDescription>
+                    <CardTitle>Subscription Payment Settings</CardTitle>
+                    <CardDescription>Configure how users pay for their subscription plans.</CardDescription>
                 </CardHeader>
-                <CardContent className='space-y-4'>
-                    {paymentGateways.map(gateway => (
-                        <Card key={gateway.id} className='flex items-center justify-between p-4'>
-                            <div className='flex items-center gap-4'>
-                                <div className='font-bold text-lg'>{gateway.name}</div>
-                                {gateway.connected ? (
-                                    <span className='text-xs font-medium text-green-500 bg-green-500/10 px-2 py-1 rounded-full'>Connected</span>
-                                ) : (
-                                    <span className='text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full'>Not Connected</span>
+                <CardContent>
+                    <Form {...paymentForm}>
+                        <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-6">
+                            <FormField
+                                control={paymentForm.control}
+                                name="mobileBankingEnabled"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                    <FormLabel className="text-base">
+                                        Enable Mobile Banking for Subscriptions
+                                    </FormLabel>
+                                    <FormDescription>
+                                        Allow users to pay for their plans using mobile banking.
+                                    </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                    <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                    </FormControl>
+                                </FormItem>
                                 )}
+                            />
+                            <FormField
+                                control={paymentForm.control}
+                                name="mobileBankingNumber"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Mobile Banking Merchant Number</FormLabel>
+                                    <FormControl>
+                                    <Input placeholder="e.g., 01234567890" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                    The number users will send subscription payments to.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={paymentForm.control}
+                                name="acceptedBankingMethods"
+                                render={() => (
+                                <FormItem>
+                                    <div className="mb-4">
+                                    <FormLabel className="text-base">Accepted Methods</FormLabel>
+                                    <FormDescription>
+                                        Select which mobile banking services you accept for subscriptions.
+                                    </FormDescription>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                                    {availableBankingMethods.map((item) => (
+                                        <FormField
+                                        key={item.id}
+                                        control={paymentForm.control}
+                                        name="acceptedBankingMethods"
+                                        render={({ field }) => {
+                                            return (
+                                            <FormItem
+                                                key={item.id}
+                                                className="flex flex-row items-start space-x-3 space-y-0"
+                                            >
+                                                <FormControl>
+                                                <Checkbox
+                                                    checked={field.value?.includes(item.id)}
+                                                    onCheckedChange={(checked) => {
+                                                    return checked
+                                                        ? field.onChange([...(field.value ?? []), item.id])
+                                                        : field.onChange(
+                                                            field.value?.filter(
+                                                                (value) => value !== item.id
+                                                            )
+                                                            );
+                                                    }}
+                                                />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">
+                                                {item.label}
+                                                </FormLabel>
+                                            </FormItem>
+                                            );
+                                        }}
+                                        />
+                                    ))}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <div className="pt-4">
+                                <Button type="submit">Save Payment Settings</Button>
                             </div>
-                            <Button variant={gateway.connected ? 'destructive' : 'default'}>
-                                {gateway.connected ? <PowerOff className='mr-2'/> : <Power className='mr-2' />}
-                                {gateway.connected ? 'Disconnect' : 'Connect'}
-                            </Button>
-                        </Card>
-                    ))}
+                        </form>
+                    </Form>
                 </CardContent>
             </Card>
         </TabsContent>
