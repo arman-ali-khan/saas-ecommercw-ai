@@ -24,15 +24,21 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Globe, BarChart, CreditCard, Loader2 } from 'lucide-react';
+import { Globe, BarChart, CreditCard, Loader2, Facebook, Twitter } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import ImageUploader from '@/components/image-uploader';
+import Image from 'next/image';
 
 const saasSettingsSchema = z.object({
   platformName: z.string().min(2, { message: 'Platform name must be at least 2 characters.' }),
   platformDescription: z.string().min(10, { message: 'Platform description must be at least 10 characters.' }),
+  logo_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  social_facebook: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  social_twitter: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  social_tiktok: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
   seoKeywords: z.string().optional(),
@@ -51,8 +57,14 @@ const paymentSettingsSchema = z.object({
   acceptedBankingMethods: z.array(z.string()).default([]),
 });
 
+const TikTokIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-muted-foreground"><path d="M12.52.02c1.31-.02 2.61.01 3.91.02.08 1.53.01 3.07.01 4.6 0 1.1.35 2.21 1.22 3.01.91.82 2.1 1.25 3.32 1.19.08 1.5.01 3 .01 4.5a5.42 5.42 0 0 1-5.12 5.14c-1.53.08-3.07.01-4.6.01-1.1 0-2.21-.35-3.01-1.22-.82-.91-1.25-2.1-1.19-3.32-.08-1.5-.01-3-.01-4.5a5.42 5.42 0 0 1 5.12-5.14Z"></path><path d="M9 8.5h4"></path><path d="M9 12.5h4"></path><path d="M13.5 4.5v4"></path></svg>
+);
+
+
 export default function SaasSettingsPage() {
   const { toast } = useToast();
+  const [isSaasLoading, setIsSaasLoading] = useState(false);
   const [isPaymentLoading, setIsPaymentLoading] = useState(false);
 
   const saasForm = useForm<z.infer<typeof saasSettingsSchema>>({
@@ -60,9 +72,13 @@ export default function SaasSettingsPage() {
     defaultValues: {
       platformName: 'বাংলা ন্যাচারালস',
       platformDescription: 'আপনার নিজস্ব ই-কমার্স সাম্রাজ্য তৈরি করার প্ল্যাটফর্ম।',
-      seoTitle: 'বাংলা ন্যাচারালস | আপনার নিজস্ব ই-কমার্স প্ল্যাটফর্ম তৈরি করুন',
-      seoDescription: 'বাংলা ন্যাচারালস স্যাস প্ল্যাটফর্ম আপনাকে একটি শক্তিশালী, ব্যক্তিগতকৃত এবং এআই-চালিত অনলাইন স্টোর চালু করার ক্ষমতা দেয়।',
-      seoKeywords: 'ecommerce, saas, bangladesh, online store, natural products',
+      logo_url: '',
+      social_facebook: '',
+      social_twitter: '',
+      social_tiktok: '',
+      seoTitle: '',
+      seoDescription: '',
+      seoKeywords: '',
     },
   });
 
@@ -74,10 +90,12 @@ export default function SaasSettingsPage() {
       acceptedBankingMethods: [],
     },
   });
-
+  
   useEffect(() => {
-    const fetchPaymentSettings = async () => {
+    const fetchSettings = async () => {
+        setIsSaasLoading(true);
         setIsPaymentLoading(true);
+
         const { data, error } = await supabase
             .from('saas_settings')
             .select('*')
@@ -85,54 +103,104 @@ export default function SaasSettingsPage() {
             .single();
 
         if (data) {
+            saasForm.reset({
+                platformName: data.platform_name || 'বাংলা ন্যাচারালস',
+                platformDescription: data.platform_description || '',
+                logo_url: data.logo_url || '',
+                social_facebook: data.social_facebook || '',
+                social_twitter: data.social_twitter || '',
+                social_tiktok: data.social_tiktok || '',
+                seoTitle: data.seo_title || '',
+                seoDescription: data.seo_description || '',
+                seoKeywords: data.seo_keywords || '',
+            });
             paymentForm.reset({
                 mobileBankingEnabled: data.mobile_banking_enabled,
                 mobileBankingNumber: data.mobile_banking_number || '',
                 acceptedBankingMethods: data.accepted_banking_methods || [],
             });
-        } else if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+        } else if (error && error.code !== 'PGRST116') {
             toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
         }
+        setIsSaasLoading(false);
         setIsPaymentLoading(false);
     };
-    fetchPaymentSettings();
-  }, [paymentForm, toast]);
+    fetchSettings();
+  }, [saasForm, paymentForm, toast]);
 
 
-  function onSaasSubmit(values: z.infer<typeof saasSettingsSchema>) {
-    console.log('Saving SaaS settings:', values);
-    toast({
-      title: 'Settings Saved!',
-      description: 'Your platform settings have been successfully updated.',
-    });
+  async function onSaasSubmit(values: z.infer<typeof saasSettingsSchema>) {
+    setIsSaasLoading(true);
+    try {
+      const { error } = await supabase
+        .from('saas_settings')
+        .update({
+            platform_name: values.platformName,
+            platform_description: values.platformDescription,
+            logo_url: values.logo_url,
+            social_facebook: values.social_facebook,
+            social_twitter: values.social_twitter,
+            social_tiktok: values.social_tiktok,
+            seo_title: values.seoTitle,
+            seo_description: values.seoDescription,
+            seo_keywords: values.seoKeywords,
+        })
+        .eq('id', 1);
+
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error Saving Settings', description: error.message });
+      } else {
+        toast({ title: 'SaaS Settings Saved!' });
+        saasForm.reset(values); // Resync form
+      }
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+    } finally {
+      setIsSaasLoading(false);
+    }
   }
 
   async function onPaymentSubmit(values: z.infer<typeof paymentSettingsSchema>) {
     setIsPaymentLoading(true);
-    const { error } = await supabase
-        .from('saas_settings')
-        .update({
-            mobile_banking_enabled: values.mobileBankingEnabled,
-            mobile_banking_number: values.mobileBankingNumber,
-            accepted_banking_methods: values.acceptedBankingMethods,
-        })
-        .eq('id', 1);
+    try {
+        const { error } = await supabase
+            .from('saas_settings')
+            .update({
+                mobile_banking_enabled: values.mobileBankingEnabled,
+                mobile_banking_number: values.mobileBankingNumber,
+                accepted_banking_methods: values.acceptedBankingMethods,
+            })
+            .eq('id', 1);
 
-    if (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error Saving Settings',
-            description: error.message,
-        });
-    } else {
-        toast({
-            title: 'Payment Settings Saved!',
-            description: 'Subscription payment settings have been updated.',
-        });
-        paymentForm.reset(values); // Re-sync form state with latest saved data
+        if (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error Saving Settings',
+                description: error.message,
+            });
+        } else {
+            toast({
+                title: 'Payment Settings Saved!',
+                description: 'Subscription payment settings have been updated.',
+            });
+            paymentForm.reset(values); // Re-sync form state with latest saved data
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+    } finally {
+        setIsPaymentLoading(false);
     }
-    setIsPaymentLoading(false);
   }
+
+  const handleLogoUpload = (result: any) => {
+    if (result.event === 'success') {
+      const secureUrl = result.info.secure_url;
+      saasForm.setValue('logo_url', secureUrl, { shouldValidate: true });
+      toast({ title: 'Logo Uploaded', description: 'Click "Save" to apply the changes.' });
+    }
+  };
+
+  const logoUrl = saasForm.watch('logo_url');
 
   return (
     <div className='space-y-6'>
@@ -151,7 +219,7 @@ export default function SaasSettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>General Information</CardTitle>
-              <CardDescription>Update your platform's public-facing name and description.</CardDescription>
+              <CardDescription>Update your platform's public-facing name, description, and branding.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...saasForm}>
@@ -192,7 +260,90 @@ export default function SaasSettingsPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit">Save General Settings</Button>
+                  
+                  <FormField
+                    control={saasForm.control}
+                    name="logo_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Platform Logo</FormLabel>
+                        <div className="flex items-center gap-4">
+                          {logoUrl && (
+                            <div className="relative h-16 w-16 shrink-0 rounded-md border p-1 bg-white">
+                              <Image src={logoUrl} alt="Logo preview" fill className="object-contain" />
+                            </div>
+                          )}
+                           <div className='flex-grow space-y-2'>
+                              <FormControl>
+                                <Input placeholder="https://example.com/logo.png" {...field} />
+                              </FormControl>
+                              <FormDescription>
+                                Upload a new logo or paste an image URL.
+                              </FormDescription>
+                           </div>
+                          <ImageUploader onUpload={handleLogoUpload} label='Upload' />
+                        </div>
+                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="space-y-4 rounded-lg border p-4">
+                      <h3 className="text-sm font-medium">Social Media Links</h3>
+                      <FormField
+                        control={saasForm.control}
+                        name="social_facebook"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="sr-only">Facebook</FormLabel>
+                            <div className="relative">
+                                <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <FormControl>
+                                <Input placeholder="https://facebook.com/yourpage" {...field} className="pl-10" />
+                                </FormControl>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                       <FormField
+                        control={saasForm.control}
+                        name="social_twitter"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="sr-only">Twitter</FormLabel>
+                             <div className="relative">
+                                <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <FormControl>
+                                <Input placeholder="https://twitter.com/yourprofile" {...field} className="pl-10" />
+                                </FormControl>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                       <FormField
+                        control={saasForm.control}
+                        name="social_tiktok"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="sr-only">TikTok</FormLabel>
+                             <div className="relative">
+                                <TikTokIcon />
+                                <FormControl>
+                                <Input placeholder="https://tiktok.com/@yourprofile" {...field} className="pl-10" />
+                                </FormControl>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                  </div>
+                  
+                  <Button type="submit" disabled={isSaasLoading}>
+                    {isSaasLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save General Settings
+                  </Button>
                 </form>
               </Form>
             </CardContent>
@@ -260,7 +411,10 @@ export default function SaasSettingsPage() {
                         </FormItem>
                         )}
                     />
-                    <Button type="submit">Save SEO Settings</Button>
+                    <Button type="submit" disabled={isSaasLoading}>
+                        {isSaasLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save SEO Settings
+                    </Button>
                 </form>
                </Form>
             </CardContent>
@@ -365,9 +519,9 @@ export default function SaasSettingsPage() {
                                 )}
                             />
                             <div className="pt-4">
-                                <Button type="submit" disabled={isPaymentLoading}>
-                                    {isPaymentLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {isPaymentLoading ? 'Saving...' : 'Save Payment Settings'}
+                                <Button type="submit" disabled={isPaymentLoading || isSaasLoading}>
+                                    {(isPaymentLoading || isSaasLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Save Payment Settings
                                 </Button>
                             </div>
                         </form>
