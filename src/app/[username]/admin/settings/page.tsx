@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
 
 const settingsSchema = z.object({
   siteName: z.string().min(2, { message: 'সাইটের নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),

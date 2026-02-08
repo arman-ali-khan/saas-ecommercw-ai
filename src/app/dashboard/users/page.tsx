@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
 import {
   Card,
   CardContent,

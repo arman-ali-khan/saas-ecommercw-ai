@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -11,20 +11,25 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { LogOut, LayoutDashboard } from 'lucide-react';
 
 export default function ProfilePage({ params }: { params: { userID: string } }) {
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    if (!isLoading) {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (isHydrated) {
       if (!user) {
         router.push('/login');
       } else if (user.id !== params.userID) {
         router.replace(`/profile/${user.id}`);
       }
     }
-  }, [user, isLoading, router, params.userID]);
+  }, [user, isHydrated, router, params.userID]);
 
-  if (isLoading || !user || user.id !== params.userID) {
+  if (!isHydrated || !user || user.id !== params.userID) {
     return (
         <Card>
           <CardHeader className="items-center text-center">

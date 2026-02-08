@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SaasAdminSidebar from '@/components/saas-admin-sidebar';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import Logo from '@/components/logo';
 import { Button } from '@/components/ui/button';
@@ -16,16 +16,21 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && (!user || !user.isSaaSAdmin)) {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (isHydrated && (!user || !user.isSaaSAdmin)) {
       router.push('/login');
     }
-  }, [user, isLoading, router]);
+  }, [user, isHydrated, router]);
 
-  if (isLoading || !user || !user.isSaaSAdmin) {
+  if (!isHydrated || !user || !user.isSaaSAdmin) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Skeleton className="h-full w-full" />
