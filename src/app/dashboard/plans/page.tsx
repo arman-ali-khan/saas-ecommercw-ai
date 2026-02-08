@@ -95,42 +95,79 @@ export default function PlansAdminPage() {
             </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Plan Name</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {plans.map(plan => (
-                <TableRow key={plan.id}>
-                  <TableCell className="font-medium">{plan.name}</TableCell>
-                  <TableCell>{plan.price} {plan.period}</TableCell>
-                  <TableCell>{plan.description}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => openForm(plan)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openDeleteAlert(plan)} className="text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {/* Desktop View: Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Plan Name</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {plans.map(plan => (
+                  <TableRow key={plan.id}>
+                    <TableCell className="font-medium">{plan.name}</TableCell>
+                    <TableCell>{plan.price} {plan.period}</TableCell>
+                    <TableCell>{plan.description}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => openForm(plan)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openDeleteAlert(plan)} className="text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile View: Cards */}
+          <div className="grid gap-4 md:hidden">
+            {plans.map(plan => (
+              <Card key={plan.id}>
+                <CardHeader>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle className="text-lg">{plan.name}</CardTitle>
+                            <CardDescription>{plan.description}</CardDescription>
+                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openForm(plan)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openDeleteAlert(plan)} className="text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <p className="font-semibold text-xl">{plan.price} <span className="text-sm text-muted-foreground">{plan.period}</span></p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
