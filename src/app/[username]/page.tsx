@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ProductCard from '@/components/product-card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { ArrowRight, Leaf, Users, Heart } from 'lucide-react';
+import { ArrowRight, Leaf, Users, Heart, SearchX } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
 import {
   Carousel,
@@ -14,13 +14,35 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { getProductsByDomain } from '@/lib/products';
+import { getProductsByDomain, checkDomainExists } from '@/lib/products';
 
 export default async function UserPage({
   params,
 }: {
   params: { username: string };
 }) {
+  const domainExists = await checkDomainExists(params.username);
+
+  if (!domainExists) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-20 min-h-[60vh]">
+        <SearchX className="w-24 h-24 text-muted-foreground mb-6" />
+        <h1 className="text-4xl font-headline font-bold">Store Not Found</h1>
+        <p className="mt-4 max-w-md mx-auto text-lg text-muted-foreground">
+          The store at "{params.username}.banglanaturals.site" does not exist.
+        </p>
+        <p className="mt-2 text-muted-foreground">
+          If you want this domain, visit our homepage to get a subscription.
+        </p>
+        <Button asChild className="mt-8">
+          <Link href="/">
+            Go to Homepage
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
   const allProducts = await getProductsByDomain(params.username);
   const featuredProducts = allProducts.slice(0, 3);
   const categories = [...new Set(allProducts.flatMap((p) => p.categories || []))];
