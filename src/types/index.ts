@@ -27,5 +27,5 @@ export interface User {
   siteDescription: string | null;
   subscriptionPlan: string | null;
   role: string | null;
-  isSaaSAdmin?: boolean;
+  isSaaSAdmin: boolean;
 }

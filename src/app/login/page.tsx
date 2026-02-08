@@ -127,21 +127,6 @@ export default function LoginPage() {
               সাইন আপ
             </Link>
           </div>
-          <div className="mt-4 border-t pt-4 text-center text-xs">
-            <p className="text-muted-foreground">
-              প্ল্যাটফর্ম অ্যাডমিনিস্ট্রেটর?{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  form.setValue('email', 'admin@banglanaturals.com');
-                  form.setValue('password', 'admin');
-                }}
-                className="font-medium text-primary hover:underline"
-              >
-                অ্যাডমিন হিসাবে লগইন করুন
-              </button>
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>

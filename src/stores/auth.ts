@@ -3,8 +3,6 @@ import type { User } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import type { Session } from '@supabase/supabase-js';
 
-const SAAS_ADMIN_EMAIL = 'admin@banglanaturals.com';
-
 interface AuthState {
   user: User | null;
   session: Session | null;
@@ -37,25 +35,6 @@ export const useAuth = create<AuthState>()((set, get) => ({
     setLoading: (loading) => set({ loading }),
 
     login: async (email, password) => {
-      if (email === SAAS_ADMIN_EMAIL && password === 'admin') {
-        // This is a backdoor for the SaaS admin for demo purposes.
-        // In a real app, the SaaS admin should have a proper Supabase user.
-        const adminUser: User = { 
-          id: 'saas-admin', 
-          username: 'saas-admin', 
-          fullName: 'SaaS Admin', 
-          email: SAAS_ADMIN_EMAIL, 
-          isSaaSAdmin: true, 
-          domain: '', 
-          siteName: 'SaaS Platform',
-          siteDescription: null,
-          subscriptionPlan: 'enterprise',
-          role: 'saas_admin'
-        };
-        set({ user: adminUser, session: null, loading: false });
-        return { user: adminUser, error: null };
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
@@ -70,9 +49,12 @@ export const useAuth = create<AuthState>()((set, get) => ({
           .single();
         
         if (profileError) {
+            await supabase.auth.signOut(); // Log out if profile is missing
             return { user: null, error: 'Could not find user profile.' };
         }
         
+        const isSaaSAdmin = profile.role === 'saas_admin';
+
         const userToStore: User = {
           id: profile.id,
           username: profile.username,
@@ -83,6 +65,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
           siteDescription: profile.site_description,
           subscriptionPlan: profile.subscription_plan,
           role: profile.role,
+          isSaaSAdmin,
         };
 
         set({ user: userToStore, session: data.session, loading: false });
@@ -134,6 +117,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
             subscriptionPlan: plan,
             role: 'admin',
             siteDescription: siteDescription,
+            isSaaSAdmin: false,
         };
 
         set({ user: newUser, session: data.session, loading: false });
@@ -174,6 +158,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
           siteDescription: data.site_description,
           subscriptionPlan: data.subscription_plan,
           role: data.role,
+          isSaaSAdmin: data.role === 'saas_admin',
         };
         
         set({ user: updatedUser });
