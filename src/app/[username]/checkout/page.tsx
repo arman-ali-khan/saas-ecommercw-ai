@@ -109,14 +109,34 @@ export default function CheckoutPage() {
     getSiteId();
   }, [username]);
 
+  // Fetch existing uncompleted order for logged-in user
+  useEffect(() => {
+    const getUncompletedOrder = async () => {
+      if (user && siteId) {
+        const { data } = await supabase
+          .from('uncompleted_orders')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('site_id', siteId)
+          .limit(1)
+          .single();
+        if (data) {
+          setUncompletedOrderId(data.id);
+        }
+      }
+    };
+    if (isHydrated) {
+      getUncompletedOrder();
+    }
+  }, [user, siteId, isHydrated]);
+
   const handleSaveUncompletedOrder = async () => {
-    if (
-      !isHydrated ||
-      cartCount === 0 ||
-      !siteId ||
-      user || // Only for guest users
-      uncompletedOrderId // Only save once
-    ) {
+    if (!isHydrated || cartCount === 0 || !siteId) {
+      return;
+    }
+
+    // For guest users, only save once to prevent RLS update issues.
+    if (!user && uncompletedOrderId) {
       return;
     }
 
@@ -127,12 +147,15 @@ export default function CheckoutPage() {
       city: formValues.city,
       phone: formValues.phone,
     };
+
+    // Don't save if there is no customer info at all.
     if (!Object.values(customerInfo).some((val) => val && val.trim() !== '')) {
       return;
     }
 
     const payload = {
       site_id: siteId,
+      user_id: user?.id || null,
       customer_info: customerInfo,
       cart_items: cartItems.map((item) => ({
         id: item.id,
@@ -145,16 +168,30 @@ export default function CheckoutPage() {
       status: 'shipping-info-entered',
     };
 
-    const { data, error } = await supabase
-      .from('uncompleted_orders')
-      .insert(payload)
-      .select('id')
-      .single();
+    let error;
+
+    // For logged-in users, we can update if a record already exists.
+    if (user && uncompletedOrderId) {
+      const { error: updateError } = await supabase
+        .from('uncompleted_orders')
+        .update(payload)
+        .eq('id', uncompletedOrderId);
+      error = updateError;
+    } else {
+      // For guests, or the first time for a logged-in user.
+      const { data, error: insertError } = await supabase
+        .from('uncompleted_orders')
+        .insert(payload)
+        .select('id')
+        .single();
+      error = insertError;
+      if (data) {
+        setUncompletedOrderId(data.id);
+      }
+    }
 
     if (error) {
       console.error('Error saving uncompleted order:', error.message);
-    } else if (data) {
-      setUncompletedOrderId(data.id);
     }
   };
 
