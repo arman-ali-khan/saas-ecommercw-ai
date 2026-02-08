@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -78,7 +78,7 @@ export default function ManageProductPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const productId = params.productId as string;
   const username = params.username as string;
@@ -86,7 +86,7 @@ export default function ManageProductPage() {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(!isNew);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProductFormData>({
@@ -110,79 +110,80 @@ export default function ManageProductPage() {
     name: 'images',
   });
 
-  useEffect(() => {
-    if (isNew) {
-      // For new products, the form is initialized with empty strings, so no action is needed.
+  const fetchProduct = useCallback(async () => {
+    if (isNew || !user) return;
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .eq('site_id', user.id)
+      .single();
+
+    if (error || !data) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description:
+          'Product not found or you do not have permission to edit it.',
+      });
+      router.push(`/${username}/admin/products`);
       return;
     }
 
-    if (!user) return;
+    const productData = data as Product;
+    setProduct(productData);
 
-    const fetchProduct = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', productId)
-        .eq('site_id', user.id)
-        .single();
-
-      if (error || !data) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description:
-            'Product not found or you do not have permission to edit it.',
-        });
-        router.push(`/${username}/admin/products`);
-        return;
-      }
-
-      const productData = data as Product;
-      setProduct(productData);
-
-      // Sanitize data to prevent uncontrolled -> controlled component errors.
-      const sanitizedData = {
-        ...productData,
-        description: productData.description || '',
-        long_description: productData.long_description || '',
-        categories: productData.categories || [],
-        origin: productData.origin || '',
-        story: productData.story || '',
-        images: (productData.images || []).map((img) => ({
-          imageUrl: img.imageUrl || '',
-          imageHint: img.imageHint || '',
-        })),
-      };
-
-      form.reset(sanitizedData);
-      setIsLoading(false);
+    const sanitizedData = {
+      ...productData,
+      description: productData.description || '',
+      long_description: productData.long_description || '',
+      categories: productData.categories || [],
+      origin: productData.origin || '',
+      story: productData.story || '',
+      images: (productData.images || []).map((img) => ({
+        imageUrl: img.imageUrl || '',
+        imageHint: img.imageHint || '',
+      })),
     };
 
-    fetchProduct();
+    form.reset(sanitizedData);
+    setIsLoading(false);
   }, [productId, isNew, user, router, toast, form, username]);
 
-  useEffect(() => {
+  const fetchCategories = useCallback(async () => {
     if (!user) return;
-    const fetchCategories = async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('id, name')
-        .eq('site_id', user.id)
-        .order('name', { ascending: true });
+    const { data, error } = await supabase
+      .from('categories')
+      .select('id, name')
+      .eq('site_id', user.id)
+      .order('name', { ascending: true });
 
-      if (data) {
-        setCategories(data as Category[]);
-      } else if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Could not fetch categories',
-          description: error.message,
-        });
-      }
-    };
-    fetchCategories();
+    if (data) {
+      setCategories(data as Category[]);
+    } else if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not fetch categories',
+        description: error.message,
+      });
+    }
   }, [user, toast]);
+  
+  useEffect(() => {
+    if (!authLoading) {
+      if (isNew) {
+        setIsLoading(false);
+      } else if (user) {
+        fetchProduct();
+      }
+      
+      if (user) {
+          fetchCategories();
+      }
+    }
+  }, [authLoading, user, isNew, fetchProduct, fetchCategories]);
+
 
   const onSubmit = async (values: ProductFormData) => {
     if (!user) {

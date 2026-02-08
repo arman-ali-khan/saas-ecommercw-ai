@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -33,38 +33,39 @@ import { MoreHorizontal, Mail, Eye, Loader2 } from 'lucide-react';
 export default function UncompletedOrdersPage() {
     const params = useParams();
     const username = params.username as string;
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const [uncompletedOrders, setUncompletedOrders] = useState<UncompletedOrder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     
-    useEffect(() => {
-        const fetchUncompletedOrders = async () => {
-            if (!user) return;
-            setIsLoading(true);
+    const fetchUncompletedOrders = useCallback(async () => {
+        if (!user) return;
 
-            const { data, error } = await supabase
-                .from('uncompleted_orders')
-                .select('*')
-                .eq('site_id', user.id)
-                .order('created_at', { ascending: false });
+        const { data, error } = await supabase
+            .from('uncompleted_orders')
+            .select('*')
+            .eq('site_id', user.id)
+            .order('created_at', { ascending: false });
 
-            if (error) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Error fetching data',
-                    description: error.message,
-                });
-            } else if (data) {
-                setUncompletedOrders(data as UncompletedOrder[]);
-            }
-            setIsLoading(false);
-        };
-
-        if (user) {
-            fetchUncompletedOrders();
+        if (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error fetching data',
+                description: error.message,
+            });
+        } else if (data) {
+            setUncompletedOrders(data as UncompletedOrder[]);
         }
+        setIsLoading(false);
     }, [user, toast]);
+
+    useEffect(() => {
+        if (!authLoading && user) {
+            fetchUncompletedOrders();
+        } else if (!authLoading && !user) {
+            setIsLoading(false);
+        }
+    }, [user, authLoading, fetchUncompletedOrders]);
     
     const translateStatus = (status: string): string => {
         switch (status) {

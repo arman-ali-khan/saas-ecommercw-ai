@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -66,7 +66,7 @@ const categorySchema = z.object({
 type CategoryFormData = z.infer<typeof categorySchema>;
 
 export default function CategoriesAdminPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -80,7 +80,7 @@ export default function CategoriesAdminPage() {
         defaultValues: { name: '', description: '' },
     });
 
-    const fetchCategories = async () => {
+    const fetchCategories = useCallback(async () => {
         if (!user) return;
         const { data, error } = await supabase
             .from('categories')
@@ -94,13 +94,15 @@ export default function CategoriesAdminPage() {
             setCategories(data as Category[]);
         }
         setIsLoading(false);
-    }
+    }, [user, toast]);
 
     useEffect(() => {
-        if(user) {
+        if(!authLoading && user) {
             fetchCategories();
+        } else if (!authLoading && !user) {
+             setIsLoading(false);
         }
-    }, [user]);
+    }, [user, authLoading, fetchCategories]);
 
     useEffect(() => {
         if (isFormOpen) {

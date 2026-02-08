@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -52,12 +52,12 @@ type Order = {
 export default function OrdersAdminPage() {
     const params = useParams();
     const username = params.username as string;
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         if (!user?.id) return;
         const { data, error } = await supabase
             .from('orders')
@@ -70,15 +70,16 @@ export default function OrdersAdminPage() {
         } else if (data) {
             setOrders(data as Order[]);
         }
-    };
+        setIsLoading(false);
+    }, [user?.id, toast]);
 
     useEffect(() => {
-        if (user) {
-            setIsLoading(true);
-            fetchOrders().finally(() => setIsLoading(false));
+        if (!authLoading && user) {
+            fetchOrders();
+        } else if (!authLoading && !user) {
+            setIsLoading(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
+    }, [user, authLoading, fetchOrders]);
 
     const handleMarkAsCompleted = async (orderId: string) => {
         const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', orderId);

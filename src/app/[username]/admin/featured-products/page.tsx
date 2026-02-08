@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { getProductsBySiteId } from '@/lib/products';
 import { useAuth } from '@/stores/auth';
 import type { Product } from '@/types';
@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/accordion';
 
 export default function FeaturedProductsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
@@ -36,20 +36,26 @@ export default function FeaturedProductsPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      const fetchProducts = async () => {
-        setIsLoading(true);
-        const products = await getProductsBySiteId(user.id);
-        setAllProducts(products);
-        if (products.length > 0) {
-          setFeaturedProductIds([products[0].id]);
-        }
-        setIsLoading(false);
-      };
-      fetchProducts();
+  const fetchProducts = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    const products = await getProductsBySiteId(user.id);
+    setAllProducts(products);
+    if (products.length > 0) {
+      // In a real app, featured products would be saved/fetched from DB
+      // Here we are just pre-selecting the first one for demo purposes
+      setFeaturedProductIds([products[0].id]);
     }
+    setIsLoading(false);
   }, [user]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      fetchProducts();
+    } else if (!authLoading && !user) {
+      setIsLoading(false);
+    }
+  }, [user, authLoading, fetchProducts]);
 
   const allCategories = useMemo(
     () => [...new Set(allProducts.flatMap((p) => p.categories || []))],

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -43,7 +43,7 @@ type Section = {
 
 export default function SectionManagerPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,50 +54,53 @@ export default function SectionManagerPage() {
     [products]
   );
 
-  useEffect(() => {
-    if (user) {
-      const fetchProducts = async () => {
-        setIsLoading(true);
-        const fetchedProducts = await getProductsBySiteId(user.id);
-        setProducts(fetchedProducts);
+  const fetchProductsAndBuildSections = useCallback(async () => {
+    if (!user) return;
+    const fetchedProducts = await getProductsBySiteId(user.id);
+    setProducts(fetchedProducts);
 
-        const categories = [
-          ...new Set(fetchedProducts.flatMap((p) => p.categories || [])),
-        ];
-        const initialSections: Section[] = [
-          {
-            id: 'hero',
-            title: 'Hero Carousel',
-            enabled: true,
-            isCategorySection: false,
-          },
-          {
-            id: 'featured',
-            title: 'Featured Products',
-            enabled: true,
-            isCategorySection: false,
-          },
-          ...categories.map((cat) => ({
-            id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
-            title: `${cat} Section`,
-            enabled: false,
-            isCategorySection: true,
-            category: cat,
-          })),
-          {
-            id: 'about',
-            title: 'About Us Snippet',
-            enabled: true,
-            isCategorySection: false,
-          },
-        ];
-        setSections(initialSections);
+    const categories = [
+      ...new Set(fetchedProducts.flatMap((p) => p.categories || [])),
+    ];
+    const initialSections: Section[] = [
+      {
+        id: 'hero',
+        title: 'Hero Carousel',
+        enabled: true,
+        isCategorySection: false,
+      },
+      {
+        id: 'featured',
+        title: 'Featured Products',
+        enabled: true,
+        isCategorySection: false,
+      },
+      ...categories.map((cat) => ({
+        id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
+        title: `${cat} Section`,
+        enabled: false,
+        isCategorySection: true,
+        category: cat,
+      })),
+      {
+        id: 'about',
+        title: 'About Us Snippet',
+        enabled: true,
+        isCategorySection: false,
+      },
+    ];
+    setSections(initialSections);
 
-        setIsLoading(false);
-      };
-      fetchProducts();
-    }
+    setIsLoading(false);
   }, [user]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      fetchProductsAndBuildSections();
+    } else if (!authLoading && !user) {
+      setIsLoading(false);
+    }
+  }, [user, authLoading, fetchProductsAndBuildSections]);
 
   const handleToggle = (sectionId: string, enabled: boolean) => {
     setSections((prev) =>

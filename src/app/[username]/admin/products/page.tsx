@@ -41,7 +41,7 @@ import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2 } from 'lucide-react';
 import { getProductsBySiteId } from '@/lib/products';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/stores/auth';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { Product } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -52,26 +52,27 @@ import { useParams } from 'next/navigation';
 export default function ProductsAdminPage() {
   const params = useParams();
   const username = params.username as string;
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     if (!user) return;
-    setIsLoading(true);
     const fetchedProducts = await getProductsBySiteId(user.id);
     setProducts(fetchedProducts);
     setIsLoading(false);
-  };
+  }, [user]);
 
   useEffect(() => {
-    if (user) {
+    if (!authLoading && user) {
       fetchProducts();
+    } else if (!authLoading && !user) {
+      setIsLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading, fetchProducts]);
 
   const handleDelete = async () => {
     if (!productToDelete || !user) return;
