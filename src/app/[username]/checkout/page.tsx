@@ -111,31 +111,26 @@ export default function CheckoutPage() {
 
   // Fetch existing uncompleted order for logged-in user
   useEffect(() => {
+    if (authLoading || !isHydrated || !user || !siteId) return;
+
     const getUncompletedOrder = async () => {
-      if (authLoading || !isHydrated) return;
-      if (user && siteId) {
-        const { data } = await supabase
-          .from('uncompleted_orders')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('site_id', siteId)
-          .limit(1)
-          .single();
-        if (data) {
-          setUncompletedOrderId(data.id);
-        }
+      const { data } = await supabase
+        .from('uncompleted_orders')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('site_id', siteId)
+        .limit(1)
+        .single();
+      if (data) {
+        setUncompletedOrderId(data.id);
       }
     };
     getUncompletedOrder();
   }, [user, siteId, isHydrated, authLoading]);
 
   const handleSaveUncompletedOrder = async () => {
+    // Wait until auth state is confirmed before saving.
     if (authLoading || !isHydrated || cartCount === 0 || !siteId) {
-      return;
-    }
-
-    // For guest users, only save once to prevent RLS update issues.
-    if (!user && uncompletedOrderId) {
       return;
     }
 
@@ -169,14 +164,14 @@ export default function CheckoutPage() {
     let error;
 
     if (user && uncompletedOrderId) {
+      // Logged-in user is updating their existing record
       const { error: updateError } = await supabase
         .from('uncompleted_orders')
         .update(payload)
         .eq('id', uncompletedOrderId);
       error = updateError;
-    } else {
-      if (!user && uncompletedOrderId) return;
-      
+    } else if (!user && !uncompletedOrderId) {
+      // Guest user creating a record for the first time
       const { data, error: insertError } = await supabase
         .from('uncompleted_orders')
         .insert(payload)
@@ -186,7 +181,19 @@ export default function CheckoutPage() {
       if (data) {
         setUncompletedOrderId(data.id);
       }
+    } else if (user && !uncompletedOrderId) {
+        // Logged-in user creating record for the first time
+        const { data, error: insertError } = await supabase
+        .from('uncompleted_orders')
+        .insert(payload)
+        .select('id')
+        .single();
+      error = insertError;
+      if (data) {
+        setUncompletedOrderId(data.id);
+      }
     }
+    // No action for guest user who already has an uncompletedOrderId
 
     if (error) {
       console.error('Error saving uncompleted order:', error.message);
@@ -200,6 +207,7 @@ export default function CheckoutPage() {
   }, [isHydrated, cartCount, router, username]);
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
+    if (authLoading) return;
     if (!siteId) {
       toast({
         variant: 'destructive',
@@ -251,12 +259,14 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Only try to delete if it's a logged-in user who had an uncompleted order.
     if (user && uncompletedOrderId) {
       await supabase
         .from('uncompleted_orders')
         .delete()
         .eq('id', uncompletedOrderId);
     }
+
 
     setLastOrder(newOrder);
     clearCart();
