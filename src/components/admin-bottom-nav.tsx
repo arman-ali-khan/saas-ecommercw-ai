@@ -14,6 +14,9 @@ import { cn } from '@/lib/utils';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
 import AdminMobileSidebar from './admin-mobile-sidebar';
@@ -60,7 +63,13 @@ export default function AdminBottomNav({ username }: { username: string }) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-72 bg-sidebar border-r-0">
-             <AdminMobileSidebar username={username} />
+            <SheetHeader>
+              <SheetTitle className="sr-only">Admin Menu</SheetTitle>
+              <SheetDescription className="sr-only">
+                Admin navigation menu
+              </SheetDescription>
+            </SheetHeader>
+            <AdminMobileSidebar username={username} />
           </SheetContent>
         </Sheet>
 

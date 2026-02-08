@@ -10,6 +10,9 @@ import {
   SheetContent,
   SheetTrigger,
   SheetClose,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
@@ -44,33 +47,38 @@ export default function SaasHeader() {
       </Link>
     );
   };
-  
+
   const AuthNavMobile = () => {
-      if (isLoading) return null;
-      if (user && user.domain) {
-        return (
-          <div className="border-t pt-6 mt-6 space-y-4">
-            <SheetClose asChild>
-              <Button asChild className="w-full">
-                <Link href={`/${user.domain}/admin`}>ড্যাশবোর্ড</Link>
-              </Button>
-            </SheetClose>
-          </div>
-        )
-      };
+    if (isLoading) return null;
+    if (user && user.domain) {
       return (
-           <div className="border-t pt-6 mt-6 space-y-4">
-             <SheetClose asChild>
-                <Link href="/login" className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground">লগ ইন</Link>
-             </SheetClose>
-             <SheetClose asChild>
-               <Button asChild className="w-full">
-                 <Link href="/get-started">শুরু করুন</Link>
-               </Button>
-             </SheetClose>
-           </div>
-      )
-  }
+        <div className="border-t pt-6 mt-6 space-y-4">
+          <SheetClose asChild>
+            <Button asChild className="w-full">
+              <Link href={`/${user.domain}/admin`}>ড্যাশবোর্ড</Link>
+            </Button>
+          </SheetClose>
+        </div>
+      );
+    }
+    return (
+      <div className="border-t pt-6 mt-6 space-y-4">
+        <SheetClose asChild>
+          <Link
+            href="/login"
+            className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground"
+          >
+            লগ ইন
+          </Link>
+        </SheetClose>
+        <SheetClose asChild>
+          <Button asChild className="w-full">
+            <Link href="/get-started">শুরু করুন</Link>
+          </Button>
+        </SheetClose>
+      </div>
+    );
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -84,20 +92,26 @@ export default function SaasHeader() {
                   <span className="sr-only">মেনু খুলুন</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left">
-                <div className="flex flex-col p-6">
-                  <SheetClose asChild>
-                    <Link href="/" className="mb-8">
-                      <Logo />
-                    </Link>
-                  </SheetClose>
-                  <nav className="flex flex-col gap-6">
-                    {navLinks.map((link) => (
-                      <SheetClose asChild key={link.href}>
-                        <NavLink {...link} className="text-lg"/>
-                      </SheetClose>
-                    ))}
-                  </nav>
+              <SheetContent side="left" className="flex flex-col">
+                <SheetHeader>
+                  <SheetTitle className="sr-only">Menu</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Site navigation
+                  </SheetDescription>
+                </SheetHeader>
+                <SheetClose asChild>
+                  <Link href="/" className="mb-8">
+                    <Logo />
+                  </Link>
+                </SheetClose>
+                <nav className="flex flex-col gap-6">
+                  {navLinks.map((link) => (
+                    <SheetClose asChild key={link.href}>
+                      <NavLink {...link} className="text-lg" />
+                    </SheetClose>
+                  ))}
+                </nav>
+                <div className="mt-auto">
                   <AuthNavMobile />
                 </div>
               </SheetContent>
@@ -117,8 +131,9 @@ export default function SaasHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-           {isLoading ? <div className="h-10 w-10"></div> :
-            user && user.domain ? (
+          {isLoading ? (
+            <div className="h-10 w-10"></div>
+          ) : user && user.domain ? (
             <Button asChild>
               <Link href={`/${user.domain}/admin`}>
                 <LayoutDashboard className="mr-2 h-4 w-4" />
