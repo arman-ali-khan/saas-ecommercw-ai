@@ -75,7 +75,7 @@ export default function CheckoutPage() {
   );
   const [siteId, setSiteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -125,13 +125,13 @@ export default function CheckoutPage() {
         }
       }
     };
-    if (isHydrated) {
+    if (isHydrated && !authLoading) {
       getUncompletedOrder();
     }
-  }, [user, siteId, isHydrated]);
+  }, [user, siteId, isHydrated, authLoading]);
 
   const handleSaveUncompletedOrder = async () => {
-    if (!isHydrated || cartCount === 0 || !siteId) {
+    if (!isHydrated || cartCount === 0 || !siteId || authLoading) {
       return;
     }
 
