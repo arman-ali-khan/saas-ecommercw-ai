@@ -46,8 +46,11 @@ import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useParams } from 'next/navigation';
 
-export default function ProductsAdminPage({ params }: { params: { username: string }}) {
+export default function ProductsAdminPage() {
+  const params = useParams();
+  const username = params.username as string;
   const { user } = useAuth();
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
@@ -64,7 +67,9 @@ export default function ProductsAdminPage({ params }: { params: { username: stri
   };
 
   useEffect(() => {
-    fetchProducts();
+    if (user) {
+      fetchProducts();
+    }
   }, [user]);
 
   const handleDelete = async () => {
@@ -101,7 +106,7 @@ export default function ProductsAdminPage({ params }: { params: { username: stri
           </p>
         </div>
         <Button asChild>
-          <Link href={`/${params.username}/admin/products/new`}>
+          <Link href={`/${username}/admin/products/new`}>
             <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
           </Link>
         </Button>
@@ -112,7 +117,7 @@ export default function ProductsAdminPage({ params }: { params: { username: stri
             <CardContent className="text-center py-16">
               <p className="text-muted-foreground">আপনার কোনো পণ্য নেই।</p>
               <Button asChild className="mt-4">
-                <Link href={`/${params.username}/admin/products/new`}>
+                <Link href={`/${username}/admin/products/new`}>
                     <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
                 </Link>
               </Button>
@@ -163,12 +168,12 @@ export default function ProductsAdminPage({ params }: { params: { username: stri
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
                                  <DropdownMenuItem asChild>
-                                    <Link href={`/${params.username}/products/${product.id}`} target="_blank">
+                                    <Link href={`/${username}/products/${product.id}`} target="_blank">
                                         <Eye className="mr-2 h-4 w-4" /> View
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
-                                    <Link href={`/${params.username}/admin/products/${product.id}`}>
+                                    <Link href={`/${username}/admin/products/${product.id}`}>
                                         <Edit className="mr-2 h-4 w-4" /> Edit
                                     </Link>
                                 </DropdownMenuItem>
@@ -217,12 +222,12 @@ export default function ProductsAdminPage({ params }: { params: { username: stri
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                    <Link href={`/${params.username}/products/${product.id}`} target="_blank">
+                                    <Link href={`/${username}/products/${product.id}`} target="_blank">
                                         <Eye className="mr-2 h-4 w-4" /> View
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
-                                    <Link href={`/${params.username}/admin/products/${product.id}`}>
+                                    <Link href={`/${username}/admin/products/${product.id}`}>
                                         <Edit className="mr-2 h-4 w-4" /> Edit
                                     </Link>
                                 </DropdownMenuItem>
