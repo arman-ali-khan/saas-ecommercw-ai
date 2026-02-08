@@ -112,7 +112,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   }
 
   return (
-    <div className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:block">
+    <div className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:block sticky top-0 h-screen">
       <SidebarContent />
     </div>
   );
