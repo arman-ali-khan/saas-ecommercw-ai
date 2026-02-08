@@ -2,15 +2,15 @@
 
 import AdminSidebar from '@/components/admin-sidebar';
 import AdminBottomNav from '@/components/admin-bottom-nav';
+import { useParams } from 'next/navigation';
 
 export default function AdminLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: { username: string };
 }) {
-  const { username } = params;
+  const params = useParams();
+  const username = params.username as string;
   return (
     <div className="fixed inset-0 bg-background z-50">
       <div className="grid w-full h-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
