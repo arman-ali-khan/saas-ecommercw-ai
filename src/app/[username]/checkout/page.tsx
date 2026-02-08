@@ -112,6 +112,7 @@ export default function CheckoutPage() {
   // Fetch existing uncompleted order for logged-in user
   useEffect(() => {
     const getUncompletedOrder = async () => {
+      if (authLoading || !isHydrated) return;
       if (user && siteId) {
         const { data } = await supabase
           .from('uncompleted_orders')
@@ -125,13 +126,11 @@ export default function CheckoutPage() {
         }
       }
     };
-    if (isHydrated && !authLoading) {
-      getUncompletedOrder();
-    }
+    getUncompletedOrder();
   }, [user, siteId, isHydrated, authLoading]);
 
   const handleSaveUncompletedOrder = async () => {
-    if (!isHydrated || cartCount === 0 || !siteId || authLoading) {
+    if (authLoading || !isHydrated || cartCount === 0 || !siteId) {
       return;
     }
 
@@ -148,7 +147,6 @@ export default function CheckoutPage() {
       phone: formValues.phone,
     };
 
-    // Don't save if there is no customer info at all.
     if (!Object.values(customerInfo).some((val) => val && val.trim() !== '')) {
       return;
     }
@@ -170,7 +168,6 @@ export default function CheckoutPage() {
 
     let error;
 
-    // For logged-in users, we can update if a record already exists.
     if (user && uncompletedOrderId) {
       const { error: updateError } = await supabase
         .from('uncompleted_orders')
@@ -178,7 +175,8 @@ export default function CheckoutPage() {
         .eq('id', uncompletedOrderId);
       error = updateError;
     } else {
-      // For guests, or the first time for a logged-in user.
+      if (!user && uncompletedOrderId) return;
+      
       const { data, error: insertError } = await supabase
         .from('uncompleted_orders')
         .insert(payload)
@@ -253,7 +251,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (uncompletedOrderId) {
+    if (user && uncompletedOrderId) {
       await supabase
         .from('uncompleted_orders')
         .delete()
