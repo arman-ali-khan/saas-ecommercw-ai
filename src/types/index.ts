@@ -52,3 +52,16 @@ export interface Category {
   description: string | null;
   created_at: string;
 }
+
+export interface UncompletedOrder {
+  id: string;
+  customer_info: {
+      name?: string;
+      address?: string;
+      city?: string;
+      phone?: string;
+  };
+  cart_total: number;
+  status: string;
+  created_at: string;
+}

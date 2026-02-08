@@ -1,5 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/stores/auth';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import type { UncompletedOrder } from '@/types';
+
 import {
   Card,
   CardContent,
@@ -18,28 +25,76 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Mail, Eye } from 'lucide-react';
+import { MoreHorizontal, Mail, Eye, Loader2 } from 'lucide-react';
 
-
-// Mock data for uncompleted orders
-const uncompletedOrders = [
-  { id: 'CART001', customer: 'নাজিয়া হক', date: '২০২৪-০৭-২৫', value: 1800.00, status: 'চেকআউটে পৌঁছেছে', currency: 'BDT' },
-  { id: 'CART002', customer: 'সাকিব খান', date: '২০২৪-০৭-২৪', value: 950.00, status: 'কার্টে যোগ করেছে', currency: 'BDT' },
-  { id: 'CART003', customer: 'Unknown Visitor', date: '২০২৪-০৭-২৩', value: 350.00, status: 'কার্টে যোগ করেছে', currency: 'BDT' },
-  { id: 'CART004', customer: 'ফারিহা ইসলাম', date: '২০২৪-০৭-২২', value: 5000.00, status: 'পেমেন্ট শুরু করেছে', currency: 'BDT' },
-];
 
 export default function UncompletedOrdersPage() {
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const [uncompletedOrders, setUncompletedOrders] = useState<UncompletedOrder[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    
+    useEffect(() => {
+        const fetchUncompletedOrders = async () => {
+            if (!user) return;
+            setIsLoading(true);
+
+            const { data, error } = await supabase
+                .from('uncompleted_orders')
+                .select('*')
+                .eq('site_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error fetching data',
+                    description: error.message,
+                });
+            } else if (data) {
+                setUncompletedOrders(data as UncompletedOrder[]);
+            }
+            setIsLoading(false);
+        };
+
+        if (user) {
+            fetchUncompletedOrders();
+        }
+    }, [user, toast]);
+    
+    const translateStatus = (status: string): string => {
+        switch (status) {
+            case 'shipping-info-entered': return 'চেকআউটে পৌঁছেছে';
+            case 'cart-created': return 'কার্টে যোগ করেছে';
+            case 'payment-started': return 'পেমেন্ট শুরু করেছে';
+            default: return status;
+        }
+    };
+    
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
         switch (status) {
-          case 'পেমেন্ট শুরু করেছে':
-            return 'default';
-          case 'চেকআউটে পৌঁছেছে':
+          case 'shipping-info-entered':
             return 'secondary';
+          case 'payment-started':
+            return 'default';
           default:
             return 'outline';
         }
       };
+
+    if (isLoading) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle>অসম্পূর্ণ অর্ডার</CardTitle>
+                    <CardDescription>যেসব অর্ডার শুরু হয়েছে কিন্তু সম্পূর্ণ হয়নি সেগুলো দেখুন এবং পরিচালনা করুন।</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center items-center py-16">
+                    <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card>
@@ -66,13 +121,13 @@ export default function UncompletedOrdersPage() {
                             <TableBody>
                                 {uncompletedOrders.map(order => (
                                     <TableRow key={order.id}>
-                                        <TableCell className="font-medium">{order.id}</TableCell>
-                                        <TableCell>{order.customer}</TableCell>
-                                        <TableCell>{order.date}</TableCell>
+                                        <TableCell className="font-medium font-mono text-xs">{order.id.split('-')[0]}</TableCell>
+                                        <TableCell>{order.customer_info?.name || 'Unknown Visitor'}</TableCell>
+                                        <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
                                         <TableCell>
-                                            <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
+                                            <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
                                         </TableCell>
-                                        <TableCell>{order.value.toFixed(2)} {order.currency}</TableCell>
+                                        <TableCell>{order.cart_total.toFixed(2)} BDT</TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -87,7 +142,7 @@ export default function UncompletedOrdersPage() {
                                                         <Eye className="mr-2 h-4 w-4" />
                                                         কার্ট দেখুন
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem disabled={order.customer === 'Unknown Visitor'}>
+                                                    <DropdownMenuItem disabled={!order.customer_info?.name || order.customer_info.name === 'Unknown Visitor'}>
                                                         <Mail className="mr-2 h-4 w-4" />
                                                         অনুস্মারক ইমেল পাঠান
                                                     </DropdownMenuItem>
@@ -107,8 +162,8 @@ export default function UncompletedOrdersPage() {
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <CardTitle className="text-lg">{order.id}</CardTitle>
-                                            <CardDescription>{order.customer}</CardDescription>
+                                            <CardTitle className="text-sm font-mono">{order.id.split('-')[0]}</CardTitle>
+                                            <CardDescription>{order.customer_info?.name || 'Unknown Visitor'}</CardDescription>
                                         </div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -121,18 +176,18 @@ export default function UncompletedOrdersPage() {
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     কার্ট দেখুন
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem disabled={order.customer === 'Unknown Visitor'}>
+                                                <DropdownMenuItem disabled={!order.customer_info?.name || order.customer_info.name === 'Unknown Visitor'}>
                                                     <Mail className="mr-2 h-4 w-4" />
                                                     অনুস্মারক ইমেল পাঠান
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
-                                    <CardDescription className="pt-2">{order.date}</CardDescription>
+                                    <CardDescription className="pt-2">{format(new Date(order.created_at), 'PP')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex justify-between items-center">
-                                    <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
-                                    <p className="font-semibold text-lg">{order.value.toFixed(2)} {order.currency}</p>
+                                    <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
+                                    <p className="font-semibold text-lg">{order.cart_total.toFixed(2)} BDT</p>
                                 </CardContent>
                             </Card>
                         ))}
