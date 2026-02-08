@@ -32,6 +32,7 @@ import { getProductsBySiteId } from '@/lib/products';
 import { useAuth } from '@/stores/auth';
 import type { Product } from '@/types';
 import { ArrowUp, ArrowDown, Loader2, GripVertical } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 type Section = {
   id: string;
@@ -47,6 +48,7 @@ export default function SectionManagerPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
 
   const allCategories = useMemo(
@@ -135,11 +137,16 @@ export default function SectionManagerPage() {
   };
 
   const handleSaveChanges = () => {
-    console.log('Saving section configuration:', sections);
-    toast({
-      title: 'Success!',
-      description: 'Homepage sections have been updated.',
-    });
+    setIsSaving(true);
+    // Simulate async operation
+    setTimeout(() => {
+        console.log('Saving section configuration:', sections);
+        toast({
+        title: 'Success!',
+        description: 'Homepage sections have been updated.',
+        });
+        setIsSaving(false);
+    }, 1000);
   };
 
   if (isLoading) {
@@ -176,32 +183,37 @@ export default function SectionManagerPage() {
               key={section.id}
               className="border rounded-lg overflow-hidden"
             >
-              <AccordionTrigger className="p-4 hover:no-underline data-[state=open]:bg-muted/50 flex-wrap">
+              <AccordionTrigger className="p-4 hover:no-underline data-[state=open]:bg-muted/50">
                 <div className="flex items-center justify-between w-full gap-4">
-                  <div className="flex items-center gap-4">
-                    <GripVertical className="h-5 w-5 text-muted-foreground" />
-                    <Label
-                      htmlFor={section.id}
-                      className="text-base font-semibold cursor-pointer text-left"
-                    >
-                      {section.title}
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-4 ml-auto pl-2">
-                    <Switch
-                      id={section.id}
-                      checked={section.enabled}
-                      onCheckedChange={(checked) =>
-                        handleToggle(section.id, checked)
-                      }
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
+                    <div className="flex items-center gap-4">
+                        <GripVertical className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-base font-semibold text-left">
+                            {section.title}
+                        </span>
+                    </div>
+                    <Badge variant={section.enabled ? 'default' : 'outline'}>
+                        {section.enabled ? 'Enabled' : 'Disabled'}
+                    </Badge>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                <div className="p-6 pt-2 border-t">
-                  <div className="grid gap-6 mt-4">
+                <div className="p-6 pt-2 border-t grid gap-6">
+                  <div className="space-y-2">
+                        <Label>Enable/Disable Section</Label>
+                        <div className="flex items-center space-x-2 pt-2">
+                            <Switch
+                                id={`switch-${section.id}`}
+                                checked={section.enabled}
+                                onCheckedChange={(checked) =>
+                                handleToggle(section.id, checked)
+                                }
+                            />
+                            <Label htmlFor={`switch-${section.id}`}>
+                                {section.enabled ? "This section is currently enabled." : "This section is currently disabled."}
+                            </Label>
+                        </div>
+                    </div>
+
                     <div className="space-y-2">
                       <Label>Reorder Section</Label>
                         <div className="flex items-center gap-2">
@@ -261,7 +273,6 @@ export default function SectionManagerPage() {
                         </Select>
                       </div>
                     )}
-                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -269,7 +280,10 @@ export default function SectionManagerPage() {
         </Accordion>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleSaveChanges}>Save Changes</Button>
+        <Button onClick={handleSaveChanges} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSaving ? 'Saving...' : 'Save Changes'}
+        </Button>
       </CardFooter>
     </Card>
   );
