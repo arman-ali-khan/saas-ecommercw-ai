@@ -39,7 +39,6 @@ import { cn } from '@/lib/utils';
 type UserProfile = {
     id: string;
     username: string;
-    email: string; // Assuming email is on the profile or can be joined
     full_name: string;
     domain: string;
     site_name: string;
@@ -56,7 +55,6 @@ export default function UsersAdminPage() {
     useEffect(() => {
         const fetchUsers = async () => {
             setLoading(true);
-            // Fetch profiles and join with auth.users to get email
             const { data, error } = await supabase.from('profiles').select(`
                 id,
                 username,
