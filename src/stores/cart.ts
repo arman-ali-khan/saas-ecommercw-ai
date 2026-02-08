@@ -1,18 +1,24 @@
+'use client';
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CartItem, Product } from '@/types';
 
 interface CartState {
   cartItems: CartItem[];
+  lastOrder: any | null;
   addToCart: (product: Product, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+  setLastOrder: (order: any | null) => void;
 }
 
 export const useCart = create<CartState>()(
   persist(
     (set, get) => ({
       cartItems: [],
+      lastOrder: null,
       addToCart: (product, quantity) => {
         const { cartItems } = get();
         const existingItem = cartItems.find((item) => item.id === product.id);
@@ -41,10 +47,17 @@ export const useCart = create<CartState>()(
           ),
         }));
       },
+      clearCart: () => {
+        set({ cartItems: [] });
+      },
+      setLastOrder: (order: any | null) => {
+        set({ lastOrder: order });
+      },
     }),
     {
       name: 'bangla-naturals-cart',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ cartItems: state.cartItems }),
     }
   )
 );

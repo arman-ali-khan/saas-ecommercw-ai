@@ -30,6 +30,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/stores/auth';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const checkoutSchema = z
   .object({
@@ -58,19 +60,17 @@ const checkoutSchema = z
 export default function CheckoutPage() {
   const params = useParams();
   const username = params.username as string;
-  const cartItems = useCart((state) => state.cartItems);
-  const cartTotal = cartItems.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
-  );
+  const { cartItems, cartTotal, clearCart, setLastOrder } = useCart();
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   const router = useRouter();
+  const { toast } = useToast();
 
   const [isHydrated, setIsHydrated] = useState(false);
   const [uncompletedOrderId, setUncompletedOrderId] = useState<string | null>(
     null
   );
   const [siteId, setSiteId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
@@ -106,33 +106,24 @@ export default function CheckoutPage() {
   }, [username]);
 
   const handleSaveUncompletedOrder = async () => {
-    // Conditions to avoid running: not hydrated, cart is empty, or siteId not yet fetched.
-    // Also, to prevent RLS errors, we only save uncompleted orders for anonymous users,
-    // and we only do it once.
     if (
       !isHydrated ||
       cartCount === 0 ||
       !siteId ||
-      user ||
-      uncompletedOrderId
+      user || // Only for guest users
+      uncompletedOrderId // Only save once
     ) {
       return;
     }
 
     const formValues = form.getValues();
-
     const customerInfo = {
       name: formValues.name,
       address: formValues.address,
       city: formValues.city,
       phone: formValues.phone,
     };
-
-    // Only save if the user has actually started typing shipping info
-    const hasShippingInfo = Object.values(customerInfo).some(
-      (val) => val && val.trim() !== ''
-    );
-    if (!hasShippingInfo) {
+    if (!Object.values(customerInfo).some((val) => val && val.trim() !== '')) {
       return;
     }
 
@@ -150,7 +141,6 @@ export default function CheckoutPage() {
       status: 'shipping-info-entered',
     };
 
-    // We only INSERT, never update, to avoid RLS issues for anonymous users.
     const { data, error } = await supabase
       .from('uncompleted_orders')
       .insert(payload)
@@ -160,7 +150,6 @@ export default function CheckoutPage() {
     if (error) {
       console.error('Error saving uncompleted order:', error.message);
     } else if (data) {
-      // If it was a new insert, store the returned ID to prevent future inserts
       setUncompletedOrderId(data.id);
     }
   };
@@ -170,6 +159,70 @@ export default function CheckoutPage() {
       router.push(`/${username}/products`);
     }
   }, [isHydrated, cartCount, router, username]);
+
+  async function onSubmit(values: z.infer<typeof checkoutSchema>) {
+    if (!siteId) {
+      toast({
+        variant: 'destructive',
+        title: 'ত্রুটি',
+        description: 'সাইট খুঁজে পাওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।',
+      });
+      return;
+    }
+    setIsSubmitting(true);
+
+    const orderNumber = `BN-${Date.now().toString().slice(-6)}`;
+
+    const orderData = {
+      order_number: orderNumber,
+      site_id: siteId,
+      user_id: user?.id || null,
+      shipping_info: {
+        name: values.name,
+        address: values.address,
+        city: values.city,
+        phone: values.phone,
+      },
+      cart_items: cartItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        imageUrl: item.images[0]?.imageUrl,
+      })),
+      total: cartTotal,
+      payment_method: values.paymentMethod,
+      transaction_id: values.transactionId || null,
+      status: 'processing',
+    };
+
+    const { data: newOrder, error: orderError } = await supabase
+      .from('orders')
+      .insert(orderData)
+      .select()
+      .single();
+
+    if (orderError) {
+      toast({
+        variant: 'destructive',
+        title: 'অর্ডার স্থাপন ব্যর্থ হয়েছে',
+        description: orderError.message,
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (uncompletedOrderId) {
+      await supabase
+        .from('uncompleted_orders')
+        .delete()
+        .eq('id', uncompletedOrderId);
+    }
+
+    setLastOrder(newOrder);
+    clearCart();
+    router.push(`/${username}/checkout/success`);
+  }
 
   if (!isHydrated || cartCount === 0) {
     return (
@@ -187,26 +240,6 @@ export default function CheckoutPage() {
         </div>
       </div>
     );
-  }
-
-  async function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    console.log(values);
-
-    // In a real app, you would create the final order here.
-
-    // After successfully creating the order, delete the uncompleted order record.
-    if (uncompletedOrderId) {
-      const { error } = await supabase
-        .from('uncompleted_orders')
-        .delete()
-        .eq('id', uncompletedOrderId);
-      if (error) {
-        console.error('Error deleting uncompleted order:', error.message);
-      }
-    }
-
-    alert('অর্ডার সফলভাবে স্থাপন করা হয়েছে! (এটি একটি ডেমো)');
-    // Potentially clear the cart and redirect to a success page here.
   }
 
   return (
@@ -426,8 +459,16 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full mt-6" size="lg">
-              অর্ডার দিন
+            <Button
+              type="submit"
+              className="w-full mt-6"
+              size="lg"
+              disabled={isSubmitting}
+            >
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {isSubmitting ? 'অর্ডার প্রক্রিয়া করা হচ্ছে...' : 'অর্ডার দিন'}
             </Button>
           </form>
         </Form>
