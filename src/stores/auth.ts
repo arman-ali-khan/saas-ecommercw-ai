@@ -66,6 +66,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
           siteName: profile.site_name,
           siteDescription: profile.site_description,
           subscriptionPlan: profile.subscription_plan,
+          subscription_status: profile.subscription_status,
           role: profile.role,
           isSaaSAdmin,
         };
@@ -78,6 +79,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
     },
 
     register: async (username, fullName, email, password, domain, siteName, plan, siteDescription, paymentMethod, transactionId) => {
+        const subscription_status = plan === 'free' ? 'active' : 'pending';
+        
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -89,6 +92,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
                     site_name: siteName,
                     site_description: siteDescription,
                     subscription_plan: plan,
+                    subscription_status: subscription_status,
                     role: 'admin',
                     payment_method: paymentMethod,
                     transaction_id: transactionId,
@@ -139,6 +143,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
           siteName: data.site_name,
           siteDescription: data.site_description,
           subscriptionPlan: data.subscription_plan,
+          subscription_status: data.subscription_status,
           role: data.role,
           isSaaSAdmin: data.role === 'saas_admin',
         };

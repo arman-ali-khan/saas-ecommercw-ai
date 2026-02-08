@@ -37,6 +37,7 @@ export default function AuthProvider({
             siteName: profile.site_name,
             siteDescription: profile.site_description,
             subscriptionPlan: profile.subscription_plan,
+            subscription_status: profile.subscription_status,
             role: profile.role,
             isSaaSAdmin: profile.role === 'saas_admin',
           };
@@ -56,6 +57,7 @@ export default function AuthProvider({
                         site_name: user_metadata.site_name,
                         site_description: user_metadata.site_description,
                         subscription_plan: user_metadata.subscription_plan,
+                        subscription_status: user_metadata.subscription_status,
                         role: user_metadata.role || 'admin',
                     })
                     .select()
@@ -79,6 +81,7 @@ export default function AuthProvider({
                                 amount: amount,
                                 payment_method: payment_method,
                                 transaction_id: transaction_id,
+                                status: 'pending', // Set initial status to pending
                             });
 
                         if (paymentError) {
@@ -96,6 +99,7 @@ export default function AuthProvider({
                         siteName: newProfile.site_name,
                         siteDescription: newProfile.site_description,
                         subscriptionPlan: newProfile.subscription_plan,
+                        subscription_status: newProfile.subscription_status,
                         role: newProfile.role,
                         isSaaSAdmin: newProfile.role === 'saas_admin',
                     };

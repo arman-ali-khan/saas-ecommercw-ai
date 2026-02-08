@@ -12,6 +12,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -27,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,13 +39,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 export default function SubscriptionPaymentsPage() {
   const [payments, setPayments] = useState<SubscriptionPaymentWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
   const fetchPayments = useCallback(async () => {
-    // This function no longer depends on `user`, as the RLS policy handles security.
-    // It is triggered by the useEffect when the user is confirmed to exist.
     setIsLoading(true);
     try {
         const { data: paymentsData, error: paymentsError } = await supabase
@@ -55,7 +56,7 @@ export default function SubscriptionPaymentsPage() {
             toast({
                 variant: 'destructive',
                 title: 'Error Fetching Subscription Payments',
-                description: `Could not load payment data. This is likely a database permissions issue. Error: ${paymentsError.message}`,
+                description: `Could not load payment data. Error: ${paymentsError.message}`,
                 duration: 10000,
             });
             console.error("Subscription Payments fetch error:", paymentsError);
@@ -68,7 +69,6 @@ export default function SubscriptionPaymentsPage() {
             return;
         }
 
-        // Fetch related data
         const userIds = [...new Set(paymentsData.map(p => p.user_id))];
         const planIds = [...new Set(paymentsData.map(p => p.plan_id).filter(Boolean))];
 
@@ -86,7 +86,7 @@ export default function SubscriptionPaymentsPage() {
             toast({
                 variant: 'destructive',
                 title: 'Error Fetching Subscription Details',
-                description: `Could not load user or plan details. This may be a database permissions issue. ${description}`,
+                description: `Could not load user or plan details. ${description}`,
                 duration: 10000,
             });
         }
@@ -110,18 +110,38 @@ export default function SubscriptionPaymentsPage() {
   }, [toast]);
   
   useEffect(() => {
-    // This effect now triggers the data fetch once authentication is confirmed and a user is present.
-    // It will not re-trigger unnecessarily.
-    if (!authLoading) {
-      if (user) {
+    if (!authLoading && user) {
         fetchPayments();
-      } else {
-        // If auth is resolved and there's no user, stop loading.
-        // The layout will handle redirection for unauthorized users.
-        setIsLoading(false);
-      }
     }
   }, [authLoading, user, fetchPayments]);
+
+  const handleUpdateStatus = async (payment: SubscriptionPaymentWithDetails, newPaymentStatus: 'completed' | 'failed', newProfileStatus: 'active' | 'inactive') => {
+    setIsActionLoading(true);
+    try {
+        const { error: paymentError } = await supabase
+            .from('subscription_payments')
+            .update({ status: newPaymentStatus })
+            .eq('id', payment.id);
+        
+        if (paymentError) throw paymentError;
+
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ subscription_status: newProfileStatus })
+            .eq('id', payment.user_id);
+            
+        if (profileError) throw profileError;
+        
+        toast({ title: 'Success', description: `Payment marked as ${newPaymentStatus} and user set to ${newProfileStatus}.` });
+        fetchPayments(); // Refresh data
+        setSelectedPayment(null); // Close dialog
+
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Action failed', description: e.message });
+    } finally {
+        setIsActionLoading(false);
+    }
+  };
 
 
   const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" => {
@@ -173,9 +193,9 @@ export default function SubscriptionPaymentsPage() {
                       <TableHead>User</TableHead>
                       <TableHead>Plan</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Method</TableHead>
                       <TableHead>Transaction ID</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -185,14 +205,12 @@ export default function SubscriptionPaymentsPage() {
                         <TableCell className="font-medium">{payment.profiles?.full_name || 'N/A'}</TableCell>
                         <TableCell><Badge variant="secondary">{payment.plans?.name || 'N/A'}</Badge></TableCell>
                         <TableCell>{payment.amount.toFixed(2)} BDT</TableCell>
-                        <TableCell>
-                           {formatPaymentMethod(payment.payment_method)}
-                        </TableCell>
                         <TableCell className="font-mono text-xs">{payment.transaction_id || 'N/A'}</TableCell>
                         <TableCell>{format(new Date(payment.created_at), 'PPP')}</TableCell>
+                        <TableCell><Badge variant={getStatusBadgeVariant(payment.status)}>{payment.status}</Badge></TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => setSelectedPayment(payment)}>
-                            <Eye className="mr-2 h-4 w-4" /> View Details
+                            <Eye className="mr-2 h-4 w-4" /> Review
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -216,12 +234,15 @@ export default function SubscriptionPaymentsPage() {
                                     <CardDescription>@{payment.profiles?.username || 'unknown'}</CardDescription>
                                 </div>
                             </div>
-                            <p className="font-semibold text-lg">{payment.amount.toFixed(2)} BDT</p>
+                             <Badge variant={getStatusBadgeVariant(payment.status)}>{payment.status}</Badge>
                         </div>
                       </CardHeader>
-                      <CardContent className="flex justify-between items-center pt-0">
-                          <Badge variant="secondary">{payment.plans?.name || 'N/A'}</Badge>
-                          <p className="text-sm text-muted-foreground">{format(new Date(payment.created_at), 'PPP')}</p>
+                      <CardContent className="flex justify-between items-center">
+                          <div className="space-y-1">
+                            <Badge variant="secondary">{payment.plans?.name || 'N/A'}</Badge>
+                            <p className="text-sm text-muted-foreground">{format(new Date(payment.created_at), 'PP')}</p>
+                          </div>
+                          <p className="font-semibold text-lg">{payment.amount.toFixed(2)} BDT</p>
                       </CardContent>
                   </Card>
                 ))}
@@ -239,34 +260,49 @@ export default function SubscriptionPaymentsPage() {
       <Dialog open={!!selectedPayment} onOpenChange={(open) => !open && setSelectedPayment(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Payment Details</DialogTitle>
+            <DialogTitle>Review Payment</DialogTitle>
             <DialogDescription>
-                Full details for transaction #{selectedPayment?.transaction_id || selectedPayment?.id}
+                Review and approve or reject transaction #{selectedPayment?.transaction_id || selectedPayment?.id}
             </DialogDescription>
           </DialogHeader>
           {selectedPayment && (
-            <div className="space-y-4 py-4 text-sm">
-                <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                    <h4 className="font-semibold flex items-center gap-2"><User className="h-4 w-4" /> User Information</h4>
-                    <p><strong>Name:</strong> {selectedPayment.profiles?.full_name}</p>
-                    <p><strong>Username:</strong> @{selectedPayment.profiles?.username}</p>
-                </div>
-                <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                    <h4 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Subscription Details</h4>
-                    <p><strong>Plan:</strong> {selectedPayment.plans?.name}</p>
-                    <p><strong>Amount:</strong> {selectedPayment.amount.toFixed(2)} BDT</p>
-                </div>
-                <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                    <h4 className="font-semibold flex items-center gap-2"><CreditCard className="h-4 w-4" /> Payment Information</h4>
-                    <p><strong>Method:</strong> {formatPaymentMethod(selectedPayment.payment_method)}</p>
-                    <p><strong>Transaction ID:</strong> {selectedPayment.transaction_id || 'N/A'}</p>
-                    <div className="flex items-center gap-2">
-                        <strong>Status:</strong>
-                        <Badge variant={getStatusBadgeVariant(selectedPayment.status)}>{selectedPayment.status}</Badge>
+            <>
+                <div className="space-y-4 py-4 text-sm">
+                    <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
+                        <h4 className="font-semibold flex items-center gap-2"><User className="h-4 w-4" /> User Information</h4>
+                        <p><strong>Name:</strong> {selectedPayment.profiles?.full_name}</p>
+                        <p><strong>Username:</strong> @{selectedPayment.profiles?.username}</p>
                     </div>
-                    <p><strong>Date:</strong> {format(new Date(selectedPayment.created_at), 'PPpp')}</p>
+                    <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
+                        <h4 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Subscription Details</h4>
+                        <p><strong>Plan:</strong> {selectedPayment.plans?.name}</p>
+                        <p><strong>Amount:</strong> {selectedPayment.amount.toFixed(2)} BDT</p>
+                    </div>
+                    <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
+                        <h4 className="font-semibold flex items-center gap-2"><CreditCard className="h-4 w-4" /> Payment Information</h4>
+                        <p><strong>Method:</strong> {formatPaymentMethod(selectedPayment.payment_method)}</p>
+                        <p><strong>Transaction ID:</strong> {selectedPayment.transaction_id || 'N/A'}</p>
+                        <div className="flex items-center gap-2">
+                            <strong>Status:</strong>
+                            <Badge variant={getStatusBadgeVariant(selectedPayment.status)}>{selectedPayment.status}</Badge>
+                        </div>
+                        <p><strong>Date:</strong> {format(new Date(selectedPayment.created_at), 'PPpp')}</p>
+                    </div>
                 </div>
-            </div>
+                <DialogFooter className="sm:justify-between pt-4 gap-2">
+                    <div className="flex gap-2">
+                        <Button onClick={() => handleUpdateStatus(selectedPayment, 'completed', 'active')} disabled={isActionLoading || selectedPayment.status === 'completed'}>
+                            {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Approve
+                        </Button>
+                        <Button variant="destructive" onClick={() => handleUpdateStatus(selectedPayment, 'failed', 'inactive')} disabled={isActionLoading || selectedPayment.status === 'failed'}>
+                            {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Reject
+                        </Button>
+                    </div>
+                    <Button variant="outline" onClick={() => setSelectedPayment(null)}>Close</Button>
+                </DialogFooter>
+            </>
           )}
         </DialogContent>
       </Dialog>
