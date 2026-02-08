@@ -5,21 +5,30 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
-import { usePlans, type Plan } from '@/stores/plans';
+import { supabase } from '@/lib/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+export type Plan = {
+    id: string;
+    name: string;
+    price: string;
+    period: string | null;
+    description: string;
+    features: string[];
+};
 
 const planSchema = z.object({
-  id: z.string().optional(),
+  id: z.string().min(1, "ID is required. Use a short, lowercase name like 'pro' or 'starter'."),
   name: z.string().min(1, 'Plan name is required'),
   price: z.string().min(1, 'Price is required'),
   period: z.string().optional(),
@@ -30,7 +39,9 @@ const planSchema = z.object({
 type PlanFormData = z.infer<typeof planSchema>;
 
 export default function PlansAdminPage() {
-  const { plans, addPlan, updatePlan, deletePlan } = usePlans();
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
@@ -39,29 +50,62 @@ export default function PlansAdminPage() {
   const form = useForm<PlanFormData>({
     resolver: zodResolver(planSchema),
   });
+  
+  const fetchPlans = async () => {
+    const { data, error } = await supabase.from('plans').select('*').order('price', { ascending: true });
+    if (error) {
+        toast({ variant: 'destructive', title: 'Error fetching plans', description: error.message });
+    } else {
+        setPlans(data as Plan[]);
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchPlans();
+  }, [toast]);
+
 
   useEffect(() => {
     if (isFormOpen) {
       if (selectedPlan) {
-        form.reset({ ...selectedPlan, features: selectedPlan.features.join('\n') });
+        form.reset({ ...selectedPlan, features: selectedPlan.features.join('\n'), period: selectedPlan.period || '' });
       } else {
-        form.reset({ name: '', price: '', period: '', description: '', features: '' });
+        form.reset({ id: '', name: '', price: '', period: '', description: '', features: '' });
       }
     }
   }, [isFormOpen, selectedPlan, form]);
 
-  const onSubmit = (data: PlanFormData) => {
+  const onSubmit = async (data: PlanFormData) => {
+    setIsSubmitting(true);
+    const planPayload = {
+        ...data,
+        period: data.period || null,
+        features: data.features.split('\n').filter(f => f.trim() !== '')
+    };
+
+    let error;
+
     if (selectedPlan && selectedPlan.id) {
       // Update
-      updatePlan({ ...data, id: selectedPlan.id });
-      toast({ title: 'Plan Updated' });
+      const { error: updateError } = await supabase.from('plans').update(planPayload).eq('id', selectedPlan.id);
+      error = updateError;
+      if (!error) toast({ title: 'Plan Updated' });
     } else {
       // Create
-      addPlan(data);
-      toast({ title: 'Plan Created' });
+      const { error: insertError } = await supabase.from('plans').insert(planPayload);
+      error = insertError;
+       if (!error) toast({ title: 'Plan Created' });
     }
-    setIsFormOpen(false);
-    setSelectedPlan(null);
+
+    if(error){
+        toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
+    } else {
+        await fetchPlans();
+        setIsFormOpen(false);
+        setSelectedPlan(null);
+    }
+    setIsSubmitting(false);
   };
 
   const openForm = (plan: Plan | null) => {
@@ -74,13 +118,37 @@ export default function PlansAdminPage() {
     setIsAlertOpen(true);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!selectedPlan) return;
-    deletePlan(selectedPlan.id);
-    toast({ title: 'Plan Deleted', variant: 'destructive' });
+    const { error } = await supabase.from('plans').delete().eq('id', selectedPlan.id);
+
+    if (error) {
+        toast({ title: 'Error Deleting Plan', variant: 'destructive', description: error.message });
+    } else {
+        toast({ title: 'Plan Deleted' });
+        await fetchPlans();
+    }
+    
     setIsAlertOpen(false);
     setSelectedPlan(null);
   };
+  
+  if (isLoading) {
+      return (
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                 <div>
+                    <Skeleton className="h-8 w-64" />
+                    <Skeleton className="h-4 w-96 mt-2" />
+                 </div>
+                 <Skeleton className="h-10 w-28" />
+              </CardHeader>
+              <CardContent>
+                  <Skeleton className="h-48 w-full" />
+              </CardContent>
+          </Card>
+      )
+  }
 
   return (
     <>
@@ -113,21 +181,12 @@ export default function PlansAdminPage() {
                     <TableCell>{plan.price} {plan.period}</TableCell>
                     <TableCell>{plan.description}</TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => openForm(plan)}>
+                       <Button variant="outline" size="sm" onClick={() => openForm(plan)} className="mr-2">
                             <Edit className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openDeleteAlert(plan)} className="text-destructive">
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => openDeleteAlert(plan)}>
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -167,6 +226,13 @@ export default function PlansAdminPage() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+               <FormField control={form.control} name="id" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plan ID</FormLabel>
+                  <FormControl><Input placeholder="e.g., pro" {...field} disabled={!!selectedPlan} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <FormField control={form.control} name="name" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Plan Name</FormLabel>
@@ -184,7 +250,7 @@ export default function PlansAdminPage() {
                 )} />
                 <FormField control={form.control} name="period" render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Period</FormLabel>
+                    <FormLabel>Period (optional)</FormLabel>
                     <FormControl><Input placeholder="e.g., /মাস" {...field} /></FormControl>
                     <FormMessage />
                     </FormItem>
@@ -205,7 +271,10 @@ export default function PlansAdminPage() {
                 </FormItem>
               )} />
               <DialogFooter>
-                <Button type="submit">Save Plan</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isSubmitting ? 'Saving...' : 'Save Plan'}
+                </Button>
               </DialogFooter>
             </form>
           </Form>
