@@ -1,5 +1,20 @@
 'use client';
 
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
@@ -7,20 +22,159 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/auth-context';
+
+const settingsSchema = z.object({
+  siteName: z.string().min(2, { message: 'সাইটের নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
+  siteDescription: z.string().min(10, { message: 'সাইটের বিবরণ কমপক্ষে ১০ অক্ষরের হতে হবে।' }),
+  seoTitle: z.string().optional(),
+  seoDescription: z.string().optional(),
+  seoKeywords: z.string().optional(),
+});
 
 export default function SettingsAdminPage() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  const form = useForm<z.infer<typeof settingsSchema>>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      siteName: user?.siteName || '',
+      siteDescription: 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
+      seoTitle: '',
+      seoDescription: '',
+      seoKeywords: '',
+    },
+  });
+
+  function onSubmit(values: z.infer<typeof settingsSchema>) {
+    console.log('Saving settings:', values);
+    toast({
+      title: 'সেটিংস সংরক্ষিত হয়েছে!',
+      description: 'আপনার সাইটের তথ্য সফলভাবে আপডেট করা হয়েছে।',
+    });
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Admin Settings</CardTitle>
+        <CardTitle>সাইট সেটিংস</CardTitle>
         <CardDescription>
-          Manage general store settings, shipping, and payment options.
+          আপনার সাইটের সাধারণ তথ্য এবং এসইও (SEO) বিবরণ পরিচালনা করুন।
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground">
-          Store settings options will be available here.
-        </p>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <Tabs defaultValue="general">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="general">সাধারণ</TabsTrigger>
+                <TabsTrigger value="seo">এসইও</TabsTrigger>
+              </TabsList>
+              <TabsContent value="general" className="mt-6">
+                <div className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="siteName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>সাইটের নাম</FormLabel>
+                        <FormControl>
+                          <Input placeholder="বাংলা ন্যাচারালস" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          এটি আপনার সাইটের শিরোনামে এবং অন্যান্য স্থানে প্রদর্শিত হবে।
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="siteDescription"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>সাইটের বিবরণ</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="আপনার সাইট সম্পর্কে একটি সংক্ষিপ্ত বিবরণ লিখুন..."
+                            rows={3}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          আপনার সাইটের একটি সংক্ষিপ্ত সারসংক্ষেপ।
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </TabsContent>
+              <TabsContent value="seo" className="mt-6">
+                <div className="space-y-6">
+                    <FormField
+                        control={form.control}
+                        name="seoTitle"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>এসইও শিরোনাম</FormLabel>
+                            <FormControl>
+                                <Input placeholder="বাংলা ন্যাচারালস - খাঁটি বাংলাদেশী পণ্য" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                                সার্চ ইঞ্জিনের ফলাফলে প্রদর্শিত শিরোনাম। খালি রাখলে সাইটের নাম ব্যবহার করা হবে।
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="seoDescription"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>এসইও বিবরণ</FormLabel>
+                            <FormControl>
+                                <Textarea
+                                    placeholder="সেরা হিমসাগর আম, সুন্দরবনের মধু এবং আরও অনেক কিছু কিনুন..."
+                                    rows={3}
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormDescription>
+                                সার্চ ইঞ্জিনের ফলাফলে প্রদর্শিত বিবরণ। খালি রাখলে সাইটের বিবরণ ব্যবহার করা হবে।
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="seoKeywords"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>এসইও কীওয়ার্ড</FormLabel>
+                            <FormControl>
+                                <Input placeholder="আম, মধু, খেজুর, অর্গানিক, বাংলাদেশ" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                                কমা দ্বারা পৃথক করে কীওয়ার্ড লিখুন।
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
+              </TabsContent>
+            </Tabs>
+            <div className="pt-4">
+              <Button type="submit">পরিবর্তনগুলি সংরক্ষণ করুন</Button>
+            </div>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );
