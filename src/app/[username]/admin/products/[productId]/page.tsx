@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -188,27 +187,27 @@ export default function ManageProductPage() {
       toast({ variant: 'destructive', title: 'Authentication error' });
       return;
     }
-     // Filter out any potential empty image objects before submitting
+    // Filter out any potential empty image objects before submitting
     const finalValues = {
-        ...values,
-        images: values.images.filter(img => img.imageUrl),
+      ...values,
+      images: values.images.filter((img) => img.imageUrl),
     };
 
-
     setIsSubmitting(true);
-    const payload = { ...finalValues, site_id: user.id };
-
     let error;
 
     if (isNew) {
+      const payload = { ...finalValues, site_id: user.id };
       const { error: insertError } = await supabase
         .from('products')
         .insert(payload);
       error = insertError;
     } else {
+      // Exclude 'id' from the update payload as it's the primary key
+      const { id, ...updateData } = finalValues;
       const { error: updateError } = await supabase
         .from('products')
-        .update(payload)
+        .update(updateData)
         .eq('id', productId);
       error = updateError;
     }
@@ -572,5 +571,3 @@ export default function ManageProductPage() {
     </div>
   );
 }
-
-    
