@@ -35,7 +35,7 @@ const planPrices: { [key: string]: number | string } = {
 };
 
 
-export default function PaymentStep({ formData, onNext }: PaymentStepProps) {
+export default function PaymentStep({ formData, updateFormData, onNext }: PaymentStepProps) {
     const form = useForm<z.infer<typeof paymentSchema>>({
         resolver: zodResolver(paymentSchema),
         defaultValues: {
@@ -49,7 +49,10 @@ export default function PaymentStep({ formData, onNext }: PaymentStepProps) {
 
     function onSubmit(values: z.infer<typeof paymentSchema>) {
         console.log("Payment details submitted:", values);
-        // In a real app, you would save this transaction for manual verification
+        updateFormData({
+            paymentMethod: values.paymentMethod,
+            transactionId: values.transactionId,
+        })
         onNext();
     }
 

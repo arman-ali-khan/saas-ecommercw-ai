@@ -62,6 +62,31 @@ export default function AuthProvider({
                     .single();
                 
                 if (newProfile && !insertError) {
+                    // Profile created, now create payment record if applicable
+                    const { subscription_plan, payment_method, transaction_id } = user_metadata;
+                    if (subscription_plan && subscription_plan !== 'free' && payment_method && transaction_id) {
+                        const planPrices: { [key: string]: number } = {
+                            pro: 999,
+                            enterprise: 0,
+                        };
+                        const amount = planPrices[subscription_plan as keyof typeof planPrices] ?? 0;
+                        
+                        const { error: paymentError } = await supabase
+                            .from('subscription_payments')
+                            .insert({
+                                user_id: newProfile.id,
+                                plan_id: subscription_plan,
+                                amount: amount,
+                                payment_method: payment_method,
+                                transaction_id: transaction_id,
+                            });
+
+                        if (paymentError) {
+                            // This is a non-fatal error for the user session, but needs logging for manual intervention.
+                            console.error("CRITICAL: Failed to create subscription_payments record for new user:", paymentError);
+                        }
+                    }
+
                      const appUser: User = {
                         id: newProfile.id,
                         username: newProfile.username,
@@ -76,7 +101,7 @@ export default function AuthProvider({
                     };
                     setUser(appUser);
                 } else {
-                    console.error('Failed to create profile on first sign in:', insertError);
+                    console.error('Failed to create user profile:', insertError);
                     await supabase.auth.signOut();
                     setUser(null);
                 }

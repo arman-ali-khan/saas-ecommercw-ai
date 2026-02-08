@@ -49,6 +49,8 @@ export default function RegisterPage() {
   const domain = searchParams.get('domain') || '';
   const plan = searchParams.get('plan') || 'free';
   const siteDescription = searchParams.get('siteDescription') || '';
+  const paymentMethod = searchParams.get('paymentMethod');
+  const transactionId = searchParams.get('transactionId');
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -138,7 +140,9 @@ export default function RegisterPage() {
       domain,
       siteName,
       plan,
-      siteDescription
+      siteDescription,
+      paymentMethod,
+      transactionId
     );
     setIsLoading(false);
 

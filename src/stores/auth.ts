@@ -16,7 +16,9 @@ interface AuthState {
     domain: string,
     siteName: string,
     plan: string,
-    siteDescription: string
+    siteDescription: string,
+    paymentMethod: string | null,
+    transactionId: string | null
   ) => Promise<{ user: User | null, error: string | null }>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
@@ -75,7 +77,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
       return { user: null, error: 'An unknown error occurred.' };
     },
 
-    register: async (username, fullName, email, password, domain, siteName, plan, siteDescription) => {
+    register: async (username, fullName, email, password, domain, siteName, plan, siteDescription, paymentMethod, transactionId) => {
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -88,6 +90,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
                     site_description: siteDescription,
                     subscription_plan: plan,
                     role: 'admin',
+                    payment_method: paymentMethod,
+                    transaction_id: transactionId,
                 }
             }
         });

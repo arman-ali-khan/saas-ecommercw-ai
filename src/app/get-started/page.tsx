@@ -15,6 +15,8 @@ export type FormData = {
   domain: string;
   siteName: string;
   siteDescription: string;
+  paymentMethod?: string;
+  transactionId?: string;
 };
 
 const STEPS = ['subscription', 'payment', 'domain', 'site-info', 'success'];
@@ -29,6 +31,8 @@ export default function GetStartedPage() {
     domain: '',
     siteName: '',
     siteDescription: '',
+    paymentMethod: '',
+    transactionId: '',
   });
 
   const updateFormData = (data: Partial<FormData>) => {
