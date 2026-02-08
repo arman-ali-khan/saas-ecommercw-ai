@@ -9,8 +9,8 @@ import SaasFooter from './saas-footer';
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const saasAuthPaths = ['/login', '/register'];
-  if (saasAuthPaths.includes(pathname)) {
+  const saasAuthPaths = ['/login', '/register', '/get-started'];
+  if (saasAuthPaths.some(p => pathname.startsWith(p))) {
     return (
       <div className="flex flex-col min-h-screen">
         <SaasHeader />
@@ -22,9 +22,9 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
-  // Paths that should have no standard layout (e.g., landing, admin)
+  // Paths that should have no standard layout (e.g., landing, admin, saas dashboard)
   const noLayoutPaths = ['/'];
-  if (pathname.startsWith('/admin') || noLayoutPaths.includes(pathname)) {
+  if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard') || noLayoutPaths.includes(pathname)) {
     return <>{children}</>;
   }
 

@@ -24,4 +24,5 @@ export interface User {
   email: string;
   domain: string;
   siteName: string;
+  isSaaSAdmin?: boolean;
 }

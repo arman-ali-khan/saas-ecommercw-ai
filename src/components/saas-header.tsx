@@ -50,6 +50,19 @@ export default function SaasHeader() {
 
   const AuthNavMobile = () => {
     if (isLoading) return null;
+    
+    if (user?.isSaaSAdmin) {
+        return (
+            <div className="border-t pt-6 mt-6 space-y-4">
+                <SheetClose asChild>
+                    <Button asChild className="w-full">
+                        <Link href="/dashboard">SaaS Dashboard</Link>
+                    </Button>
+                </SheetClose>
+            </div>
+        )
+    }
+
     if (user && user.domain) {
       return (
         <div className="border-t pt-6 mt-6 space-y-4">
@@ -133,6 +146,13 @@ export default function SaasHeader() {
         <div className="flex items-center gap-2">
           {isLoading ? (
             <div className="h-10 w-10"></div>
+          ) : user?.isSaaSAdmin ? (
+             <Button asChild>
+                <Link href="/dashboard">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  SaaS Dashboard
+                </Link>
+              </Button>
           ) : user && user.domain ? (
             <Button asChild>
               <Link href={`/${user.domain}/admin`}>
