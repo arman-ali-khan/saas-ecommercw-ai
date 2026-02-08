@@ -42,8 +42,6 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/`, label: 'View Landing Page', icon: Building },
   ];
 
-  const NavLinkWrapper = isMobile ? SheetClose : 'div';
-
   const NavLink = ({
     href,
     label,
@@ -54,20 +52,24 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     icon: React.ElementType;
   }) => {
     const isActive = pathname === href;
-    return (
-      <NavLinkWrapper asChild={isMobile}>
-          <Link
-            href={href}
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              isActive && 'bg-sidebar-primary text-sidebar-primary-foreground'
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </Link>
-      </NavLinkWrapper>
+    const linkComponent = (
+      <Link
+        href={href}
+        className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+          isActive && 'bg-sidebar-primary text-sidebar-primary-foreground'
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        {label}
+      </Link>
     );
+
+    if (isMobile) {
+      return <SheetClose asChild>{linkComponent}</SheetClose>;
+    }
+    
+    return linkComponent;
   };
   
   const SidebarContent = () => (
