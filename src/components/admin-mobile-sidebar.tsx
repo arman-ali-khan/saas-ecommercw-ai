@@ -19,7 +19,6 @@ import {
 import { cn } from '@/lib/utils';
 import Logo from './logo';
 import { useAuth } from '@/context/auth-context';
-import { ScrollArea } from './ui/scroll-area';
 import { SheetClose } from './ui/sheet';
 
 export default function AdminMobileSidebar({ username }: { username: string }) {
@@ -80,13 +79,13 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
             </Link>
           </SheetClose>
         </div>
-        <ScrollArea className="flex-1">
-          <nav className="grid items-start p-4 text-sm font-medium">
+        <div className="flex-1 overflow-auto py-2">
+          <nav className="grid items-start px-4 text-sm font-medium">
             {adminNavLinks.map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
           </nav>
-        </ScrollArea>
+        </div>
       </div>
   );
 }
