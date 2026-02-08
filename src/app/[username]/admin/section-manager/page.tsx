@@ -31,7 +31,7 @@ import {
 import { getProductsBySiteId } from '@/lib/products';
 import { useAuth } from '@/stores/auth';
 import type { Product } from '@/types';
-import { ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, Loader2, GripVertical } from 'lucide-react';
 
 type Section = {
   id: string;
@@ -178,33 +178,8 @@ export default function SectionManagerPage() {
             >
               <AccordionTrigger className="p-4 hover:no-underline data-[state=open]:bg-muted/50 flex-wrap">
                 <div className="flex items-center justify-between w-full gap-4">
-                  <div className="flex items-center gap-2 sm:gap-4">
-                    <div className="flex flex-col gap-0.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        disabled={index === 0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          moveSection(index, 'up');
-                        }}
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        disabled={index === sections.length - 1}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          moveSection(index, 'down');
-                        }}
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  <div className="flex items-center gap-4">
+                    <GripVertical className="h-5 w-5 text-muted-foreground" />
                     <Label
                       htmlFor={section.id}
                       className="text-base font-semibold cursor-pointer text-left"
@@ -221,13 +196,34 @@ export default function SectionManagerPage() {
                       }
                       onClick={(e) => e.stopPropagation()}
                     />
-                    {/* AccordionTrigger's default chevron will be next */}
                   </div>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="p-6 pt-2 border-t">
-                  <div className="grid gap-4 mt-4">
+                  <div className="grid gap-6 mt-4">
+                    <div className="space-y-2">
+                      <Label>Reorder Section</Label>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={index === 0}
+                                onClick={() => moveSection(index, 'up')}
+                            >
+                                <ArrowUp className="mr-2 h-4 w-4" /> Move Up
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={index === sections.length - 1}
+                                onClick={() => moveSection(index, 'down')}
+                            >
+                                <ArrowDown className="mr-2 h-4 w-4" /> Move Down
+                            </Button>
+                        </div>
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor={`title-${section.id}`}>
                         Section Title
@@ -240,6 +236,7 @@ export default function SectionManagerPage() {
                         }
                       />
                     </div>
+
                     {section.isCategorySection && section.category && (
                       <div className="space-y-2">
                         <Label htmlFor={`category-${section.id}`}>
