@@ -52,11 +52,12 @@ export default function UsersAdminPage() {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const { toast } = useToast();
+    const [baseDomain, setBaseDomain] = useState('banglanaturals.site');
 
-    const fetchUsers = useCallback(async () => {
+    const fetchUsersAndSettings = useCallback(async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('profiles').select(`
+            const usersPromise = supabase.from('profiles').select(`
                 id,
                 username,
                 full_name,
@@ -64,12 +65,20 @@ export default function UsersAdminPage() {
                 site_name,
                 site_description
             `);
+            const settingsPromise = supabase.from('saas_settings').select('base_domain').eq('id', 1).single();
+
+            const [{ data: usersData, error: usersError }, { data: settingsData }] = await Promise.all([usersPromise, settingsPromise]);
             
-            if (data) {
-                setUsers(data as UserProfile[]);
-            } else if (error) {
-                toast({ variant: 'destructive', title: 'Error fetching users', description: error.message });
+            if (usersData) {
+                setUsers(usersData as UserProfile[]);
+            } else if (usersError) {
+                toast({ variant: 'destructive', title: 'Error fetching users', description: usersError.message });
             }
+
+            if (settingsData && settingsData.base_domain) {
+                setBaseDomain(settingsData.base_domain);
+            }
+
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
         } finally {
@@ -78,8 +87,8 @@ export default function UsersAdminPage() {
     }, [toast]);
 
     useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
+        fetchUsersAndSettings();
+    }, [fetchUsersAndSettings]);
 
 
     const handleDeleteClick = (user: UserProfile) => {
@@ -98,7 +107,7 @@ export default function UsersAdminPage() {
                 toast({ variant: 'destructive', title: 'Failed to delete user profile', description: error.message });
             } else {
                 toast({ title: 'User profile deleted!' });
-                await fetchUsers(); // Re-fetch data on success
+                await fetchUsersAndSettings(); // Re-fetch data on success
             }
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
@@ -159,7 +168,7 @@ export default function UsersAdminPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>{user.site_name}</TableCell>
-                                                <TableCell>{user.domain}.banglanaturals.site</TableCell>
+                                                <TableCell>{user.domain}.{baseDomain}</TableCell>
                                                 <TableCell className="text-right">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
@@ -171,7 +180,7 @@ export default function UsersAdminPage() {
                                                         <DropdownMenuContent align="end">
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                              <DropdownMenuItem asChild>
-                                                                <a href={`//${user.domain}.banglanaturals.site`} target="_blank" rel="noopener noreferrer" className="flex items-center cursor-pointer">
+                                                                <a href={`//${user.domain}.${baseDomain}`} target="_blank" rel="noopener noreferrer" className="flex items-center cursor-pointer">
                                                                     <Globe className="mr-2 h-4 w-4" /> View Site
                                                                 </a>
                                                             </DropdownMenuItem>
@@ -211,11 +220,11 @@ export default function UsersAdminPage() {
                                         </CardHeader>
                                         <CardContent className="flex-grow space-y-1 text-sm text-muted-foreground">
                                             <p><span className="font-medium text-foreground">Site:</span> {user.site_name}</p>
-                                            <p><span className="font-medium text-foreground">Domain:</span> {user.domain}.banglanaturals.site</p>
+                                            <p><span className="font-medium text-foreground">Domain:</span> {user.domain}.{baseDomain}</p>
                                         </CardContent>
                                         <CardFooter className="flex justify-end gap-2">
                                             <Button variant="outline" size="sm" asChild>
-                                                 <a href={`//${user.domain}.banglanaturals.site`} target="_blank" rel="noopener noreferrer">
+                                                 <a href={`//${user.domain}.${baseDomain}`} target="_blank" rel="noopener noreferrer">
                                                     <Globe className="mr-2 h-4 w-4" /> View
                                                  </a>
                                             </Button>

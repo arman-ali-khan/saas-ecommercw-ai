@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -37,6 +36,7 @@ const generalSettingsSchema = z.object({
   platformName: z.string().min(2, { message: 'Platform name must be at least 2 characters.' }),
   platformDescription: z.string().min(10, { message: 'Platform description must be at least 10 characters.' }),
   logo_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  base_domain: z.string().optional().or(z.literal('')),
   social_facebook: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_twitter: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_tiktok: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
@@ -79,6 +79,7 @@ export default function SaasSettingsPage() {
       platformName: '',
       platformDescription: '',
       logo_url: '',
+      base_domain: '',
       social_facebook: '',
       social_twitter: '',
       social_tiktok: '',
@@ -117,6 +118,7 @@ export default function SaasSettingsPage() {
                 platformName: data.platform_name || '',
                 platformDescription: data.platform_description || '',
                 logo_url: data.logo_url || '',
+                base_domain: data.base_domain || '',
                 social_facebook: data.social_facebook || '',
                 social_twitter: data.social_twitter || '',
                 social_tiktok: data.social_tiktok || '',
@@ -154,6 +156,7 @@ export default function SaasSettingsPage() {
             platform_name: values.platformName,
             platform_description: values.platformDescription,
             logo_url: values.logo_url,
+            base_domain: values.base_domain,
             social_facebook: values.social_facebook,
             social_twitter: values.social_twitter,
             social_tiktok: values.social_tiktok,
@@ -309,7 +312,22 @@ export default function SaasSettingsPage() {
                       </FormItem>
                     )}
                   />
-                  
+                  <FormField
+                    control={generalForm.control}
+                    name="base_domain"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Base Domain URL</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., myapp.com" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          The main domain for user sites (e.g., your-store.myapp.com). If empty, it defaults to banglanaturals.site.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={generalForm.control}
                     name="logo_url"
@@ -586,5 +604,3 @@ export default function SaasSettingsPage() {
     </div>
   );
 }
-
-    
