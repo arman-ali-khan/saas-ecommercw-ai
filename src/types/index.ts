@@ -29,3 +29,12 @@ export interface User {
   role: string | null;
   isSaaSAdmin: boolean;
 }
+
+export interface Plan {
+  id: string;
+  name: string;
+  price: string;
+  period: string | null;
+  description: string;
+  features: string[];
+}

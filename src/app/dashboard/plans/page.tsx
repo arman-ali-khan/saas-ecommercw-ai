@@ -6,29 +6,59 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import { supabase } from '@/lib/supabase/client';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, MoreHorizontal, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-
-export type Plan = {
-    id: string;
-    name: string;
-    price: string;
-    period: string | null;
-    description: string;
-    features: string[];
-};
+import { type Plan } from '@/types';
 
 const planSchema = z.object({
-  id: z.string().min(1, "ID is required. Use a short, lowercase name like 'pro' or 'starter'."),
+  id: z
+    .string()
+    .min(1, "ID is required. Use a short, lowercase name like 'pro' or 'starter'."),
   name: z.string().min(1, 'Plan name is required'),
   price: z.string().min(1, 'Price is required'),
   period: z.string().optional(),
@@ -50,28 +80,45 @@ export default function PlansAdminPage() {
   const form = useForm<PlanFormData>({
     resolver: zodResolver(planSchema),
   });
-  
+
   const fetchPlans = async () => {
-    const { data, error } = await supabase.from('plans').select('*').order('price', { ascending: true });
+    const { data, error } = await supabase
+      .from('plans')
+      .select('*')
+      .order('price', { ascending: true });
     if (error) {
-        toast({ variant: 'destructive', title: 'Error fetching plans', description: error.message });
+      toast({
+        variant: 'destructive',
+        title: 'Error fetching plans',
+        description: error.message,
+      });
     } else {
-        setPlans(data as Plan[]);
+      setPlans(data as Plan[]);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchPlans();
-  }, [toast]);
-
+  }, []);
 
   useEffect(() => {
     if (isFormOpen) {
       if (selectedPlan) {
-        form.reset({ ...selectedPlan, features: selectedPlan.features.join('\n'), period: selectedPlan.period || '' });
+        form.reset({
+          ...selectedPlan,
+          features: selectedPlan.features.join('\n'),
+          period: selectedPlan.period || '',
+        });
       } else {
-        form.reset({ id: '', name: '', price: '', period: '', description: '', features: '' });
+        form.reset({
+          id: '',
+          name: '',
+          price: '',
+          period: '',
+          description: '',
+          features: '',
+        });
       }
     }
   }, [isFormOpen, selectedPlan, form]);
@@ -79,31 +126,40 @@ export default function PlansAdminPage() {
   const onSubmit = async (data: PlanFormData) => {
     setIsSubmitting(true);
     const planPayload = {
-        ...data,
-        period: data.period || null,
-        features: data.features.split('\n').filter(f => f.trim() !== '')
+      ...data,
+      period: data.period || null,
+      features: data.features.split('\n').filter((f) => f.trim() !== ''),
     };
 
     let error;
 
     if (selectedPlan && selectedPlan.id) {
       // Update
-      const { error: updateError } = await supabase.from('plans').update(planPayload).eq('id', selectedPlan.id);
+      const { error: updateError } = await supabase
+        .from('plans')
+        .update(planPayload)
+        .eq('id', selectedPlan.id);
       error = updateError;
       if (!error) toast({ title: 'Plan Updated' });
     } else {
       // Create
-      const { error: insertError } = await supabase.from('plans').insert(planPayload);
+      const { error: insertError } = await supabase
+        .from('plans')
+        .insert(planPayload);
       error = insertError;
-       if (!error) toast({ title: 'Plan Created' });
+      if (!error) toast({ title: 'Plan Created' });
     }
 
-    if(error){
-        toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'An error occurred',
+        description: error.message,
+      });
     } else {
-        await fetchPlans();
-        setIsFormOpen(false);
-        setSelectedPlan(null);
+      await fetchPlans();
+      setIsFormOpen(false);
+      setSelectedPlan(null);
     }
     setIsSubmitting(false);
   };
@@ -112,7 +168,7 @@ export default function PlansAdminPage() {
     setSelectedPlan(plan);
     setIsFormOpen(true);
   };
-  
+
   const openDeleteAlert = (plan: Plan) => {
     setSelectedPlan(plan);
     setIsAlertOpen(true);
@@ -123,44 +179,50 @@ export default function PlansAdminPage() {
     const { error } = await supabase.from('plans').delete().eq('id', selectedPlan.id);
 
     if (error) {
-        toast({ title: 'Error Deleting Plan', variant: 'destructive', description: error.message });
+      toast({
+        title: 'Error Deleting Plan',
+        variant: 'destructive',
+        description: error.message,
+      });
     } else {
-        toast({ title: 'Plan Deleted' });
-        await fetchPlans();
+      toast({ title: 'Plan Deleted' });
+      await fetchPlans();
     }
-    
+
     setIsAlertOpen(false);
     setSelectedPlan(null);
   };
-  
+
   if (isLoading) {
-      return (
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                 <div>
-                    <Skeleton className="h-8 w-64" />
-                    <Skeleton className="h-4 w-96 mt-2" />
-                 </div>
-                 <Skeleton className="h-10 w-28" />
-              </CardHeader>
-              <CardContent>
-                  <Skeleton className="h-48 w-full" />
-              </CardContent>
-          </Card>
-      )
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96 mt-2" />
+          </div>
+          <Skeleton className="h-10 w-28" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-48 w-full" />
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
     <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle>Subscription Plan Manager</CardTitle>
-                <CardDescription>View, create, edit, and manage all subscription plans.</CardDescription>
-            </div>
-            <Button onClick={() => openForm(null)}>
-                <Plus className="mr-2 h-4 w-4" /> Add Plan
-            </Button>
+          <div>
+            <CardTitle>Subscription Plan Manager</CardTitle>
+            <CardDescription>
+              View, create, edit, and manage all subscription plans.
+            </CardDescription>
+          </div>
+          <Button onClick={() => openForm(null)}>
+            <Plus className="mr-2 h-4 w-4" /> Add Plan
+          </Button>
         </CardHeader>
         <CardContent>
           {/* Desktop View: Table */}
@@ -175,18 +237,29 @@ export default function PlansAdminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {plans.map(plan => (
+                {plans.map((plan) => (
                   <TableRow key={plan.id}>
                     <TableCell className="font-medium">{plan.name}</TableCell>
-                    <TableCell>{plan.price} {plan.period}</TableCell>
+                    <TableCell>
+                      {plan.price} {plan.period}
+                    </TableCell>
                     <TableCell>{plan.description}</TableCell>
                     <TableCell className="text-right">
-                       <Button variant="outline" size="sm" onClick={() => openForm(plan)} className="mr-2">
-                            <Edit className="mr-2 h-4 w-4" /> Edit
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => openDeleteAlert(plan)}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openForm(plan)}
+                        className="mr-2"
+                      >
+                        <Edit className="mr-2 h-4 w-4" /> Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => openDeleteAlert(plan)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -196,22 +269,35 @@ export default function PlansAdminPage() {
 
           {/* Mobile View: Cards */}
           <div className="grid gap-4 md:hidden">
-            {plans.map(plan => (
+            {plans.map((plan) => (
               <Card key={plan.id} className="flex flex-col">
                 <CardHeader>
-                    <CardTitle className="text-lg">{plan.name}</CardTitle>
-                    <CardDescription>{plan.description}</CardDescription>
+                  <CardTitle className="text-lg">{plan.name}</CardTitle>
+                  <CardDescription>{plan.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                    <p className="font-semibold text-xl">{plan.price} <span className="text-sm text-muted-foreground">{plan.period}</span></p>
+                  <p className="font-semibold text-xl">
+                    {plan.price}{' '}
+                    <span className="text-sm text-muted-foreground">
+                      {plan.period}
+                    </span>
+                  </p>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" onClick={() => openForm(plan)}>
-                        <Edit className="mr-2 h-4 w-4" /> Edit
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => openDeleteAlert(plan)}>
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openForm(plan)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" /> Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => openDeleteAlert(plan)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  </Button>
                 </CardFooter>
               </Card>
             ))}
@@ -222,79 +308,137 @@ export default function PlansAdminPage() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedPlan ? 'Edit Plan' : 'Add New Plan'}</DialogTitle>
+            <DialogTitle>
+              {selectedPlan ? 'Edit Plan' : 'Add New Plan'}
+            </DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-               <FormField control={form.control} name="id" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plan ID</FormLabel>
-                  <FormControl><Input placeholder="e.g., pro" {...field} disabled={!!selectedPlan} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="name" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plan Name</FormLabel>
-                  <FormControl><Input placeholder="e.g., Pro" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField
+                control={form.control}
+                name="id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plan ID</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., pro"
+                        {...field}
+                        disabled={!!selectedPlan}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plan Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Pro" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="price" render={({ field }) => (
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl><Input placeholder="e.g., ৳ ৯৯৯ or বিনামূল্যে" {...field} /></FormControl>
-                    <FormMessage />
+                      <FormLabel>Price</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., ৳ ৯৯৯ or বিনামূল্যে"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
-                )} />
-                <FormField control={form.control} name="period" render={({ field }) => (
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="period"
+                  render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Period (optional)</FormLabel>
-                    <FormControl><Input placeholder="e.g., /মাস" {...field} /></FormControl>
-                    <FormMessage />
+                      <FormLabel>Period (optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., /মাস" {...field} />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
-                )} />
+                  )}
+                />
               </div>
-              <FormField control={form.control} name="description" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl><Input placeholder="A short description of the plan" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-               <FormField control={form.control} name="features" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Features</FormLabel>
-                  <FormControl><Textarea placeholder="List features, one per line..." {...field} rows={5} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="A short description of the plan"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="features"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Features</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="List features, one per line..."
+                        {...field}
+                        rows={5}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <DialogFooter>
                 <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isSubmitting ? 'Saving...' : 'Save Plan'}
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isSubmitting ? 'Saving...' : 'Save Plan'}
                 </Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
-      
+
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the {selectedPlan?.name} plan.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className={buttonVariants({ variant: "destructive" })}>
-                    Delete
-                </AlertDialogAction>
-            </AlertDialogFooter>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the{' '}
+              {selectedPlan?.name} plan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className={buttonVariants({ variant: 'destructive' })}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
