@@ -34,6 +34,7 @@ export default function RegisterPage() {
   const siteName = searchParams.get('siteName') || '';
   const domain = searchParams.get('domain') || '';
   const plan = searchParams.get('plan') || 'free';
+  const siteDescription = searchParams.get('siteDescription') || '';
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -60,7 +61,7 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
-    const result = await register(values.username, values.fullName, values.email, values.password, domain, siteName, plan);
+    const result = await register(values.username, values.fullName, values.email, values.password, domain, siteName, plan, siteDescription);
     setIsLoading(false);
 
     if (result.user) {
