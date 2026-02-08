@@ -35,7 +35,7 @@ export interface User {
   subscriptionPlan: string | null;
   role: string | null;
   isSaaSAdmin: boolean;
-  subscription_status: 'active' | 'pending' | 'inactive' | 'canceled' | null;
+  subscription_status: 'active' | 'pending' | 'inactive' | 'canceled' | 'pending_verification' | null;
 }
 
 export interface Plan {
@@ -82,7 +82,7 @@ export interface SubscriptionPayment {
   amount: number;
   payment_method: string;
   transaction_id: string | null;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'completed' | 'failed' | 'pending_verification';
   created_at: string;
 }
 

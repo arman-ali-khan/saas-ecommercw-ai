@@ -16,7 +16,7 @@ export default function AdminLayout({
   const username = params.username as string;
   const { user } = useAuth();
 
-  const isPending = user?.subscription_status === 'pending';
+  const isPending = user?.subscription_status === 'pending' || user?.subscription_status === 'pending_verification';
 
   return (
     <div className="fixed inset-0 bg-background z-50">

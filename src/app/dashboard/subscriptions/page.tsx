@@ -45,6 +45,10 @@ export default function SubscriptionPaymentsPage() {
   const { user, loading: authLoading } = useAuth();
 
   const fetchPayments = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
         const { data: paymentsData, error: paymentsError } = await supabase
@@ -66,6 +70,7 @@ export default function SubscriptionPaymentsPage() {
         
         if (!paymentsData || paymentsData.length === 0) {
             setPayments([]);
+            setIsLoading(false);
             return;
         }
 
@@ -107,13 +112,13 @@ export default function SubscriptionPaymentsPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, user]);
   
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading) {
         fetchPayments();
     }
-  }, [authLoading, user, fetchPayments]);
+  }, [authLoading, fetchPayments]);
 
   const handleUpdateStatus = async (payment: SubscriptionPaymentWithDetails, newPaymentStatus: 'completed' | 'failed', newProfileStatus: 'active' | 'inactive') => {
     setIsActionLoading(true);
@@ -149,6 +154,7 @@ export default function SubscriptionPaymentsPage() {
       case 'completed':
         return 'default';
       case 'pending':
+      case 'pending_verification':
         return 'secondary';
       default:
         return 'destructive';
