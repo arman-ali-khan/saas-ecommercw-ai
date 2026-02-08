@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import { usePlans, type Plan } from '@/stores/plans';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -138,33 +138,22 @@ export default function PlansAdminPage() {
           {/* Mobile View: Cards */}
           <div className="grid gap-4 md:hidden">
             {plans.map(plan => (
-              <Card key={plan.id}>
+              <Card key={plan.id} className="flex flex-col">
                 <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <CardTitle className="text-lg">{plan.name}</CardTitle>
-                            <CardDescription>{plan.description}</CardDescription>
-                        </div>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openForm(plan)}>
-                                    <Edit className="mr-2 h-4 w-4" /> Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openDeleteAlert(plan)} className="text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
+                    <CardTitle className="text-lg">{plan.name}</CardTitle>
+                    <CardDescription>{plan.description}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-grow">
                     <p className="font-semibold text-xl">{plan.price} <span className="text-sm text-muted-foreground">{plan.period}</span></p>
                 </CardContent>
+                <CardFooter className="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openForm(plan)}>
+                        <Edit className="mr-2 h-4 w-4" /> Edit
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => openDeleteAlert(plan)}>
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </Button>
+                </CardFooter>
               </Card>
             ))}
           </div>

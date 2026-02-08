@@ -10,6 +10,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -154,7 +155,7 @@ export default function SubscriptionsAdminPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
             <div>
-                <CardTitle>Subscription Management</CardTitle>
+                <CardTitle>Subscriptions</CardTitle>
                 <CardDescription>View, create, edit, and manage all user subscriptions.</CardDescription>
             </div>
             <Button onClick={() => openForm(null)}>
@@ -211,39 +212,30 @@ export default function SubscriptionsAdminPage() {
               {/* Mobile View: Cards */}
               <div className="grid gap-4 md:hidden">
                 {subscriptions.map(sub => (
-                  <Card key={sub.id}>
+                  <Card key={sub.id} className="flex flex-col">
                       <CardHeader>
-                          <div className="flex justify-between items-start">
-                              <div className="flex items-center gap-3">
-                                  <Avatar>
-                                      <AvatarFallback>{sub.user.charAt(0)}</AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                      <CardTitle className="text-lg">{sub.user}</CardTitle>
-                                      <CardDescription>Next Billing: {format(sub.nextBilling, 'PPP')}</CardDescription>
-                                  </div>
+                          <div className="flex items-center gap-3">
+                              <Avatar>
+                                  <AvatarFallback>{sub.user.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                  <CardTitle className="text-lg">{sub.user}</CardTitle>
+                                  <CardDescription>Next Billing: {format(sub.nextBilling, 'PPP')}</CardDescription>
                               </div>
-                              <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
-                                          <MoreHorizontal className="h-4 w-4" />
-                                      </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => openForm(sub)}>
-                                          <Edit className="mr-2 h-4 w-4" /> Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => openDeleteAlert(sub)} className="text-destructive">
-                                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                      </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                              </DropdownMenu>
                           </div>
                       </CardHeader>
-                      <CardContent className="flex justify-between items-center pt-0">
+                      <CardContent className="flex justify-between items-center pt-0 flex-grow">
                           <Badge variant={sub.plan === 'Pro' ? 'default' : 'secondary'}>{sub.plan}</Badge>
                           <Badge variant={getStatusBadgeVariant(sub.status)}>{sub.status}</Badge>
                       </CardContent>
+                      <CardFooter className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => openForm(sub)}>
+                              <Edit className="mr-2 h-4 w-4" /> Edit
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => openDeleteAlert(sub)}>
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </Button>
+                      </CardFooter>
                   </Card>
                 ))}
               </div>

@@ -4,6 +4,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -102,44 +103,30 @@ export default function UsersAdminPage() {
                         {/* Mobile View: Cards */}
                         <div className="grid gap-4 md:hidden">
                             {users.map(user => (
-                                <Card key={user.id}>
+                                <Card key={user.id} className='flex flex-col'>
                                     <CardHeader>
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-10 w-10">
-                                                    <AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <CardTitle className="text-lg">{user.full_name}</CardTitle>
-                                                    <CardDescription>@{user.username}</CardDescription>
-                                                </div>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <CardTitle className="text-lg">{user.full_name}</CardTitle>
+                                                <CardDescription>@{user.username}</CardDescription>
                                             </div>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                    <DropdownMenuItem>
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        Edit User
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-destructive">
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Delete User
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
                                         </div>
                                     </CardHeader>
-                                    <CardContent>
-                                        <div className="text-sm text-muted-foreground space-y-1">
-                                            <p><span className="font-medium text-foreground">Site:</span> {user.site_name}</p>
-                                            <p><span className="font-medium text-foreground">Domain:</span> {user.domain}.banglanaturals.site</p>
-                                        </div>
+                                    <CardContent className="flex-grow space-y-1 text-sm text-muted-foreground">
+                                        <p><span className="font-medium text-foreground">Site:</span> {user.site_name}</p>
+                                        <p><span className="font-medium text-foreground">Domain:</span> {user.domain}.banglanaturals.site</p>
                                     </CardContent>
+                                    <CardFooter className="flex justify-end gap-2">
+                                        <Button variant="outline" size="sm">
+                                            <Edit className="mr-2 h-4 w-4" /> Edit
+                                        </Button>
+                                        <Button variant="destructive" size="sm">
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                        </Button>
+                                    </CardFooter>
                                 </Card>
                             ))}
                         </div>
