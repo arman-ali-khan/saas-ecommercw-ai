@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -24,26 +23,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from '@/components/ui/dialog';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, Truck, CheckCircle, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Eye, CheckCircle, Loader2 } from 'lucide-react';
 
 type Order = {
     id: string;
@@ -66,8 +49,6 @@ type Order = {
     status: string;
 };
 
-const orderStatuses = ['processing', 'shipped', 'delivered', 'canceled'];
-
 export default function OrdersAdminPage() {
     const params = useParams();
     const username = params.username as string;
@@ -75,12 +56,7 @@ export default function OrdersAdminPage() {
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     
-    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-    const [newStatus, setNewStatus] = useState('');
-
     const fetchOrders = async () => {
         if (!user?.id) return;
         const { data, error } = await supabase
@@ -101,13 +77,8 @@ export default function OrdersAdminPage() {
             setIsLoading(true);
             fetchOrders().finally(() => setIsLoading(false));
         }
-    }, [user, toast]);
-
-    const handleUpdateStatusClick = (order: Order) => {
-        setSelectedOrder(order);
-        setNewStatus(order.status);
-        setIsStatusModalOpen(true);
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
 
     const handleMarkAsCompleted = async (orderId: string) => {
         const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', orderId);
@@ -119,22 +90,6 @@ export default function OrdersAdminPage() {
         }
     };
 
-    const handleSaveStatus = async () => {
-        if (!selectedOrder || !newStatus) return;
-        setIsSubmitting(true);
-        const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', selectedOrder.id);
-        setIsSubmitting(false);
-
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error updating status', description: error.message });
-        } else {
-            toast({ title: 'Order status updated!' });
-            await fetchOrders();
-            setIsStatusModalOpen(false);
-            setSelectedOrder(null);
-        }
-    };
-    
     const translateStatus = (status: string): string => {
         switch (status.toLowerCase()) {
             case 'processing': return 'প্রক্রিয়াকরণ চলছে';
@@ -223,10 +178,6 @@ export default function OrdersAdminPage() {
                                                             অর্ডার দেখুন
                                                           </Link>
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleUpdateStatusClick(order)}>
-                                                            <Truck className="mr-2 h-4 w-4" />
-                                                            স্ট্যাটাস আপডেট
-                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem 
                                                             onClick={() => handleMarkAsCompleted(order.id)}
                                                             disabled={order.status === 'delivered' || order.status === 'canceled'}
@@ -266,10 +217,6 @@ export default function OrdersAdminPage() {
                                                             অর্ডার দেখুন
                                                         </Link>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleUpdateStatusClick(order)}>
-                                                        <Truck className="mr-2 h-4 w-4" />
-                                                        স্ট্যাটাস আপডেট
-                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem 
                                                         onClick={() => handleMarkAsCompleted(order.id)}
                                                         disabled={order.status === 'delivered' || order.status === 'canceled'}
@@ -295,38 +242,6 @@ export default function OrdersAdminPage() {
                     )}
                 </CardContent>
             </Card>
-
-            {/* Update Status Dialog */}
-            <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
-                <DialogContent className="sm:max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle>স্ট্যাটাস আপডেট করুন</DialogTitle>
-                        <DialogDescription>অর্ডার #{selectedOrder?.order_number} এর জন্য একটি নতুন স্ট্যাটাস নির্বাচন করুন।</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4 space-y-4">
-                        <Label htmlFor="status-select">অর্ডারের স্ট্যাটাস</Label>
-                        <Select value={newStatus} onValueChange={setNewStatus}>
-                            <SelectTrigger id="status-select">
-                                <SelectValue placeholder="একটি স্ট্যাটাস নির্বাচন করুন" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {orderStatuses.map(status => (
-                                    <SelectItem key={status} value={status}>
-                                        {translateStatus(status)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsStatusModalOpen(false)}>বাতিল</Button>
-                        <Button onClick={handleSaveStatus} disabled={isSubmitting}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            সংরক্ষণ করুন
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </>
     )
 }
