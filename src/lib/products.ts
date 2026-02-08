@@ -71,3 +71,12 @@ export const getProductById = async (id: string): Promise<Product | null> => {
     
     return product as Product;
 };
+
+/**
+ * @deprecated This function is deprecated. Use getProductsBySiteId or getProductsByDomain instead.
+ * It is kept to prevent build errors from legacy components and returns an empty array.
+ */
+export const getProducts = (): Product[] => {
+    console.warn("`getProducts` is a deprecated function and will be removed in a future version.");
+    return [];
+};
