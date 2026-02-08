@@ -24,9 +24,11 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Globe, BarChart, CreditCard } from 'lucide-react';
+import { Globe, BarChart, CreditCard, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
 
 const saasSettingsSchema = z.object({
   platformName: z.string().min(2, { message: 'Platform name must be at least 2 characters.' }),
@@ -51,6 +53,7 @@ const paymentSettingsSchema = z.object({
 
 export default function SaasSettingsPage() {
   const { toast } = useToast();
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
 
   const saasForm = useForm<z.infer<typeof saasSettingsSchema>>({
     resolver: zodResolver(saasSettingsSchema),
@@ -66,11 +69,35 @@ export default function SaasSettingsPage() {
   const paymentForm = useForm<z.infer<typeof paymentSettingsSchema>>({
     resolver: zodResolver(paymentSettingsSchema),
     defaultValues: {
-      mobileBankingEnabled: true,
-      mobileBankingNumber: '01234567890',
-      acceptedBankingMethods: ['bkash', 'nagad'],
+      mobileBankingEnabled: false,
+      mobileBankingNumber: '',
+      acceptedBankingMethods: [],
     },
   });
+
+  useEffect(() => {
+    const fetchPaymentSettings = async () => {
+        setIsPaymentLoading(true);
+        const { data, error } = await supabase
+            .from('saas_settings')
+            .select('*')
+            .eq('id', 1)
+            .single();
+
+        if (data) {
+            paymentForm.reset({
+                mobileBankingEnabled: data.mobile_banking_enabled,
+                mobileBankingNumber: data.mobile_banking_number || '',
+                acceptedBankingMethods: data.accepted_banking_methods || [],
+            });
+        } else if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+            toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
+        }
+        setIsPaymentLoading(false);
+    };
+    fetchPaymentSettings();
+  }, [paymentForm, toast]);
+
 
   function onSaasSubmit(values: z.infer<typeof saasSettingsSchema>) {
     console.log('Saving SaaS settings:', values);
@@ -80,12 +107,31 @@ export default function SaasSettingsPage() {
     });
   }
 
-  function onPaymentSubmit(values: z.infer<typeof paymentSettingsSchema>) {
-    console.log('Saving Subscription Payment settings:', values);
-    toast({
-      title: 'Payment Settings Saved!',
-      description: 'Subscription payment settings have been updated.',
-    });
+  async function onPaymentSubmit(values: z.infer<typeof paymentSettingsSchema>) {
+    setIsPaymentLoading(true);
+    const { error } = await supabase
+        .from('saas_settings')
+        .update({
+            mobile_banking_enabled: values.mobileBankingEnabled,
+            mobile_banking_number: values.mobileBankingNumber,
+            accepted_banking_methods: values.acceptedBankingMethods,
+        })
+        .eq('id', 1);
+
+    if (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error Saving Settings',
+            description: error.message,
+        });
+    } else {
+        toast({
+            title: 'Payment Settings Saved!',
+            description: 'Subscription payment settings have been updated.',
+        });
+        paymentForm.reset(values); // Re-sync form state with latest saved data
+    }
+    setIsPaymentLoading(false);
   }
 
   return (
@@ -319,7 +365,10 @@ export default function SaasSettingsPage() {
                                 )}
                             />
                             <div className="pt-4">
-                                <Button type="submit">Save Payment Settings</Button>
+                                <Button type="submit" disabled={isPaymentLoading}>
+                                    {isPaymentLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isPaymentLoading ? 'Saving...' : 'Save Payment Settings'}
+                                </Button>
                             </div>
                         </form>
                     </Form>
