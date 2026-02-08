@@ -41,20 +41,61 @@ export default function SubscriptionPaymentsPage() {
 
   const fetchPayments = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
+    const { data: paymentsData, error: paymentsError } = await supabase
       .from('subscription_payments')
-      .select('*, profiles(full_name, username), plans(name)')
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
+    if (paymentsError) {
       toast({
         variant: 'destructive',
         title: 'Error fetching subscription payments',
-        description: error.message,
+        description: paymentsError.message,
       });
-    } else {
-      setPayments(data as SubscriptionPaymentWithDetails[]);
+      setIsLoading(false);
+      return;
     }
+    
+    if (!paymentsData) {
+      setPayments([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Fetch related data
+    const userIds = [...new Set(paymentsData.map(p => p.user_id))];
+    const planIds = [...new Set(paymentsData.map(p => p.plan_id).filter(Boolean))];
+
+    const profilesPromise = userIds.length > 0 ? supabase.from('profiles').select('id, full_name, username').in('id', userIds) : Promise.resolve({ data: [], error: null });
+    const plansPromise = planIds.length > 0 ? supabase.from('plans').select('id, name').in('id', planIds) : Promise.resolve({ data: [], error: null });
+    
+    const [
+        { data: profilesData, error: profilesError },
+        { data: plansData, error: plansError }
+    ] = await Promise.all([profilesPromise, plansPromise]);
+
+
+    if (profilesError || plansError) {
+        const description = profilesError?.message || plansError?.message || 'Could not fetch related data.';
+        toast({
+            variant: 'destructive',
+            title: 'Error fetching subscription details',
+            description,
+        });
+        setIsLoading(false);
+        return;
+    }
+
+    const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
+    const plansMap = new Map((plansData || []).map(p => [p.id, p]));
+
+    const combinedData = paymentsData.map(payment => ({
+        ...payment,
+        profiles: profilesMap.get(payment.user_id) || null,
+        plans: payment.plan_id ? plansMap.get(payment.plan_id) || null : null,
+    }));
+
+    setPayments(combinedData as SubscriptionPaymentWithDetails[]);
     setIsLoading(false);
   }, [toast]);
   
