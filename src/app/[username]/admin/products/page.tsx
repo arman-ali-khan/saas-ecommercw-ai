@@ -1,12 +1,14 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,15 +26,73 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
-import { getProducts } from '@/lib/products';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+  } from '@/components/ui/alert-dialog';
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2 } from 'lucide-react';
+import { getProductsBySiteId } from '@/lib/products';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/stores/auth';
+import { useEffect, useState } from 'react';
+import type { Product } from '@/types';
+import { supabase } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-export default function ProductsAdminPage() {
-  const products = getProducts();
+export default function ProductsAdminPage({ params }: { params: { username: string }}) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+
+  const fetchProducts = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    const fetchedProducts = await getProductsBySiteId(user.id);
+    setProducts(fetchedProducts);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, [user]);
+
+  const handleDelete = async () => {
+    if (!productToDelete || !user) return;
+
+    setIsDeleting(true);
+    const { error } = await supabase.from('products').delete().eq('id', productToDelete.id);
+    setIsDeleting(false);
+
+    if (error) {
+        toast({ variant: 'destructive', title: 'Failed to delete product', description: error.message });
+    } else {
+        toast({ title: 'Product deleted' });
+        await fetchProducts(); // Refetch products
+    }
+    setProductToDelete(null);
+  };
+
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center p-16">
+            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+        </div>
+    );
+  }
 
   return (
-    <div>
+    <>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">পণ্য ব্যবস্থাপনা</h1>
@@ -40,8 +100,10 @@ export default function ProductsAdminPage() {
             আপনার দোকানের জন্য পণ্য যোগ, সম্পাদনা এবং পরিচালনা করুন।
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
+        <Button asChild>
+          <Link href={`/${params.username}/admin/products/new`}>
+            <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
+          </Link>
         </Button>
       </div>
 
@@ -49,14 +111,15 @@ export default function ProductsAdminPage() {
         <Card>
             <CardContent className="text-center py-16">
               <p className="text-muted-foreground">আপনার কোনো পণ্য নেই।</p>
-              <Button className="mt-4">
-                <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
+              <Button asChild className="mt-4">
+                <Link href={`/${params.username}/admin/products/new`}>
+                    <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
+                </Link>
               </Button>
             </CardContent>
           </Card>
       ) : (
         <>
-            {/* Desktop View: Table */}
             <Card className="hidden md:block">
                 <CardContent className="p-0">
                 <Table>
@@ -75,7 +138,7 @@ export default function ProductsAdminPage() {
                         <TableCell>
                             <div className="relative h-12 w-12 rounded-md overflow-hidden">
                             <Image
-                                src={product.images[0].imageUrl}
+                                src={product.images[0]?.imageUrl || 'https://placehold.co/100x100'}
                                 alt={product.name}
                                 fill
                                 className="object-cover"
@@ -84,7 +147,7 @@ export default function ProductsAdminPage() {
                         </TableCell>
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>
-                            <Badge variant="outline">{product.category}</Badge>
+                            {product.category && <Badge variant="outline">{product.category}</Badge>}
                         </TableCell>
                         <TableCell>
                             {product.price.toFixed(2)} {product.currency}
@@ -99,11 +162,17 @@ export default function ProductsAdminPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
-                                <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                সম্পাদনা
+                                 <DropdownMenuItem asChild>
+                                    <Link href={`/${params.username}/products/${product.id}`} target="_blank">
+                                        <Eye className="mr-2 h-4 w-4" /> View
+                                    </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive">
+                                <DropdownMenuItem asChild>
+                                    <Link href={`/${params.username}/admin/products/${product.id}`}>
+                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 মুছুন
                                 </DropdownMenuItem>
@@ -125,7 +194,7 @@ export default function ProductsAdminPage() {
                     <div className="flex items-start gap-4">
                         <div className="relative h-20 w-20 rounded-md overflow-hidden">
                         <Image
-                            src={product.images[0].imageUrl}
+                            src={product.images[0]?.imageUrl || 'https://placehold.co/100x100'}
                             alt={product.name}
                             fill
                             className="object-cover"
@@ -134,9 +203,7 @@ export default function ProductsAdminPage() {
                         <div className="flex-grow">
                         <CardTitle>{product.name}</CardTitle>
                         <CardDescription>
-                            <Badge variant="outline" className="mt-1">
-                            {product.category}
-                            </Badge>
+                           {product.category && <Badge variant="outline" className="mt-1">{product.category}</Badge>}
                         </CardDescription>
                          <p className="font-semibold text-lg mt-2">
                             {product.price.toFixed(2)} {product.currency}
@@ -149,11 +216,17 @@ export default function ProductsAdminPage() {
                             </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                সম্পাদনা
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                                <DropdownMenuItem asChild>
+                                    <Link href={`/${params.username}/products/${product.id}`} target="_blank">
+                                        <Eye className="mr-2 h-4 w-4" /> View
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link href={`/${params.username}/admin/products/${product.id}`}>
+                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                    </Link>
+                                </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 মুছুন
                             </DropdownMenuItem>
@@ -166,6 +239,27 @@ export default function ProductsAdminPage() {
             </div>
         </>
       )}
-    </div>
+      <AlertDialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will permanently delete the product "{productToDelete?.name}". This action cannot be undone.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className={cn(buttonVariants({ variant: "destructive" }))}
+                >
+                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Delete
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

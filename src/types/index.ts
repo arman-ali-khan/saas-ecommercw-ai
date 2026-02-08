@@ -1,16 +1,22 @@
-import type { PlaceHolderImages } from '@/lib/placeholder-images';
+
+export interface ProductImage {
+  imageUrl: string;
+  imageHint: string;
+}
 
 export interface Product {
-  id: string;
+  id: string; // This is the slug, e.g., 'mango-himsagar'
+  site_id: string; // The user's ID
   name: string;
   description: string;
   longDescription: string;
   price: number;
   currency: string;
-  images: typeof PlaceHolderImages;
+  images: ProductImage[];
   origin: string;
   story: string;
   category: string;
+  created_at: string;
 }
 
 export interface CartItem extends Product {

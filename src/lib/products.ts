@@ -1,67 +1,57 @@
 import type { Product } from '@/types';
-import { PlaceHolderImages } from './placeholder-images';
+import { supabase } from '@/lib/supabase/client';
 
-const products: Product[] = [
-  {
-    id: 'mango-himsagar',
-    name: 'হিমসাগর আম',
-    description: 'মিষ্টি, সুগন্ধি এবং আঁশবিহীন।',
-    longDescription:
-      'হিমসাগর আম একটি জনপ্রিয় আমের জাত, যা আধুনিক বাংলাদেশে উদ্ভূত হয়েছে। এটি একটি মাঝারি আকারের আম, যার শাঁস মিষ্টি, সুগন্ধি এবং আঁশবিহীন। এর ত্বক পাতলা এবং আঁটি ছোট, ফলে এতে শাঁসের পরিমাণ বেশি থাকে।',
-    price: 350,
-    currency: 'BDT',
-    images: PlaceHolderImages.filter((img) => img.id.startsWith('mango-')),
-    origin: 'রাজশাহী, বাংলাদেশ',
-    story:
-      'রাজশাহীর বিখ্যাত বাগান থেকে সরাসরি সংগ্রহ করা আমাদের হিমসাগর আম पारंपरिक পদ্ধতিতে চাষ করা হয়, যা প্রতিটি ফলের মধ্যে খাঁটি স্বাদ নিশ্চিত করে।',
-    category: 'ফল',
-  },
-  {
-    id: 'dates-mariam',
-    name: 'মরিয়ম খেজুর',
-    description: 'সমৃদ্ধ, ক্যারামেলের মতো এবং চিবানো যায়।',
-    longDescription:
-      'মরিয়ম খেজুর একটি প্রিমিয়াম জাত যা তার সমৃদ্ধ, ক্যারামেলের মতো স্বাদ এবং নরম, চিবানো গঠনের জন্য পরিচিত। এগুলি প্রাকৃতিক চিনি, ফাইবার এবং প্রয়োজনীয় খনিজ পদার্থে ভরপুর, যা এগুলিকে একটি স্বাস্থ্যকর এবং সুস্বাদু জলখাবার করে তোলে।',
-    price: 850,
-    currency: 'BDT',
-    images: PlaceHolderImages.filter((img) => img.id.startsWith('dates-')),
-    origin: 'সৌদি আরব (আমদানিকৃত)',
-    story:
-      'আমরা আপনাকে বিলাসবহুল স্বাদ এনে দিতে সেরা মরিয়ম খেজুর সাবধানে নির্বাচন এবং আমদানি করি। প্রতিটি খেজুর হাতে তুলে নেওয়া হয় তা নিশ্চিত করার জন্য যে এটি আমাদের উচ্চ মানের এবং সতেজতার মান পূরণ করে।',
-    category: 'ফল',
-  },
-  {
-    id: 'date-molasses',
-    name: 'খেজুরের গুড় (নলেন গুড়)',
-    description: 'ধোঁয়াটে, সুগন্ধযুক্ত তরল সোনা।',
-    longDescription:
-      'নলেন গুড় বা খেজুরের গুড় বাংলার একটি শীতকালীন উপাদেয় খাবার। এই তরল সোনা খেজুর গাছ থেকে রস সংগ্রহ করে ফোটানো হয়, যা একটি ধোঁয়াটে, সুগন্ধযুক্ত এবং অবিশ্বাস্যভাবে স্বাদযুক্ত মিষ্টি তৈরি করে। ডেজার্ট বা টপিং হিসাবে উপযুক্ত।',
-    price: 500,
-    currency: 'BDT',
-    images: PlaceHolderImages.filter((img) => img.id.startsWith('molasses-')),
-    origin: 'যশোর, বাংলাদেশ',
-    story:
-      'আমাদের নলেন গুড় যশোরের দক্ষ কারিগরদের দ্বারা তৈরি করা হয় যারা প্রজন্মের পর প্রজন্ম ধরে এই শিল্পে পারদর্শী হয়েছেন। প্রক্রিয়াটি ধীর এবং প্রাকৃতিক, যা খেজুরের রসের আসল সারাংশ ধারণ করে।',
-    category: 'মিষ্টান্ন',
-  },
-  {
-    id: 'sundarban-honey',
-    name: 'সুন্দরবনের মধু',
-    description: 'বন্য, অশোধিত এবং насыщен।',
-    longDescription:
-      "সুন্দরবনের ম্যানগ্রোভ বনের হৃদয় থেকে সংগৃহীত এই মধু সত্যিই বন্য এবং অশোধিত। এর একটি অনন্য, সামান্য টক এবং насыщен স্বাদ রয়েছে, যা বিশ্বের বৃহত্তম ম্যানগ্রোভ বনের বিভিন্ন वनस्पतीকে প্রতিফলিত করে।",
-    price: 950,
-    currency: 'BDT',
-    images: PlaceHolderImages.filter((img) => img.id.startsWith('honey-')),
-    origin: 'সুন্দরবন, বাংলাদেশ',
-    story:
-      'সাহসী মধু সংগ্রহকারী (মৌয়াল) এই মূল্যবান মধু সংগ্রহের জন্য সুন্দরবনের গভীরে প্রবেশ করে। আমরা তাদের সাথে অংশীদারিত্ব করি যাতে বন এবং তাদের জীবিকা উভয়ই রক্ষা পায় এমন টেকসই সংগ্রহ পদ্ধতি নিশ্চিত করা যায়।',
-    category: 'মধু',
-  },
-];
+export const getProductsByDomain = async (domain: string): Promise<Product[]> => {
+    // 1. Find site_id from domain
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('domain', domain)
+        .single();
+    
+    if (!profile) {
+        return [];
+    }
 
-export const getProducts = () => products;
+    // 2. Fetch products for that site_id
+    const { data: products, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('site_id', profile.id);
 
-export const getProductById = (id: string) => {
-  return products.find((product) => product.id === id);
+    if (error) {
+        console.error("Error fetching products:", error);
+        return [];
+    }
+    
+    return products as Product[];
+};
+
+export const getProductsBySiteId = async (siteId: string): Promise<Product[]> => {
+    const { data: products, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('site_id', siteId);
+
+    if (error) {
+        console.error("Error fetching products:", error);
+        return [];
+    }
+    
+    return products as Product[];
+}
+
+export const getProductById = async (id: string): Promise<Product | null> => {
+    const { data: product, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+    
+    if (error) {
+        console.error("Error fetching product:", error);
+        return null;
+    }
+    
+    return product as Product;
 };
