@@ -2,9 +2,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { FormData } from "@/app/get-started/page";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { Loader2 } from 'lucide-react';
 
 interface DomainStepProps {
     formData: FormData;
@@ -14,11 +15,94 @@ interface DomainStepProps {
 
 export default function DomainStep({ formData, updateFormData, onNext }: DomainStepProps) {
     const [domain, setDomain] = useState(formData.domain);
+    const [availabilityStatus, setAvailabilityStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short'>('empty');
+    const [debouncedDomain, setDebouncedDomain] = useState(domain);
+
+    useEffect(() => {
+        // When the component loads, if there's already a domain in formData,
+        // we should validate it.
+        if(formData.domain) {
+            setDebouncedDomain(formData.domain);
+        }
+    }, []);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedDomain(domain);
+        }, 500); // 500ms debounce delay
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [domain]);
+
+    useEffect(() => {
+        const checkDomainAvailability = async () => {
+            if (!debouncedDomain) {
+                setAvailabilityStatus('empty');
+                return;
+            }
+            if (debouncedDomain.length < 3) {
+                setAvailabilityStatus('too_short');
+                return;
+            }
+            setAvailabilityStatus('checking');
+
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('domain')
+                    .eq('domain', debouncedDomain)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') { // PGRST116: means no rows returned, which is good.
+                    console.error("Error checking domain", error);
+                    setAvailabilityStatus('unavailable'); // Failsafe
+                    return;
+                }
+
+                if (data) {
+                    setAvailabilityStatus('unavailable');
+                } else {
+                    setAvailabilityStatus('available');
+                }
+            } catch (err) {
+                 console.error("Error in checkDomainAvailability:", err);
+                 setAvailabilityStatus('unavailable'); // Failsafe
+            }
+        };
+
+        checkDomainAvailability();
+    }, [debouncedDomain]);
+
 
     const handleNext = () => {
         updateFormData({ domain });
         onNext();
     }
+    
+    const handleDomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+        setDomain(value);
+    }
+    
+    const StatusMessage = () => {
+        switch (availabilityStatus) {
+            case 'checking':
+                return <p className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> পরীক্ষা করা হচ্ছে...</p>;
+            case 'unavailable':
+                return <p className="text-sm text-destructive">এই ডোমেইনটি ইতিমধ্যে ব্যবহৃত হয়েছে।</p>;
+            case 'available':
+                return <p className="text-sm text-green-500">এই ডোমেইনটি উপলব্ধ!</p>;
+            case 'too_short':
+                return <p className="text-sm text-destructive">ডোমেইন কমপক্ষে ৩ অক্ষরের হতে হবে।</p>
+            case 'empty':
+            default:
+                return <div className="h-5" />; // Placeholder to prevent layout shift
+        }
+    }
+    
+    const isNextDisabled = availabilityStatus !== 'available';
 
     return (
         <Card className="max-w-lg mx-auto">
@@ -26,20 +110,26 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
                 <CardTitle>আপনার ডোমেইন বেছে নিন</CardTitle>
                 <CardDescription>আপনার দোকানের জন্য একটি অনন্য ঠিকানা তৈরি করুন।</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="flex items-center">
-                    <Input
-                        id="domain"
-                        placeholder="your-store"
-                        value={domain}
-                        onChange={(e) => setDomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                        className="rounded-r-none focus:ring-0 focus:ring-offset-0"
-                    />
-                    <span className="bg-muted px-4 py-2 rounded-r-md border border-l-0 border-input text-muted-foreground">
-                        .banglanaturals.site
-                    </span>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <div className="flex items-center">
+                        <Input
+                            id="domain"
+                            placeholder="your-store"
+                            value={domain}
+                            onChange={handleDomainChange}
+                            className="rounded-r-none focus:ring-0 focus:ring-offset-0"
+                            autoComplete="off"
+                        />
+                        <span className="bg-muted px-4 py-2 rounded-r-md border border-l-0 border-input text-muted-foreground">
+                            .banglanaturals.site
+                        </span>
+                    </div>
+                    <div className="min-h-[20px]">
+                        <StatusMessage />
+                    </div>
                 </div>
-                <Button onClick={handleNext} className="w-full" disabled={!domain}>
+                <Button onClick={handleNext} className="w-full" disabled={isNextDisabled}>
                     পরবর্তী ধাপ
                 </Button>
             </CardContent>

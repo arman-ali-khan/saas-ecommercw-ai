@@ -121,7 +121,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center text-sm">
             অ্যাকাউন্ট নেই?{' '}
             <Link
-              href="/register"
+              href="/get-started"
               className="font-medium text-primary hover:underline"
             >
               সাইন আপ
