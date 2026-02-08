@@ -27,7 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Globe, BarChart, CreditCard, Loader2, Facebook, Twitter } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import ImageUploader from '@/components/image-uploader';
 import Image from 'next/image';
@@ -58,14 +58,14 @@ const paymentSettingsSchema = z.object({
 });
 
 const TikTokIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-muted-foreground"><path d="M12.52.02c1.31-.02 2.61.01 3.91.02.08 1.53.01 3.07.01 4.6 0 1.1.35 2.21 1.22 3.01.91.82 2.1 1.25 3.32 1.19.08 1.5.01 3 .01 4.5a5.42 5.42 0 0 1-5.12 5.14c-1.53.08-3.07.01-4.6.01-1.1 0-2.21-.35-3.01-1.22-.82-.91-1.25-2.1-1.19-3.32-.08-1.5-.01-3-.01-4.5a5.42 5.42 0 0 1 5.12-5.14Z"></path><path d="M9 8.5h4"></path><path d="M9 12.5h4"></path><path d="M13.5 4.5v4"></path></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"><path d="M12.52.02c1.31-.02 2.61.01 3.91.02.08 1.53.01 3.07.01 4.6 0 1.1.35 2.21 1.22 3.01.91.82 2.1 1.25 3.32 1.19.08 1.5.01 3 .01 4.5a5.42 5.42 0 0 1-5.12 5.14c-1.53.08-3.07.01-4.6.01-1.1 0-2.21-.35-3.01-1.22-.82-.91-1.25-2.1-1.19-3.32-.08-1.5-.01-3-.01-4.5a5.42 5.42 0 0 1 5.12-5.14Z"></path><path d="M9 8.5h4"></path><path d="M9 12.5h4"></path><path d="M13.5 4.5v4"></path></svg>
 );
 
 
 export default function SaasSettingsPage() {
   const { toast } = useToast();
-  const [isSaasLoading, setIsSaasLoading] = useState(false);
-  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
+  const [isSaasLoading, setIsSaasLoading] = useState(true);
+  const [isPaymentLoading, setIsPaymentLoading] = useState(true);
 
   const saasForm = useForm<z.infer<typeof saasSettingsSchema>>({
     resolver: zodResolver(saasSettingsSchema),
@@ -91,47 +91,48 @@ export default function SaasSettingsPage() {
     },
   });
   
-  useEffect(() => {
-    const fetchSettings = async () => {
-        setIsSaasLoading(true);
-        setIsPaymentLoading(true);
+  const fetchSettings = useCallback(async () => {
+    setIsSaasLoading(true);
+    setIsPaymentLoading(true);
 
-        try {
-            const { data, error } = await supabase
-                .from('saas_settings')
-                .select('*')
-                .eq('id', 1)
-                .single();
+    try {
+        const { data, error } = await supabase
+            .from('saas_settings')
+            .select('*')
+            .eq('id', 1)
+            .single();
 
-            if (data) {
-                saasForm.reset({
-                    platformName: data.platform_name || '',
-                    platformDescription: data.platform_description || '',
-                    logo_url: data.logo_url || '',
-                    social_facebook: data.social_facebook || '',
-                    social_twitter: data.social_twitter || '',
-                    social_tiktok: data.social_tiktok || '',
-                    seoTitle: data.seo_title || '',
-                    seoDescription: data.seo_description || '',
-                    seoKeywords: data.seo_keywords || '',
-                });
-                paymentForm.reset({
-                    mobileBankingEnabled: data.mobile_banking_enabled || false,
-                    mobileBankingNumber: data.mobile_banking_number || '',
-                    acceptedBankingMethods: data.accepted_banking_methods || [],
-                });
-            } else if (error && error.code !== 'PGRST116') {
-                toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
-            }
-        } catch (e: any) {
-            toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
-        } finally {
-            setIsSaasLoading(false);
-            setIsPaymentLoading(false);
+        if (data) {
+            saasForm.reset({
+                platformName: data.platform_name || '',
+                platformDescription: data.platform_description || '',
+                logo_url: data.logo_url || '',
+                social_facebook: data.social_facebook || '',
+                social_twitter: data.social_twitter || '',
+                social_tiktok: data.social_tiktok || '',
+                seoTitle: data.seo_title || '',
+                seoDescription: data.seo_description || '',
+                seoKeywords: data.seo_keywords || '',
+            });
+            paymentForm.reset({
+                mobileBankingEnabled: data.mobile_banking_enabled || false,
+                mobileBankingNumber: data.mobile_banking_number || '',
+                acceptedBankingMethods: data.accepted_banking_methods || [],
+            });
+        } else if (error && error.code !== 'PGRST116') {
+            toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
         }
-    };
-    fetchSettings();
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+    } finally {
+        setIsSaasLoading(false);
+        setIsPaymentLoading(false);
+    }
   }, [saasForm, paymentForm, toast]);
+  
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
 
   async function onSaasSubmit(values: z.infer<typeof saasSettingsSchema>) {
@@ -153,10 +154,10 @@ export default function SaasSettingsPage() {
         .eq('id', 1);
 
       if (error) {
-        toast({ variant: 'destructive', title: 'Error Saving Settings', description: error.message });
+        toast({ variant: 'destructive', title: 'Error Saving Settings', description: `Failed to save settings. Please check database permissions. Error: ${error.message}` });
       } else {
         toast({ title: 'SaaS Settings Saved!' });
-        saasForm.reset(values); // Resync form
+        await fetchSettings();
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
@@ -181,14 +182,14 @@ export default function SaasSettingsPage() {
             toast({
                 variant: 'destructive',
                 title: 'Error Saving Settings',
-                description: error.message,
+                description: `Failed to save payment settings. Please check database permissions. Error: ${error.message}`,
             });
         } else {
             toast({
                 title: 'Payment Settings Saved!',
                 description: 'Subscription payment settings have been updated.',
             });
-            paymentForm.reset(values); // Re-sync form state with latest saved data
+            await fetchSettings();
         }
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
@@ -215,9 +216,9 @@ export default function SaasSettingsPage() {
       </div>
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="general"><Globe className='mr-2' /> General</TabsTrigger>
-          <TabsTrigger value="seo"><BarChart className='mr-2' /> SEO</TabsTrigger>
-          <TabsTrigger value="payments"><CreditCard className='mr-2' /> Payments</TabsTrigger>
+          <TabsTrigger value="general"><Globe className='mr-2 h-4 w-4' /> General</TabsTrigger>
+          <TabsTrigger value="seo"><BarChart className='mr-2 h-4 w-4' /> SEO</TabsTrigger>
+          <TabsTrigger value="payments"><CreditCard className='mr-2 h-4 w-4' /> Payments</TabsTrigger>
         </TabsList>
         
         <TabsContent value="general">
@@ -507,7 +508,7 @@ export default function SaasSettingsPage() {
                                                                 (value) => value !== item.id
                                                             )
                                                             );
-                                                    }}
+													}}
                                                 />
                                                 </FormControl>
                                                 <FormLabel className="font-normal">
@@ -524,8 +525,8 @@ export default function SaasSettingsPage() {
                                 )}
                             />
                             <div className="pt-4">
-                                <Button type="submit" disabled={isPaymentLoading || isSaasLoading}>
-                                    {(isPaymentLoading || isSaasLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" disabled={isPaymentLoading}>
+                                    {isPaymentLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Save Payment Settings
                                 </Button>
                             </div>
