@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -38,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import ImageUploader from '@/components/image-uploader';
 
 const productFormSchema = z.object({
   id: z
@@ -97,19 +99,24 @@ export default function ManageProductPage() {
       category: '',
       origin: '',
       story: '',
-      images: [{ imageUrl: '', imageHint: '' }],
+      images: [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, update } = useFieldArray({
     control: form.control,
     name: 'images',
   });
 
   useEffect(() => {
-    if (isNew || !user) {
+    if (isNew) {
+      if (fields.length === 0) {
+        append({ imageUrl: '', imageHint: '' });
+      }
       return;
     }
+
+    if (!user) return;
 
     const fetchProduct = async () => {
       setIsLoading(true);
@@ -136,7 +143,7 @@ export default function ManageProductPage() {
       form.reset({
         ...productData,
         images:
-          productData.images.length > 0
+          productData.images && productData.images.length > 0
             ? productData.images
             : [{ imageUrl: '', imageHint: '' }],
       });
@@ -144,7 +151,7 @@ export default function ManageProductPage() {
     };
 
     fetchProduct();
-  }, [productId, isNew, user, router, toast, form, username]);
+  }, [productId, isNew, user, router, toast, form, username, fields.length, append]);
 
   useEffect(() => {
     if (!user) return;
@@ -203,7 +210,27 @@ export default function ManageProductPage() {
     } else {
       toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
       router.push(`/${username}/admin/products`);
-      router.refresh(); // To reflect changes in the product list
+      router.refresh();
+    }
+  };
+
+  const handleFeaturedImageUpload = (result: any) => {
+    if (result.event === 'success') {
+      const secureUrl = result.info.secure_url;
+      if (fields.length > 0 && fields[0].imageUrl) {
+          update(0, { ...fields[0], imageUrl: secureUrl });
+      } else if (fields.length > 0) {
+          update(0, { ...fields[0], imageUrl: secureUrl });
+      }
+      else {
+        append({ imageUrl: secureUrl, imageHint: '' });
+      }
+    }
+  };
+
+  const handleAdditionalImageUpload = (result: any) => {
+    if (result.event === 'success') {
+      append({ imageUrl: result.info.secure_url, imageHint: '' });
     }
   };
 
@@ -405,70 +432,115 @@ export default function ManageProductPage() {
                   )}
                 />
               </div>
-
-              <div className="space-y-4">
-                <FormLabel>Product Images</FormLabel>
-                {fields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="flex gap-2 items-start p-3 border rounded-md"
-                  >
-                    <span className="text-sm font-medium text-muted-foreground pt-2">
-                      {index + 1}.
-                    </span>
-                    <div className="grid gap-2 flex-grow">
-                      <FormField
-                        control={form.control}
-                        name={`images.${index}.imageUrl`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="sr-only">Image URL</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Image URL" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+              
+              <div className="space-y-6">
+                <div className="space-y-4 rounded-lg border p-4">
+                  <FormLabel>Featured Image</FormLabel>
+                  <FormDescription>
+                    This is the main image for your product, shown first.
+                  </FormDescription>
+                  <div className="flex flex-col sm:flex-row items-start gap-4">
+                    {fields.length > 0 && fields[0]?.imageUrl ? (
+                      <div className="relative h-24 w-24 shrink-0 rounded-md overflow-hidden border">
+                        <Image
+                          src={fields[0].imageUrl}
+                          alt="Featured Image"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                        <div className="h-24 w-24 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                            <p className="text-xs text-muted-foreground">No image</p>
+                        </div>
+                    )}
+                    <div className="flex-grow space-y-2">
+                      <ImageUploader
+                        onUpload={handleFeaturedImageUpload}
+                        label={
+                          fields[0]?.imageUrl
+                            ? 'Change Image'
+                            : 'Upload Featured Image'
+                        }
                       />
-                      <FormField
-                        control={form.control}
-                        name={`images.${index}.imageHint`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="sr-only">
-                              Image Hint
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                placeholder="AI Image Hint (e.g., ripe mango)"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                       <FormField
+                          control={form.control}
+                          name={`images.0.imageHint`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="sr-only">Image Hint</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="AI Image Hint (e.g., ripe mango)"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => remove(index)}
-                      disabled={fields.length <= 1}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
                   </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => append({ imageUrl: '', imageHint: '' })}
-                >
-                  Add Image
-                </Button>
+                </div>
+
+                <div className="space-y-4 rounded-lg border p-4">
+                  <FormLabel>Additional Images</FormLabel>
+                  <FormDescription>
+                    Add more images to showcase your product from different
+                    angles.
+                  </FormDescription>
+                  
+                  {fields.length > 1 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {fields.slice(1).map((field, index) => (
+                        <div key={field.id} className="space-y-2">
+                            <div className="relative group">
+                            <div className="relative aspect-square w-full rounded-md overflow-hidden border">
+                                <Image
+                                src={field.imageUrl}
+                                alt={`Product Image ${index + 2}`}
+                                fill
+                                className="object-cover"
+                                />
+                            </div>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => remove(index + 1)}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                            </div>
+                            <FormField
+                            control={form.control}
+                            name={`images.${index + 1}.imageHint`}
+                            render={({ field: hintField }) => (
+                                <FormItem>
+                                <FormLabel className="sr-only">Image Hint</FormLabel>
+                                <FormControl>
+                                    <Input
+                                    {...hintField}
+                                    placeholder="AI Image Hint"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        </div>
+                        ))}
+                    </div>
+                  )}
+
+                  <ImageUploader
+                    onUpload={handleAdditionalImageUpload}
+                    label="Add Additional Image"
+                  />
+                </div>
               </div>
+
 
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && (
