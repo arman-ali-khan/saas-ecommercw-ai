@@ -21,7 +21,6 @@ import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import type { User } from '@/types';
 
 
 export default function UsersAdminPage() {
@@ -45,56 +44,106 @@ export default function UsersAdminPage() {
             </CardHeader>
             <CardContent>
                 {users.length > 0 ? (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>User</TableHead>
-                                <TableHead>Site</TableHead>
-                                <TableHead>Domain</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                    <>
+                        {/* Desktop View: Table */}
+                        <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>User</TableHead>
+                                        <TableHead>Site</TableHead>
+                                        <TableHead>Domain</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {users.map(user => (
+                                        <TableRow key={user.id}>
+                                            <TableCell className="font-medium">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar>
+                                                        <AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-semibold">{user.full_name}</p>
+                                                        <p className="text-sm text-muted-foreground">@{user.username}</p>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{user.site_name}</TableCell>
+                                            <TableCell>{user.domain}.banglanaturals.site</TableCell>
+                                            <TableCell className="text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            <span className="sr-only">Menu</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                        <DropdownMenuItem>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            Edit User
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-destructive">
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Delete User
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        
+                        {/* Mobile View: Cards */}
+                        <div className="grid gap-4 md:hidden">
                             {users.map(user => (
-                                <TableRow key={user.id}>
-                                    <TableCell className="font-medium">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar>
-                                                <AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p>{user.full_name}</p>
-                                                <p className="text-sm text-muted-foreground">{user.email}</p>
+                                <Card key={user.id}>
+                                    <CardHeader>
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-10 w-10">
+                                                    <AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <CardTitle className="text-lg">{user.full_name}</CardTitle>
+                                                    <CardDescription>@{user.username}</CardDescription>
+                                                </div>
                                             </div>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem>
+                                                        <Edit className="mr-2 h-4 w-4" />
+                                                        Edit User
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Delete User
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
-                                    </TableCell>
-                                    <TableCell>{user.site_name}</TableCell>
-                                    <TableCell>{user.domain}.banglanaturals.site</TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">Menu</span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem>
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Edit User
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive">
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Delete User
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-sm text-muted-foreground space-y-1">
+                                            <p><span className="font-medium text-foreground">Site:</span> {user.site_name}</p>
+                                            <p><span className="font-medium text-foreground">Domain:</span> {user.domain}.banglanaturals.site</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             ))}
-                        </TableBody>
-                    </Table>
+                        </div>
+                    </>
                 ) : (
                     <p className="text-muted-foreground text-center py-8">No users found.</p>
                 )}
