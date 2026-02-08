@@ -65,8 +65,12 @@ export default function RegisterPage() {
     setIsLoading(false);
 
     if (result.user) {
-        toast({ title: 'নিবন্ধন সফল', description: `স্বাগতম, ${values.fullName}!` });
-        router.push(`/${result.user.domain}/profile`);
+        toast({ 
+            title: 'নিবন্ধন প্রায় সম্পন্ন!', 
+            description: "আপনার নিবন্ধন নিশ্চিত করতে দয়া করে আপনার ইমেল পরীক্ষা করুন।",
+            duration: 10000,
+        });
+        router.push('/login');
     } else {
         toast({
             variant: 'destructive',

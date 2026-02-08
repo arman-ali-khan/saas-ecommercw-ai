@@ -79,50 +79,28 @@ export const useAuth = create<AuthState>()((set, get) => ({
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+                data: {
+                    username,
+                    full_name: fullName,
+                    domain,
+                    site_name: siteName,
+                    site_description: siteDescription,
+                    subscription_plan: plan,
+                    role: 'admin',
+                }
+            }
         });
 
         if (error) {
             return { user: null, error: error.message };
         }
 
-        if (!data.user) {
-            return { user: null, error: 'Registration successful, but no user data returned.' };
+        if (data.user) {
+            return { user: { id: data.user.id } as User, error: null };
         }
 
-        const { error: profileError } = await supabase.from('profiles').insert({
-            id: data.user.id,
-            username,
-            full_name: fullName,
-            domain,
-            site_name: siteName,
-            site_description: siteDescription,
-            subscription_plan: plan,
-            role: 'admin',
-        });
-
-        if (profileError) {
-             // Attempt to clean up the auth user if profile insert fails
-            // This is complex, ideally handled by a server-side transaction
-            console.error('Failed to create user profile:', profileError.message);
-            return { user: null, error: `Could not create user profile: ${profileError.message}` };
-        }
-        
-        const newUser: User = {
-            id: data.user.id,
-            username,
-            fullName,
-            email,
-            domain,
-            siteName,
-            subscriptionPlan: plan,
-            role: 'admin',
-            siteDescription: siteDescription,
-            isSaaSAdmin: false,
-        };
-
-        set({ user: newUser, session: data.session, loading: false });
-
-        return { user: newUser, error: null };
+        return { user: null, error: 'An unknown error occurred during registration.' };
     },
     
     logout: async () => {

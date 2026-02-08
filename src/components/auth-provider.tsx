@@ -19,13 +19,15 @@ export default function AuthProvider({
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       if (session?.user) {
-        const { data: profile, error } = await supabase
+        // User is logged in, check for profile
+        const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
 
-        if (profile && !error) {
+        if (profile) {
+          // Profile exists, set user in state
           const appUser: User = {
             id: profile.id,
             username: profile.username,
@@ -40,11 +42,52 @@ export default function AuthProvider({
           };
           setUser(appUser);
         } else {
-          // If profile is missing, user should be logged out
-          setUser(null);
-          await supabase.auth.signOut();
+            // Profile does not exist, likely a new user after email confirmation.
+            // Try to create profile from user metadata.
+            const { user_metadata } = session.user;
+            if (user_metadata.username && user_metadata.domain) {
+                const { data: newProfile, error: insertError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: session.user.id,
+                        username: user_metadata.username,
+                        full_name: user_metadata.full_name,
+                        domain: user_metadata.domain,
+                        site_name: user_metadata.site_name,
+                        site_description: user_metadata.site_description,
+                        subscription_plan: user_metadata.subscription_plan,
+                        role: user_metadata.role || 'admin',
+                    })
+                    .select()
+                    .single();
+                
+                if (newProfile && !insertError) {
+                     const appUser: User = {
+                        id: newProfile.id,
+                        username: newProfile.username,
+                        fullName: newProfile.full_name,
+                        email: session.user.email!,
+                        domain: newProfile.domain,
+                        siteName: newProfile.site_name,
+                        siteDescription: newProfile.site_description,
+                        subscriptionPlan: newProfile.subscription_plan,
+                        role: newProfile.role,
+                        isSaaSAdmin: newProfile.role === 'saas_admin',
+                    };
+                    setUser(appUser);
+                } else {
+                    console.error('Failed to create profile on first sign in:', insertError);
+                    await supabase.auth.signOut();
+                    setUser(null);
+                }
+            } else {
+                // User has session but no profile and no metadata. This is an invalid state.
+                await supabase.auth.signOut();
+                setUser(null);
+            }
         }
       } else {
+        // No session, user is logged out.
         setUser(null);
       }
       setLoading(false);
