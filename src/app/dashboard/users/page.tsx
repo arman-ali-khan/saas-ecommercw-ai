@@ -45,6 +45,8 @@ type UserProfile = {
     site_description: string;
 };
 
+const USERS_PER_PAGE = 10;
+
 export default function UsersAdminPage() {
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
@@ -53,6 +55,7 @@ export default function UsersAdminPage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const { toast } = useToast();
     const [baseDomain, setBaseDomain] = useState('banglanaturals.site');
+    const [currentPage, setCurrentPage] = useState(1);
 
     const fetchUsersAndSettings = useCallback(async () => {
         setLoading(true);
@@ -64,7 +67,7 @@ export default function UsersAdminPage() {
                 domain,
                 site_name,
                 site_description
-            `);
+            `).order('created_at', { ascending: false });
             const settingsPromise = supabase.from('saas_settings').select('base_domain').eq('id', 1).single();
 
             const [{ data: usersData, error: usersError }, { data: settingsData }] = await Promise.all([usersPromise, settingsPromise]);
@@ -107,6 +110,10 @@ export default function UsersAdminPage() {
                 toast({ variant: 'destructive', title: 'Failed to delete user profile', description: error.message });
             } else {
                 toast({ title: 'User profile deleted!' });
+                // Reset to first page if the last item on a page is deleted
+                if (paginatedUsers.length === 1 && currentPage > 1) {
+                    setCurrentPage(currentPage - 1);
+                }
                 await fetchUsersAndSettings(); // Re-fetch data on success
             }
         } catch (e: any) {
@@ -117,6 +124,12 @@ export default function UsersAdminPage() {
             setSelectedUser(null);
         }
     }
+    
+    const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
+    const paginatedUsers = users.slice(
+        (currentPage - 1) * USERS_PER_PAGE,
+        currentPage * USERS_PER_PAGE
+    );
 
     if (loading) {
         return (
@@ -154,7 +167,7 @@ export default function UsersAdminPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {users.map(user => (
+                                        {paginatedUsers.map(user => (
                                             <TableRow key={user.id}>
                                                 <TableCell className="font-medium">
                                                     <div className="flex items-center gap-3">
@@ -205,7 +218,7 @@ export default function UsersAdminPage() {
                             
                             {/* Mobile View: Cards */}
                             <div className="grid gap-4 md:hidden">
-                                {users.map(user => (
+                                {paginatedUsers.map(user => (
                                     <Card key={user.id} className='flex flex-col'>
                                         <CardHeader>
                                             <div className="flex items-center gap-3">
@@ -245,6 +258,31 @@ export default function UsersAdminPage() {
                         <p className="text-muted-foreground text-center py-8">No users found.</p>
                     )}
                 </CardContent>
+                 {users.length > USERS_PER_PAGE && (
+                  <CardFooter className="justify-center">
+                      <div className="flex items-center gap-4 text-sm">
+                          <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                              disabled={currentPage === 1}
+                          >
+                              Previous
+                          </Button>
+                          <span className="text-muted-foreground">
+                              Page {currentPage} of {totalPages}
+                          </span>
+                          <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                              disabled={currentPage === totalPages}
+                          >
+                              Next
+                          </Button>
+                      </div>
+                  </CardFooter>
+                )}
             </Card>
 
             {/* Delete User Alert */}
