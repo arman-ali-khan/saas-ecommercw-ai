@@ -63,6 +63,10 @@ export default function AdminBottomNav({ username }: { username: string }) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-72 bg-sidebar border-r-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Admin Menu</SheetTitle>
+              <SheetDescription>Main navigation for the admin dashboard.</SheetDescription>
+            </SheetHeader>
             <AdminMobileSidebar username={username} />
           </SheetContent>
         </Sheet>

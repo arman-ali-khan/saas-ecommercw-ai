@@ -9,7 +9,7 @@ import Logo from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { PanelLeft } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 
 export default function DashboardLayout({
   children,
@@ -55,10 +55,15 @@ export default function DashboardLayout({
                 </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="flex flex-col p-0">
+                    <SheetHeader className="sr-only">
+                        <SheetTitle>SaaS Admin Menu</SheetTitle>
+                    </SheetHeader>
                     <div className="flex h-20 items-center border-b px-6">
-                        <Link href="/dashboard">
-                            <Logo />
-                        </Link>
+                        <SheetClose asChild>
+                            <Link href="/dashboard">
+                                <Logo />
+                            </Link>
+                        </SheetClose>
                     </div>
                     <SaasAdminSidebar isMobile />
                 </SheetContent>
