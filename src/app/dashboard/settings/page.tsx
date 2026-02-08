@@ -33,13 +33,16 @@ import { supabase } from '@/lib/supabase/client';
 import ImageUploader from '@/components/image-uploader';
 import Image from 'next/image';
 
-const saasSettingsSchema = z.object({
+const generalSettingsSchema = z.object({
   platformName: z.string().min(2, { message: 'Platform name must be at least 2 characters.' }),
   platformDescription: z.string().min(10, { message: 'Platform description must be at least 10 characters.' }),
-  logo_url: z.string().optional(),
+  logo_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_facebook: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_twitter: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_tiktok: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+});
+
+const seoSettingsSchema = z.object({
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
   seoKeywords: z.string().optional(),
@@ -70,8 +73,8 @@ export default function SaasSettingsPage() {
   const [isSeoSubmitting, setIsSeoSubmitting] = useState(false);
   const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
 
-  const saasForm = useForm<z.infer<typeof saasSettingsSchema>>({
-    resolver: zodResolver(saasSettingsSchema),
+  const generalForm = useForm<z.infer<typeof generalSettingsSchema>>({
+    resolver: zodResolver(generalSettingsSchema),
     defaultValues: {
       platformName: '',
       platformDescription: '',
@@ -79,6 +82,12 @@ export default function SaasSettingsPage() {
       social_facebook: '',
       social_twitter: '',
       social_tiktok: '',
+    },
+  });
+
+  const seoForm = useForm<z.infer<typeof seoSettingsSchema>>({
+    resolver: zodResolver(seoSettingsSchema),
+    defaultValues: {
       seoTitle: '',
       seoDescription: '',
       seoKeywords: '',
@@ -104,13 +113,15 @@ export default function SaasSettingsPage() {
             .single();
 
         if (data) {
-            saasForm.reset({
+            generalForm.reset({
                 platformName: data.platform_name || '',
                 platformDescription: data.platform_description || '',
                 logo_url: data.logo_url || '',
                 social_facebook: data.social_facebook || '',
                 social_twitter: data.social_twitter || '',
                 social_tiktok: data.social_tiktok || '',
+            });
+            seoForm.reset({
                 seoTitle: data.seo_title || '',
                 seoDescription: data.seo_description || '',
                 seoKeywords: data.seo_keywords || '',
@@ -128,13 +139,13 @@ export default function SaasSettingsPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [saasForm, paymentForm, toast]);
+  }, [generalForm, seoForm, paymentForm, toast]);
   
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
 
-  async function onGeneralSubmit(values: z.infer<typeof saasSettingsSchema>) {
+  async function onGeneralSubmit(values: z.infer<typeof generalSettingsSchema>) {
     setIsGeneralSubmitting(true);
     try {
       const { error } = await supabase
@@ -153,6 +164,7 @@ export default function SaasSettingsPage() {
         toast({ variant: 'destructive', title: 'Error Saving General Settings', description: `Failed to save settings. Please check database permissions. Error: ${error.message}` });
       } else {
         toast({ title: 'General Settings Saved!' });
+        await fetchSettings();
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
@@ -161,7 +173,7 @@ export default function SaasSettingsPage() {
     }
   }
 
-  async function onSeoSubmit(values: z.infer<typeof saasSettingsSchema>) {
+  async function onSeoSubmit(values: z.infer<typeof seoSettingsSchema>) {
     setIsSeoSubmitting(true);
     try {
         const { error } = await supabase
@@ -177,6 +189,7 @@ export default function SaasSettingsPage() {
             toast({ variant: 'destructive', title: 'Error Saving SEO Settings', description: `Failed to save settings. Please check database permissions. Error: ${error.message}` });
         } else {
             toast({ title: 'SEO Settings Saved!' });
+            await fetchSettings();
         }
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
@@ -209,6 +222,7 @@ export default function SaasSettingsPage() {
                 title: 'Payment Settings Saved!',
                 description: 'Subscription payment settings have been updated.',
             });
+            await fetchSettings();
         }
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
@@ -220,12 +234,12 @@ export default function SaasSettingsPage() {
   const handleLogoUpload = (result: any) => {
     if (result.event === 'success') {
       const secureUrl = result.info.secure_url;
-      saasForm.setValue('logo_url', secureUrl, { shouldValidate: true });
+      generalForm.setValue('logo_url', secureUrl, { shouldValidate: true });
       toast({ title: 'Logo Uploaded', description: 'Click "Save" to apply the changes.' });
     }
   };
 
-  const logoUrl = saasForm.watch('logo_url');
+  const logoUrl = generalForm.watch('logo_url');
 
   const isLogoUrlValid = useMemo(() => {
     if (!logoUrl) return false;
@@ -257,10 +271,10 @@ export default function SaasSettingsPage() {
               <CardDescription>Update your platform's public-facing name, description, and branding.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...saasForm}>
-                <form onSubmit={saasForm.handleSubmit(onGeneralSubmit)} className="space-y-8">
+              <Form {...generalForm}>
+                <form onSubmit={generalForm.handleSubmit(onGeneralSubmit)} className="space-y-8">
                   <FormField
-                    control={saasForm.control}
+                    control={generalForm.control}
                     name="platformName"
                     render={({ field }) => (
                       <FormItem>
@@ -276,7 +290,7 @@ export default function SaasSettingsPage() {
                     )}
                   />
                   <FormField
-                    control={saasForm.control}
+                    control={generalForm.control}
                     name="platformDescription"
                     render={({ field }) => (
                       <FormItem>
@@ -297,7 +311,7 @@ export default function SaasSettingsPage() {
                   />
                   
                   <FormField
-                    control={saasForm.control}
+                    control={generalForm.control}
                     name="logo_url"
                     render={({ field }) => (
                       <FormItem>
@@ -330,7 +344,7 @@ export default function SaasSettingsPage() {
                   <div className="space-y-4 rounded-lg border p-4">
                       <h3 className="text-sm font-medium">Social Media Links</h3>
                       <FormField
-                        control={saasForm.control}
+                        control={generalForm.control}
                         name="social_facebook"
                         render={({ field }) => (
                           <FormItem>
@@ -346,7 +360,7 @@ export default function SaasSettingsPage() {
                         )}
                       />
                        <FormField
-                        control={saasForm.control}
+                        control={generalForm.control}
                         name="social_twitter"
                         render={({ field }) => (
                           <FormItem>
@@ -362,7 +376,7 @@ export default function SaasSettingsPage() {
                         )}
                       />
                        <FormField
-                        control={saasForm.control}
+                        control={generalForm.control}
                         name="social_tiktok"
                         render={({ field }) => (
                           <FormItem>
@@ -396,10 +410,10 @@ export default function SaasSettingsPage() {
               <CardDescription>Manage SEO settings for your main landing page.</CardDescription>
             </CardHeader>
             <CardContent>
-               <Form {...saasForm}>
-                 <form onSubmit={saasForm.handleSubmit(onSeoSubmit)} className="space-y-8">
+               <Form {...seoForm}>
+                 <form onSubmit={seoForm.handleSubmit(onSeoSubmit)} className="space-y-8">
                     <FormField
-                        control={saasForm.control}
+                        control={seoForm.control}
                         name="seoTitle"
                         render={({ field }) => (
                         <FormItem>
@@ -415,7 +429,7 @@ export default function SaasSettingsPage() {
                         )}
                     />
                     <FormField
-                        control={saasForm.control}
+                        control={seoForm.control}
                         name="seoDescription"
                         render={({ field }) => (
                         <FormItem>
@@ -435,7 +449,7 @@ export default function SaasSettingsPage() {
                         )}
                     />
                     <FormField
-                        control={saasForm.control}
+                        control={seoForm.control}
                         name="seoKeywords"
                         render={({ field }) => (
                         <FormItem>
@@ -572,3 +586,5 @@ export default function SaasSettingsPage() {
     </div>
   );
 }
+
+    
