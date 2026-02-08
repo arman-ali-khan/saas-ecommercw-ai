@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Home,
   Users,
@@ -10,9 +10,10 @@ import {
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
 import { SheetClose } from './ui/sheet';
 import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface SaasAdminSidebarProps {
     isMobile?: boolean;
@@ -20,10 +21,18 @@ interface SaasAdminSidebarProps {
 
 export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarProps) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout: logoutAction } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
   
   if (!user || !user.isSaaSAdmin) {
     return null; // Or a loading skeleton
+  }
+
+  const logout = () => {
+    logoutAction();
+    toast({ title: 'Logged Out' });
+    router.push('/');
   }
 
   const adminNavLinks = [

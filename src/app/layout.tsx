@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { CartProvider } from '@/context/cart-context';
-import { AuthProvider } from '@/context/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import SiteLayout from '@/components/site-layout';
 
@@ -30,12 +28,8 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
-        <AuthProvider>
-          <CartProvider>
-            <SiteLayout>{children}</SiteLayout>
-            <Toaster />
-          </CartProvider>
-        </AuthProvider>
+        <SiteLayout>{children}</SiteLayout>
+        <Toaster />
       </body>
     </html>
   );

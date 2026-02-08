@@ -17,7 +17,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
@@ -31,6 +32,7 @@ export default function RegisterPage() {
   const searchParams = useSearchParams();
   const siteName = searchParams.get('siteName') || '';
   const domain = searchParams.get('domain') || '';
+  const { toast } = useToast();
 
   const { register } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,7 +46,17 @@ export default function RegisterPage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    register(values.name, values.fullName, values.email, values.password, domain, siteName);
+    const result = register(values.name, values.fullName, values.email, values.password, domain, siteName);
+    if (result.user) {
+        toast({ title: 'নিবন্ধন সফল', description: `স্বাগতম, ${values.fullName}!` });
+        router.push(`/${result.user.domain}/profile`);
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'নিবন্ধন ব্যর্থ',
+            description: result.error,
+        });
+    }
   }
 
   return (

@@ -17,7 +17,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
@@ -26,6 +27,9 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -35,7 +39,23 @@ export default function LoginPage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    login(values.email, values.password);
+    const user = login(values.email, values.password);
+
+    if (user) {
+      if (user.isSaaSAdmin) {
+        toast({ title: 'Admin login successful' });
+        router.push('/dashboard');
+      } else {
+        toast({ title: 'লগইন সফল', description: `আবারও স্বাগতম, ${user.fullName}!` });
+        router.push(`/${user.domain}/profile`);
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'লগইন ব্যর্থ',
+        description: 'অবৈধ ইমেল বা পাসওয়ার্ড।',
+      });
+    }
   }
 
   return (

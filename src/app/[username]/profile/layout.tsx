@@ -1,38 +1,42 @@
 'use client';
 
 import ProfileSidebar from '@/components/profile-sidebar';
-import { useAuth } from '@/context/auth-context';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useAuth } from '@/stores/auth';
+import { usePathname, useRouter, useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function ProfileLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: { username: string };
 }) {
-  const { username } = params;
-  const { user, isLoading } = useAuth();
+  const params = useParams();
+  const username = params.username as string;
+  const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
+  const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => {
-    if (!isLoading && !user) {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (isHydrated && !user) {
       router.push('/login');
     }
     // If there is a user, and the domain in the URL doesn't match the user's domain,
     // redirect them to their own profile page.
-    if (!isLoading && user && user.domain !== username) {
+    if (isHydrated && user && user.domain !== username) {
       const newPath = pathname.replace(
         `/${username}/`,
         `/${user.domain}/`
       );
       router.replace(newPath);
     }
-  }, [user, isLoading, username, router, pathname]);
+  }, [user, isHydrated, username, router, pathname]);
 
-  if (isLoading || !user || user.domain !== username) {
+  if (!isHydrated || !user || user.domain !== username) {
     // You can return a loading skeleton here
     return <div>Loading...</div>;
   }

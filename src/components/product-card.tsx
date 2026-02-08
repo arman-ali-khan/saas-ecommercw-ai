@@ -6,7 +6,8 @@ import type { Product } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Button } from './ui/button';
 import { ShoppingBag } from 'lucide-react';
-import { useCart } from '@/context/cart-context';
+import { useCart } from '@/stores/cart';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
@@ -14,10 +15,15 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, username }: ProductCardProps) {
-  const { addToCart } = useCart();
+  const addToCart = useCart((state) => state.addToCart);
+  const { toast } = useToast();
 
   const handleAddToCart = () => {
     addToCart(product, 1);
+    toast({
+      title: 'ব্যাগে যোগ করা হয়েছে',
+      description: `1 x ${product.name} আপনার ব্যাগে যোগ করা হয়েছে।`,
+    });
   };
 
   const productUrl = `/${username}/products/${product.id}`;

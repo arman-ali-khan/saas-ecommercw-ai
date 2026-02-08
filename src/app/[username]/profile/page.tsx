@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -13,12 +13,28 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LogOut, LayoutDashboard } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
 
 
 export default function ProfilePage() {
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout: logoutAction } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
 
-  if (isLoading || !user) {
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  const logout = () => {
+    logoutAction();
+    toast({ title: 'লগ আউট', description: "আপনি সফলভাবে লগ আউট হয়েছেন।" });
+    router.push('/');
+  }
+
+  if (!isHydrated || !user) {
     return (
       <div className="space-y-6">
             <Card>

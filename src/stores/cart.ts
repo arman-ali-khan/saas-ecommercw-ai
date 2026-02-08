@@ -1,0 +1,50 @@
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import type { CartItem, Product } from '@/types';
+
+interface CartState {
+  cartItems: CartItem[];
+  addToCart: (product: Product, quantity: number) => void;
+  removeFromCart: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+}
+
+export const useCart = create<CartState>()(
+  persist(
+    (set, get) => ({
+      cartItems: [],
+      addToCart: (product, quantity) => {
+        const { cartItems } = get();
+        const existingItem = cartItems.find((item) => item.id === product.id);
+        const updatedItems = existingItem
+          ? cartItems.map((item) =>
+              item.id === product.id
+                ? { ...item, quantity: item.quantity + quantity }
+                : item
+            )
+          : [...cartItems, { ...product, quantity }];
+        set({ cartItems: updatedItems });
+      },
+      removeFromCart: (productId) => {
+        set((state) => ({
+          cartItems: state.cartItems.filter((item) => item.id !== productId),
+        }));
+      },
+      updateQuantity: (productId, quantity) => {
+        if (quantity <= 0) {
+          get().removeFromCart(productId);
+          return;
+        }
+        set((state) => ({
+          cartItems: state.cartItems.map((item) =>
+            item.id === productId ? { ...item, quantity } : item
+          ),
+        }));
+      },
+    }),
+    {
+      name: 'bangla-naturals-cart',
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);

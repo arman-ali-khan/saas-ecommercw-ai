@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from './logo';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
 import { SheetClose } from './ui/sheet';
 
 export default function AdminMobileSidebar({ username }: { username: string }) {

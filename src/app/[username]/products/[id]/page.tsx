@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { getProductById } from '@/lib/products';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { useCart } from '@/context/cart-context';
+import { useCart } from '@/stores/cart';
+import { useToast } from '@/hooks/use-toast';
 import {
   Facebook,
   Twitter,
@@ -30,18 +31,15 @@ const TikTokIcon = () => (
     </svg>
   );
 
-type ProductPageProps = {
-  params: {
-    id: string;
-    username: string;
-  };
-};
+export default function ProductPage() {
+  const params = useParams();
+  const id = params.id as string;
 
-export default function ProductPage({ params }: ProductPageProps) {
   const [quantity, setQuantity] = useState(1);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
-  const { addToCart } = useCart();
-  const product = getProductById(params.id);
+  const addToCart = useCart((state) => state.addToCart);
+  const { toast } = useToast();
+  const product = getProductById(id);
 
   if (!product) {
     notFound();
@@ -49,6 +47,10 @@ export default function ProductPage({ params }: ProductPageProps) {
 
   const handleAddToCart = () => {
     addToCart(product, quantity);
+    toast({
+      title: 'ব্যাগে যোগ করা হয়েছে',
+      description: `${quantity} x ${product.name} আপনার ব্যাগে যোগ করা হয়েছে।`,
+    });
   };
 
   const currentUrl =

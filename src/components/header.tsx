@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { Menu, User, LogOut, LayoutDashboard } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 import Logo from './logo';
 import { Button } from './ui/button';
@@ -26,11 +27,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from './ui/skeleton';
 
 export default function Header() {
   const pathname = usePathname();
-  const { user, logout, isLoading } = useAuth();
+  const router = useRouter();
+  const { user, logout: logoutAction } = useAuth();
+  const { toast } = useToast();
+  
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const segments = pathname.split('/').filter(Boolean);
   const KNOWN_ROOT_PATHS = [
@@ -57,6 +67,12 @@ export default function Header() {
   if (user?.email === 'admin@example.com' && user?.domain) {
     navLinks.push({ href: `/${user.domain}/admin`, label: 'অ্যাডমিন' });
   }
+
+  const logout = () => {
+    logoutAction();
+    toast({ title: 'লগ আউট', description: "আপনি সফলভাবে লগ আউট হয়েছেন।" });
+    router.push('/');
+  };
 
   const NavLink = ({
     href,
@@ -88,7 +104,7 @@ export default function Header() {
   };
 
   const AuthNavMobile = () => {
-    if (isLoading) return null;
+    if (!isHydrated) return null;
     if (user) return null;
     return (
       <div className="border-t pt-6 mt-6 space-y-4">
@@ -160,8 +176,8 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           <ShoppingCart />
-          {isLoading ? (
-            <div className="h-10 w-10"></div>
+          {!isHydrated ? (
+            <Skeleton className="h-10 w-10 rounded-full" />
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

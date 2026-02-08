@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCart } from '@/context/cart-context';
+import { useCart } from '@/stores/cart';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import {
@@ -22,15 +22,24 @@ import {
 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { usePathname } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
 
 export default function ShoppingCart() {
   const {
     cartItems,
-    cartCount,
-    cartTotal,
     updateQuantity,
     removeFromCart,
   } = useCart();
+  const { toast } = useToast();
+  
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  const cartTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
@@ -38,12 +47,20 @@ export default function ShoppingCart() {
   const username = segments.length > 0 && !KNOWN_ROOT_PATHS.includes(segments[0]) ? segments[0] : null;
   const checkoutUrl = username ? `/${username}/checkout` : '/checkout'; // Fallback, though should always have username here.
 
+  const handleRemoveFromCart = (productId: string) => {
+    removeFromCart(productId);
+    toast({
+      title: 'ব্যাগ থেকে সরানো হয়েছে',
+      variant: 'destructive',
+    });
+  }
+
   return (
     <Sheet>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <ShoppingBagIcon className="h-6 w-6" />
-          {cartCount > 0 && (
+          {isHydrated && cartCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               {cartCount}
             </span>
@@ -53,9 +70,9 @@ export default function ShoppingCart() {
       </SheetTrigger>
       <SheetContent className="flex flex-col">
         <SheetHeader>
-          <SheetTitle>শপিং ব্যাগ ({cartCount})</SheetTitle>
+          <SheetTitle>শপিং ব্যাগ ({isHydrated ? cartCount : 0})</SheetTitle>
         </SheetHeader>
-        {cartItems.length > 0 ? (
+        {isHydrated && cartItems.length > 0 ? (
           <>
             <ScrollArea className="flex-grow my-4">
               <div className="space-y-6 pr-6">
@@ -115,7 +132,7 @@ export default function ShoppingCart() {
                       variant="ghost"
                       size="icon"
                       className="text-muted-foreground hover:text-destructive"
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => handleRemoveFromCart(item.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

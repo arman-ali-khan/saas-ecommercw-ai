@@ -10,11 +10,11 @@ import {
   Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
 
 export default function ProfileSidebar({ username }: { username: string }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const user = useAuth((state) => state.user);
 
   if (!user || user.domain !== username) {
     return null;

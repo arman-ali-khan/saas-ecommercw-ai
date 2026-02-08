@@ -1,6 +1,6 @@
 'use client';
 
-import { useCart } from '@/context/cart-context';
+import { useCart } from '@/stores/cart';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,8 +17,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const checkoutSchema = z.object({
@@ -28,9 +28,18 @@ const checkoutSchema = z.object({
   phone: z.string().min(10, 'অনুগ্রহ করে একটি বৈধ ফোন নম্বর লিখুন'),
 });
 
-export default function CheckoutPage({ params }: { params: { username: string } }) {
-  const { cartItems, cartTotal, cartCount, isLoading } = useCart();
+export default function CheckoutPage() {
+  const params = useParams();
+  const username = params.username as string;
+  const cartItems = useCart((state) => state.cartItems);
+  const cartTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   const router = useRouter();
+
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -43,12 +52,12 @@ export default function CheckoutPage({ params }: { params: { username: string } 
   });
 
   useEffect(() => {
-    if (!isLoading && cartCount === 0) {
-      router.push(`/${params.username}/products`);
+    if (isHydrated && cartCount === 0) {
+      router.push(`/${username}/products`);
     }
-  }, [isLoading, cartCount, router, params.username]);
+  }, [isHydrated, cartCount, router, username]);
 
-  if (isLoading || cartCount === 0) {
+  if (!isHydrated || cartCount === 0) {
     return (
       <div className="grid md:grid-cols-2 gap-12">
         <div className="md:order-2 space-y-4">

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCart } from '@/context/cart-context';
+import { useCart } from '@/stores/cart';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import {
@@ -22,18 +22,34 @@ import {
 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { usePathname } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
 
 export default function FixedCartButton({ username }: { username: string }) {
   const {
     cartItems,
-    cartCount,
-    cartTotal,
     updateQuantity,
     removeFromCart,
   } = useCart();
+  const cartTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   const pathname = usePathname();
+  const { toast } = useToast();
 
-  if (cartCount === 0 || pathname.startsWith('/admin')) {
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  const handleRemoveFromCart = (productId: string) => {
+    removeFromCart(productId);
+    toast({
+      title: 'ব্যাগ থেকে সরানো হয়েছে',
+      variant: 'destructive',
+    });
+  }
+
+  if (!isHydrated || cartCount === 0 || pathname.startsWith('/admin')) {
     return null;
   }
   
@@ -123,7 +139,7 @@ export default function FixedCartButton({ username }: { username: string }) {
                       variant="ghost"
                       size="icon"
                       className="text-muted-foreground hover:text-destructive"
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => handleRemoveFromCart(item.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

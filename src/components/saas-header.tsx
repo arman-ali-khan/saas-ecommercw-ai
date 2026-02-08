@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Menu, LayoutDashboard } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 import Logo from './logo';
 import { Button } from './ui/button';
@@ -15,7 +16,8 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/stores/auth';
+import { Skeleton } from './ui/skeleton';
 
 const navLinks = [
   { href: '#features', label: 'বৈশিষ্ট্য' },
@@ -24,7 +26,12 @@ const navLinks = [
 ];
 
 export default function SaasHeader() {
-  const { user, isLoading } = useAuth();
+  const user = useAuth((state) => state.user);
+  
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const NavLink = ({
     href,
@@ -49,7 +56,7 @@ export default function SaasHeader() {
   };
 
   const AuthNavMobile = () => {
-    if (isLoading) return null;
+    if (!isHydrated) return null;
     
     if (user?.isSaaSAdmin) {
         return (
@@ -144,8 +151,8 @@ export default function SaasHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {isLoading ? (
-            <div className="h-10 w-10"></div>
+          {!isHydrated ? (
+            <Skeleton className="h-10 w-24" />
           ) : user?.isSaaSAdmin ? (
              <Button asChild>
                 <Link href="/dashboard">
