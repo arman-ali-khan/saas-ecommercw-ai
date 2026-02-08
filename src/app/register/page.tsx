@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
-  name: z.string().min(2, { message: 'নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }).regex(/^[a-zA-Z0-9]+$/, 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।'),
+  username: z.string().min(2, { message: 'ব্যবহারকারীর নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }).regex(/^[a-zA-Z0-9]+$/, 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।'),
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
   password: z.string().min(6, { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' }),
 });
@@ -32,21 +33,36 @@ export default function RegisterPage() {
   const searchParams = useSearchParams();
   const siteName = searchParams.get('siteName') || '';
   const domain = searchParams.get('domain') || '';
+  const plan = searchParams.get('plan') || 'free';
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const { register } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: '',
-      name: '',
+      username: '',
       email: '',
       password: '',
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const result = register(values.name, values.fullName, values.email, values.password, domain, siteName);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!domain || !siteName) {
+        toast({
+            variant: 'destructive',
+            title: 'নিবন্ধন ব্যর্থ',
+            description: 'ডোমেইন এবং সাইটের নাম প্রয়োজন। অনুগ্রহ করে আবার শুরু করুন।',
+        });
+        router.push('/get-started');
+        return;
+    }
+
+    setIsLoading(true);
+    const result = await register(values.username, values.fullName, values.email, values.password, domain, siteName, plan);
+    setIsLoading(false);
+
     if (result.user) {
         toast({ title: 'নিবন্ধন সফল', description: `স্বাগতম, ${values.fullName}!` });
         router.push(`/${result.user.domain}/profile`);
@@ -88,7 +104,7 @@ export default function RegisterPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="username"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>ব্যবহারকারীর নাম</FormLabel>
@@ -125,8 +141,8 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">
-                  অ্যাকাউন্ট তৈরি করুন
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? 'অ্যাকাউন্ট তৈরি করা হচ্ছে...' : 'অ্যাকাউন্ট তৈরি করুন'}
                 </Button>
               </form>
             </Form>

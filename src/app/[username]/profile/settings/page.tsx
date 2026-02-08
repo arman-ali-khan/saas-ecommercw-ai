@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
+import { useEffect, useState } from 'react';
 
 const profileSchema = z.object({
   fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
@@ -33,31 +34,43 @@ const passwordSchema = z.object({
 
 export default function SettingsPage() {
     const { toast } = useToast();
-    const { user, updateUser } = useAuth();
+    const { user, updateUserProfile } = useAuth();
+    const [isProfileLoading, setProfileLoading] = useState(false);
     
     const profileForm = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
-        defaultValues: { fullName: user?.fullName || '' },
+        defaultValues: { fullName: '' },
     });
+
+    useEffect(() => {
+        if(user) {
+            profileForm.reset({ fullName: user.fullName });
+        }
+    }, [user, profileForm]);
 
     const passwordForm = useForm<z.infer<typeof passwordSchema>>({
         resolver: zodResolver(passwordSchema),
         defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
     });
 
-    function onProfileSubmit(values: z.infer<typeof profileSchema>) {
+    async function onProfileSubmit(values: z.infer<typeof profileSchema>) {
         if (!user) return;
+        setProfileLoading(true);
+        const { error } = await updateUserProfile(user.id, { fullName: values.fullName });
+        setProfileLoading(false);
 
-        const updatedUser = updateUser(user.id, { fullName: values.fullName });
-
-        if (updatedUser) {
+        if (error) {
+            toast({ variant: 'destructive', title: 'Update failed', description: error });
+        } else {
             toast({ title: 'প্রোফাইল আপডেট হয়েছে!' });
         }
     }
 
     function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
         console.log(values);
-        toast({ title: 'পাসওয়ার্ড পরিবর্তন হয়েছে!' });
+        // In a real app, you would call supabase.auth.updateUser({ password: values.newPassword })
+        // and handle current password verification on the server.
+        toast({ title: 'পাসওয়ার্ড পরিবর্তন হয়েছে! (সিমুলেটেড)' });
         passwordForm.reset();
     }
 
@@ -87,11 +100,13 @@ export default function SettingsPage() {
                <FormItem>
                 <FormLabel>ইমেল</FormLabel>
                 <FormControl>
-                  <Input value={user?.email || ''} readOnly />
+                  <Input value={user?.email || ''} readOnly disabled />
                 </FormControl>
                 <FormDescription>ইমেল পরিবর্তন করা যাবে না।</FormDescription>
               </FormItem>
-              <Button type="submit">পরিবর্তনগুলি সংরক্ষণ করুন</Button>
+              <Button type="submit" disabled={isProfileLoading}>
+                {isProfileLoading ? 'সংরক্ষণ করা হচ্ছে...' : 'পরিবর্তনগুলি সংরক্ষণ করুন'}
+              </Button>
             </form>
           </Form>
         </CardContent>

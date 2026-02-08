@@ -19,10 +19,13 @@ export interface CartItem extends Product {
 
 export interface User {
   id: string;
-  name: string;
+  username: string;
   fullName: string;
   email: string;
   domain: string;
   siteName: string;
+  siteDescription: string | null;
+  subscriptionPlan: string | null;
+  role: string | null;
   isSaaSAdmin?: boolean;
 }

@@ -23,9 +23,9 @@ import { SheetClose } from './ui/sheet';
 
 export default function AdminMobileSidebar({ username }: { username: string }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   
-  if (!user) {
+  if (loading || !user) {
     return null;
   }
 

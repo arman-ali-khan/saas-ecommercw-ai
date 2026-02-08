@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import SiteLayout from '@/components/site-layout';
+import AuthProvider from '@/components/auth-provider';
 
 export const metadata: Metadata = {
   title: 'বাংলা ন্যাচারালস',
@@ -28,7 +29,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
-        <SiteLayout>{children}</SiteLayout>
+        <AuthProvider>
+          <SiteLayout>{children}</SiteLayout>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

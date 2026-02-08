@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@/stores/auth';
 import {
   Card,
   CardContent,
@@ -20,10 +19,23 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import type { User } from '@/types';
 
 
 export default function UsersAdminPage() {
-    const { allUsers } = useAuth();
+    const [users, setUsers] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            const { data, error } = await supabase.from('profiles').select('*');
+            if (data) {
+                setUsers(data);
+            }
+        }
+        fetchUsers();
+    }, []);
     
     return (
         <Card>
@@ -32,7 +44,7 @@ export default function UsersAdminPage() {
                 <CardDescription>View and manage all registered users.</CardDescription>
             </CardHeader>
             <CardContent>
-                {allUsers.length > 0 ? (
+                {users.length > 0 ? (
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -43,20 +55,20 @@ export default function UsersAdminPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {allUsers.map(user => (
+                            {users.map(user => (
                                 <TableRow key={user.id}>
                                     <TableCell className="font-medium">
                                         <div className="flex items-center gap-3">
                                             <Avatar>
-                                                <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
+                                                <AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <p>{user.fullName}</p>
+                                                <p>{user.full_name}</p>
                                                 <p className="text-sm text-muted-foreground">{user.email}</p>
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{user.siteName}</TableCell>
+                                    <TableCell>{user.site_name}</TableCell>
                                     <TableCell>{user.domain}.banglanaturals.site</TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>

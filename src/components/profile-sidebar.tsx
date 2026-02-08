@@ -14,9 +14,10 @@ import { useAuth } from '@/stores/auth';
 
 export default function ProfileSidebar({ username }: { username: string }) {
   const pathname = usePathname();
-  const user = useAuth((state) => state.user);
+  const { user, loading } = useAuth();
 
-  if (!user || user.domain !== username) {
+  if (loading || !user || user.domain !== username) {
+    // Skeleton can be shown by parent layout
     return null;
   }
 

@@ -19,22 +19,17 @@ import { useEffect, useState } from 'react';
 
 
 export default function ProfilePage() {
-  const { user, logout: logoutAction } = useAuth();
+  const { user, logout: logoutAction, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [isHydrated, setIsHydrated] = useState(false);
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  const logout = () => {
-    logoutAction();
+  const logout = async () => {
+    await logoutAction();
     toast({ title: 'লগ আউট', description: "আপনি সফলভাবে লগ আউট হয়েছেন।" });
     router.push('/');
   }
 
-  if (!isHydrated || !user) {
+  if (loading) {
     return (
       <div className="space-y-6">
             <Card>
@@ -66,6 +61,11 @@ export default function ProfilePage() {
             </Card>
       </div>
     );
+  }
+
+  if (!user) {
+    // This can be a more friendly "Please log in" message
+    return <div>Loading user...</div>
   }
 
   return (

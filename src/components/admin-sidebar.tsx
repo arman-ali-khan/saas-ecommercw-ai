@@ -22,10 +22,22 @@ import { useAuth } from '@/stores/auth';
 
 export default function AdminSidebar({ username }: { username: string }) {
   const pathname = usePathname();
-  const user = useAuth((state) => state.user);
+  const { user, loading } = useAuth();
   
-  if (!user) {
-    return null; // Or a loading skeleton
+  if (loading || !user) {
+    // You can return a loading skeleton here
+    return (
+      <div className="hidden border-r border-sidebar-border bg-sidebar md:block">
+        <div className="flex h-full max-h-screen flex-col gap-2">
+            <div className="flex h-20 items-center border-b border-sidebar-border px-6">
+                {/* Skeleton for logo */}
+            </div>
+            <div className="flex-1 overflow-auto py-2">
+                {/* Skeleton for nav */}
+            </div>
+        </div>
+      </div>
+    )
   }
 
   const adminNavLinks = [

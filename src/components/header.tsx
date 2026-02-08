@@ -34,13 +34,8 @@ import { Skeleton } from './ui/skeleton';
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout: logoutAction } = useAuth();
+  const { user, logout: logoutAction, loading } = useAuth();
   const { toast } = useToast();
-  
-  const [isHydrated, setIsHydrated] = useState(false);
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
 
   const segments = pathname.split('/').filter(Boolean);
   const KNOWN_ROOT_PATHS = [
@@ -68,8 +63,8 @@ export default function Header() {
     navLinks.push({ href: `/${user.domain}/admin`, label: 'অ্যাডমিন' });
   }
 
-  const logout = () => {
-    logoutAction();
+  const logout = async () => {
+    await logoutAction();
     toast({ title: 'লগ আউট', description: "আপনি সফলভাবে লগ আউট হয়েছেন।" });
     router.push('/');
   };
@@ -104,7 +99,7 @@ export default function Header() {
   };
 
   const AuthNavMobile = () => {
-    if (!isHydrated) return null;
+    if (loading) return null;
     if (user) return null;
     return (
       <div className="border-t pt-6 mt-6 space-y-4">
@@ -176,7 +171,7 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           <ShoppingCart />
-          {!isHydrated ? (
+          {loading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
           ) : user ? (
             <DropdownMenu>

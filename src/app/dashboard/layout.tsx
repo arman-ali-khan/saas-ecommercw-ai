@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import SaasAdminSidebar from '@/components/saas-admin-sidebar';
 import { useAuth } from '@/stores/auth';
@@ -16,21 +16,16 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (isHydrated && (!user || !user.isSaaSAdmin)) {
+    if (!loading && (!user || !user.isSaaSAdmin)) {
       router.push('/login');
     }
-  }, [user, isHydrated, router]);
+  }, [user, loading, router]);
 
-  if (!isHydrated || !user || !user.isSaaSAdmin) {
+  if (loading || !user || !user.isSaaSAdmin) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Skeleton className="h-full w-full" />
@@ -55,8 +50,8 @@ export default function DashboardLayout({
                 </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="flex flex-col p-0">
-                    <SheetHeader className="sr-only">
-                        <SheetTitle>SaaS Admin Menu</SheetTitle>
+                    <SheetHeader className="p-4 border-b">
+                        <SheetTitle className='sr-only'>SaaS Admin Menu</SheetTitle>
                     </SheetHeader>
                     <div className="flex h-20 items-center border-b px-6">
                         <SheetClose asChild>

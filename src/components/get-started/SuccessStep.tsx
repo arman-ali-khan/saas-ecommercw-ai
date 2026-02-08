@@ -30,7 +30,7 @@ export default function SuccessStep({ formData }: SuccessStepProps) {
                     আপনার দোকান পরিচালনা করতে এবং পণ্য যোগ করা শুরু করতে, অনুগ্রহ করে আপনার অ্যাডমিন অ্যাকাউন্টের জন্য নিবন্ধন করুন।
                 </p>
                 <Button asChild size="lg">
-                    <Link href={`/register?siteName=${encodeURIComponent(formData.siteName)}&domain=${encodeURIComponent(formData.domain)}`}>
+                    <Link href={`/register?siteName=${encodeURIComponent(formData.siteName)}&domain=${encodeURIComponent(formData.domain)}&plan=${formData.plan}`}>
                         অ্যাডমিন অ্যাকাউন্ট তৈরি করুন
                     </Link>
                 </Button>

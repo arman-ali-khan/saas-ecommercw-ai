@@ -1,85 +1,180 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import type { User } from '@/types';
+import { supabase } from '@/lib/supabase/client';
+import type { Session } from '@supabase/supabase-js';
 
 const SAAS_ADMIN_EMAIL = 'admin@banglanaturals.com';
 
-type StoredUser = User & { passwordHash: string };
-
 interface AuthState {
   user: User | null;
-  allUsers: StoredUser[]; // Store with password hash for login check
-  login: (email: string, password: string) => User | null;
-  register: (name: string, fullName: string, email: string, password: string, domain: string, siteName: string) => { user: User | null, error?: string };
-  logout: () => void;
-  updateUser: (userId: string, updates: { fullName?: string }) => User | null;
+  session: Session | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<{ user: User | null; error: string | null }>;
+  register: (
+    username: string,
+    fullName: string,
+    email: string,
+    password: string,
+    domain: string,
+    siteName: string,
+    plan: string
+  ) => Promise<{ user: User | null, error: string | null }>;
+  logout: () => Promise<void>;
+  setUser: (user: User | null) => void;
+  setSession: (session: Session | null) => void;
+  setLoading: (loading: boolean) => void;
+  updateUserProfile: (userId: string, updates: Partial<User>) => Promise<{ user: User | null, error: string | null }>;
 }
 
-export const useAuth = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      allUsers: [],
-      login: (email, password) => {
-        if (email === SAAS_ADMIN_EMAIL && password === 'admin') {
-            const adminUser: User = { id: 'saas-admin', name: 'SaaS Admin', fullName: 'SaaS Admin', email: SAAS_ADMIN_EMAIL, isSaaSAdmin: true, domain: '', siteName: '' };
-            set({ user: adminUser });
-            return adminUser;
-        }
-        const foundUser = get().allUsers.find((u) => u.email === email);
-        if (foundUser) { // In real app, check password hash
-            const { passwordHash, ...userToStore } = foundUser;
-            set({ user: userToStore });
-            return userToStore;
-        }
-        return null;
-      },
-      register: (name, fullName, email, password, domain, siteName) => {
-        const { allUsers } = get();
-        if (email === SAAS_ADMIN_EMAIL) return { user: null, error: 'This email is reserved.' };
-        if (allUsers.some((u) => u.email === email)) return { user: null, error: 'এই ইমেল দিয়ে একটি অ্যাকাউন্ট ইতিমধ্যে বিদ্যমান।' };
-        if (allUsers.some((u) => u.name.toLowerCase() === name.toLowerCase())) return { user: null, error: 'এই ব্যবহারকারীর নামটি ইতিমধ্যে ব্যবহৃত হচ্ছে।'};
-        if (domain && allUsers.some((u) => u.domain && u.domain.toLowerCase() === domain.toLowerCase())) return { user: null, error: 'এই ডোমেইন নামটি ইতিমধ্যে ব্যবহৃত হচ্ছে।'};
-        if (/[^a-zA-Z0-9]/.test(name)) return { user: null, error: 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।'};
-        if (!domain) return { user: null, error: 'ডোমেইন নাম প্রয়োজন।' };
+export const useAuth = create<AuthState>()((set, get) => ({
+    user: null,
+    session: null,
+    loading: true, // Initially loading until auth state is checked
+    
+    setUser: (user) => set({ user }),
+    setSession: (session) => set({ session }),
+    setLoading: (loading) => set({ loading }),
 
-        const newUser: User = { id: Date.now().toString(), name, fullName, email, domain, siteName, isSaaSAdmin: false };
-        const newUserWithPassword: StoredUser = { ...newUser, passwordHash: password };
+    login: async (email, password) => {
+      if (email === SAAS_ADMIN_EMAIL && password === 'admin') {
+        // This is a backdoor for the SaaS admin for demo purposes.
+        // In a real app, the SaaS admin should have a proper Supabase user.
+        const adminUser: User = { 
+          id: 'saas-admin', 
+          username: 'saas-admin', 
+          fullName: 'SaaS Admin', 
+          email: SAAS_ADMIN_EMAIL, 
+          isSaaSAdmin: true, 
+          domain: '', 
+          siteName: 'SaaS Platform',
+          siteDescription: null,
+          subscriptionPlan: 'enterprise',
+          role: 'saas_admin'
+        };
+        set({ user: adminUser, session: null, loading: false });
+        return { user: adminUser, error: null };
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        return { user: null, error: error.message };
+      }
+      
+      if (data.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
         
-        set(state => ({
-            user: newUser,
-            allUsers: [...state.allUsers, newUserWithPassword]
-        }));
+        if (profileError) {
+            return { user: null, error: 'Could not find user profile.' };
+        }
         
-        return { user: newUser };
-      },
-      logout: () => set({ user: null }),
-      updateUser: (userId, updates) => {
-        let userToReturn: User | null = null;
-        set(state => {
-            const userIndex = state.allUsers.findIndex(u => u.id === userId);
-            if (userIndex === -1) return state;
+        const userToStore: User = {
+          id: profile.id,
+          username: profile.username,
+          fullName: profile.full_name,
+          email: data.user.email!,
+          domain: profile.domain,
+          siteName: profile.site_name,
+          siteDescription: profile.site_description,
+          subscriptionPlan: profile.subscription_plan,
+          role: profile.role,
+        };
 
-            const updatedUsers = [...state.allUsers];
-            const updatedUserWithPassword = { ...updatedUsers[userIndex], ...updates };
-            updatedUsers[userIndex] = updatedUserWithPassword;
+        set({ user: userToStore, session: data.session, loading: false });
+        return { user: userToStore, error: null };
+      }
+      
+      return { user: null, error: 'An unknown error occurred.' };
+    },
 
-            const { passwordHash, ...userToStore } = updatedUserWithPassword;
-            userToReturn = userToStore;
-            
-            let finalUser = state.user;
-            if (state.user?.id === userId) {
-                finalUser = userToStore;
-            }
-
-            return { allUsers: updatedUsers, user: finalUser };
+    register: async (username, fullName, email, password, domain, siteName, plan) => {
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
         });
-        return userToReturn;
-      },
-    }),
-    {
-      name: 'bangla-naturals-auth', // a single key for auth state
-      storage: createJSONStorage(() => localStorage),
+
+        if (error) {
+            return { user: null, error: error.message };
+        }
+
+        if (!data.user) {
+            return { user: null, error: 'Registration successful, but no user data returned.' };
+        }
+
+        const { error: profileError } = await supabase.from('profiles').insert({
+            id: data.user.id,
+            username,
+            full_name: fullName,
+            domain,
+            site_name: siteName,
+            subscription_plan: plan,
+            role: 'admin',
+        });
+
+        if (profileError) {
+             // Attempt to clean up the auth user if profile insert fails
+            // This is complex, ideally handled by a server-side transaction
+            console.error('Failed to create user profile:', profileError.message);
+            return { user: null, error: `Could not create user profile: ${profileError.message}` };
+        }
+        
+        const newUser: User = {
+            id: data.user.id,
+            username,
+            fullName,
+            email,
+            domain,
+            siteName,
+            subscriptionPlan: plan,
+            role: 'admin',
+            siteDescription: null,
+        };
+
+        set({ user: newUser, session: data.session, loading: false });
+
+        return { user: newUser, error: null };
+    },
+    
+    logout: async () => {
+      await supabase.auth.signOut();
+      set({ user: null, session: null, loading: false });
+    },
+    
+    updateUserProfile: async (userId: string, updates: Partial<User>) => {
+        const { fullName, username } = updates;
+        const supabaseUpdates: {[key: string]: any} = {};
+
+        if (fullName) supabaseUpdates.full_name = fullName;
+        if (username) supabaseUpdates.username = username;
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .update(supabaseUpdates)
+            .eq('id', userId)
+            .select()
+            .single();
+
+        if (error) {
+            return { user: null, error: error.message };
+        }
+        
+        const updatedUser: User = {
+          id: data.id,
+          username: data.username,
+          fullName: data.full_name,
+          email: get().user?.email || '', // email doesn't change
+          domain: data.domain,
+          siteName: data.site_name,
+          siteDescription: data.site_description,
+          subscriptionPlan: data.subscription_plan,
+          role: data.role,
+        };
+        
+        set({ user: updatedUser });
+        return { user: updatedUser, error: null };
     }
-  )
-);
+}));

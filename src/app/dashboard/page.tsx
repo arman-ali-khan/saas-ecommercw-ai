@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase/client';
 
 // Mock data from subscriptions page
 const subscriptions = [
@@ -68,7 +70,17 @@ const subscriptions = [
 ];
 
 export default function SaasAdminDashboard() {
-  const { allUsers } = useAuth();
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data } = await supabase.from('profiles').select('*');
+      if (data) {
+        setAllUsers(data);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const getStatusBadgeVariant = (
     status: string
@@ -162,18 +174,18 @@ export default function SaasAdminDashboard() {
                         <div className="flex items-center gap-3">
                           <Avatar>
                             <AvatarFallback>
-                              {user.fullName.charAt(0)}
+                              {user.full_name?.charAt(0) || 'U'}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p>{user.fullName}</p>
+                            <p>{user.full_name}</p>
                             <p className="text-sm text-muted-foreground">
                               {user.email}
                             </p>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{user.siteName}</TableCell>
+                      <TableCell>{user.site_name}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +36,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,8 +46,10 @@ export default function LoginPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const user = login(values.email, values.password);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    const { user, error } = await login(values.email, values.password);
+    setIsLoading(false);
 
     if (user) {
       if (user.isSaaSAdmin) {
@@ -62,7 +66,7 @@ export default function LoginPage() {
       toast({
         variant: 'destructive',
         title: 'লগইন ব্যর্থ',
-        description: 'অবৈধ ইমেল বা পাসওয়ার্ড।',
+        description: error || 'অবৈধ ইমেল বা পাসওয়ার্ড।',
       });
     }
   }
@@ -109,8 +113,8 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                সাইন ইন
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? 'সাইন ইন করা হচ্ছে...' : 'সাইন ইন'}
               </Button>
             </form>
           </Form>
