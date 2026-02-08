@@ -67,7 +67,7 @@ export default function UsersAdminPage() {
                 domain,
                 site_name,
                 site_description
-            `).order('created_at', { ascending: false });
+            `).order('full_name', { ascending: true });
             const settingsPromise = supabase.from('saas_settings').select('base_domain').eq('id', 1).single();
 
             const [{ data: usersData, error: usersError }, { data: settingsData }] = await Promise.all([usersPromise, settingsPromise]);
@@ -98,6 +98,11 @@ export default function UsersAdminPage() {
         setSelectedUser(user);
         setIsDeleteOpen(true);
     }
+    
+    const paginatedUsers = users.slice(
+        (currentPage - 1) * USERS_PER_PAGE,
+        currentPage * USERS_PER_PAGE
+    );
 
     const performDelete = async () => {
         if (!selectedUser) return;
@@ -126,11 +131,7 @@ export default function UsersAdminPage() {
     }
     
     const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
-    const paginatedUsers = users.slice(
-        (currentPage - 1) * USERS_PER_PAGE,
-        currentPage * USERS_PER_PAGE
-    );
-
+    
     if (loading) {
         return (
             <Card>
