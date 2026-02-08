@@ -23,14 +23,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from '@/components/ui/radio-group';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/lib/supabase/client';
 
 const checkoutSchema = z
   .object({
@@ -68,9 +66,9 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [isHydrated, setIsHydrated] = useState(false);
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+  const [uncompletedOrderId, setUncompletedOrderId] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
+
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -85,6 +83,85 @@ export default function CheckoutPage() {
   });
 
   const paymentMethod = form.watch('paymentMethod');
+  const watchedFormValues = form.watch();
+
+  useEffect(() => {
+    setIsHydrated(true);
+    // Fetch siteId based on domain
+    const getSiteId = async () => {
+      if (username) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('domain', username)
+          .single();
+        if (data) {
+          setSiteId(data.id);
+        }
+      }
+    };
+    getSiteId();
+  }, [username]);
+
+    // This effect handles saving the uncompleted order
+  useEffect(() => {
+    // Debounce to avoid excessive writes
+    const handler = setTimeout(() => {
+      // Conditions to avoid running: not hydrated, cart is empty, or siteId not yet fetched
+      if (!isHydrated || cartCount === 0 || !siteId) {
+        return;
+      }
+
+      const customerInfo = {
+        name: watchedFormValues.name,
+        address: watchedFormValues.address,
+        city: watchedFormValues.city,
+        phone: watchedFormValues.phone,
+      };
+
+      // Check if user has started filling the form
+      const hasShippingInfo = Object.values(customerInfo).some(val => val && val.trim() !== '');
+
+      const saveUncompletedOrder = async () => {
+        const payload = {
+          id: uncompletedOrderId || undefined,
+          site_id: siteId,
+          customer_info: customerInfo,
+          cart_items: cartItems.map(item => ({
+              id: item.id,
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price,
+              imageUrl: item.images[0]?.imageUrl
+          })),
+          cart_total: cartTotal,
+          status: hasShippingInfo ? 'shipping-info-entered' : 'started-checkout',
+        };
+        
+        // Use upsert: it will insert if id is null, or update if id is provided
+        const { data, error } = await supabase
+          .from('uncompleted_orders')
+          .upsert(payload)
+          .select('id')
+          .single();
+
+        if (error) {
+          console.error('Error saving uncompleted order:', error.message);
+        } else if (data && !uncompletedOrderId) {
+          // If it was a new insert, store the returned ID for future updates
+          setUncompletedOrderId(data.id);
+        }
+      };
+
+      saveUncompletedOrder();
+
+    }, 1500); // Debounce for 1.5 seconds
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [watchedFormValues, siteId, cartItems, cartTotal, cartCount, isHydrated, uncompletedOrderId]);
+
 
   useEffect(() => {
     if (isHydrated && cartCount === 0) {
@@ -110,9 +187,21 @@ export default function CheckoutPage() {
     );
   }
 
-  function onSubmit(values: z.infer<typeof checkoutSchema>) {
+  async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     console.log(values);
+    
+    // In a real app, you would create the final order here.
+    
+    // After successfully creating the order, delete the uncompleted order record.
+    if (uncompletedOrderId) {
+      const { error } = await supabase.from('uncompleted_orders').delete().eq('id', uncompletedOrderId);
+      if (error) {
+        console.error("Error deleting uncompleted order:", error.message);
+      }
+    }
+
     alert('অর্ডার সফলভাবে স্থাপন করা হয়েছে! (এটি একটি ডেমো)');
+    // Potentially clear the cart and redirect to a success page here.
   }
 
   return (
