@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
@@ -76,6 +76,8 @@ export default function CheckoutPage() {
   const [siteId, setSiteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, loading: authLoading } = useAuth();
+  const [paymentSettings, setPaymentSettings] = useState<{mobile_banking_number: string | null, accepted_banking_methods: string[] | null} | null>(null);
+  const [isLoadingPaymentSettings, setIsLoadingPaymentSettings] = useState(true);
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -108,6 +110,34 @@ export default function CheckoutPage() {
     };
     getSiteId();
   }, [username]);
+  
+  useEffect(() => {
+    const fetchPaymentSettings = async () => {
+        setIsLoadingPaymentSettings(true);
+        // This assumes a public read policy on saas_settings for these fields.
+        const { data, error } = await supabase
+            .from('saas_settings')
+            .select('mobile_banking_number, accepted_banking_methods')
+            .eq('id', 1)
+            .single();
+        
+        if (data) {
+            setPaymentSettings(data);
+        } else {
+            console.error("Could not fetch payment settings:", error?.message);
+        }
+        setIsLoadingPaymentSettings(false);
+    }
+    fetchPaymentSettings();
+  }, []);
+
+  const acceptedMethods = useMemo(() => {
+    if (!paymentSettings?.accepted_banking_methods || paymentSettings.accepted_banking_methods.length === 0) {
+        return 'যেমন বিকাশ, নগদ';
+    }
+    return paymentSettings.accepted_banking_methods.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ');
+  }, [paymentSettings]);
+
 
   // Fetch existing uncompleted order for logged-in user
   useEffect(() => {
@@ -463,15 +493,22 @@ export default function CheckoutPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                  {isLoadingPaymentSettings ? (
+                      <div className="space-y-4">
+                          <Skeleton className="h-40 w-full" />
+                          <Skeleton className="h-10 w-full" />
+                      </div>
+                  ) : (
+                    <>
                     <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
                       <ol className="list-decimal list-inside space-y-2">
                         <li>
-                          আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ (যেমন বিকাশ, নগদ)
+                          আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ ({acceptedMethods})
                           খুলুন।
                         </li>
                         <li>"পেমেন্ট" অপশন নির্বাচন করুন।</li>
                         <li>
-                          মার্চেন্ট নম্বর হিসেবে <strong>01234567890</strong>{' '}
+                          মার্চেন্ট নম্বর হিসেবে <strong>{paymentSettings?.mobile_banking_number || '01...'}</strong>{' '}
                           দিন।
                         </li>
                         <li>
@@ -503,6 +540,8 @@ export default function CheckoutPage() {
                         </FormItem>
                       )}
                     />
+                    </>
+                  )}
                   </CardContent>
                 </Card>
               )}

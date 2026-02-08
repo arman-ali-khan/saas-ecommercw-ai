@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import type { FormData } from "@/app/get-started/page";
+import type { FormData } from "@/components/get-started/GetStartedFlow";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { type Plan } from "@/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -54,7 +54,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext }: 
 
     useEffect(() => {
         const fetchSettings = async () => {
-            const { data } = await supabase.from('saas_settings').select('*').eq('id', 1).single();
+            setIsLoading(true);
+            const { data } = await supabase.from('saas_settings').select('mobile_banking_enabled, mobile_banking_number, accepted_banking_methods').eq('id', 1).single();
             if (data) {
                 setSettings(data);
             }
@@ -66,6 +67,14 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext }: 
     const paymentMethod = form.watch('paymentMethod');
     const price = plan?.price || '0';
     const merchantNumber = settings?.mobile_banking_number || '...';
+    
+    const acceptedMethods = useMemo(() => {
+        if (!settings?.accepted_banking_methods || settings.accepted_banking_methods.length === 0) {
+            return 'বিকাশ, নগদ, ইত্যাদি';
+        }
+        return settings.accepted_banking_methods.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ');
+    }, [settings]);
+
 
     function onSubmit(values: z.infer<typeof paymentSchema>) {
         console.log("Payment details submitted:", values);
@@ -136,7 +145,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext }: 
                                 <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
                                     <h3 className="font-bold mb-2 text-foreground">মোবাইল ব্যাংকিং নির্দেশনা</h3>
                                     <ol className="list-decimal list-inside space-y-2">
-                                        <li>আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ (বিকাশ, নগদ, ইত্যাদি) খুলুন।</li>
+                                        <li>আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ ({acceptedMethods}) খুলুন।</li>
                                         <li>"পেমেন্ট" অপশন নির্বাচন করুন।</li>
                                         <li>মার্চেন্ট নম্বর হিসেবে <strong>{merchantNumber}</strong> দিন।</li>
                                         <li>টাকার পরিমাণ হিসেবে <strong>{price}</strong> লিখুন।</li>
