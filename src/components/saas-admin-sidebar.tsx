@@ -31,8 +31,8 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     return null; // Or a loading skeleton
   }
 
-  const logout = () => {
-    logoutAction();
+  const logout = async () => {
+    await logoutAction();
     toast({ title: 'Logged Out' });
     router.push('/');
   }
