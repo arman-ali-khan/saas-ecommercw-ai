@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
 import { getProductById } from '@/lib/products';
@@ -11,6 +11,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from '@/components/ui/carousel';
 import { useCart } from '@/stores/cart';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +27,7 @@ import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
 import type { Product } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const TikTokIcon = () => (
   <svg
@@ -51,11 +53,29 @@ export default function ProductPage() {
   const id = params.id as string;
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
   const [quantity, setQuantity] = useState(1);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
+
+  const [mainApi, setMainApi] = useState<CarouselApi>();
+  const [thumbApi, setThumbApi] = useState<CarouselApi>();
+  const [selectedSnap, setSelectedSnap] = useState(0);
+
+  const onThumbClick = useCallback(
+    (index: number) => {
+      if (!mainApi || !thumbApi) return;
+      mainApi.scrollTo(index);
+    },
+    [mainApi, thumbApi]
+  );
+
+  const onSelect = useCallback(() => {
+    if (!mainApi || !thumbApi) return;
+    const selected = mainApi.selectedScrollSnap();
+    setSelectedSnap(selected);
+    thumbApi.scrollTo(selected);
+  }, [mainApi, thumbApi]);
 
   useEffect(() => {
     if (!id) return;
@@ -72,10 +92,29 @@ export default function ProductPage() {
     fetchProduct();
   }, [id]);
 
+  useEffect(() => {
+    if (!mainApi) return;
+    onSelect();
+    mainApi.on('select', onSelect);
+    mainApi.on('reInit', onSelect);
+    return () => {
+      mainApi.off('select', onSelect);
+      mainApi.off('reInit', onSelect);
+    };
+  }, [mainApi, onSelect]);
+
   if (isLoading) {
     return (
       <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-        <Skeleton className="w-full h-[50vh] rounded-lg" />
+        <div className="space-y-4">
+          <Skeleton className="w-full h-[50vh] rounded-lg" />
+          <div className="flex gap-4">
+            <Skeleton className="h-24 w-24 rounded-md" />
+            <Skeleton className="h-24 w-24 rounded-md" />
+            <Skeleton className="h-24 w-24 rounded-md" />
+            <Skeleton className="h-24 w-24 rounded-md" />
+          </div>
+        </div>
         <div className="flex flex-col space-y-4">
           <Skeleton className="h-10 w-3/4" />
           <Skeleton className="h-8 w-1/4" />
@@ -93,8 +132,6 @@ export default function ProductPage() {
   }
 
   if (!product) {
-    // This case should be handled by notFound() in useEffect,
-    // but it's good practice to have a fallback.
     return null;
   }
 
@@ -116,30 +153,71 @@ export default function ProductPage() {
 
   return (
     <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-      <Carousel className="w-full">
-        <CarouselContent>
-          {images.map((image, index) => (
-            <CarouselItem key={index}>
-              <div className="relative w-full h-[50vh] rounded-lg overflow-hidden shadow-lg">
-                <Image
-                  src={image.imageUrl}
-                  alt={`${product.name} image ${index + 1}`}
-                  data-ai-hint={image.imageHint}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
+      <div className="space-y-4">
+        <Carousel className="w-full" setApi={setMainApi}>
+          <CarouselContent>
+            {images.map((image, index) => (
+              <CarouselItem key={index}>
+                <div className="relative w-full h-[50vh] rounded-lg overflow-hidden shadow-lg">
+                  <Image
+                    src={image.imageUrl}
+                    alt={`${product.name} image ${index + 1}`}
+                    data-ai-hint={image.imageHint}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority={index === 0}
+                  />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          {images.length > 1 && (
+            <>
+              <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
+              <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
+            </>
+          )}
+        </Carousel>
+
         {images.length > 1 && (
-          <>
-            <CarouselPrevious className="ml-16" />
-            <CarouselNext className="mr-16" />
-          </>
+          <Carousel
+            setApi={setThumbApi}
+            opts={{
+              align: 'start',
+              containScroll: 'keepSnaps',
+              dragFree: true,
+            }}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-2">
+              {images.map((image, index) => (
+                <CarouselItem
+                  key={index}
+                  onClick={() => onThumbClick(index)}
+                  className="pl-2 basis-1/4 cursor-pointer"
+                >
+                  <div
+                    className={cn(
+                      'relative aspect-square w-full rounded-md overflow-hidden ring-offset-background transition-all',
+                      selectedSnap === index
+                        ? 'ring-2 ring-primary ring-offset-2'
+                        : 'opacity-60 hover:opacity-100'
+                    )}
+                  >
+                    <Image
+                      src={image.imageUrl}
+                      alt={`Thumbnail ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
         )}
-      </Carousel>
+      </div>
 
       <div className="flex flex-col">
         <h1 className="text-4xl font-headline font-bold">{product.name}</h1>
@@ -235,9 +313,9 @@ export default function ProductPage() {
       </div>
       {product && (
         <AiShareTool
-            product={product}
-            open={isAiModalOpen}
-            onOpenChange={setIsAiModalOpen}
+          product={product}
+          open={isAiModalOpen}
+          onOpenChange={setIsAiModalOpen}
         />
       )}
     </div>
