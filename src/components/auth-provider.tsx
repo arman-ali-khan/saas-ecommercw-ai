@@ -101,7 +101,7 @@ export default function AuthProvider({
                     };
                     setUser(appUser);
                 } else {
-                    console.error('Failed to create user profile:', insertError);
+                    console.error('Failed to create user profile. This is likely due to a missing RLS policy on the profiles table. Error:', insertError);
                     await supabase.auth.signOut();
                     setUser(null);
                 }
