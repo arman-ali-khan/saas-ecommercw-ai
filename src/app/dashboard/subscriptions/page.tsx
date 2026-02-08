@@ -68,6 +68,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, MoreHorizontal, Edit, Trash2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const subscriptionSchema = z.object({
   id: z.string().optional(),
@@ -161,46 +162,95 @@ export default function SubscriptionsAdminPage() {
             </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Plan</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Next Billing Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {subscriptions.map(sub => (
-                <TableRow key={sub.id}>
-                  <TableCell className="font-medium">{sub.user}</TableCell>
-                  <TableCell><Badge variant={sub.plan === 'Pro' ? 'default' : 'secondary'}>{sub.plan}</Badge></TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadgeVariant(sub.status)}>{sub.status}</Badge>
-                  </TableCell>
-                  <TableCell>{format(sub.nextBilling, 'PPP')}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => openForm(sub)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openDeleteAlert(sub)} className="text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {subscriptions.length > 0 ? (
+            <>
+              {/* Desktop View: Table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Next Billing Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {subscriptions.map(sub => (
+                      <TableRow key={sub.id}>
+                        <TableCell className="font-medium">{sub.user}</TableCell>
+                        <TableCell><Badge variant={sub.plan === 'Pro' ? 'default' : 'secondary'}>{sub.plan}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusBadgeVariant(sub.status)}>{sub.status}</Badge>
+                        </TableCell>
+                        <TableCell>{format(sub.nextBilling, 'PPP')}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => openForm(sub)}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openDeleteAlert(sub)} className="text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {/* Mobile View: Cards */}
+              <div className="grid gap-4 md:hidden">
+                {subscriptions.map(sub => (
+                  <Card key={sub.id}>
+                      <CardHeader>
+                          <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-3">
+                                  <Avatar>
+                                      <AvatarFallback>{sub.user.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                      <CardTitle className="text-lg">{sub.user}</CardTitle>
+                                      <CardDescription>Next Billing: {format(sub.nextBilling, 'PPP')}</CardDescription>
+                                  </div>
+                              </div>
+                              <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
+                                          <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => openForm(sub)}>
+                                          <Edit className="mr-2 h-4 w-4" /> Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => openDeleteAlert(sub)} className="text-destructive">
+                                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                      </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                              </DropdownMenu>
+                          </div>
+                      </CardHeader>
+                      <CardContent className="flex justify-between items-center pt-0">
+                          <Badge variant={sub.plan === 'Pro' ? 'default' : 'secondary'}>{sub.plan}</Badge>
+                          <Badge variant={getStatusBadgeVariant(sub.status)}>{sub.status}</Badge>
+                      </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">No subscriptions found.</p>
+          )}
         </CardContent>
       </Card>
 
