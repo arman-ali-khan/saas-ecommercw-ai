@@ -70,8 +70,8 @@ export default function SaasSettingsPage() {
   const saasForm = useForm<z.infer<typeof saasSettingsSchema>>({
     resolver: zodResolver(saasSettingsSchema),
     defaultValues: {
-      platformName: 'বাংলা ন্যাচারালস',
-      platformDescription: 'আপনার নিজস্ব ই-কমার্স সাম্রাজ্য তৈরি করার প্ল্যাটফর্ম।',
+      platformName: '',
+      platformDescription: '',
       logo_url: '',
       social_facebook: '',
       social_twitter: '',
@@ -96,34 +96,39 @@ export default function SaasSettingsPage() {
         setIsSaasLoading(true);
         setIsPaymentLoading(true);
 
-        const { data, error } = await supabase
-            .from('saas_settings')
-            .select('*')
-            .eq('id', 1)
-            .single();
+        try {
+            const { data, error } = await supabase
+                .from('saas_settings')
+                .select('*')
+                .eq('id', 1)
+                .single();
 
-        if (data) {
-            saasForm.reset({
-                platformName: data.platform_name || 'বাংলা ন্যাচারালস',
-                platformDescription: data.platform_description || '',
-                logo_url: data.logo_url || '',
-                social_facebook: data.social_facebook || '',
-                social_twitter: data.social_twitter || '',
-                social_tiktok: data.social_tiktok || '',
-                seoTitle: data.seo_title || '',
-                seoDescription: data.seo_description || '',
-                seoKeywords: data.seo_keywords || '',
-            });
-            paymentForm.reset({
-                mobileBankingEnabled: data.mobile_banking_enabled,
-                mobileBankingNumber: data.mobile_banking_number || '',
-                acceptedBankingMethods: data.accepted_banking_methods || [],
-            });
-        } else if (error && error.code !== 'PGRST116') {
-            toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
+            if (data) {
+                saasForm.reset({
+                    platformName: data.platform_name || '',
+                    platformDescription: data.platform_description || '',
+                    logo_url: data.logo_url || '',
+                    social_facebook: data.social_facebook || '',
+                    social_twitter: data.social_twitter || '',
+                    social_tiktok: data.social_tiktok || '',
+                    seoTitle: data.seo_title || '',
+                    seoDescription: data.seo_description || '',
+                    seoKeywords: data.seo_keywords || '',
+                });
+                paymentForm.reset({
+                    mobileBankingEnabled: data.mobile_banking_enabled || false,
+                    mobileBankingNumber: data.mobile_banking_number || '',
+                    acceptedBankingMethods: data.accepted_banking_methods || [],
+                });
+            } else if (error && error.code !== 'PGRST116') {
+                toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+        } finally {
+            setIsSaasLoading(false);
+            setIsPaymentLoading(false);
         }
-        setIsSaasLoading(false);
-        setIsPaymentLoading(false);
     };
     fetchSettings();
   }, [saasForm, paymentForm, toast]);

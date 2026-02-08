@@ -3,11 +3,43 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import SiteLayout from '@/components/site-layout';
 import AuthProvider from '@/components/auth-provider';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
  
-export const metadata: Metadata = {
-  title: 'বাংলা ন্যাচারালস',
-  description: 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = cookies();
+
+  // Create a Supabase client configured to use cookies
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  );
+
+  const { data } = await supabase
+    .from('saas_settings')
+    .select('platform_name, platform_description, seo_title, seo_description, seo_keywords')
+    .eq('id', 1)
+    .single();
+
+  const settings = data || {};
+
+  const title = settings.seo_title || settings.platform_name || 'বাংলা ন্যাচারালস';
+  const description = settings.seo_description || settings.platform_description || 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।';
+
+  return {
+    title: title,
+    description: description,
+    keywords: settings.seo_keywords || '',
+  }
+}
+
 
 export default function RootLayout({
   children,
