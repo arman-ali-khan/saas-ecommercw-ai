@@ -49,14 +49,16 @@ export default function SubscriptionPaymentsPage() {
     if (paymentsError) {
       toast({
         variant: 'destructive',
-        title: 'Error fetching subscription payments',
-        description: paymentsError.message,
+        title: 'Error Fetching Subscription Payments',
+        description: `Could not load payment data. This is likely a database permissions issue. Error: ${paymentsError.message}`,
+        duration: 10000,
       });
+      console.error("Subscription Payments fetch error:", paymentsError);
       setIsLoading(false);
       return;
     }
     
-    if (!paymentsData) {
+    if (!paymentsData || paymentsData.length === 0) {
       setPayments([]);
       setIsLoading(false);
       return;
@@ -79,11 +81,10 @@ export default function SubscriptionPaymentsPage() {
         const description = profilesError?.message || plansError?.message || 'Could not fetch related data.';
         toast({
             variant: 'destructive',
-            title: 'Error fetching subscription details',
-            description,
+            title: 'Error Fetching Subscription Details',
+            description: `Could not load user or plan details. This may be a database permissions issue. ${description}`,
+            duration: 10000,
         });
-        setIsLoading(false);
-        return;
     }
 
     const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
@@ -208,7 +209,10 @@ export default function SubscriptionPaymentsPage() {
               </div>
             </>
           ) : (
-            <p className="text-muted-foreground text-center py-8">No payment records found.</p>
+            <div className="text-center py-16">
+              <p className="text-muted-foreground">No payment records found.</p>
+              <p className="text-xs text-muted-foreground mt-2">If you have just added the security policies, please try refreshing the page.</p>
+            </div>
           )}
         </CardContent>
       </Card>
