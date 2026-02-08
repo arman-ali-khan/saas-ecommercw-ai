@@ -83,7 +83,7 @@ export default function AuthProvider({
 
                         if (paymentError) {
                             // This is a non-fatal error for the user session, but needs logging for manual intervention.
-                            console.error("CRITICAL: Failed to create subscription_payments record for new user:", paymentError);
+                            console.error("CRITICAL: Failed to create subscription_payments record for new user. This is likely due to a missing RLS policy for INSERT on the 'subscription_payments' table. Error:", paymentError);
                         }
                     }
 
@@ -101,7 +101,7 @@ export default function AuthProvider({
                     };
                     setUser(appUser);
                 } else {
-                    console.error('Failed to create user profile. This is likely due to a missing RLS policy on the profiles table. Error:', insertError);
+                    console.error("Failed to create user profile. This is likely due to a missing RLS policy on the 'profiles' table. Error:", insertError);
                     await supabase.auth.signOut();
                     setUser(null);
                 }
