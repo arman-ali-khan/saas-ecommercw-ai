@@ -13,9 +13,11 @@ interface DomainStepProps {
     onNext: () => void;
 }
 
+const RESERVED_DOMAINS = ['admin', 'dashboard', 'profile', 'products', 'about', 'checkout', 'login', 'register', 'get-started', 'api', 'www', 'store', 'shop', 'mail', 'ftp', 'test', 'dev'];
+
 export default function DomainStep({ formData, updateFormData, onNext }: DomainStepProps) {
     const [domain, setDomain] = useState(formData.domain);
-    const [availabilityStatus, setAvailabilityStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short'>('empty');
+    const [availabilityStatus, setAvailabilityStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short' | 'reserved'>('empty');
     const [debouncedDomain, setDebouncedDomain] = useState(domain);
 
     useEffect(() => {
@@ -46,6 +48,11 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
                 setAvailabilityStatus('too_short');
                 return;
             }
+            if (RESERVED_DOMAINS.includes(debouncedDomain)) {
+                setAvailabilityStatus('reserved');
+                return;
+            }
+
             setAvailabilityStatus('checking');
 
             try {
@@ -92,6 +99,8 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
                 return <p className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> পরীক্ষা করা হচ্ছে...</p>;
             case 'unavailable':
                 return <p className="text-sm text-destructive">এই ডোমেইনটি ইতিমধ্যে ব্যবহৃত হয়েছে।</p>;
+            case 'reserved':
+                return <p className="text-sm text-destructive">এই ডোমেইনটি সংরক্ষিত। অনুগ্রহ করে অন্য একটি বেছে নিন।</p>;
             case 'available':
                 return <p className="text-sm text-green-500">এই ডোমেইনটি উপলব্ধ!</p>;
             case 'too_short':
