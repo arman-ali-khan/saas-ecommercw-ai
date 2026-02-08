@@ -91,6 +91,10 @@ export default function ManageProductPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isSubscriptionPending =
+    user?.subscription_status === 'pending' ||
+    user?.subscription_status === 'pending_verification';
+
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -219,9 +223,8 @@ export default function ManageProductPage() {
       error = updateError;
     }
 
-    setIsSubmitting(false);
-
     if (error) {
+      setIsSubmitting(false);
       toast({
         variant: 'destructive',
         title: `Failed to ${isNew ? 'create' : 'update'} product`,
@@ -627,7 +630,7 @@ export default function ManageProductPage() {
                 </div>
               </div>
 
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || isSubscriptionPending}>
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
