@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { getProducts } from '@/lib/products';
+import { useState, useMemo, useEffect } from 'react';
+import { getProductsBySiteId } from '@/lib/products';
+import { useAuth } from '@/stores/auth';
+import type { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -15,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Accordion,
@@ -25,18 +27,33 @@ import {
 } from '@/components/ui/accordion';
 
 export default function FeaturedProductsPage() {
-  const allProducts = useMemo(() => getProducts(), []);
+  const { user } = useAuth();
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      const fetchProducts = async () => {
+        setIsLoading(true);
+        const products = await getProductsBySiteId(user.id);
+        setAllProducts(products);
+        if (products.length > 0) {
+          setFeaturedProductIds([products[0].id]);
+        }
+        setIsLoading(false);
+      };
+      fetchProducts();
+    }
+  }, [user]);
+
   const allCategories = useMemo(
     () => [...new Set(allProducts.map((p) => p.category))],
     [allProducts]
   );
-
-  const [featuredProductIds, setFeaturedProductIds] = useState<string[]>(
-    allProducts.length > 0 ? [allProducts[0].id] : []
-  );
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const { toast } = useToast();
 
   const handleFeaturedChange = (productId: string, checked: boolean) => {
     setFeaturedProductIds((prev) => {
@@ -80,6 +97,14 @@ export default function FeaturedProductsPage() {
     });
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-16">
+        <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -105,7 +130,12 @@ export default function FeaturedProductsPage() {
               />
             </div>
           </div>
-          <Accordion type="single" collapsible defaultValue="categories" className="w-full">
+          <Accordion
+            type="single"
+            collapsible
+            defaultValue="categories"
+            className="w-full"
+          >
             <AccordionItem value="categories">
               <AccordionTrigger className="text-base font-semibold">
                 Categories

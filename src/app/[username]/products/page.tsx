@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { getProducts } from '@/lib/products';
+import { useState, useMemo, useEffect } from 'react';
+import { getProductsByDomain } from '@/lib/products';
+import type { Product } from '@/types';
 import ProductCard from '@/components/product-card';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Search, ListFilter, X } from 'lucide-react';
+import { Search, ListFilter, X, Loader2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -23,6 +24,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PRODUCTS_PER_PAGE = 8;
 
@@ -31,7 +33,29 @@ export default function ProductsPage({
 }: {
   params: { username: string };
 }) {
-  const allProducts = useMemo(() => getProducts(), []);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState('name-asc');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedOrigins, setSelectedOrigins] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState([0, 0]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      const products = await getProductsByDomain(params.username);
+      setAllProducts(products);
+      const maxProductPrice = Math.ceil(Math.max(0, ...products.map((p) => p.price)));
+      setPriceRange([0, maxProductPrice]);
+      setIsLoading(false);
+    };
+    fetchProducts();
+  }, [params.username]);
+
   const allCategories = useMemo(
     () => [...new Set(allProducts.map((p) => p.category))],
     [allProducts]
@@ -41,17 +65,9 @@ export default function ProductsPage({
     [allProducts]
   );
   const maxPrice = useMemo(
-    () => Math.ceil(Math.max(...allProducts.map((p) => p.price))),
+    () => Math.ceil(Math.max(0, ...allProducts.map((p) => p.price))),
     [allProducts]
   );
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState('name-asc');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedOrigins, setSelectedOrigins] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState([0, maxPrice]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const handleCategoryChange = (category: string, checked: boolean) => {
     setSelectedCategories((prev) =>
@@ -185,6 +201,7 @@ export default function ProductsPage({
           value={priceRange}
           onValueChange={handlePriceChange}
           minStepsBetweenThumbs={1}
+          disabled={isLoading || maxPrice === 0}
         />
         <div className="flex justify-between mt-2 text-sm text-muted-foreground">
           <span>{priceRange[0]} {paginatedProducts[0]?.currency}</span>
@@ -220,6 +237,37 @@ export default function ProductsPage({
       </Button>
     </div>
   );
+  
+  if (isLoading) {
+    return (
+        <div className="grid lg:grid-cols-4 gap-8">
+            <aside className="hidden lg:block lg:col-span-1">
+                <div className="sticky top-24 space-y-8">
+                    <Skeleton className="h-8 w-1/3" />
+                    <Skeleton className="h-32 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                </div>
+            </aside>
+            <main className="lg:col-span-3">
+                <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-8">
+                    <Skeleton className="h-10 w-full sm:max-w-xs" />
+                    <Skeleton className="h-10 w-full sm:w-[180px]" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+                    {[...Array(6)].map((_, i) => (
+                        <div key={i} className="space-y-2">
+                            <Skeleton className="h-56 w-full" />
+                            <Skeleton className="h-6 w-3/4" />
+                            <Skeleton className="h-4 w-1/2" />
+                            <Skeleton className="h-10 w-full" />
+                        </div>
+                    ))}
+                </div>
+            </main>
+        </div>
+    )
+  }
 
   return (
     <div className="grid lg:grid-cols-4 gap-8">

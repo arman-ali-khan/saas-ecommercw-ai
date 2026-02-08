@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getProducts } from '@/lib/products';
+import { getProductsByDomain } from '@/lib/products';
 import ProductCard from '@/components/product-card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { ArrowRight, Leaf, Users, Heart } from 'lucide-react';
@@ -14,9 +14,14 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import { getProductsBySiteId } from '@/lib/products';
 
-export default function UserPage({ params }: { params: { username: string } }) {
-  const allProducts = getProducts();
+export default async function UserPage({
+  params,
+}: {
+  params: { username: string };
+}) {
+  const allProducts = await getProductsByDomain(params.username);
   const featuredProducts = allProducts.slice(0, 3);
   const categories = [...new Set(allProducts.map((p) => p.category))];
   const aboutImage = PlaceHolderImages.find(
