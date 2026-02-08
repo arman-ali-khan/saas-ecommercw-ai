@@ -42,10 +42,8 @@ export default function SubscriptionPaymentsPage() {
   const { user, loading: authLoading } = useAuth();
 
   const fetchPayments = useCallback(async () => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
+    // This function no longer depends on `user`, as the RLS policy handles security.
+    // It is triggered by the useEffect when the user is confirmed to exist.
     setIsLoading(true);
     try {
         const { data: paymentsData, error: paymentsError } = await supabase
@@ -67,7 +65,6 @@ export default function SubscriptionPaymentsPage() {
         
         if (!paymentsData || paymentsData.length === 0) {
             setPayments([]);
-            setIsLoading(false);
             return;
         }
 
@@ -110,15 +107,21 @@ export default function SubscriptionPaymentsPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast, user]);
+  }, [toast]);
   
   useEffect(() => {
-    if (!authLoading && user) {
+    // This effect now triggers the data fetch once authentication is confirmed and a user is present.
+    // It will not re-trigger unnecessarily.
+    if (!authLoading) {
+      if (user) {
         fetchPayments();
-    } else if (!authLoading && !user) {
+      } else {
+        // If auth is resolved and there's no user, stop loading.
+        // The layout will handle redirection for unauthorized users.
         setIsLoading(false);
+      }
     }
-  }, [fetchPayments, authLoading, user]);
+  }, [authLoading, user, fetchPayments]);
 
 
   const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" => {
