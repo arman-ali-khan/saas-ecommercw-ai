@@ -60,7 +60,11 @@ const checkoutSchema = z
 export default function CheckoutPage() {
   const params = useParams();
   const username = params.username as string;
-  const { cartItems, cartTotal, clearCart, setLastOrder } = useCart();
+  const { cartItems, clearCart, setLastOrder } = useCart();
+  const cartTotal = cartItems.reduce(
+    (total, item) => total + item.price * item.quantity,
+    0
+  );
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   const router = useRouter();
   const { toast } = useToast();
