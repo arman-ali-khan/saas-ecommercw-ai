@@ -28,13 +28,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
 import type { Product, Category } from '@/types';
 import ImageUploader from '@/components/image-uploader';
-import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 const productFormSchema = z.object({
   id: z
@@ -348,20 +355,29 @@ export default function ManageProductPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Categories</FormLabel>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 rounded-lg border p-4">
-                        {categories.length === 0 && (
-                          <p className="p-4 text-sm text-muted-foreground col-span-full">
-                            No categories found. Go to the Category Manager to
-                            add some.
-                          </p>
-                        )}
-                        {categories.map((category) => (
-                          <FormItem
-                            key={category.id}
-                            className="flex flex-row items-start space-x-3 space-y-0"
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between"
                           >
-                            <FormControl>
-                              <Checkbox
+                            <span>
+                              {field.value?.length > 0
+                                ? `${field.value.length} selected`
+                                : 'Select categories'}
+                            </span>
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                          <DropdownMenuLabel>
+                            Available Categories
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {categories.length > 0 ? (
+                            categories.map((category) => (
+                              <DropdownMenuCheckboxItem
+                                key={category.id}
                                 checked={field.value?.includes(category.name)}
                                 onCheckedChange={(checked) => {
                                   const currentValue = field.value || [];
@@ -376,14 +392,19 @@ export default function ManageProductPage() {
                                         )
                                       );
                                 }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              {category.name}
-                            </FormLabel>
-                          </FormItem>
-                        ))}
-                      </div>
+                                onSelect={(event) => event.preventDefault()} // Keep menu open
+                              >
+                                {category.name}
+                              </DropdownMenuCheckboxItem>
+                            ))
+                          ) : (
+                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                              No categories found. Go to the Category Manager
+                              to add some.
+                            </div>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <FormMessage />
                     </FormItem>
                   )}
