@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import SiteLayout from '@/components/site-layout';
 import AuthProvider from '@/components/auth-provider';
-
+ 
 export const metadata: Metadata = {
   title: 'বাংলা ন্যাচারালস',
   description: 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
