@@ -1,5 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/stores/auth';
+import { format } from 'date-fns';
 import {
   Card,
   CardContent,
@@ -18,31 +22,84 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, Truck, CheckCircle } from 'lucide-react';
+import { MoreHorizontal, Eye, Truck, CheckCircle, Loader2 } from 'lucide-react';
 
-
-// Mock data, in a real app this would come from an API
-const orders = [
-  { id: 'ORD001', customer: 'আরিফুল ইসলাম', date: '২০২৩-১০-২৬', total: 2150.00, status: 'বিতরণ করা হয়েছে', currency: 'BDT' },
-  { id: 'ORD002', customer: 'সুমাইয়া খাতুন', date: '২০২৩-১১-১৫', total: 850.00, status: 'প্রক্রিয়াকরণ চলছে', currency: 'BDT' },
-  { id: 'ORD003', customer: 'রাশেদ আহমেদ', date: '২০২৩-১২-০১', total: 500.00, status: 'পাঠানো হয়েছে', currency: 'BDT' },
-  { id: 'ORD004', customer: 'জান্নাতুল ফেরদৌস', date: '২০২৪-০১-০৫', total: 1250.00, status: 'বাতিল করা হয়েছে', currency: 'BDT' },
-  { id: 'ORD005', customer: 'মোঃ হাসান', date: '২০২৪-০২-২০', total: 3000.00, status: 'বিতরণ করা হয়েছে', currency: 'BDT' },
-];
+type Order = {
+    id: string;
+    order_number: string;
+    shipping_info: { name: string };
+    created_at: string;
+    total: number;
+    status: string;
+};
 
 export default function OrdersAdminPage() {
-    const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
-        switch (status) {
-          case 'বিতরণ করা হয়েছে':
-            return 'default';
-          case 'পাঠানো হয়েছে':
-            return 'secondary';
-          case 'প্রক্রিয়াকরণ চলছে':
-            return 'outline';
-          default:
-            return 'destructive';
+    const { user } = useAuth();
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            if (!user?.id) return;
+
+            setIsLoading(true);
+            const { data, error } = await supabase
+                .from('orders')
+                .select('id, order_number, shipping_info, created_at, total, status')
+                .eq('site_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error("Failed to fetch orders:", error);
+            } else if (data) {
+                setOrders(data as Order[]);
+            }
+            setIsLoading(false);
+        };
+
+        if (user) {
+            fetchOrders();
         }
-      };
+    }, [user]);
+
+    const translateStatus = (status: string): string => {
+        switch (status.toLowerCase()) {
+            case 'processing': return 'প্রক্রিয়াকরণ চলছে';
+            case 'shipped': return 'পাঠানো হয়েছে';
+            case 'delivered': return 'বিতরণ করা হয়েছে';
+            case 'canceled': return 'বাতিল করা হয়েছে';
+            default: return status;
+        }
+    };
+
+    const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
+        switch (status.toLowerCase()) {
+          case 'delivered':
+            return 'default';
+          case 'shipped':
+            return 'secondary';
+          case 'processing':
+            return 'outline';
+          case 'canceled':
+            return 'destructive';
+          default:
+            return 'outline';
+        }
+    };
+    
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>অর্ডার ব্যবস্থাপনা</CardTitle>
+                    <CardDescription>সমস্ত গ্রাহকের অর্ডার দেখুন এবং পরিচালনা করুন।</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center justify-center py-16">
+                    <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <Card>
@@ -69,13 +126,13 @@ export default function OrdersAdminPage() {
                             <TableBody>
                                 {orders.map(order => (
                                     <TableRow key={order.id}>
-                                        <TableCell className="font-medium">{order.id}</TableCell>
-                                        <TableCell>{order.customer}</TableCell>
-                                        <TableCell>{order.date}</TableCell>
+                                        <TableCell className="font-medium">{order.order_number}</TableCell>
+                                        <TableCell>{order.shipping_info?.name || 'Guest'}</TableCell>
+                                        <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
                                         <TableCell>
-                                            <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
+                                            <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
                                         </TableCell>
-                                        <TableCell>{order.total.toFixed(2)} {order.currency}</TableCell>
+                                        <TableCell>{order.total.toFixed(2)} BDT</TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -114,8 +171,8 @@ export default function OrdersAdminPage() {
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <CardTitle className="text-lg">{order.id}</CardTitle>
-                                            <CardDescription>{order.customer}</CardDescription>
+                                            <CardTitle className="text-lg">{order.order_number}</CardTitle>
+                                            <CardDescription>{order.shipping_info?.name || 'Guest'}</CardDescription>
                                         </div>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -139,11 +196,11 @@ export default function OrdersAdminPage() {
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
-                                    <CardDescription className="pt-2">{order.date}</CardDescription>
+                                    <CardDescription className="pt-2">{format(new Date(order.created_at), 'PP')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex justify-between items-center">
-                                    <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
-                                    <p className="font-semibold text-lg">{order.total.toFixed(2)} {order.currency}</p>
+                                    <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
+                                    <p className="font-semibold text-lg">{order.total.toFixed(2)} BDT</p>
                                 </CardContent>
                             </Card>
                         ))}
