@@ -25,6 +25,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+
+const availableBankingMethods = [
+  { id: 'bkash', label: 'বিকাশ' },
+  { id: 'nagad', label: 'নগদ' },
+  { id: 'rocket', label: 'রকেট' },
+  { id: 'upay', label: 'উপায়' },
+];
 
 const settingsSchema = z.object({
   siteName: z.string().min(2, { message: 'সাইটের নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
@@ -32,6 +41,9 @@ const settingsSchema = z.object({
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
   seoKeywords: z.string().optional(),
+  mobileBankingEnabled: z.boolean().default(false),
+  mobileBankingNumber: z.string().optional(),
+  acceptedBankingMethods: z.array(z.string()).default([]),
 });
 
 export default function SettingsAdminPage() {
@@ -42,10 +54,13 @@ export default function SettingsAdminPage() {
     resolver: zodResolver(settingsSchema),
     defaultValues: {
       siteName: user?.siteName || '',
-      siteDescription: 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
+      siteDescription: user?.siteDescription || 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
       seoTitle: '',
       seoDescription: '',
       seoKeywords: '',
+      mobileBankingEnabled: true,
+      mobileBankingNumber: '01234567890',
+      acceptedBankingMethods: ['bkash', 'nagad'],
     },
   });
 
@@ -68,10 +83,11 @@ export default function SettingsAdminPage() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <Tabs defaultValue="general">
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs defaultValue="general" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="general">সাধারণ</TabsTrigger>
                 <TabsTrigger value="seo">এসইও</TabsTrigger>
+                <TabsTrigger value="payments">পেমেন্ট</TabsTrigger>
               </TabsList>
               <TabsContent value="general" className="mt-6">
                 <div className="space-y-6">
@@ -167,6 +183,98 @@ export default function SettingsAdminPage() {
                         </FormItem>
                         )}
                     />
+                </div>
+              </TabsContent>
+              <TabsContent value="payments" className="mt-6">
+                <div className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="mobileBankingEnabled"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            মোবাইল ব্যাংকিং সক্ষম করুন
+                          </FormLabel>
+                          <FormDescription>
+                            আপনার গ্রাহকদের মোবাইল ব্যাংকিং এর মাধ্যমে পেমেন্ট করার অনুমতি দিন।
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="mobileBankingNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>মোবাইল ব্যাংকিং নম্বর</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., 01234567890" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          গ্রাহকরা যে নম্বরে পেমেন্ট পাঠাবে।
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="acceptedBankingMethods"
+                    render={() => (
+                      <FormItem>
+                        <div className="mb-4">
+                          <FormLabel className="text-base">গৃহীত পদ্ধতি</FormLabel>
+                          <FormDescription>
+                            আপনি কোন মোবাইল ব্যাংকিং পরিষেবাগুলি গ্রহণ করেন তা নির্বাচন করুন।
+                          </FormDescription>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                          {availableBankingMethods.map((item) => (
+                            <FormField
+                              key={item.id}
+                              control={form.control}
+                              name="acceptedBankingMethods"
+                              render={({ field }) => {
+                                return (
+                                  <FormItem
+                                    key={item.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                  >
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(item.id)}
+                                        onCheckedChange={(checked) => {
+                                          return checked
+                                            ? field.onChange([...field.value, item.id])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                  (value) => value !== item.id
+                                                )
+                                              );
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                      {item.label}
+                                    </FormLabel>
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </TabsContent>
             </Tabs>
