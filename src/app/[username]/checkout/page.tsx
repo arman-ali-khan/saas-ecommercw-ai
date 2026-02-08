@@ -29,6 +29,7 @@ import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/stores/auth';
 
 const checkoutSchema = z
   .object({
@@ -68,6 +69,7 @@ export default function CheckoutPage() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [uncompletedOrderId, setUncompletedOrderId] = useState<string | null>(null);
   const [siteId, setSiteId] = useState<string | null>(null);
+  const { user } = useAuth();
 
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
@@ -138,7 +140,15 @@ export default function CheckoutPage() {
           status: hasShippingInfo ? 'shipping-info-entered' : 'started-checkout',
         };
         
-        // Use upsert: it will insert if id is null, or update if id is provided
+        // RLS policy prevents anonymous users from UPDATING rows.
+        // So for anonymous users, we can only do the initial INSERT.
+        // After that, we stop, otherwise they'll get a security error.
+        // For logged-in users, upsert will work fine as they have update permissions.
+        if (!user && uncompletedOrderId) {
+            return;
+        }
+
+        // Use upsert: it will insert if id is null, or update if id is provided (for logged-in users)
         const { data, error } = await supabase
           .from('uncompleted_orders')
           .upsert(payload)
@@ -160,7 +170,7 @@ export default function CheckoutPage() {
     return () => {
       clearTimeout(handler);
     };
-  }, [watchedFormValues, siteId, cartItems, cartTotal, cartCount, isHydrated, uncompletedOrderId]);
+  }, [watchedFormValues, siteId, cartItems, cartTotal, cartCount, isHydrated, uncompletedOrderId, user]);
 
 
   useEffect(() => {
