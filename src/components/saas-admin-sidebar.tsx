@@ -9,6 +9,7 @@ import {
   Building,
   LogOut,
   Shapes,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -41,6 +42,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard/users`, label: 'Users', icon: Users },
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
+    { href: `/dashboard/settings`, label: 'Settings', icon: Settings },
     { href: `/`, label: 'View Landing Page', icon: Building },
   ];
 
