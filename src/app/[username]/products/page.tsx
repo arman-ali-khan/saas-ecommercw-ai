@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -26,14 +25,13 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useParams } from 'next/navigation';
 
 const PRODUCTS_PER_PAGE = 8;
 
-export default function ProductsPage({
-  params,
-}: {
-  params: { username: string };
-}) {
+export default function ProductsPage() {
+  const params = useParams();
+  const username = params.username as string;
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,25 +44,27 @@ export default function ProductsPage({
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      setIsLoading(true);
-      const products = await getProductsByDomain(params.username);
-      setAllProducts(products);
-      const maxProductPrice = Math.ceil(
-        Math.max(0, ...products.map((p) => p.price))
-      );
-      setPriceRange([0, maxProductPrice]);
-      setIsLoading(false);
-    };
-    fetchProducts();
-  }, [params.username]);
+    if (username) {
+      const fetchProducts = async () => {
+        setIsLoading(true);
+        const products = await getProductsByDomain(username);
+        setAllProducts(products);
+        const maxProductPrice = Math.ceil(
+          Math.max(0, ...products.map((p) => p.price))
+        );
+        setPriceRange([0, maxProductPrice]);
+        setIsLoading(false);
+      };
+      fetchProducts();
+    }
+  }, [username]);
 
   const allCategories = useMemo(
     () => [...new Set(allProducts.flatMap((p) => p.categories || []))],
     [allProducts]
   );
   const allOrigins = useMemo(
-    () => [...new Set(allProducts.map((p) => p.origin))],
+    () => [...new Set(allProducts.map((p) => p.origin).filter(Boolean))],
     [allProducts]
   );
   const maxPrice = useMemo(
@@ -117,8 +117,8 @@ export default function ProductsPage({
     }
 
     if (selectedOrigins.length > 0) {
-      products = products.filter((p) =>
-        selectedOrigins.includes(p.origin)
+      products = products.filter(
+        (p) => p.origin && selectedOrigins.includes(p.origin)
       );
     }
 
@@ -344,7 +344,7 @@ export default function ProductsPage({
                 <ProductCard
                   key={product.id}
                   product={product}
-                  username={params.username}
+                  username={username}
                 />
               ))}
             </div>
