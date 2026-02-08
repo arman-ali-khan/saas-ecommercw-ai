@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase/client';
 import type { SubscriptionPaymentWithDetails } from '@/types';
+import { useAuth } from '@/stores/auth';
 
 import {
   Card,
@@ -38,8 +39,13 @@ export default function SubscriptionPaymentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
   const fetchPayments = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
         const { data: paymentsData, error: paymentsError } = await supabase
@@ -61,6 +67,7 @@ export default function SubscriptionPaymentsPage() {
         
         if (!paymentsData || paymentsData.length === 0) {
             setPayments([]);
+            setIsLoading(false);
             return;
         }
 
@@ -103,11 +110,15 @@ export default function SubscriptionPaymentsPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, user]);
   
   useEffect(() => {
-    fetchPayments();
-  }, [fetchPayments]);
+    if (!authLoading && user) {
+        fetchPayments();
+    } else if (!authLoading && !user) {
+        setIsLoading(false);
+    }
+  }, [fetchPayments, authLoading, user]);
 
 
   const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" => {
