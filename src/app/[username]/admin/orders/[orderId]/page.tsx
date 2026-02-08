@@ -63,26 +63,26 @@ export default function OrderDetailsPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [status, setStatus] = useState('');
 
-    const fetchOrder = async () => {
-        if (!orderId) return;
-        setIsLoading(true);
-        const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('id', orderId)
-            .single();
-
-        if (error || !data) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Order not found.' });
-            router.push(`/${username}/admin/orders`);
-            return;
-        }
-        setOrder(data as Order);
-        setStatus(data.status);
-        setIsLoading(false);
-    };
-
     useEffect(() => {
+        const fetchOrder = async () => {
+            if (!orderId) return;
+            setIsLoading(true);
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('id', orderId)
+                .single();
+
+            if (error || !data) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Order not found.' });
+                router.push(`/${username}/admin/orders`);
+                return;
+            }
+            setOrder(data as Order);
+            setStatus(data.status);
+            setIsLoading(false);
+        };
+
         if(orderId) {
             fetchOrder();
         }
@@ -92,14 +92,20 @@ export default function OrderDetailsPage() {
     const handleUpdateStatus = async () => {
         if (!order) return;
         setIsSubmitting(true);
-        const { error } = await supabase.from('orders').update({ status }).eq('id', order.id);
+        const { data, error } = await supabase
+            .from('orders')
+            .update({ status })
+            .eq('id', order.id)
+            .select()
+            .single();
         setIsSubmitting(false);
 
         if (error) {
             toast({ variant: 'destructive', title: 'Error updating status', description: error.message });
         } else {
             toast({ title: 'Order status updated!' });
-            await fetchOrder(); // Re-fetch to confirm update
+            setOrder(data as Order);
+            setStatus(data.status);
         }
     };
 
