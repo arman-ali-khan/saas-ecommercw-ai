@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Loader2, Package, User, MapPin, Phone } from 'lucide-react';
+import { useAuth } from '@/stores/auth';
 
 type Order = {
     id: string;
@@ -54,6 +55,7 @@ export default function OrderDetailsPage() {
     const params = useParams();
     const router = useRouter();
     const { toast } = useToast();
+    const { user, loading: authLoading } = useAuth();
 
     const orderId = params.orderId as string;
     const username = params.username as string;
@@ -62,32 +64,32 @@ export default function OrderDetailsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [status, setStatus] = useState('');
+    
+    const fetchOrder = useCallback(async () => {
+        if (!orderId || !user) return;
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', orderId)
+            .single();
+
+        if (error || !data) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Order not found.' });
+            router.push(`/${username}/admin/orders`);
+            return;
+        }
+        setOrder(data as Order);
+        setStatus(data.status);
+        setIsLoading(false);
+    }, [orderId, user, router, toast, username]);
+
 
     useEffect(() => {
-        const fetchOrder = async () => {
-            if (!orderId) return;
-            setIsLoading(true);
-            const { data, error } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('id', orderId)
-                .single();
-
-            if (error || !data) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Order not found.' });
-                router.push(`/${username}/admin/orders`);
-                return;
-            }
-            setOrder(data as Order);
-            setStatus(data.status);
-            setIsLoading(false);
-        };
-
-        if(orderId) {
+        if(!authLoading) {
             fetchOrder();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [orderId]);
+    }, [authLoading, fetchOrder]);
 
     const handleUpdateStatus = async () => {
         if (!order) return;
@@ -104,7 +106,7 @@ export default function OrderDetailsPage() {
             toast({ variant: 'destructive', title: 'Error updating status', description: error.message });
         } else {
             toast({ title: 'Order status updated!' });
-            setOrder(data as Order);
+            setOrder(data as Order); // Update local order state to reflect change immediately
             setStatus(data.status);
         }
     };
@@ -250,7 +252,7 @@ export default function OrderDetailsPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> গ্রাহক</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <CardContent className="space-y-4 text-sm text-muted-foreground">
                             <div className="flex items-start gap-2">
                                 <p className="font-semibold text-foreground">{order.shipping_info.name}</p>
                             </div>
@@ -258,9 +260,19 @@ export default function OrderDetailsPage() {
                                 <MapPin className="h-4 w-4 mt-0.5" />
                                 <p>{order.shipping_info.address}, {order.shipping_info.city}</p>
                             </div>
-                             <div className="flex items-start gap-2">
-                                <Phone className="h-4 w-4 mt-0.5" />
-                                <p>{order.shipping_info.phone}</p>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-start gap-2">
+                                    <Phone className="h-4 w-4 mt-0.5" />
+                                    <p>{order.shipping_info.phone}</p>
+                                </div>
+                                {order.shipping_info.phone &&
+                                    <Button asChild variant="outline" size="sm">
+                                        <a href={`tel:${order.shipping_info.phone}`}>
+                                            <Phone className="mr-2 h-4 w-4" />
+                                            Call
+                                        </a>
+                                    </Button>
+                                }
                             </div>
                         </CardContent>
                     </Card>

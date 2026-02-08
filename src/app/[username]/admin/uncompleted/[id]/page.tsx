@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -20,41 +20,43 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Package, User, MapPin, Phone, Mail } from 'lucide-react';
 import type { UncompletedOrder } from '@/types';
+import { useAuth } from '@/stores/auth';
 
 export default function UncompletedOrderDetailsPage() {
     const params = useParams();
     const router = useRouter();
     const { toast } = useToast();
+    const { user, loading: authLoading } = useAuth();
 
     const id = params.id as string;
     const username = params.username as string;
 
     const [order, setOrder] = useState<UncompletedOrder | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    
+    const fetchOrder = useCallback(async () => {
+        if (!id || !user) return;
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('uncompleted_orders')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error || !data) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Uncompleted order not found.' });
+            router.push(`/${username}/admin/uncompleted`);
+            return;
+        }
+        setOrder(data as UncompletedOrder);
+        setIsLoading(false);
+    }, [id, user, router, toast, username]);
 
     useEffect(() => {
-        const fetchOrder = async () => {
-            if (!id) return;
-            setIsLoading(true);
-            const { data, error } = await supabase
-                .from('uncompleted_orders')
-                .select('*')
-                .eq('id', id)
-                .single();
-
-            if (error || !data) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Uncompleted order not found.' });
-                router.push(`/${username}/admin/uncompleted`);
-                return;
-            }
-            setOrder(data as UncompletedOrder);
-            setIsLoading(false);
-        };
-
-        if(id) {
+        if(!authLoading) {
             fetchOrder();
         }
-    }, [id, router, toast, username]);
+    }, [authLoading, fetchOrder]);
     
     const translateStatus = (status: string): string => {
         switch (status.toLowerCase()) {
@@ -164,7 +166,7 @@ export default function UncompletedOrderDetailsPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> গ্রাহকের তথ্য</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <CardContent className="space-y-4 text-sm text-muted-foreground">
                             <div className="flex items-start gap-2">
                                 <p className="font-semibold text-foreground">{order.customer_info?.name || "নাম পাওয়া যায়নি"}</p>
                             </div>
@@ -172,9 +174,19 @@ export default function UncompletedOrderDetailsPage() {
                                 <MapPin className="h-4 w-4 mt-0.5" />
                                 <p>{order.customer_info?.address && order.customer_info?.city ? `${order.customer_info.address}, ${order.customer_info.city}`: "ঠিকানা পাওয়া যায়নি"}</p>
                             </div>
-                             <div className="flex items-start gap-2">
-                                <Phone className="h-4 w-4 mt-0.5" />
-                                <p>{order.customer_info?.phone || "ফোন নম্বর পাওয়া যায়নি"}</p>
+                             <div className="flex items-center justify-between">
+                                <div className="flex items-start gap-2">
+                                    <Phone className="h-4 w-4 mt-0.5" />
+                                    <p>{order.customer_info?.phone || "ফোন নম্বর পাওয়া যায়নি"}</p>
+                                </div>
+                                {order.customer_info?.phone && (
+                                    <Button asChild variant="outline" size="sm">
+                                        <a href={`tel:${order.customer_info.phone}`}>
+                                            <Phone className="mr-2 h-4 w-4" />
+                                            Call
+                                        </a>
+                                    </Button>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
