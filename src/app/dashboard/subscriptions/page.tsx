@@ -241,7 +241,10 @@ export default function SubscriptionPaymentsPage() {
                     <h4 className="font-semibold flex items-center gap-2"><CreditCard className="h-4 w-4" /> Payment Information</h4>
                     <p><strong>Method:</strong> {formatPaymentMethod(selectedPayment.payment_method)}</p>
                     <p><strong>Transaction ID:</strong> {selectedPayment.transaction_id || 'N/A'}</p>
-                    <p><strong>Status:</strong> <Badge variant={getStatusBadgeVariant(selectedPayment.status)}>{selectedPayment.status}</Badge></p>
+                    <div className="flex items-center gap-2">
+                        <strong>Status:</strong>
+                        <Badge variant={getStatusBadgeVariant(selectedPayment.status)}>{selectedPayment.status}</Badge>
+                    </div>
                     <p><strong>Date:</strong> {format(new Date(selectedPayment.created_at), 'PPpp')}</p>
                 </div>
             </div>
