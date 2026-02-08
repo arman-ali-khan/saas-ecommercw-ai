@@ -11,50 +11,36 @@ import {
 } from '@/components/ui/card';
 import { CheckCircle } from 'lucide-react';
 import type { FormData } from '@/app/get-started/page';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 import { type Plan } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface SubscriptionStepProps {
+  plans: Plan[];
+  isLoading: boolean;
   formData: FormData;
   updateFormData: (data: Partial<FormData>) => void;
   onNext: () => void;
 }
 
 export default function SubscriptionStep({
+  plans,
+  isLoading,
   formData,
   updateFormData,
   onNext,
 }: SubscriptionStepProps) {
   const searchParams = useSearchParams();
-  const [pricingTiers, setPricingTiers] = useState<Plan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPlans = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('plans')
-        .select('*')
-        .order('price', { ascending: true });
-      if (data) {
-        setPricingTiers(data);
-      }
-      setIsLoading(false);
-    };
-    fetchPlans();
-  }, []);
-
-  useEffect(() => {
-    const plan = searchParams.get('plan');
-    if (plan === 'free' || plan === 'pro' || plan === 'enterprise') {
-      updateFormData({ plan });
+    const planFromQuery = searchParams.get('plan');
+    if (planFromQuery && plans.some(p => p.id === planFromQuery)) {
+      updateFormData({ plan: planFromQuery });
     }
-  }, [searchParams, updateFormData]);
+  }, [searchParams, updateFormData, plans]);
 
-  const handleSelectPlan = (planId: 'free' | 'pro' | 'enterprise') => {
+  const handleSelectPlan = (planId: string) => {
     updateFormData({ plan: planId });
   };
 
@@ -85,7 +71,7 @@ export default function SubscriptionStep({
         </p>
       </div>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
-        {pricingTiers.map((tier) => (
+        {plans.map((tier) => (
           <Card
             key={tier.id}
             className={
@@ -118,7 +104,7 @@ export default function SubscriptionStep({
             </CardContent>
             <CardFooter>
               <Button
-                onClick={() => handleSelectPlan(tier.id as any)}
+                onClick={() => handleSelectPlan(tier.id)}
                 className="w-full"
                 variant={formData.plan === tier.id ? 'default' : 'secondary'}
               >

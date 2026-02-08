@@ -9,8 +9,13 @@ import type { FormData } from "@/app/get-started/page";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { type Plan } from "@/types";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PaymentStepProps {
+    plan?: Plan;
     formData: FormData;
     updateFormData: (data: Partial<FormData>) => void;
     onNext: () => void;
@@ -29,13 +34,16 @@ const paymentSchema = z.object({
     path: ['transactionId'],
 });
 
-const planPrices: { [key: string]: number | string } = {
-    pro: 999,
-    enterprise: 'Custom',
-};
+type SaasSettings = {
+    mobile_banking_enabled: boolean;
+    mobile_banking_number: string | null;
+    accepted_banking_methods: string[] | null;
+}
 
+export default function PaymentStep({ plan, formData, updateFormData, onNext }: PaymentStepProps) {
+    const [settings, setSettings] = useState<SaasSettings | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-export default function PaymentStep({ formData, updateFormData, onNext }: PaymentStepProps) {
     const form = useForm<z.infer<typeof paymentSchema>>({
         resolver: zodResolver(paymentSchema),
         defaultValues: {
@@ -44,8 +52,20 @@ export default function PaymentStep({ formData, updateFormData, onNext }: Paymen
         }
     });
 
+    useEffect(() => {
+        const fetchSettings = async () => {
+            const { data } = await supabase.from('saas_settings').select('*').eq('id', 1).single();
+            if (data) {
+                setSettings(data);
+            }
+            setIsLoading(false);
+        }
+        fetchSettings();
+    }, []);
+
     const paymentMethod = form.watch('paymentMethod');
-    const price = formData.plan && planPrices[formData.plan] ? planPrices[formData.plan] : 0;
+    const price = plan?.price || '0';
+    const merchantNumber = settings?.mobile_banking_number || '...';
 
     function onSubmit(values: z.infer<typeof paymentSchema>) {
         console.log("Payment details submitted:", values);
@@ -56,12 +76,28 @@ export default function PaymentStep({ formData, updateFormData, onNext }: Paymen
         onNext();
     }
 
+    if (isLoading || !plan) {
+        return (
+            <Card className="max-w-lg mx-auto">
+                <CardHeader className="text-center">
+                    <Skeleton className="h-8 w-3/4 mx-auto" />
+                    <Skeleton className="h-4 w-full mx-auto mt-2" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-48 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                </CardContent>
+            </Card>
+        )
+    }
+
     return (
         <Card className="max-w-lg mx-auto">
             <CardHeader className="text-center">
                 <CardTitle>আপনার পেমেন্ট সম্পূর্ণ করুন</CardTitle>
                 <CardDescription>
-                    আপনি <span className="font-bold capitalize">{formData.plan}</span> প্ল্যানটি বেছে নিয়েছেন। চালিয়ে যেতে অনুগ্রহ করে পেমেন্ট সম্পূর্ণ করুন।
+                    আপনি <span className="font-bold">{plan.name}</span> প্ল্যানটি বেছে নিয়েছেন। চালিয়ে যেতে অনুগ্রহ করে পেমেন্ট সম্পূর্ণ করুন।
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -102,8 +138,8 @@ export default function PaymentStep({ formData, updateFormData, onNext }: Paymen
                                     <ol className="list-decimal list-inside space-y-2">
                                         <li>আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ (বিকাশ, নগদ, ইত্যাদি) খুলুন।</li>
                                         <li>"পেমেন্ট" অপশন নির্বাচন করুন।</li>
-                                        <li>মার্চেন্ট নম্বর হিসেবে <strong>01234567890</strong> দিন।</li>
-                                        <li>টাকার পরিমাণ হিসেবে <strong>৳ {price}</strong> লিখুন।</li>
+                                        <li>মার্চেন্ট নম্বর হিসেবে <strong>{merchantNumber}</strong> দিন।</li>
+                                        <li>টাকার পরিমাণ হিসেবে <strong>{price}</strong> লিখুন।</li>
                                         <li>পেমেন্ট সম্পন্ন করুন এবং প্রাপ্ত ট্রানজেকশন আইডিটি কপি করুন।</li>
                                         <li>নিচের বক্সে ট্রানজেকশন আইডিটি পেস্ট করুন।</li>
                                     </ol>
