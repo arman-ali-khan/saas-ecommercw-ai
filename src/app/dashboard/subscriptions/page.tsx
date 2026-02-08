@@ -41,63 +41,68 @@ export default function SubscriptionPaymentsPage() {
 
   const fetchPayments = useCallback(async () => {
     setIsLoading(true);
-    const { data: paymentsData, error: paymentsError } = await supabase
-      .from('subscription_payments')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+        const { data: paymentsData, error: paymentsError } = await supabase
+        .from('subscription_payments')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (paymentsError) {
-      toast({
-        variant: 'destructive',
-        title: 'Error Fetching Subscription Payments',
-        description: `Could not load payment data. This is likely a database permissions issue. Error: ${paymentsError.message}`,
-        duration: 10000,
-      });
-      console.error("Subscription Payments fetch error:", paymentsError);
-      setIsLoading(false);
-      return;
+        if (paymentsError) {
+            toast({
+                variant: 'destructive',
+                title: 'Error Fetching Subscription Payments',
+                description: `Could not load payment data. This is likely a database permissions issue. Error: ${paymentsError.message}`,
+                duration: 10000,
+            });
+            console.error("Subscription Payments fetch error:", paymentsError);
+            setPayments([]);
+            return;
+        }
+        
+        if (!paymentsData || paymentsData.length === 0) {
+            setPayments([]);
+            return;
+        }
+
+        // Fetch related data
+        const userIds = [...new Set(paymentsData.map(p => p.user_id))];
+        const planIds = [...new Set(paymentsData.map(p => p.plan_id).filter(Boolean))];
+
+        const profilesPromise = userIds.length > 0 ? supabase.from('profiles').select('id, full_name, username').in('id', userIds) : Promise.resolve({ data: [], error: null });
+        const plansPromise = planIds.length > 0 ? supabase.from('plans').select('id, name').in('id', planIds) : Promise.resolve({ data: [], error: null });
+        
+        const [
+            { data: profilesData, error: profilesError },
+            { data: plansData, error: plansError }
+        ] = await Promise.all([profilesPromise, plansPromise]);
+
+
+        if (profilesError || plansError) {
+            const description = profilesError?.message || plansError?.message || 'Could not fetch related data.';
+            toast({
+                variant: 'destructive',
+                title: 'Error Fetching Subscription Details',
+                description: `Could not load user or plan details. This may be a database permissions issue. ${description}`,
+                duration: 10000,
+            });
+        }
+
+        const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
+        const plansMap = new Map((plansData || []).map(p => [p.id, p]));
+
+        const combinedData = paymentsData.map(payment => ({
+            ...payment,
+            profiles: profilesMap.get(payment.user_id) || null,
+            plans: payment.plan_id ? plansMap.get(payment.plan_id) || null : null,
+        }));
+
+        setPayments(combinedData as SubscriptionPaymentWithDetails[]);
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'An unexpected client error occurred', description: e.message });
+        setPayments([]);
+    } finally {
+        setIsLoading(false);
     }
-    
-    if (!paymentsData || paymentsData.length === 0) {
-      setPayments([]);
-      setIsLoading(false);
-      return;
-    }
-
-    // Fetch related data
-    const userIds = [...new Set(paymentsData.map(p => p.user_id))];
-    const planIds = [...new Set(paymentsData.map(p => p.plan_id).filter(Boolean))];
-
-    const profilesPromise = userIds.length > 0 ? supabase.from('profiles').select('id, full_name, username').in('id', userIds) : Promise.resolve({ data: [], error: null });
-    const plansPromise = planIds.length > 0 ? supabase.from('plans').select('id, name').in('id', planIds) : Promise.resolve({ data: [], error: null });
-    
-    const [
-        { data: profilesData, error: profilesError },
-        { data: plansData, error: plansError }
-    ] = await Promise.all([profilesPromise, plansPromise]);
-
-
-    if (profilesError || plansError) {
-        const description = profilesError?.message || plansError?.message || 'Could not fetch related data.';
-        toast({
-            variant: 'destructive',
-            title: 'Error Fetching Subscription Details',
-            description: `Could not load user or plan details. This may be a database permissions issue. ${description}`,
-            duration: 10000,
-        });
-    }
-
-    const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
-    const plansMap = new Map((plansData || []).map(p => [p.id, p]));
-
-    const combinedData = paymentsData.map(payment => ({
-        ...payment,
-        profiles: profilesMap.get(payment.user_id) || null,
-        plans: payment.plan_id ? plansMap.get(payment.plan_id) || null : null,
-    }));
-
-    setPayments(combinedData as SubscriptionPaymentWithDetails[]);
-    setIsLoading(false);
   }, [toast]);
   
   useEffect(() => {

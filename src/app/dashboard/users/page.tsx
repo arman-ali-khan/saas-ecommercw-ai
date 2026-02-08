@@ -55,21 +55,26 @@ export default function UsersAdminPage() {
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
-        const { data, error } = await supabase.from('profiles').select(`
-            id,
-            username,
-            full_name,
-            domain,
-            site_name,
-            site_description
-        `);
-        
-        if (data) {
-            setUsers(data as UserProfile[]);
-        } else if (error) {
-            toast({ variant: 'destructive', title: 'Error fetching users', description: error.message });
+        try {
+            const { data, error } = await supabase.from('profiles').select(`
+                id,
+                username,
+                full_name,
+                domain,
+                site_name,
+                site_description
+            `);
+            
+            if (data) {
+                setUsers(data as UserProfile[]);
+            } else if (error) {
+                toast({ variant: 'destructive', title: 'Error fetching users', description: error.message });
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, [toast]);
 
     useEffect(() => {
@@ -86,17 +91,22 @@ export default function UsersAdminPage() {
         if (!selectedUser) return;
         
         setIsDeleting(true);
-        const { error } = await supabase.from('profiles').delete().eq('id', selectedUser.id);
+        try {
+            const { error } = await supabase.from('profiles').delete().eq('id', selectedUser.id);
 
-        if (error) {
-            toast({ variant: 'destructive', title: 'Failed to delete user profile', description: error.message });
-        } else {
-            toast({ title: 'User profile deleted!' });
-            await fetchUsers();
+            if (error) {
+                toast({ variant: 'destructive', title: 'Failed to delete user profile', description: error.message });
+            } else {
+                toast({ title: 'User profile deleted!' });
+                await fetchUsers(); // Re-fetch data on success
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+        } finally {
+            setIsDeleting(false);
+            setIsDeleteOpen(false);
+            setSelectedUser(null);
         }
-        setIsDeleting(false);
-        setIsDeleteOpen(false);
-        setSelectedUser(null);
     }
 
     if (loading) {

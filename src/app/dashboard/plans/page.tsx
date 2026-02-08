@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -83,26 +83,32 @@ export default function PlansAdminPage() {
     resolver: zodResolver(planSchema),
   });
 
-  const fetchPlans = async () => {
-    const { data, error } = await supabase
-      .from('plans')
-      .select('*')
-      .order('price', { ascending: true });
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error fetching plans',
-        description: error.message,
-      });
-    } else {
-      setPlans(data as Plan[]);
+  const fetchPlans = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('plans')
+        .select('*')
+        .order('price', { ascending: true });
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error fetching plans',
+          description: error.message,
+        });
+      } else {
+        setPlans(data as Plan[]);
+      }
+    } catch(e: any) {
+        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchPlans();
-  }, []);
+  }, [fetchPlans]);
 
   useEffect(() => {
     if (isFormOpen) {
@@ -127,43 +133,48 @@ export default function PlansAdminPage() {
 
   const onSubmit = async (data: PlanFormData) => {
     setIsSubmitting(true);
-    const planPayload = {
-      ...data,
-      period: data.period || null,
-      features: data.features.split('\n').filter((f) => f.trim() !== ''),
-    };
+    try {
+      const planPayload = {
+        ...data,
+        period: data.period || null,
+        features: data.features.split('\n').filter((f) => f.trim() !== ''),
+      };
 
-    let error;
+      let error;
 
-    if (selectedPlan && selectedPlan.id) {
-      // Update
-      const { error: updateError } = await supabase
-        .from('plans')
-        .update(planPayload)
-        .eq('id', selectedPlan.id);
-      error = updateError;
-      if (!error) toast({ title: 'Plan Updated' });
-    } else {
-      // Create
-      const { error: insertError } = await supabase
-        .from('plans')
-        .insert(planPayload);
-      error = insertError;
-      if (!error) toast({ title: 'Plan Created' });
+      if (selectedPlan && selectedPlan.id) {
+        // Update
+        const { error: updateError } = await supabase
+          .from('plans')
+          .update(planPayload)
+          .eq('id', selectedPlan.id);
+        error = updateError;
+        if (!error) toast({ title: 'Plan Updated' });
+      } else {
+        // Create
+        const { error: insertError } = await supabase
+          .from('plans')
+          .insert(planPayload);
+        error = insertError;
+        if (!error) toast({ title: 'Plan Created' });
+      }
+
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'An error occurred',
+          description: error.message,
+        });
+      } else {
+        await fetchPlans();
+        setIsFormOpen(false);
+        setSelectedPlan(null);
+      }
+    } catch(e: any) {
+        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'An error occurred',
-        description: error.message,
-      });
-    } else {
-      await fetchPlans();
-      setIsFormOpen(false);
-      setSelectedPlan(null);
-    }
-    setIsSubmitting(false);
   };
 
   const openForm = (plan: Plan | null) => {
@@ -179,22 +190,26 @@ export default function PlansAdminPage() {
   const handleDelete = async () => {
     if (!selectedPlan) return;
     setIsDeleting(true);
-    const { error } = await supabase.from('plans').delete().eq('id', selectedPlan.id);
+    try {
+      const { error } = await supabase.from('plans').delete().eq('id', selectedPlan.id);
 
-    if (error) {
-      toast({
-        title: 'Error Deleting Plan',
-        variant: 'destructive',
-        description: error.message,
-      });
-    } else {
-      toast({ title: 'Plan Deleted' });
-      await fetchPlans();
+      if (error) {
+        toast({
+          title: 'Error Deleting Plan',
+          variant: 'destructive',
+          description: error.message,
+        });
+      } else {
+        toast({ title: 'Plan Deleted' });
+        await fetchPlans();
+      }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+    } finally {
+      setIsDeleting(false);
+      setIsAlertOpen(false);
+      setSelectedPlan(null);
     }
-
-    setIsDeleting(false);
-    setIsAlertOpen(false);
-    setSelectedPlan(null);
   };
 
   if (isLoading) {
