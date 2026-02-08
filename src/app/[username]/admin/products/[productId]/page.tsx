@@ -30,7 +30,14 @@ import { Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
-import type { Product } from '@/types';
+import type { Product, Category } from '@/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const productFormSchema = z.object({
   id: z
@@ -51,12 +58,14 @@ const productFormSchema = z.object({
   category: z.string().optional(),
   origin: z.string().optional(),
   story: z.string().optional(),
-  images: z.array(
-    z.object({
-      imageUrl: z.string().url('Must be a valid URL.'),
-      imageHint: z.string().optional(),
-    })
-  ).min(1, "At least one image is required."),
+  images: z
+    .array(
+      z.object({
+        imageUrl: z.string().url('Must be a valid URL.'),
+        imageHint: z.string().optional(),
+      })
+    )
+    .min(1, 'At least one image is required.'),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -72,28 +81,29 @@ export default function ManageProductPage() {
   const isNew = productId === 'new';
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(!isNew);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
-        id: '',
-        name: '',
-        price: 0,
-        currency: 'BDT',
-        description: '',
-        long_description: '',
-        category: '',
-        origin: '',
-        story: '',
-        images: [{ imageUrl: '', imageHint: '' }],
-    }
+      id: '',
+      name: '',
+      price: 0,
+      currency: 'BDT',
+      description: '',
+      long_description: '',
+      category: '',
+      origin: '',
+      story: '',
+      images: [{ imageUrl: '', imageHint: '' }],
+    },
   });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "images"
+    name: 'images',
   });
 
   useEffect(() => {
@@ -114,17 +124,21 @@ export default function ManageProductPage() {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'Product not found or you do not have permission to edit it.',
+          description:
+            'Product not found or you do not have permission to edit it.',
         });
         router.push(`/${username}/admin/products`);
         return;
       }
-      
+
       const productData = data as Product;
       setProduct(productData);
       form.reset({
         ...productData,
-        images: productData.images.length > 0 ? productData.images : [{ imageUrl: '', imageHint: '' }],
+        images:
+          productData.images.length > 0
+            ? productData.images
+            : [{ imageUrl: '', imageHint: '' }],
       });
       setIsLoading(false);
     };
@@ -132,10 +146,32 @@ export default function ManageProductPage() {
     fetchProduct();
   }, [productId, isNew, user, router, toast, form, username]);
 
+  useEffect(() => {
+    if (!user) return;
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('site_id', user.id)
+        .order('name', { ascending: true });
+
+      if (data) {
+        setCategories(data as Category[]);
+      } else if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Could not fetch categories',
+          description: error.message,
+        });
+      }
+    };
+    fetchCategories();
+  }, [user, toast]);
+
   const onSubmit = async (values: ProductFormData) => {
     if (!user) {
-        toast({ variant: 'destructive', title: 'Authentication error' });
-        return;
+      toast({ variant: 'destructive', title: 'Authentication error' });
+      return;
     }
 
     setIsSubmitting(true);
@@ -144,11 +180,16 @@ export default function ManageProductPage() {
     let error;
 
     if (isNew) {
-        const { error: insertError } = await supabase.from('products').insert(payload);
-        error = insertError;
+      const { error: insertError } = await supabase
+        .from('products')
+        .insert(payload);
+      error = insertError;
     } else {
-        const { error: updateError } = await supabase.from('products').update(payload).eq('id', productId);
-        error = updateError;
+      const { error: updateError } = await supabase
+        .from('products')
+        .update(payload)
+        .eq('id', productId);
+      error = updateError;
     }
 
     setIsSubmitting(false);
@@ -202,7 +243,9 @@ export default function ManageProductPage() {
       </Button>
       <Card>
         <CardHeader>
-          <CardTitle>{isNew ? 'Add New Product' : `Edit: ${product?.name}`}</CardTitle>
+          <CardTitle>
+            {isNew ? 'Add New Product' : `Edit: ${product?.name}`}
+          </CardTitle>
           <CardDescription>
             Fill in the details for your product below.
           </CardDescription>
@@ -217,9 +260,16 @@ export default function ManageProductPage() {
                   <FormItem>
                     <FormLabel>Product ID / Slug</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="e.g., himsagar-mango-1kg" disabled={!isNew} />
+                      <Input
+                        {...field}
+                        placeholder="e.g., himsagar-mango-1kg"
+                        disabled={!isNew}
+                      />
                     </FormControl>
-                    <FormDescription>A unique, URL-friendly identifier. Cannot be changed after creation.</FormDescription>
+                    <FormDescription>
+                      A unique, URL-friendly identifier. Cannot be changed after
+                      creation.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -230,43 +280,78 @@ export default function ManageProductPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Product Name</FormLabel>
-                    <FormControl><Input {...field} placeholder="e.g., হিমসাগর আম (১ কেজি)" /></FormControl>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g., হিমসাগর আম (১ কেজি)"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <div className="grid md:grid-cols-2 gap-6">
                 <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Price</FormLabel>
-                        <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                        <FormMessage />
+                      <FormLabel>Price</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
-                 <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g., ফল" /></FormControl>
-                        <FormMessage />
+                      <FormLabel>Category</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.length === 0 && (
+                            <p className="p-4 text-sm text-muted-foreground">
+                              No categories found. Go to the Category Manager to
+                              add some.
+                            </p>
+                          )}
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.name}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
               </div>
 
-               <FormField
+              <FormField
                 control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Short Description</FormLabel>
-                    <FormControl><Textarea {...field} rows={2} placeholder="A brief, catchy description for product cards." /></FormControl>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        rows={2}
+                        placeholder="A brief, catchy description for product cards."
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -278,82 +363,117 @@ export default function ManageProductPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Long Description</FormLabel>
-                    <FormControl><Textarea {...field} rows={5} placeholder="Detailed description for the product page."/></FormControl>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        rows={5}
+                        placeholder="Detailed description for the product page."
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <div className="grid md:grid-cols-2 gap-6">
                 <FormField
-                    control={form.control}
-                    name="origin"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="origin"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Origin</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g., রাজশাহী, বাংলাদেশ"/></FormControl>
-                        <FormMessage />
+                      <FormLabel>Origin</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., রাজশাহী, বাংলাদেশ" />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
-                 <FormField
-                    control={form.control}
-                    name="story"
-                    render={({ field }) => (
+                <FormField
+                  control={form.control}
+                  name="story"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Story</FormLabel>
-                        <FormControl><Input {...field} placeholder="A short story about the product." /></FormControl>
-                        <FormMessage />
+                      <FormLabel>Story</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="A short story about the product."
+                        />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
               </div>
 
               <div className="space-y-4">
                 <FormLabel>Product Images</FormLabel>
                 {fields.map((field, index) => (
-                    <div key={field.id} className="flex gap-2 items-start p-3 border rounded-md">
-                        <span className="text-sm font-medium text-muted-foreground pt-2">{index + 1}.</span>
-                        <div className="grid gap-2 flex-grow">
-                             <FormField
-                                control={form.control}
-                                name={`images.${index}.imageUrl`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="sr-only">Image URL</FormLabel>
-                                        <FormControl><Input {...field} placeholder="Image URL" /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name={`images.${index}.imageHint`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="sr-only">Image Hint</FormLabel>
-                                        <FormControl><Input {...field} placeholder="AI Image Hint (e.g., ripe mango)"/></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                  <div
+                    key={field.id}
+                    className="flex gap-2 items-start p-3 border rounded-md"
+                  >
+                    <span className="text-sm font-medium text-muted-foreground pt-2">
+                      {index + 1}.
+                    </span>
+                    <div className="grid gap-2 flex-grow">
+                      <FormField
+                        control={form.control}
+                        name={`images.${index}.imageUrl`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="sr-only">Image URL</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Image URL" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`images.${index}.imageHint`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="sr-only">
+                              Image Hint
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="AI Image Hint (e.g., ripe mango)"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => remove(index)}
+                      disabled={fields.length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 ))}
-                 <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => append({ imageUrl: "", imageHint: "" })}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append({ imageUrl: '', imageHint: '' })}
                 >
-                    Add Image
+                  Add Image
                 </Button>
               </div>
 
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {isNew ? 'Create Product' : 'Save Changes'}
               </Button>
             </form>
