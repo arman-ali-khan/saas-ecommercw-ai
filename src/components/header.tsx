@@ -59,8 +59,8 @@ export default function Header() {
     { href: `${basePath}/about`, label: 'আমাদের সম্পর্কে' },
   ];
 
-  if (user?.email === 'admin@example.com' && user?.domain) {
-    navLinks.push({ href: `/${user.domain}/admin`, label: 'অ্যাডমিন' });
+  if (user?.isSaaSAdmin) {
+    navLinks.push({ href: '/dashboard', label: 'SaaS Admin' });
   }
 
   const logout = async () => {
@@ -205,13 +205,22 @@ export default function Header() {
                     <span>প্রোফাইল</span>
                   </Link>
                 </DropdownMenuItem>
-                {user.domain && (
+                {user.isSaaSAdmin ? (
                   <DropdownMenuItem asChild>
-                    <Link href={`/${user.domain}/admin`}>
+                    <Link href="/dashboard">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>ড্যাশবোর্ড</span>
+                      <span>SaaS Dashboard</span>
                     </Link>
                   </DropdownMenuItem>
+                ) : (
+                  user.domain && (
+                    <DropdownMenuItem asChild>
+                      <Link href={`/${user.domain}/admin`}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>ড্যাশবোর্ড</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
