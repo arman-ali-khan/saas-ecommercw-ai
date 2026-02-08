@@ -26,11 +26,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { supabase } from '@/lib/supabase/client';
 
 export default function FeaturedProductsPage() {
   const { user, loading: authLoading } = useAuth();
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -41,11 +43,7 @@ export default function FeaturedProductsPage() {
     setIsLoading(true);
     const products = await getProductsBySiteId(user.id);
     setAllProducts(products);
-    if (products.length > 0) {
-      // In a real app, featured products would be saved/fetched from DB
-      // Here we are just pre-selecting the first one for demo purposes
-      setFeaturedProductIds([products[0].id]);
-    }
+    setFeaturedProductIds(products.filter(p => p.is_featured).map(p => p.id));
     setIsLoading(false);
   }, [user]);
 
@@ -96,12 +94,50 @@ export default function FeaturedProductsPage() {
     return products;
   }, [allProducts, searchQuery, selectedCategories]);
 
-  const handleSaveChanges = () => {
-    console.log('Saving featured products:', featuredProductIds);
-    toast({
-      title: 'Success!',
-      description: 'Featured products have been updated.',
-    });
+  const handleSaveChanges = async () => {
+    if (!user) return;
+    setIsSaving(true);
+  
+    // Determine which products to feature and un-feature
+    const productsToFeature = featuredProductIds;
+    const productsToUnfeature = allProducts
+      .filter(p => p.is_featured && !featuredProductIds.includes(p.id))
+      .map(p => p.id);
+  
+    const updates = [];
+  
+    if (productsToFeature.length > 0) {
+      updates.push(
+        supabase
+          .from('products')
+          .update({ is_featured: true })
+          .in('id', productsToFeature)
+      );
+    }
+  
+    if (productsToUnfeature.length > 0) {
+      updates.push(
+        supabase
+          .from('products')
+          .update({ is_featured: false })
+          .in('id', productsToUnfeature)
+      );
+    }
+  
+    const results = await Promise.all(updates);
+  
+    setIsSaving(false);
+  
+    const hasError = results.some(res => res.error);
+    if (hasError) {
+      toast({ variant: 'destructive', title: 'Error updating featured products.' });
+    } else {
+      toast({
+        title: 'Success!',
+        description: 'Featured products have been updated.',
+      });
+      await fetchProducts(); // Refresh the state
+    }
   };
 
   if (isLoading) {
@@ -212,7 +248,10 @@ export default function FeaturedProductsPage() {
         </main>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleSaveChanges}>Save Changes</Button>
+        <Button onClick={handleSaveChanges} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSaving ? 'Saving...' : 'Save Changes'}
+        </Button>
       </CardFooter>
     </Card>
   );

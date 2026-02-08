@@ -44,7 +44,7 @@ export default async function UserPage({
   }
 
   const allProducts = await getProductsByDomain(params.username);
-  const featuredProducts = allProducts.slice(0, 3);
+  const featuredProducts = allProducts.filter((p) => p.is_featured);
   const categories = [...new Set(allProducts.flatMap((p) => p.categories || []))];
   const aboutImage = PlaceHolderImages.find(
     (img) => img.id === 'about-traceability'
@@ -99,20 +99,22 @@ export default async function UserPage({
         <HeroCarousel slides={heroSlides} />
       </section>
 
-      <section>
-        <h2 className="text-3xl font-headline font-bold text-center mb-8">
-          বিশেষ পণ্য
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {featuredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              username={params.username}
-            />
-          ))}
-        </div>
-      </section>
+      {featuredProducts.length > 0 && (
+        <section>
+          <h2 className="text-3xl font-headline font-bold text-center mb-8">
+            বিশেষ পণ্য
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                username={params.username}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="text-3xl font-headline font-bold text-center mb-8">

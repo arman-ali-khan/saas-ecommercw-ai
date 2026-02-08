@@ -42,6 +42,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Switch } from '@/components/ui/switch';
 
 const productFormSchema = z.object({
   id: z
@@ -62,6 +63,7 @@ const productFormSchema = z.object({
   categories: z.array(z.string()).default([]),
   origin: z.string().optional(),
   story: z.string().optional(),
+  is_featured: z.boolean().default(false),
   images: z
     .array(
       z.object({
@@ -101,6 +103,7 @@ export default function ManageProductPage() {
       categories: [],
       origin: '',
       story: '',
+      is_featured: false,
       images: [],
     },
   });
@@ -141,6 +144,7 @@ export default function ManageProductPage() {
       categories: productData.categories || [],
       origin: productData.origin || '',
       story: productData.story || '',
+      is_featured: productData.is_featured || false,
       images: (productData.images || []).map((img) => ({
         imageUrl: img.imageUrl || '',
         imageHint: img.imageHint || '',
@@ -481,6 +485,29 @@ export default function ManageProductPage() {
                   )}
                 />
               </div>
+              
+              <FormField
+                control={form.control}
+                name="is_featured"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">
+                        Featured Product
+                      </FormLabel>
+                      <FormDescription>
+                        Display this product on the homepage's featured section.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
               <div className="space-y-6">
                 <div className="space-y-4 rounded-lg border p-4">

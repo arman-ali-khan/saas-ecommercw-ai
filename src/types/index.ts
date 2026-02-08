@@ -16,6 +16,7 @@ export interface Product {
   origin: string;
   story: string;
   categories: string[];
+  is_featured: boolean;
   created_at: string;
 }
 
