@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,10 +20,12 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
-  username: z.string().min(2, { message: 'ব্যবহারকারীর নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }).regex(/^[a-zA-Z0-9]+$/, 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।'),
+  username: z.string().min(3, { message: 'ব্যবহারকারীর নাম কমপক্ষে ৩ অক্ষরের হতে হবে।' }).regex(/^[a-zA-Z0-9]+$/, 'ব্যবহারকারীর নাম শুধুমাত্র অক্ষর এবং সংখ্যা থাকতে পারে।'),
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
   password: z.string().min(6, { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' }),
 });
@@ -38,6 +40,9 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
+  const [usernameStatus, setUsernameStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'invalid'>('empty');
+  const [debouncedUsername, setDebouncedUsername] = useState('');
+
   const { register } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -47,7 +52,57 @@ export default function RegisterPage() {
       email: '',
       password: '',
     },
+    mode: 'onChange',
   });
+
+  const usernameValue = form.watch('username');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedUsername(usernameValue);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [usernameValue]);
+
+  useEffect(() => {
+    const checkUsernameAvailability = async () => {
+      const username = debouncedUsername;
+      const { errors } = form.formState;
+
+      if (!username) {
+        setUsernameStatus('empty');
+        return;
+      }
+      
+      if(errors.username) {
+        setUsernameStatus('invalid');
+        return;
+      }
+
+      setUsernameStatus('checking');
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', username)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          setUsernameStatus('unavailable');
+        } else if (data) {
+          setUsernameStatus('unavailable');
+        } else {
+          setUsernameStatus('available');
+        }
+      } catch (err) {
+        setUsernameStatus('unavailable');
+      }
+    };
+
+    checkUsernameAvailability();
+  }, [debouncedUsername, form.formState]);
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!domain || !siteName) {
@@ -79,6 +134,8 @@ export default function RegisterPage() {
         });
     }
   }
+
+  const isSubmitDisabled = isLoading || !form.formState.isValid || usernameStatus !== 'available';
 
   return (
       <div className="flex items-center justify-center">
@@ -114,8 +171,17 @@ export default function RegisterPage() {
                     <FormItem>
                       <FormLabel>ব্যবহারকারীর নাম</FormLabel>
                       <FormControl>
-                        <Input placeholder="আপনার ব্যবহারকারীর নাম (কোনো স্পেস নেই)" {...field} />
+                        <Input placeholder="আপনার ব্যবহারকারীর নাম (কোনো স্পেস নেই)" {...field} autoComplete="off" />
                       </FormControl>
+                       {usernameStatus === 'checking' && (
+                          <p className="text-sm text-muted-foreground flex items-center pt-2"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> পরীক্ষা করা হচ্ছে...</p>
+                       )}
+                       {usernameStatus === 'unavailable' && (
+                          <p className="text-sm text-destructive pt-2">এই ব্যবহারকারীর নামটি ইতিমধ্যে ব্যবহৃত হয়েছে।</p>
+                       )}
+                       {usernameStatus === 'available' && (
+                          <p className="text-sm text-green-500 pt-2">এই ব্যবহারকারীর নামটি উপলব্ধ!</p>
+                       )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -146,7 +212,7 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isSubmitDisabled}>
                   {isLoading ? 'অ্যাকাউন্ট তৈরি করা হচ্ছে...' : 'অ্যাকাউন্ট তৈরি করুন'}
                 </Button>
               </form>
