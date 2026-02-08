@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -49,7 +50,7 @@ export default function SectionManagerPage() {
   const [sections, setSections] = useState<Section[]>([]);
 
   const allCategories = useMemo(
-    () => [...new Set(products.map((p) => p.category))],
+    () => [...new Set(products.flatMap((p) => p.categories || []))],
     [products]
   );
 
@@ -60,7 +61,9 @@ export default function SectionManagerPage() {
         const fetchedProducts = await getProductsBySiteId(user.id);
         setProducts(fetchedProducts);
 
-        const categories = [...new Set(fetchedProducts.map((p) => p.category))];
+        const categories = [
+          ...new Set(fetchedProducts.flatMap((p) => p.categories || [])),
+        ];
         const initialSections: Section[] = [
           {
             id: 'hero',

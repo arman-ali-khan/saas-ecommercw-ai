@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -27,15 +28,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-  } from '@/components/ui/alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2 } from 'lucide-react';
 import { getProductsBySiteId } from '@/lib/products';
 import { Badge } from '@/components/ui/badge';
@@ -76,23 +77,30 @@ export default function ProductsAdminPage() {
     if (!productToDelete || !user) return;
 
     setIsDeleting(true);
-    const { error } = await supabase.from('products').delete().eq('id', productToDelete.id);
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productToDelete.id);
     setIsDeleting(false);
 
     if (error) {
-        toast({ variant: 'destructive', title: 'Failed to delete product', description: error.message });
+      toast({
+        variant: 'destructive',
+        title: 'Failed to delete product',
+        description: error.message,
+      });
     } else {
-        toast({ title: 'Product deleted' });
-        await fetchProducts(); // Refetch products
+      toast({ title: 'Product deleted' });
+      await fetchProducts(); // Refetch products
     }
     setProductToDelete(null);
   };
 
   if (isLoading) {
     return (
-        <div className="flex items-center justify-center p-16">
-            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-        </div>
+      <div className="flex items-center justify-center p-16">
+        <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
@@ -114,155 +122,197 @@ export default function ProductsAdminPage() {
 
       {products.length === 0 ? (
         <Card>
-            <CardContent className="text-center py-16">
-              <p className="text-muted-foreground">আপনার কোনো পণ্য নেই।</p>
-              <Button asChild className="mt-4">
-                <Link href={`/${username}/admin/products/new`}>
-                    <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <CardContent className="text-center py-16">
+            <p className="text-muted-foreground">আপনার কোনো পণ্য নেই।</p>
+            <Button asChild className="mt-4">
+              <Link href={`/${username}/admin/products/new`}>
+                <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <>
-            <Card className="hidden md:block">
-                <CardContent className="p-0">
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-[80px]">ছবি</TableHead>
-                        <TableHead>নাম</TableHead>
-                        <TableHead>বিভাগ</TableHead>
-                        <TableHead>দাম</TableHead>
-                        <TableHead className="text-right">কার্যকলাপ</TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {products.map((product) => (
-                        <TableRow key={product.id}>
-                        <TableCell>
-                            <div className="relative h-12 w-12 rounded-md overflow-hidden">
-                            <Image
-                                src={product.images[0]?.imageUrl || 'https://placehold.co/100x100'}
-                                alt={product.name}
-                                fill
-                                className="object-cover"
-                            />
-                            </div>
-                        </TableCell>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell>
-                            {product.category && <Badge variant="outline">{product.category}</Badge>}
-                        </TableCell>
-                        <TableCell>
-                            {product.price.toFixed(2)} {product.currency}
-                        </TableCell>
-                        <TableCell className="text-right">
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">মেনু</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
-                                 <DropdownMenuItem asChild>
-                                    <Link href={`/${username}/products/${product.id}`} target="_blank">
-                                        <Eye className="mr-2 h-4 w-4" /> View
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link href={`/${username}/admin/products/${product.id}`}>
-                                        <Edit className="mr-2 h-4 w-4" /> Edit
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                মুছুন
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                        </TableRow>
-                    ))}
-                    </TableBody>
-                </Table>
-                </CardContent>
-            </Card>
-
-            {/* Mobile View: Cards */}
-            <div className="grid gap-4 md:hidden">
-                {products.map((product) => (
-                <Card key={product.id}>
-                    <CardHeader>
-                    <div className="flex items-start gap-4">
-                        <div className="relative h-20 w-20 rounded-md overflow-hidden">
-                        <Image
-                            src={product.images[0]?.imageUrl || 'https://placehold.co/100x100'}
+          <Card className="hidden md:block">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">ছবি</TableHead>
+                    <TableHead>নাম</TableHead>
+                    <TableHead>বিভাগ</TableHead>
+                    <TableHead>দাম</TableHead>
+                    <TableHead className="text-right">কার্যকলাপ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        <div className="relative h-12 w-12 rounded-md overflow-hidden">
+                          <Image
+                            src={
+                              product.images[0]?.imageUrl ||
+                              'https://placehold.co/100x100'
+                            }
                             alt={product.name}
                             fill
                             className="object-cover"
-                        />
+                          />
                         </div>
-                        <div className="flex-grow">
-                        <CardTitle>{product.name}</CardTitle>
-                        <CardDescription>
-                           {product.category && <Badge variant="outline" className="mt-1">{product.category}</Badge>}
-                        </CardDescription>
-                         <p className="font-semibold text-lg mt-2">
-                            {product.price.toFixed(2)} {product.currency}
-                        </p>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {product.name}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {product.categories?.map((cat) => (
+                            <Badge key={cat} variant="outline">
+                              {cat}
+                            </Badge>
+                          ))}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {product.price.toFixed(2)} {product.currency}
+                      </TableCell>
+                      <TableCell className="text-right">
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                          <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">মেনু</span>
                             </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem asChild>
-                                    <Link href={`/${username}/products/${product.id}`} target="_blank">
-                                        <Eye className="mr-2 h-4 w-4" /> View
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link href={`/${username}/admin/products/${product.id}`}>
-                                        <Edit className="mr-2 h-4 w-4" /> Edit
-                                    </Link>
-                                </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => setProductToDelete(product)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                মুছুন
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/${username}/products/${product.id}`}
+                                target="_blank"
+                              >
+                                <Eye className="mr-2 h-4 w-4" /> View
+                              </Link>
                             </DropdownMenuItem>
-                            </DropdownMenuContent>
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/${username}/admin/products/${product.id}`}
+                              >
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setProductToDelete(product)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              মুছুন
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
                         </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Mobile View: Cards */}
+          <div className="grid gap-4 md:hidden">
+            {products.map((product) => (
+              <Card key={product.id}>
+                <CardHeader>
+                  <div className="flex items-start gap-4">
+                    <div className="relative h-20 w-20 rounded-md overflow-hidden">
+                      <Image
+                        src={
+                          product.images[0]?.imageUrl ||
+                          'https://placehold.co/100x100'
+                        }
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                      />
                     </div>
-                    </CardHeader>
-                </Card>
-                ))}
-            </div>
+                    <div className="flex-grow">
+                      <CardTitle>{product.name}</CardTitle>
+                      <CardDescription>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {product.categories?.map((cat) => (
+                            <Badge key={cat} variant="outline">
+                              {cat}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardDescription>
+                      <p className="font-semibold text-lg mt-2">
+                        {product.price.toFixed(2)} {product.currency}
+                      </p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/${username}/products/${product.id}`}
+                            target="_blank"
+                          >
+                            <Eye className="mr-2 h-4 w-4" /> View
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/${username}/admin/products/${product.id}`}
+                          >
+                            <Edit className="mr-2 h-4 w-4" /> Edit
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => setProductToDelete(product)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          মুছুন
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
         </>
       )}
-      <AlertDialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
+      <AlertDialog
+        open={!!productToDelete}
+        onOpenChange={(open) => !open && setProductToDelete(null)}
+      >
         <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This will permanently delete the product "{productToDelete?.name}". This action cannot be undone.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction 
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                    className={cn(buttonVariants({ variant: "destructive" }))}
-                >
-                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Delete
-                </AlertDialogAction>
-            </AlertDialogFooter>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the product "{productToDelete?.name}
+              ". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className={cn(buttonVariants({ variant: 'destructive' }))}
+            >
+              {isDeleting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -43,13 +44,15 @@ export default function ProductsPage({
   const [priceRange, setPriceRange] = useState([0, 0]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  
+
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
       const products = await getProductsByDomain(params.username);
       setAllProducts(products);
-      const maxProductPrice = Math.ceil(Math.max(0, ...products.map((p) => p.price)));
+      const maxProductPrice = Math.ceil(
+        Math.max(0, ...products.map((p) => p.price))
+      );
       setPriceRange([0, maxProductPrice]);
       setIsLoading(false);
     };
@@ -57,7 +60,7 @@ export default function ProductsPage({
   }, [params.username]);
 
   const allCategories = useMemo(
-    () => [...new Set(allProducts.map((p) => p.category))],
+    () => [...new Set(allProducts.flatMap((p) => p.categories || []))],
     [allProducts]
   );
   const allOrigins = useMemo(
@@ -75,7 +78,7 @@ export default function ProductsPage({
     );
     setCurrentPage(1);
   };
-  
+
   const handleOriginChange = (origin: string, checked: boolean) => {
     setSelectedOrigins((prev) =>
       checked ? [...prev, origin] : prev.filter((o) => o !== origin)
@@ -84,19 +87,19 @@ export default function ProductsPage({
   };
 
   const handlePriceChange = (value: number[]) => {
-      setPriceRange(value);
-      setCurrentPage(1);
-  }
-  
+    setPriceRange(value);
+    setCurrentPage(1);
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchQuery(e.target.value);
-      setCurrentPage(1);
-  }
-  
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
   const handleSortChange = (value: string) => {
-      setSortOrder(value);
-      setCurrentPage(1);
-  }
+    setSortOrder(value);
+    setCurrentPage(1);
+  };
 
   const filteredProducts = useMemo(() => {
     let products = allProducts;
@@ -109,15 +112,15 @@ export default function ProductsPage({
 
     if (selectedCategories.length > 0) {
       products = products.filter((p) =>
-        selectedCategories.includes(p.category)
+        p.categories?.some((cat) => selectedCategories.includes(cat))
       );
     }
-    
+
     if (selectedOrigins.length > 0) {
-        products = products.filter((p) =>
-          selectedOrigins.includes(p.origin)
-        );
-      }
+      products = products.filter((p) =>
+        selectedOrigins.includes(p.origin)
+      );
+    }
 
     products = products.filter(
       (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
@@ -139,7 +142,14 @@ export default function ProductsPage({
     });
 
     return products;
-  }, [searchQuery, selectedCategories, selectedOrigins, priceRange, sortOrder, allProducts]);
+  }, [
+    searchQuery,
+    selectedCategories,
+    selectedOrigins,
+    priceRange,
+    sortOrder,
+    allProducts,
+  ]);
 
   const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice(
@@ -175,7 +185,7 @@ export default function ProductsPage({
           ))}
         </div>
       </div>
-       <div>
+      <div>
         <h3 className="text-lg font-semibold mb-3">উৎপত্তি</h3>
         <div className="space-y-2">
           {allOrigins.map((origin) => (
@@ -204,13 +214,20 @@ export default function ProductsPage({
           disabled={isLoading || maxPrice === 0}
         />
         <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-          <span>{priceRange[0]} {paginatedProducts[0]?.currency}</span>
-          <span>{priceRange[1]} {paginatedProducts[0]?.currency}</span>
+          <span>
+            {priceRange[0]} {paginatedProducts[0]?.currency}
+          </span>
+          <span>
+            {priceRange[1]} {paginatedProducts[0]?.currency}
+          </span>
         </div>
       </div>
-      {(selectedCategories.length > 0 || selectedOrigins.length > 0 || priceRange[0] > 0 || priceRange[1] < maxPrice) && (
+      {(selectedCategories.length > 0 ||
+        selectedOrigins.length > 0 ||
+        priceRange[0] > 0 ||
+        priceRange[1] < maxPrice) && (
         <Button variant="outline" onClick={clearFilters} className="w-full">
-            <X className="mr-2 h-4 w-4" /> সব ফিল্টার মুছুন
+          <X className="mr-2 h-4 w-4" /> সব ফিল্টার মুছুন
         </Button>
       )}
     </div>
@@ -237,36 +254,36 @@ export default function ProductsPage({
       </Button>
     </div>
   );
-  
+
   if (isLoading) {
     return (
-        <div className="grid lg:grid-cols-4 gap-8">
-            <aside className="hidden lg:block lg:col-span-1">
-                <div className="sticky top-24 space-y-8">
-                    <Skeleton className="h-8 w-1/3" />
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                </div>
-            </aside>
-            <main className="lg:col-span-3">
-                <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-8">
-                    <Skeleton className="h-10 w-full sm:max-w-xs" />
-                    <Skeleton className="h-10 w-full sm:w-[180px]" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-                    {[...Array(6)].map((_, i) => (
-                        <div key={i} className="space-y-2">
-                            <Skeleton className="h-56 w-full" />
-                            <Skeleton className="h-6 w-3/4" />
-                            <Skeleton className="h-4 w-1/2" />
-                            <Skeleton className="h-10 w-full" />
-                        </div>
-                    ))}
-                </div>
-            </main>
-        </div>
-    )
+      <div className="grid lg:grid-cols-4 gap-8">
+        <aside className="hidden lg:block lg:col-span-1">
+          <div className="sticky top-24 space-y-8">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        </aside>
+        <main className="lg:col-span-3">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-8">
+            <Skeleton className="h-10 w-full sm:max-w-xs" />
+            <Skeleton className="h-10 w-full sm:w-[180px]" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-56 w-full" />
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ))}
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (

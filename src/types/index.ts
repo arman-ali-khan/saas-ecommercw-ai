@@ -15,7 +15,7 @@ export interface Product {
   images: ProductImage[];
   origin: string;
   story: string;
-  category: string;
+  categories: string[];
   created_at: string;
 }
 

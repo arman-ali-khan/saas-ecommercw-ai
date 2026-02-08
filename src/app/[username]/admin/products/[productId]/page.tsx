@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -32,14 +33,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
 import type { Product, Category } from '@/types';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import ImageUploader from '@/components/image-uploader';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const productFormSchema = z.object({
   id: z
@@ -57,7 +52,7 @@ const productFormSchema = z.object({
   currency: z.string().default('BDT'),
   description: z.string().optional(),
   long_description: z.string().optional(),
-  category: z.string().optional(),
+  categories: z.array(z.string()).default([]),
   origin: z.string().optional(),
   story: z.string().optional(),
   images: z
@@ -96,7 +91,7 @@ export default function ManageProductPage() {
       currency: 'BDT',
       description: '',
       long_description: '',
-      category: '',
+      categories: [],
       origin: '',
       story: '',
       images: [],
@@ -144,10 +139,10 @@ export default function ManageProductPage() {
         ...productData,
         description: productData.description || '',
         long_description: productData.long_description || '',
-        category: productData.category || '',
+        categories: productData.categories || [],
         origin: productData.origin || '',
         story: productData.story || '',
-        images: (productData.images || []).map(img => ({
+        images: (productData.images || []).map((img) => ({
           imageUrl: img.imageUrl || '',
           imageHint: img.imageHint || '',
         })),
@@ -231,7 +226,11 @@ export default function ManageProductPage() {
     if (result.event === 'success') {
       const secureUrl = result.info.secure_url;
       if (fields.length > 0) {
-          update(0, { ...(fields[0] || {}), imageUrl: secureUrl, imageHint: fields[0]?.imageHint || '' });
+        update(0, {
+          ...(fields[0] || {}),
+          imageUrl: secureUrl,
+          imageHint: fields[0]?.imageHint || '',
+        });
       } else {
         append({ imageUrl: secureUrl, imageHint: '' });
       }
@@ -345,33 +344,46 @@ export default function ManageProductPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="categories"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ''}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.length === 0 && (
-                            <p className="p-4 text-sm text-muted-foreground">
-                              No categories found. Go to the Category Manager to
-                              add some.
-                            </p>
-                          )}
-                          {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.name}>
+                      <FormLabel>Categories</FormLabel>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 rounded-lg border p-4">
+                        {categories.length === 0 && (
+                          <p className="p-4 text-sm text-muted-foreground col-span-full">
+                            No categories found. Go to the Category Manager to
+                            add some.
+                          </p>
+                        )}
+                        {categories.map((category) => (
+                          <FormItem
+                            key={category.id}
+                            className="flex flex-row items-start space-x-3 space-y-0"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(category.name)}
+                                onCheckedChange={(checked) => {
+                                  const currentValue = field.value || [];
+                                  return checked
+                                    ? field.onChange([
+                                        ...currentValue,
+                                        category.name,
+                                      ])
+                                    : field.onChange(
+                                        currentValue?.filter(
+                                          (value) => value !== category.name
+                                        )
+                                      );
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
                               {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                            </FormLabel>
+                          </FormItem>
+                        ))}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -421,7 +433,10 @@ export default function ManageProductPage() {
                     <FormItem>
                       <FormLabel>Origin</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., রাজশাহী, বাংলাদেশ" />
+                        <Input
+                          {...field}
+                          placeholder="e.g., রাজশাহী, বাংলাদেশ"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -444,7 +459,7 @@ export default function ManageProductPage() {
                   )}
                 />
               </div>
-              
+
               <div className="space-y-6">
                 <div className="space-y-4 rounded-lg border p-4">
                   <FormLabel>Featured Image</FormLabel>
@@ -462,9 +477,11 @@ export default function ManageProductPage() {
                         />
                       </div>
                     ) : (
-                        <div className="h-24 w-24 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
-                            <p className="text-xs text-muted-foreground">No image</p>
-                        </div>
+                      <div className="h-24 w-24 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                        <p className="text-xs text-muted-foreground">
+                          No image
+                        </p>
+                      </div>
                     )}
                     <div className="flex-grow space-y-2">
                       <ImageUploader
@@ -475,24 +492,26 @@ export default function ManageProductPage() {
                             : 'Upload Featured Image'
                         }
                       />
-                       {featuredImage && (
-                          <FormField
-                            control={form.control}
-                            name={`images.0.imageHint`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="sr-only">Image Hint</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    {...field}
-                                    placeholder="AI Image Hint (e.g., ripe mango)"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                       )}
+                      {featuredImage && (
+                        <FormField
+                          control={form.control}
+                          name={`images.0.imageHint`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="sr-only">
+                                Image Hint
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="AI Image Hint (e.g., ripe mango)"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -503,50 +522,52 @@ export default function ManageProductPage() {
                     Add more images to showcase your product from different
                     angles.
                   </FormDescription>
-                  
+
                   {fields.length > 1 && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {fields.slice(1).map((field, index) => (
-                          <div key={field.id} className="space-y-2">
-                            <div className="relative group">
-                              <div className="relative aspect-square w-full rounded-md overflow-hidden border">
-                                {field.imageUrl && (
-                                  <Image
-                                    src={field.imageUrl}
-                                    alt={`Product Image ${index + 2}`}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                )}
-                              </div>
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => remove(index + 1)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                      {fields.slice(1).map((field, index) => (
+                        <div key={field.id} className="space-y-2">
+                          <div className="relative group">
+                            <div className="relative aspect-square w-full rounded-md overflow-hidden border">
+                              {field.imageUrl && (
+                                <Image
+                                  src={field.imageUrl}
+                                  alt={`Product Image ${index + 2}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                              )}
                             </div>
-                            <FormField
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => remove(index + 1)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <FormField
                             control={form.control}
                             name={`images.${index + 1}.imageHint`}
                             render={({ field: hintField }) => (
-                                <FormItem>
-                                <FormLabel className="sr-only">Image Hint</FormLabel>
+                              <FormItem>
+                                <FormLabel className="sr-only">
+                                  Image Hint
+                                </FormLabel>
                                 <FormControl>
-                                    <Input
+                                  <Input
                                     {...hintField}
                                     placeholder="AI Image Hint"
-                                    />
+                                  />
                                 </FormControl>
                                 <FormMessage />
-                                </FormItem>
+                              </FormItem>
                             )}
-                            />
+                          />
                         </div>
-                        ))}
+                      ))}
                     </div>
                   )}
 
@@ -556,7 +577,6 @@ export default function ManageProductPage() {
                   />
                 </div>
               </div>
-
 
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && (

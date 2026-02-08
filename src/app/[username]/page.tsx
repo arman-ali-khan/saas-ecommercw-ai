@@ -1,8 +1,8 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getProductsByDomain } from '@/lib/products';
 import ProductCard from '@/components/product-card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { ArrowRight, Leaf, Users, Heart } from 'lucide-react';
@@ -14,7 +14,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { getProductsBySiteId } from '@/lib/products';
+import { getProductsByDomain } from '@/lib/products';
 
 export default async function UserPage({
   params,
@@ -23,7 +23,7 @@ export default async function UserPage({
 }) {
   const allProducts = await getProductsByDomain(params.username);
   const featuredProducts = allProducts.slice(0, 3);
-  const categories = [...new Set(allProducts.map((p) => p.category))];
+  const categories = [...new Set(allProducts.flatMap((p) => p.categories || []))];
   const aboutImage = PlaceHolderImages.find(
     (img) => img.id === 'about-traceability'
   );
@@ -309,7 +309,7 @@ export default async function UserPage({
 
       {categories.map((category) => {
         const categoryProducts = allProducts
-          .filter((p) => p.category === category)
+          .filter((p) => p.categories?.includes(category))
           .slice(0, 3);
 
         if (categoryProducts.length === 0) return null;

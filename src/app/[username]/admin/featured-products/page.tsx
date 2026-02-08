@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -51,7 +52,7 @@ export default function FeaturedProductsPage() {
   }, [user]);
 
   const allCategories = useMemo(
-    () => [...new Set(allProducts.map((p) => p.category))],
+    () => [...new Set(allProducts.flatMap((p) => p.categories || []))],
     [allProducts]
   );
 
@@ -82,7 +83,7 @@ export default function FeaturedProductsPage() {
 
     if (selectedCategories.length > 0) {
       products = products.filter((p) =>
-        selectedCategories.includes(p.category)
+        p.categories?.some((cat) => selectedCategories.includes(cat))
       );
     }
 
