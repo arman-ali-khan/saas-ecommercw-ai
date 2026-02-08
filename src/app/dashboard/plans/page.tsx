@@ -54,6 +54,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type Plan } from '@/types';
+import { cn } from '@/lib/utils';
 
 const planSchema = z.object({
   id: z
@@ -72,6 +73,7 @@ export default function PlansAdminPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
@@ -176,6 +178,7 @@ export default function PlansAdminPage() {
 
   const handleDelete = async () => {
     if (!selectedPlan) return;
+    setIsDeleting(true);
     const { error } = await supabase.from('plans').delete().eq('id', selectedPlan.id);
 
     if (error) {
@@ -189,6 +192,7 @@ export default function PlansAdminPage() {
       await fetchPlans();
     }
 
+    setIsDeleting(false);
     setIsAlertOpen(false);
     setSelectedPlan(null);
   };
@@ -434,8 +438,10 @@ export default function PlansAdminPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className={buttonVariants({ variant: 'destructive' })}
+              className={cn(buttonVariants({ variant: 'destructive' }))}
+              disabled={isDeleting}
             >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

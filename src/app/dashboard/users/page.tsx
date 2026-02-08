@@ -21,7 +21,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Edit, Trash2, Globe, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -50,29 +50,31 @@ export default function UsersAdminPage() {
     const [loading, setLoading] = useState(true);
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const { toast } = useToast();
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            setLoading(true);
-            const { data, error } = await supabase.from('profiles').select(`
-                id,
-                username,
-                full_name,
-                domain,
-                site_name,
-                site_description
-            `);
-            
-            if (data) {
-                setUsers(data as UserProfile[]);
-            } else if (error) {
-                toast({ variant: 'destructive', title: 'Error fetching users', description: error.message });
-            }
-            setLoading(false);
+    const fetchUsers = useCallback(async () => {
+        setLoading(true);
+        const { data, error } = await supabase.from('profiles').select(`
+            id,
+            username,
+            full_name,
+            domain,
+            site_name,
+            site_description
+        `);
+        
+        if (data) {
+            setUsers(data as UserProfile[]);
+        } else if (error) {
+            toast({ variant: 'destructive', title: 'Error fetching users', description: error.message });
         }
-        fetchUsers();
+        setLoading(false);
     }, [toast]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
 
     const handleDeleteClick = (user: UserProfile) => {
@@ -83,14 +85,16 @@ export default function UsersAdminPage() {
     const performDelete = async () => {
         if (!selectedUser) return;
         
+        setIsDeleting(true);
         const { error } = await supabase.from('profiles').delete().eq('id', selectedUser.id);
 
         if (error) {
             toast({ variant: 'destructive', title: 'Failed to delete user profile', description: error.message });
         } else {
             toast({ title: 'User profile deleted!' });
-            setUsers(users.filter(u => u.id !== selectedUser.id));
+            await fetchUsers();
         }
+        setIsDeleting(false);
         setIsDeleteOpen(false);
         setSelectedUser(null);
     }
@@ -235,7 +239,8 @@ export default function UsersAdminPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={performDelete} className={buttonVariants({ variant: "destructive" })}>
+                        <AlertDialogAction onClick={performDelete} className={cn(buttonVariants({ variant: "destructive" }))} disabled={isDeleting}>
+                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Delete Profile
                         </AlertDialogAction>
                     </AlertDialogFooter>
