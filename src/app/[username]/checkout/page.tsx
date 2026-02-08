@@ -109,8 +109,10 @@ export default function CheckoutPage() {
   useEffect(() => {
     // Debounce to avoid excessive writes
     const handler = setTimeout(() => {
-      // Conditions to avoid running: not hydrated, cart is empty, or siteId not yet fetched
-      if (!isHydrated || cartCount === 0 || !siteId) {
+      // Conditions to avoid running: not hydrated, cart is empty, or siteId not yet fetched.
+      // Also, to prevent RLS errors, we only save uncompleted orders for anonymous users,
+      // and we only do it once per page load (on the first valid form entry).
+      if (!isHydrated || cartCount === 0 || !siteId || user || uncompletedOrderId) {
         return;
       }
 
@@ -121,12 +123,15 @@ export default function CheckoutPage() {
         phone: watchedFormValues.phone,
       };
 
-      // Check if user has started filling the form
+      // Only save if the user has actually started typing shipping info
       const hasShippingInfo = Object.values(customerInfo).some(val => val && val.trim() !== '');
+      if (!hasShippingInfo) {
+          return;
+      }
+
 
       const saveUncompletedOrder = async () => {
         const payload = {
-          id: uncompletedOrderId || undefined,
           site_id: siteId,
           customer_info: customerInfo,
           cart_items: cartItems.map(item => ({
@@ -140,25 +145,18 @@ export default function CheckoutPage() {
           status: hasShippingInfo ? 'shipping-info-entered' : 'started-checkout',
         };
         
-        // RLS policy prevents anonymous users from UPDATING rows.
-        // So for anonymous users, we can only do the initial INSERT.
-        // After that, we stop, otherwise they'll get a security error.
-        // For logged-in users, upsert will work fine as they have update permissions.
-        if (!user && uncompletedOrderId) {
-            return;
-        }
-
-        // Use upsert: it will insert if id is null, or update if id is provided (for logged-in users)
+        // We only INSERT, never update, to avoid RLS issues.
+        // The check for `uncompletedOrderId` at the top of the effect prevents multiple inserts.
         const { data, error } = await supabase
           .from('uncompleted_orders')
-          .upsert(payload)
+          .insert(payload)
           .select('id')
           .single();
 
         if (error) {
           console.error('Error saving uncompleted order:', error.message);
-        } else if (data && !uncompletedOrderId) {
-          // If it was a new insert, store the returned ID for future updates
+        } else if (data) {
+          // If it was a new insert, store the returned ID to prevent future inserts
           setUncompletedOrderId(data.id);
         }
       };
