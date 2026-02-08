@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -110,9 +111,7 @@ export default function ManageProductPage() {
 
   useEffect(() => {
     if (isNew) {
-      if (fields.length === 0) {
-        append({ imageUrl: '', imageHint: '' });
-      }
+      // For new products, the form is initialized with empty strings, so no action is needed.
       return;
     }
 
@@ -140,18 +139,27 @@ export default function ManageProductPage() {
 
       const productData = data as Product;
       setProduct(productData);
-      form.reset({
+
+      // Sanitize data to prevent uncontrolled -> controlled component errors.
+      const sanitizedData = {
         ...productData,
-        images:
-          productData.images && productData.images.length > 0
-            ? productData.images
-            : [{ imageUrl: '', imageHint: '' }],
-      });
+        description: productData.description || '',
+        long_description: productData.long_description || '',
+        category: productData.category || '',
+        origin: productData.origin || '',
+        story: productData.story || '',
+        images: (productData.images || []).map(img => ({
+          imageUrl: img.imageUrl || '',
+          imageHint: img.imageHint || '',
+        })),
+      };
+
+      form.reset(sanitizedData);
       setIsLoading(false);
     };
 
     fetchProduct();
-  }, [productId, isNew, user, router, toast, form, username, fields.length, append]);
+  }, [productId, isNew, user, router, toast, form, username]);
 
   useEffect(() => {
     if (!user) return;
@@ -180,9 +188,15 @@ export default function ManageProductPage() {
       toast({ variant: 'destructive', title: 'Authentication error' });
       return;
     }
+     // Filter out any potential empty image objects before submitting
+    const finalValues = {
+        ...values,
+        images: values.images.filter(img => img.imageUrl),
+    };
+
 
     setIsSubmitting(true);
-    const payload = { ...values, site_id: user.id };
+    const payload = { ...finalValues, site_id: user.id };
 
     let error;
 
@@ -217,12 +231,9 @@ export default function ManageProductPage() {
   const handleFeaturedImageUpload = (result: any) => {
     if (result.event === 'success') {
       const secureUrl = result.info.secure_url;
-      if (fields.length > 0 && fields[0].imageUrl) {
-          update(0, { ...fields[0], imageUrl: secureUrl });
-      } else if (fields.length > 0) {
-          update(0, { ...fields[0], imageUrl: secureUrl });
-      }
-      else {
+      if (fields.length > 0) {
+          update(0, { ...(fields[0] || {}), imageUrl: secureUrl, imageHint: fields[0]?.imageHint || '' });
+      } else {
         append({ imageUrl: secureUrl, imageHint: '' });
       }
     }
@@ -233,6 +244,8 @@ export default function ManageProductPage() {
       append({ imageUrl: result.info.secure_url, imageHint: '' });
     }
   };
+
+  const featuredImage = fields.length > 0 ? fields[0] : null;
 
   if (isLoading) {
     return (
@@ -339,7 +352,7 @@ export default function ManageProductPage() {
                       <FormLabel>Category</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value || ''}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -440,10 +453,10 @@ export default function ManageProductPage() {
                     This is the main image for your product, shown first.
                   </FormDescription>
                   <div className="flex flex-col sm:flex-row items-start gap-4">
-                    {fields.length > 0 && fields[0]?.imageUrl ? (
+                    {featuredImage && featuredImage.imageUrl ? (
                       <div className="relative h-24 w-24 shrink-0 rounded-md overflow-hidden border">
                         <Image
-                          src={fields[0].imageUrl}
+                          src={featuredImage.imageUrl}
                           alt="Featured Image"
                           fill
                           className="object-cover"
@@ -458,27 +471,29 @@ export default function ManageProductPage() {
                       <ImageUploader
                         onUpload={handleFeaturedImageUpload}
                         label={
-                          fields[0]?.imageUrl
+                          featuredImage?.imageUrl
                             ? 'Change Image'
                             : 'Upload Featured Image'
                         }
                       />
-                       <FormField
-                          control={form.control}
-                          name={`images.0.imageHint`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="sr-only">Image Hint</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  placeholder="AI Image Hint (e.g., ripe mango)"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                       {featuredImage && (
+                          <FormField
+                            control={form.control}
+                            name={`images.0.imageHint`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="sr-only">Image Hint</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="AI Image Hint (e.g., ripe mango)"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                       )}
                     </div>
                   </div>
                 </div>
@@ -493,25 +508,27 @@ export default function ManageProductPage() {
                   {fields.length > 1 && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {fields.slice(1).map((field, index) => (
-                        <div key={field.id} className="space-y-2">
+                          <div key={field.id} className="space-y-2">
                             <div className="relative group">
-                            <div className="relative aspect-square w-full rounded-md overflow-hidden border">
-                                <Image
-                                src={field.imageUrl}
-                                alt={`Product Image ${index + 2}`}
-                                fill
-                                className="object-cover"
-                                />
-                            </div>
-                            <Button
+                              <div className="relative aspect-square w-full rounded-md overflow-hidden border">
+                                {field.imageUrl && (
+                                  <Image
+                                    src={field.imageUrl}
+                                    alt={`Product Image ${index + 2}`}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                )}
+                              </div>
+                              <Button
                                 type="button"
                                 variant="destructive"
                                 size="icon"
                                 className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={() => remove(index + 1)}
-                            >
+                              >
                                 <Trash2 className="h-4 w-4" />
-                            </Button>
+                              </Button>
                             </div>
                             <FormField
                             control={form.control}
@@ -555,3 +572,5 @@ export default function ManageProductPage() {
     </div>
   );
 }
+
+    
