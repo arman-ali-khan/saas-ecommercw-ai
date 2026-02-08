@@ -66,7 +66,8 @@ const TikTokIcon = () => (
 export default function SaasSettingsPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaasSubmitting, setIsSaasSubmitting] = useState(false);
+  const [isGeneralSubmitting, setIsGeneralSubmitting] = useState(false);
+  const [isSeoSubmitting, setIsSeoSubmitting] = useState(false);
   const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
 
   const saasForm = useForm<z.infer<typeof saasSettingsSchema>>({
@@ -119,7 +120,7 @@ export default function SaasSettingsPage() {
                 mobileBankingNumber: data.mobile_banking_number || '',
                 acceptedBankingMethods: data.accepted_banking_methods || [],
             });
-        } else if (error && error.code !== 'PGRST116') { // Ignore "No rows found" error
+        } else if (error && error.code !== 'PGRST116') { 
             toast({ variant: 'destructive', title: 'Error fetching settings', description: `Could not load settings. This is likely a database permissions issue. Error: ${error.message}` });
         }
     } catch (e: any) {
@@ -133,9 +134,8 @@ export default function SaasSettingsPage() {
     fetchSettings();
   }, [fetchSettings]);
 
-
-  async function onSaasSubmit(values: z.infer<typeof saasSettingsSchema>) {
-    setIsSaasSubmitting(true);
+  async function onGeneralSubmit(values: z.infer<typeof saasSettingsSchema>) {
+    setIsGeneralSubmitting(true);
     try {
       const { error } = await supabase
         .from('saas_settings')
@@ -146,23 +146,45 @@ export default function SaasSettingsPage() {
             social_facebook: values.social_facebook,
             social_twitter: values.social_twitter,
             social_tiktok: values.social_tiktok,
-            seo_title: values.seoTitle,
-            seo_description: values.seoDescription,
-            seo_keywords: values.seoKeywords,
         })
         .eq('id', 1);
 
       if (error) {
-        toast({ variant: 'destructive', title: 'Error Saving Settings', description: `Failed to save settings. Please check database permissions. Error: ${error.message}` });
+        toast({ variant: 'destructive', title: 'Error Saving General Settings', description: `Failed to save settings. Please check database permissions. Error: ${error.message}` });
       } else {
-        toast({ title: 'SaaS Settings Saved!' });
+        toast({ title: 'General Settings Saved!' });
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
     } finally {
-      setIsSaasSubmitting(false);
+      setIsGeneralSubmitting(false);
     }
   }
+
+  async function onSeoSubmit(values: z.infer<typeof saasSettingsSchema>) {
+    setIsSeoSubmitting(true);
+    try {
+        const { error } = await supabase
+            .from('saas_settings')
+            .update({
+                seo_title: values.seoTitle,
+                seo_description: values.seoDescription,
+                seo_keywords: values.seoKeywords,
+            })
+            .eq('id', 1);
+
+        if (error) {
+            toast({ variant: 'destructive', title: 'Error Saving SEO Settings', description: `Failed to save settings. Please check database permissions. Error: ${error.message}` });
+        } else {
+            toast({ title: 'SEO Settings Saved!' });
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+    } finally {
+        setIsSeoSubmitting(false);
+    }
+  }
+
 
   async function onPaymentSubmit(values: z.infer<typeof paymentSettingsSchema>) {
     setIsPaymentSubmitting(true);
@@ -208,8 +230,8 @@ export default function SaasSettingsPage() {
   const isLogoUrlValid = useMemo(() => {
     if (!logoUrl) return false;
     try {
-      const url = new URL(logoUrl);
-      return url.protocol === 'http:' || url.protocol === 'https:';
+      new URL(logoUrl);
+      return true;
     } catch {
       return false;
     }
@@ -236,7 +258,7 @@ export default function SaasSettingsPage() {
             </CardHeader>
             <CardContent>
               <Form {...saasForm}>
-                <form onSubmit={saasForm.handleSubmit(onSaasSubmit)} className="space-y-8">
+                <form onSubmit={saasForm.handleSubmit(onGeneralSubmit)} className="space-y-8">
                   <FormField
                     control={saasForm.control}
                     name="platformName"
@@ -357,8 +379,8 @@ export default function SaasSettingsPage() {
                       />
                   </div>
                   
-                  <Button type="submit" disabled={isSaasSubmitting || isLoading}>
-                    {isSaasSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="submit" disabled={isGeneralSubmitting || isLoading}>
+                    {isGeneralSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save General Settings
                   </Button>
                 </form>
@@ -375,7 +397,7 @@ export default function SaasSettingsPage() {
             </CardHeader>
             <CardContent>
                <Form {...saasForm}>
-                 <form onSubmit={saasForm.handleSubmit(onSaasSubmit)} className="space-y-8">
+                 <form onSubmit={saasForm.handleSubmit(onSeoSubmit)} className="space-y-8">
                     <FormField
                         control={saasForm.control}
                         name="seoTitle"
@@ -428,8 +450,8 @@ export default function SaasSettingsPage() {
                         </FormItem>
                         )}
                     />
-                    <Button type="submit" disabled={isSaasSubmitting || isLoading}>
-                        {isSaasSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button type="submit" disabled={isSeoSubmitting || isLoading}>
+                        {isSeoSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save SEO Settings
                     </Button>
                 </form>
