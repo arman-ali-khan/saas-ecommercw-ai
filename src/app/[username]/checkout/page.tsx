@@ -67,10 +67,11 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [isHydrated, setIsHydrated] = useState(false);
-  const [uncompletedOrderId, setUncompletedOrderId] = useState<string | null>(null);
+  const [uncompletedOrderId, setUncompletedOrderId] = useState<string | null>(
+    null
+  );
   const [siteId, setSiteId] = useState<string | null>(null);
   const { user } = useAuth();
-
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -85,7 +86,6 @@ export default function CheckoutPage() {
   });
 
   const paymentMethod = form.watch('paymentMethod');
-  const watchedFormValues = form.watch();
 
   useEffect(() => {
     setIsHydrated(true);
@@ -105,71 +105,65 @@ export default function CheckoutPage() {
     getSiteId();
   }, [username]);
 
-    // This effect handles saving the uncompleted order
-  useEffect(() => {
-    // Debounce to avoid excessive writes
-    const handler = setTimeout(() => {
-      // Conditions to avoid running: not hydrated, cart is empty, or siteId not yet fetched.
-      // Also, to prevent RLS errors, we only save uncompleted orders for anonymous users,
-      // and we only do it once per page load (on the first valid form entry).
-      if (!isHydrated || cartCount === 0 || !siteId || user || uncompletedOrderId) {
-        return;
-      }
+  const handleSaveUncompletedOrder = async () => {
+    // Conditions to avoid running: not hydrated, cart is empty, or siteId not yet fetched.
+    // Also, to prevent RLS errors, we only save uncompleted orders for anonymous users,
+    // and we only do it once.
+    if (
+      !isHydrated ||
+      cartCount === 0 ||
+      !siteId ||
+      user ||
+      uncompletedOrderId
+    ) {
+      return;
+    }
 
-      const customerInfo = {
-        name: watchedFormValues.name,
-        address: watchedFormValues.address,
-        city: watchedFormValues.city,
-        phone: watchedFormValues.phone,
-      };
+    const formValues = form.getValues();
 
-      // Only save if the user has actually started typing shipping info
-      const hasShippingInfo = Object.values(customerInfo).some(val => val && val.trim() !== '');
-      if (!hasShippingInfo) {
-          return;
-      }
-
-
-      const saveUncompletedOrder = async () => {
-        const payload = {
-          site_id: siteId,
-          customer_info: customerInfo,
-          cart_items: cartItems.map(item => ({
-              id: item.id,
-              name: item.name,
-              quantity: item.quantity,
-              price: item.price,
-              imageUrl: item.images[0]?.imageUrl
-          })),
-          cart_total: cartTotal,
-          status: hasShippingInfo ? 'shipping-info-entered' : 'started-checkout',
-        };
-        
-        // We only INSERT, never update, to avoid RLS issues.
-        // The check for `uncompletedOrderId` at the top of the effect prevents multiple inserts.
-        const { data, error } = await supabase
-          .from('uncompleted_orders')
-          .insert(payload)
-          .select('id')
-          .single();
-
-        if (error) {
-          console.error('Error saving uncompleted order:', error.message);
-        } else if (data) {
-          // If it was a new insert, store the returned ID to prevent future inserts
-          setUncompletedOrderId(data.id);
-        }
-      };
-
-      saveUncompletedOrder();
-
-    }, 1500); // Debounce for 1.5 seconds
-
-    return () => {
-      clearTimeout(handler);
+    const customerInfo = {
+      name: formValues.name,
+      address: formValues.address,
+      city: formValues.city,
+      phone: formValues.phone,
     };
-  }, [watchedFormValues, siteId, cartItems, cartTotal, cartCount, isHydrated, uncompletedOrderId, user]);
 
+    // Only save if the user has actually started typing shipping info
+    const hasShippingInfo = Object.values(customerInfo).some(
+      (val) => val && val.trim() !== ''
+    );
+    if (!hasShippingInfo) {
+      return;
+    }
+
+    const payload = {
+      site_id: siteId,
+      customer_info: customerInfo,
+      cart_items: cartItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        imageUrl: item.images[0]?.imageUrl,
+      })),
+      cart_total: cartTotal,
+      status: 'shipping-info-entered',
+    };
+
+    // We only INSERT, never update, to avoid RLS issues for anonymous users.
+    const { data, error } = await supabase
+      .from('uncompleted_orders')
+      .insert(payload)
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error saving uncompleted order:', error.message);
+    } else if (data) {
+      // If it was a new insert, store the returned ID to prevent future inserts
+      setUncompletedOrderId(data.id);
+    }
+  };
 
   useEffect(() => {
     if (isHydrated && cartCount === 0) {
@@ -197,14 +191,17 @@ export default function CheckoutPage() {
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     console.log(values);
-    
+
     // In a real app, you would create the final order here.
-    
+
     // After successfully creating the order, delete the uncompleted order record.
     if (uncompletedOrderId) {
-      const { error } = await supabase.from('uncompleted_orders').delete().eq('id', uncompletedOrderId);
+      const { error } = await supabase
+        .from('uncompleted_orders')
+        .delete()
+        .eq('id', uncompletedOrderId);
       if (error) {
-        console.error("Error deleting uncompleted order:", error.message);
+        console.error('Error deleting uncompleted order:', error.message);
       }
     }
 
@@ -319,7 +316,11 @@ export default function CheckoutPage() {
                 <FormItem>
                   <FormLabel>ফোন নম্বর</FormLabel>
                   <FormControl>
-                    <Input placeholder="01712345678" {...field} />
+                    <Input
+                      placeholder="01712345678"
+                      {...field}
+                      onBlur={handleSaveUncompletedOrder}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -388,7 +389,8 @@ export default function CheckoutPage() {
                         </li>
                         <li>"পেমেন্ট" অপশন নির্বাচন করুন।</li>
                         <li>
-                          মার্চেন্ট নম্বর হিসেবে <strong>01234567890</strong> দিন।
+                          মার্চেন্ট নম্বর হিসেবে <strong>01234567890</strong>{' '}
+                          দিন।
                         </li>
                         <li>
                           টাকার পরিমাণ হিসেবে{' '}
