@@ -1,16 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
+import { supabase } from '@/lib/supabase/client';
+import type { SubscriptionPaymentWithDetails } from '@/types';
 
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -27,143 +25,84 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-  } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, MoreHorizontal, Edit, Trash2, CalendarIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Eye, Loader2, User, CreditCard, FileText } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
-const subscriptionSchema = z.object({
-  id: z.string().optional(),
-  user: z.string().min(1, 'User name is required'),
-  plan: z.enum(['Free', 'Pro', 'Enterprise']),
-  status: z.enum(['Active', 'Canceled']),
-  nextBilling: z.date({
-    required_error: 'Next billing date is required.',
-  }),
-});
-
-type Subscription = z.infer<typeof subscriptionSchema>;
-
-const initialSubscriptions: Subscription[] = [
-  { id: '1', user: 'আরিফুল ইসলাম', plan: 'Pro', status: 'Active', nextBilling: new Date('2024-08-25') },
-  { id: '2', user: 'সুমাইয়া খাতুন', plan: 'Free', status: 'Active', nextBilling: new Date() },
-  { id: '3', user: 'রাশেদ আহমেদ', plan: 'Pro', status: 'Canceled', nextBilling: new Date('2024-07-30') },
-  { id: '4', user: 'জান্নাতুল ফেরদৌস', plan: 'Enterprise', status: 'Active', nextBilling: new Date('2025-01-01') },
-];
-
-export default function SubscriptionsAdminPage() {
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>(initialSubscriptions);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+export default function SubscriptionPaymentsPage() {
+  const [payments, setPayments] = useState<SubscriptionPaymentWithDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
   const { toast } = useToast();
 
-  const form = useForm<Subscription>({
-    resolver: zodResolver(subscriptionSchema),
-  });
+  const fetchPayments = useCallback(async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('subscription_payments')
+      .select('*, profiles(full_name, username), plans(name)')
+      .order('created_at', { ascending: false });
 
-  useEffect(() => {
-    if (isFormOpen) {
-      form.reset(selectedSubscription || { user: '', plan: 'Free', status: 'Active', nextBilling: new Date() });
-    }
-  }, [isFormOpen, selectedSubscription, form]);
-
-  const onSubmit = (data: Subscription) => {
-    if (selectedSubscription && selectedSubscription.id) {
-      // Update
-      setSubscriptions(subs => subs.map(s => s.id === selectedSubscription.id ? { ...data, id: s.id } : s));
-      toast({ title: 'Subscription Updated' });
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error fetching subscription payments',
+        description: error.message,
+      });
     } else {
-      // Create
-      setSubscriptions(subs => [...subs, { ...data, id: Date.now().toString() }]);
-      toast({ title: 'Subscription Created' });
+      setPayments(data as SubscriptionPaymentWithDetails[]);
     }
-    setIsFormOpen(false);
-    setSelectedSubscription(null);
-  };
-
-  const openForm = (subscription: Subscription | null) => {
-    setSelectedSubscription(subscription);
-    setIsFormOpen(true);
-  };
+    setIsLoading(false);
+  }, [toast]);
   
-  const openDeleteAlert = (subscription: Subscription) => {
-    setSelectedSubscription(subscription);
-    setIsAlertOpen(true);
-  };
+  useEffect(() => {
+    fetchPayments();
+  }, [fetchPayments]);
 
-  const handleDelete = () => {
-    if (!selectedSubscription) return;
-    setSubscriptions(subs => subs.filter(s => s.id !== selectedSubscription.id));
-    toast({ title: 'Subscription Deleted', variant: 'destructive' });
-    setIsAlertOpen(false);
-    setSelectedSubscription(null);
-  };
 
   const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" => {
-    switch (status) {
-      case 'Active':
+    switch (status.toLowerCase()) {
+      case 'completed':
         return 'default';
-      case 'Canceled':
-        return 'destructive';
-      default:
+      case 'pending':
         return 'secondary';
+      default:
+        return 'destructive';
     }
   };
+
+  const formatPaymentMethod = (method: string) => {
+    if (method === 'mobile_banking') return 'Mobile Banking';
+    if (method === 'credit_card') return 'Credit Card';
+    return method;
+  }
+
+  if (isLoading) {
+      return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Subscription Payments</CardTitle>
+                <CardDescription>Loading payment history from the database...</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center items-center py-16">
+                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+            </CardContent>
+        </Card>
+      )
+  }
 
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle>Subscriptions</CardTitle>
-                <CardDescription>View, create, edit, and manage all user subscriptions.</CardDescription>
-            </div>
-            <Button onClick={() => openForm(null)}>
-                <Plus className="mr-2 h-4 w-4" /> Add
-            </Button>
+        <CardHeader>
+            <CardTitle>Subscription Payments</CardTitle>
+            <CardDescription>View all historical subscription payment records.</CardDescription>
         </CardHeader>
         <CardContent>
-          {subscriptions.length > 0 ? (
+          {payments.length > 0 ? (
             <>
               {/* Desktop View: Table */}
               <div className="hidden md:block">
@@ -172,36 +111,28 @@ export default function SubscriptionsAdminPage() {
                     <TableRow>
                       <TableHead>User</TableHead>
                       <TableHead>Plan</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Next Billing Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Transaction ID</TableHead>
+                      <TableHead>Date</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {subscriptions.map(sub => (
-                      <TableRow key={sub.id}>
-                        <TableCell className="font-medium">{sub.user}</TableCell>
-                        <TableCell><Badge variant={sub.plan === 'Pro' ? 'default' : 'secondary'}>{sub.plan}</Badge></TableCell>
+                    {payments.map(payment => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-medium">{payment.profiles?.full_name || 'N/A'}</TableCell>
+                        <TableCell><Badge variant="secondary">{payment.plans?.name || 'N/A'}</Badge></TableCell>
+                        <TableCell>{payment.amount.toFixed(2)} BDT</TableCell>
                         <TableCell>
-                          <Badge variant={getStatusBadgeVariant(sub.status)}>{sub.status}</Badge>
+                           {formatPaymentMethod(payment.payment_method)}
                         </TableCell>
-                        <TableCell>{format(sub.nextBilling, 'PPP')}</TableCell>
+                        <TableCell className="font-mono text-xs">{payment.transaction_id || 'N/A'}</TableCell>
+                        <TableCell>{format(new Date(payment.created_at), 'PPP')}</TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => openForm(sub)}>
-                                <Edit className="mr-2 h-4 w-4" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openDeleteAlert(sub)} className="text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <Button variant="ghost" size="sm" onClick={() => setSelectedPayment(payment)}>
+                            <Eye className="mr-2 h-4 w-4" /> View Details
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -211,141 +142,67 @@ export default function SubscriptionsAdminPage() {
               
               {/* Mobile View: Cards */}
               <div className="grid gap-4 md:hidden">
-                {subscriptions.map(sub => (
-                  <Card key={sub.id} className="flex flex-col">
+                {payments.map(payment => (
+                  <Card key={payment.id} onClick={() => setSelectedPayment(payment)} className="cursor-pointer hover:bg-muted/50">
                       <CardHeader>
-                          <div className="flex items-center gap-3">
-                              <Avatar>
-                                  <AvatarFallback>{sub.user.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                              <div>
-                                  <CardTitle className="text-lg">{sub.user}</CardTitle>
-                                  <CardDescription>Next Billing: {format(sub.nextBilling, 'PPP')}</CardDescription>
-                              </div>
-                          </div>
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                                <Avatar>
+                                    <AvatarFallback>{payment.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <CardTitle className="text-lg">{payment.profiles?.full_name || 'N/A'}</CardTitle>
+                                    <CardDescription>@{payment.profiles?.username || 'unknown'}</CardDescription>
+                                </div>
+                            </div>
+                            <p className="font-semibold text-lg">{payment.amount.toFixed(2)} BDT</p>
+                        </div>
                       </CardHeader>
-                      <CardContent className="flex justify-between items-center pt-0 flex-grow">
-                          <Badge variant={sub.plan === 'Pro' ? 'default' : 'secondary'}>{sub.plan}</Badge>
-                          <Badge variant={getStatusBadgeVariant(sub.status)}>{sub.status}</Badge>
+                      <CardContent className="flex justify-between items-center pt-0">
+                          <Badge variant="secondary">{payment.plans?.name || 'N/A'}</Badge>
+                          <p className="text-sm text-muted-foreground">{format(new Date(payment.created_at), 'PPP')}</p>
                       </CardContent>
-                      <CardFooter className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => openForm(sub)}>
-                              <Edit className="mr-2 h-4 w-4" /> Edit
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => openDeleteAlert(sub)}>
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </Button>
-                      </CardFooter>
                   </Card>
                 ))}
               </div>
             </>
           ) : (
-            <p className="text-muted-foreground text-center py-8">No subscriptions found.</p>
+            <p className="text-muted-foreground text-center py-8">No payment records found.</p>
           )}
         </CardContent>
       </Card>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
+      <Dialog open={!!selectedPayment} onOpenChange={(open) => !open && setSelectedPayment(null)}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedSubscription ? 'Edit Subscription' : 'Add New Subscription'}</DialogTitle>
+            <DialogTitle>Payment Details</DialogTitle>
+            <DialogDescription>
+                Full details for transaction #{selectedPayment?.transaction_id || selectedPayment?.id}
+            </DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField control={form.control} name="user" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>User Name</FormLabel>
-                  <FormControl><Input placeholder="e.g., আরিফুল ইসলাম" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="plan" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plan</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Select a plan" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Free">Free</SelectItem>
-                      <SelectItem value="Pro">Pro</SelectItem>
-                      <SelectItem value="Enterprise">Enterprise</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-               <FormField control={form.control} name="status" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Canceled">Canceled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="nextBilling" render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Next Billing Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) => date < new Date("1900-01-01")}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <DialogFooter>
-                <Button type="submit">Save Subscription</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          {selectedPayment && (
+            <div className="space-y-4 py-4 text-sm">
+                <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
+                    <h4 className="font-semibold flex items-center gap-2"><User className="h-4 w-4" /> User Information</h4>
+                    <p><strong>Name:</strong> {selectedPayment.profiles?.full_name}</p>
+                    <p><strong>Username:</strong> @{selectedPayment.profiles?.username}</p>
+                </div>
+                <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
+                    <h4 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Subscription Details</h4>
+                    <p><strong>Plan:</strong> {selectedPayment.plans?.name}</p>
+                    <p><strong>Amount:</strong> {selectedPayment.amount.toFixed(2)} BDT</p>
+                </div>
+                <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
+                    <h4 className="font-semibold flex items-center gap-2"><CreditCard className="h-4 w-4" /> Payment Information</h4>
+                    <p><strong>Method:</strong> {formatPaymentMethod(selectedPayment.payment_method)}</p>
+                    <p><strong>Transaction ID:</strong> {selectedPayment.transaction_id || 'N/A'}</p>
+                    <p><strong>Status:</strong> <Badge variant={getStatusBadgeVariant(selectedPayment.status)}>{selectedPayment.status}</Badge></p>
+                    <p><strong>Date:</strong> {format(new Date(selectedPayment.created_at), 'PPpp')}</p>
+                </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
-      
-      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the subscription for {selectedSubscription?.user}.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className={buttonVariants({ variant: "destructive" })}>
-                    Delete
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

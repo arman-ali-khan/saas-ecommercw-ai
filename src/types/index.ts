@@ -73,3 +73,24 @@ export interface UncompletedOrder {
   status: string;
   created_at: string;
 }
+
+export interface SubscriptionPayment {
+  id: number;
+  user_id: string;
+  plan_id: string;
+  amount: number;
+  payment_method: string;
+  transaction_id: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface SubscriptionPaymentWithDetails extends SubscriptionPayment {
+  profiles: {
+    full_name: string;
+    username: string;
+  } | null;
+  plans: {
+    name: string;
+  } | null;
+}
