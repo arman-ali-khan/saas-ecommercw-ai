@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
 import { getProductById } from '@/lib/products';
@@ -24,25 +24,78 @@ import {
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
+import type { Product } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const TikTokIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12.52.02c1.31-.02 2.61.01 3.91.02.08 1.53.01 3.07.01 4.6 0 1.1.35 2.21 1.22 3.01.91.82 2.1 1.25 3.32 1.19.08 1.5.01 3 .01 4.5a5.42 5.42 0 0 1-5.12 5.14c-1.53.08-3.07.01-4.6.01-1.1 0-2.21-.35-3.01-1.22-.82-.91-1.25-2.1-1.19-3.32-.08-1.5-.01-3-.01-4.5a5.42 5.42 0 0 1 5.12-5.14Z"></path><path d="M9 8.5h4"></path><path d="M9 12.5h4"></path><path d="M13.5 4.5v4"></path>
-    </svg>
-  );
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12.52.02c1.31-.02 2.61.01 3.91.02.08 1.53.01 3.07.01 4.6 0 1.1.35 2.21 1.22 3.01.91.82 2.1 1.25 3.32 1.19.08 1.5.01 3 .01 4.5a5.42 5.42 0 0 1-5.12 5.14c-1.53.08-3.07.01-4.6.01-1.1 0-2.21-.35-3.01-1.22-.82-.91-1.25-2.1-1.19-3.32-.08-1.5-.01-3-.01-4.5a5.42 5.42 0 0 1 5.12-5.14Z"></path>
+    <path d="M9 8.5h4"></path>
+    <path d="M9 12.5h4"></path>
+    <path d="M13.5 4.5v4"></path>
+  </svg>
+);
 
 export default function ProductPage() {
   const params = useParams();
   const id = params.id as string;
+  const [product, setProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [quantity, setQuantity] = useState(1);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
-  const product = getProductById(id);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchProduct = async () => {
+      setIsLoading(true);
+      const fetchedProduct = await getProductById(id);
+      if (fetchedProduct) {
+        setProduct(fetchedProduct);
+      } else {
+        notFound();
+      }
+      setIsLoading(false);
+    };
+    fetchProduct();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+        <Skeleton className="w-full h-[50vh] rounded-lg" />
+        <div className="flex flex-col space-y-4">
+          <Skeleton className="h-10 w-3/4" />
+          <Skeleton className="h-8 w-1/4" />
+          <Skeleton className="h-20 w-full" />
+          <Separator className="my-6" />
+          <Skeleton className="h-6 w-1/2" />
+          <Skeleton className="h-6 w-2/3" />
+          <div className="mt-8 flex flex-col sm:flex-row gap-4">
+            <Skeleton className="h-12 w-32" />
+            <Skeleton className="h-12 flex-grow" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
-    notFound();
+    // This case should be handled by notFound() in useEffect,
+    // but it's good practice to have a fallback.
+    return null;
   }
 
   const handleAddToCart = () => {
@@ -59,11 +112,13 @@ export default function ProductPage() {
       : `https://banglanaturals.example.com/products/${product.id}`;
   const shareText = `বাংলা ন্যাচারালস থেকে ${product.name} দেখুন!`;
 
+  const images = product.images || [];
+
   return (
     <div className="grid md:grid-cols-2 gap-8 md:gap-12">
       <Carousel className="w-full">
         <CarouselContent>
-          {product.images.map((image, index) => (
+          {images.map((image, index) => (
             <CarouselItem key={index}>
               <div className="relative w-full h-[50vh] rounded-lg overflow-hidden shadow-lg">
                 <Image
@@ -78,8 +133,12 @@ export default function ProductPage() {
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="ml-16" />
-        <CarouselNext className="mr-16" />
+        {images.length > 1 && (
+          <>
+            <CarouselPrevious className="ml-16" />
+            <CarouselNext className="mr-16" />
+          </>
+        )}
       </Carousel>
 
       <div className="flex flex-col">
@@ -88,7 +147,7 @@ export default function ProductPage() {
           {product.price.toFixed(2)} {product.currency}
         </p>
         <p className="text-lg text-muted-foreground mt-4">
-          {product.longDescription}
+          {product.long_description}
         </p>
 
         <Separator className="my-6" />
@@ -114,7 +173,9 @@ export default function ProductPage() {
             <Input
               type="number"
               value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value)))}
+              onChange={(e) =>
+                setQuantity(Math.max(1, parseInt(e.target.value) || 1))
+              }
               className="w-16 text-center"
               min="1"
             />
@@ -136,7 +197,9 @@ export default function ProductPage() {
           <div className="flex gap-2">
             <Button asChild variant="outline" size="icon">
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`}
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                  currentUrl
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="ফেসবুকে শেয়ার করুন"
@@ -146,7 +209,9 @@ export default function ProductPage() {
             </Button>
             <Button asChild variant="outline" size="icon">
               <a
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(shareText)}`}
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
+                  currentUrl
+                )}&text=${encodeURIComponent(shareText)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="টুইটারে শেয়ার করুন"
@@ -155,7 +220,7 @@ export default function ProductPage() {
               </a>
             </Button>
             <Button variant="outline" size="icon" disabled>
-                <TikTokIcon />
+              <TikTokIcon />
             </Button>
             <Button
               variant="outline"
@@ -168,11 +233,13 @@ export default function ProductPage() {
           </div>
         </div>
       </div>
-      <AiShareTool
-        product={product}
-        open={isAiModalOpen}
-        onOpenChange={setIsAiModalOpen}
-      />
+      {product && (
+        <AiShareTool
+            product={product}
+            open={isAiModalOpen}
+            onOpenChange={setIsAiModalOpen}
+        />
+      )}
     </div>
   );
 }
