@@ -20,6 +20,11 @@ interface AuthState {
     paymentMethod: string | null,
     transactionId: string | null
   ) => Promise<{ user: User | null, error: string | null }>;
+  registerCustomer: (
+    fullName: string,
+    email: string,
+    password: string
+  ) => Promise<{ user: User | null, error: string | null }>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
@@ -79,7 +84,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
     },
 
     register: async (username, fullName, email, password, domain, siteName, plan, siteDescription, paymentMethod, transactionId) => {
-        const subscription_status = plan === 'free' ? 'active' : 'pending';
+        const subscription_status = plan === 'free' ? 'active' : 'pending_verification';
         
         const { data, error } = await supabase.auth.signUp({
             email,
@@ -97,6 +102,40 @@ export const useAuth = create<AuthState>()((set, get) => ({
                     role: 'admin',
                     payment_method: paymentMethod,
                     transaction_id: transactionId,
+                }
+            }
+        });
+
+        if (error) {
+            return { user: null, error: error.message };
+        }
+
+        if (data.user) {
+            return { user: { id: data.user.id } as User, error: null };
+        }
+
+        return { user: null, error: 'An unknown error occurred during registration.' };
+    },
+
+    registerCustomer: async (fullName, email, password) => {
+        // Create a simple, likely unique username.
+        // Supabase will enforce uniqueness on the 'profiles' table if a constraint exists.
+        const username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000);
+
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    username,
+                    full_name: fullName,
+                    email,
+                    role: 'customer',
+                    domain: null,
+                    site_name: null,
+                    site_description: null,
+                    subscription_plan: null,
+                    subscription_status: 'active',
                 }
             }
         });

@@ -18,33 +18,41 @@ export default function ProfileLayout({
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    if (loading) {
+      return;
     }
-    // If there is a user, and the domain in the URL doesn't match the user's domain,
-    // redirect them to their own profile page.
-    if (!loading && user && user.domain !== username) {
-      const newPath = pathname.replace(
-        `/${username}/`,
-        `/${user.domain}/`
-      );
+
+    // If no user is logged in, redirect to the domain-specific login page
+    if (!user) {
+      router.push(`/${username}/login`);
+      return;
+    }
+
+    // If the logged-in user is a site owner (has a domain) and they are trying to
+    // access a profile page on a different domain, redirect them to their own.
+    if (user.domain && user.domain !== username) {
+      const newPath = pathname.replace(`/${username}/`, `/${user.domain}/`);
       router.replace(newPath);
     }
+    // If the user is a customer (user.domain is null), they are allowed to view the
+    // profile page on the current site's domain. No redirect is necessary.
   }, [user, loading, username, router, pathname]);
 
-  if (loading || !user || user.domain !== username) {
+  const shouldShowSkeleton = loading || !user || (user.domain && user.domain !== username);
+
+  if (shouldShowSkeleton) {
     return (
-        <div className="grid md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] gap-8 items-start">
-            <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-            </div>
-            <div>
-                <Skeleton className="h-64 w-full" />
-            </div>
+      <div className="grid md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] gap-8 items-start">
+        <div className="hidden md:block space-y-2">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
         </div>
+        <div>
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
     );
   }
 

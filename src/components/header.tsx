@@ -105,7 +105,7 @@ export default function Header() {
       <div className="border-t pt-6 mt-6 space-y-4">
         <SheetClose asChild>
           <Link
-            href="/login"
+            href={domain ? `/${domain}/login` : '/login'}
             className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground"
           >
             লগ ইন
@@ -113,7 +113,9 @@ export default function Header() {
         </SheetClose>
         <SheetClose asChild>
           <Button asChild className="w-full">
-            <Link href="/get-started">সাইন আপ</Link>
+            <Link href={domain ? `/${domain}/register` : '/get-started'}>
+              সাইন আপ
+            </Link>
           </Button>
         </SheetClose>
       </div>
@@ -200,7 +202,7 @@ export default function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={`/${user.domain}/profile`}>
+                  <Link href={user.domain ? `/${user.domain}/profile` : `/${domain}/profile`}>
                     <User className="mr-2 h-4 w-4" />
                     <span>প্রোফাইল</span>
                   </Link>
@@ -231,12 +233,25 @@ export default function Header() {
             </DropdownMenu>
           ) : (
             <div className="hidden md:flex items-center gap-2">
-              <Button variant="ghost" asChild>
-                <Link href="/login">লগ ইন</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/get-started">সাইন আপ করুন</Link>
-              </Button>
+              {domain ? (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link href={`/${domain}/login`}>লগ ইন</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href={`/${domain}/register`}>সাইন আপ করুন</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link href="/login">লগ ইন</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/get-started">সাইন আপ করুন</Link>
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </div>

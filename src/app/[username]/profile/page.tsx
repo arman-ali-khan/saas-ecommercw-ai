@@ -86,16 +86,18 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-4">
                 <p className="text-muted-foreground">
-                এটি আপনার ব্যক্তিগত ড্যাশবোর্ড। এখান থেকে আপনি আপনার দোকান এবং
+                এটি আপনার ব্যক্তিগত ড্যাশবোর্ড। এখান থেকে আপনি আপনার কেনাকাটা এবং
                 অ্যাকাউন্ট পরিচালনা করতে পারেন। শুরু করতে বাম পাশের মেনু ব্যবহার করুন।
                 </p>
                 <div className="flex gap-4">
-                <Button asChild>
-                    <Link href={`/${user.domain}/admin`}>
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    অ্যাডমিন ড্যাশবোর্ডে যান
-                    </Link>
-                </Button>
+                {user.role !== 'customer' && user.domain && (
+                    <Button asChild>
+                        <Link href={`/${user.domain}/admin`}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        অ্যাডমিন ড্যাশবোর্ডে যান
+                        </Link>
+                    </Button>
+                )}
                 <Button onClick={logout} variant="outline">
                     <LogOut className="mr-2 h-4 w-4" />
                     লগআউট
@@ -110,25 +112,25 @@ export default function ProfilePage() {
                  <CardDescription>আপনার সাম্প্রতিক কার্যক্রমের একটি দ্রুত লিঙ্ক।</CardDescription>
             </CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">
-                <Link href={`/${user.domain}/profile/orders`} className="block">
+                <Link href={`/${user.domain || user.username}/profile/orders`} className="block">
                     <div className="p-4 border rounded-lg hover:bg-muted">
                         <h3 className="font-semibold text-lg">আমার অর্ডার</h3>
                         <p className="text-muted-foreground text-sm">আপনার অর্ডারের ইতিহাস এবং স্ট্যাটাস দেখুন।</p>
                     </div>
                 </Link>
-                <Link href={`/${user.domain}/profile/reviews`} className="block">
+                <Link href={`/${user.domain || user.username}/profile/reviews`} className="block">
                      <div className="p-4 border rounded-lg hover:bg-muted">
                         <h3 className="font-semibold text-lg">আমার রিভিউ</h3>
                         <p className="text-muted-foreground text-sm">আপনার দেওয়া সকল রিভিউ দেখুন।</p>
                     </div>
                 </Link>
-                <Link href={`/${user.domain}/profile/addresses`} className="block">
+                <Link href={`/${user.domain || user.username}/profile/addresses`} className="block">
                      <div className="p-4 border rounded-lg hover:bg-muted">
                         <h3 className="font-semibold text-lg">আমার ঠিকানা</h3>
                         <p className="text-muted-foreground text-sm">আপনার সংরক্ষিত ঠিকানা পরিচালনা করুন।</p>
                     </div>
                 </Link>
-                 <Link href={`/${user.domain}/profile/settings`} className="block">
+                 <Link href={`/${user.domain || user.username}/profile/settings`} className="block">
                      <div className="p-4 border rounded-lg hover:bg-muted">
                         <h3 className="font-semibold text-lg">সেটিংস</h3>
                         <p className="text-muted-foreground text-sm">আপনার অ্যাকাউন্ট সেটিংস পরিচালনা করুন।</p>
