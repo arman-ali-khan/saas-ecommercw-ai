@@ -68,26 +68,37 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // After a successful login, we must verify this user is the owner of THIS domain.
+    // After a successful login, fetch the user's profile to check their domain.
     const { data: profile } = await supabase
       .from('profiles')
       .select('domain, fullName')
       .eq('id', loginData.user.id)
       .single();
 
-    if (profile?.domain === username) {
-      // The global onAuthStateChange listener will handle setting the user state.
-      // We can just redirect after showing a toast.
-      toast({
-        title: 'Login Successful!',
-        description: `Welcome back, ${profile.fullName}.`,
-      });
-      router.push(`/${username}/admin`);
+    if (profile && profile.domain) {
+      // User is an admin for a site. Check if it's the correct one.
+      if (profile.domain === username) {
+        // Correct domain. The onAuthStateChange listener will handle setting global state.
+        toast({
+          title: 'Login Successful!',
+          description: `Welcome back, ${profile.fullName}.`,
+        });
+        router.push(`/${username}/admin`);
+      } else {
+        // Wrong domain. Redirect them to their correct admin panel.
+        toast({
+          title: 'Redirecting...',
+          description: `You are an admin for '${profile.domain}', not '${username}'. Redirecting you now.`,
+          duration: 5000,
+        });
+        router.push(`/${profile.domain}/admin`);
+      }
     } else {
+      // This user has an auth account but no associated profile, so they aren't an admin.
       toast({
         variant: 'destructive',
         title: 'Access Denied',
-        description: "You are not authorized to access this site's admin panel.",
+        description: "You are not authorized to access any admin panel.",
       });
       await logout(); // Log out the user who just logged in incorrectly.
       setIsSubmitting(false);
