@@ -32,7 +32,7 @@ export default function ProductCard({ product, username }: ProductCardProps) {
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
       <Link href={productUrl} className="block">
         <CardHeader className="p-0">
-          <div className="relative w-full h-56">
+          <div className="relative w-full h-[250px]">
             <Image
               src={product.images[0].imageUrl}
               alt={product.name}
