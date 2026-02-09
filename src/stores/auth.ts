@@ -58,9 +58,31 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
       // This is a login on a specific store's domain (customer or owner of that domain)
       if (siteId) {
-        // First, check if they are a customer registered to THIS site
-        const { data: customerProfile } = await supabase.from('customer_profiles').select('*').eq('id', authUser.id).eq('site_id', siteId).single();
+        // Is the user the owner of this specific store?
+        // We check if the logged-in user's ID is the same as the ID associated with this store's domain.
+        if (authUser.id === siteId) {
+          const { data: ownerProfile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+          if (ownerProfile) {
+            const appUser: User = {
+                id: ownerProfile.id,
+                username: ownerProfile.username,
+                fullName: ownerProfile.full_name,
+                email: authUser.email!,
+                domain: ownerProfile.domain,
+                siteName: ownerProfile.site_name,
+                siteDescription: ownerProfile.site_description,
+                subscriptionPlan: ownerProfile.subscription_plan,
+                subscription_status: ownerProfile.subscription_status,
+                role: ownerProfile.role,
+                isSaaSAdmin: ownerProfile.role === 'saas_admin',
+            };
+            set({ user: appUser, session, loading: false });
+            return { user: appUser, error: null };
+          }
+        }
 
+        // If not the owner, are they a customer of this specific store?
+        const { data: customerProfile } = await supabase.from('customer_profiles').select('*').eq('id', authUser.id).eq('site_id', siteId).single();
         if (customerProfile) {
           const appUser: User = {
             id: customerProfile.id,
@@ -78,30 +100,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
           set({ user: appUser, session, loading: false });
           return { user: appUser, error: null };
         }
-
-        // If not a customer, check if they are the owner of THIS site
-        const { data: ownerProfile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
-
-        // Check if they are an owner AND their ID matches the siteId they're on
-        if (ownerProfile && ownerProfile.id === siteId) {
-          const appUser: User = {
-            id: ownerProfile.id,
-            username: ownerProfile.username,
-            fullName: ownerProfile.full_name,
-            email: authUser.email!,
-            domain: ownerProfile.domain,
-            siteName: ownerProfile.site_name,
-            siteDescription: ownerProfile.site_description,
-            subscriptionPlan: ownerProfile.subscription_plan,
-            subscription_status: ownerProfile.subscription_status,
-            role: ownerProfile.role,
-            isSaaSAdmin: ownerProfile.role === 'saas_admin',
-          };
-          set({ user: appUser, session, loading: false });
-          return { user: appUser, error: null };
-        }
         
-        // If they are neither a customer nor the owner of this site, then this login is invalid for this context
+        // If they are neither the owner nor a customer of this site, then this login is invalid for this context.
         await supabase.auth.signOut();
         return { user: null, error: 'Invalid email or password for this site.' };
 
