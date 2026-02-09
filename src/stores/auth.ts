@@ -63,40 +63,74 @@ export const useAuth = create<AuthState>()((set, get) => ({
       return { user: data.user, error: null };
     },
 
-    register: async (username, fullName, email, password, domain, siteName, plan, siteDescription, paymentMethod, transactionId) => {
-      try {
-        const response = await fetch('/api/auth/register-admin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username,
-            fullName,
-            email,
-            password,
-            domain,
-            siteName,
-            plan,
-            siteDescription,
-            paymentMethod,
-            transactionId,
-          }),
-        });
+    register: async (
+      username,
+      fullName,
+      email,
+      password,
+      domain,
+      siteName,
+      plan,
+      siteDescription,
+      paymentMethod,
+      transactionId
+    ) => {
+      // Step 1: Sign up the user with metadata for the 'profiles' trigger
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            username: username,
+            full_name: fullName,
+            domain: domain,
+            site_name: siteName,
+            site_description: siteDescription,
+            subscription_plan: plan,
+            subscription_status: plan === 'free' ? 'active' : 'pending_verification',
+            role: 'admin',
+          },
+        },
+      });
 
-        const result = await response.json();
-
-        if (!response.ok) {
-          // Use the more specific error from our API
-          return { user: null, error: result.error || 'An unknown error occurred during registration.' };
-        }
-        
-        // The API now handles everything, so we just return its success response.
-        // We expect the user to go to the login page and verify their email now.
-        return { user: result.user, error: null };
-
-      } catch (e: any) {
-        console.error("Registration API call failed:", e);
-        return { user: null, error: 'Failed to connect to the registration service.' };
+      if (authError) {
+        return { user: null, error: authError.message };
       }
+      if (!authData.user) {
+        return { user: null, error: "Registration successful, but no user object was returned." };
+      }
+
+      // Step 2: If it's a paid plan, manually create the payment record
+      if (plan !== 'free') {
+        // We need the plan price for the 'amount'
+        const { data: planData, error: planError } = await supabase
+            .from('plans')
+            .select('price')
+            .eq('id', plan)
+            .single();
+        
+        if (planError || !planData) {
+            return { user: null, error: `User created, but could not find price for plan '${plan}'. Please contact support.` };
+        }
+
+        const { error: paymentError } = await supabase
+          .from('subscription_payments')
+          .insert({
+            user_id: authData.user.id,
+            plan_id: plan,
+            amount: planData.price,
+            payment_method: paymentMethod,
+            transaction_id: transactionId,
+            status: 'pending_verification',
+          });
+
+        if (paymentError) {
+           return { user: null, error: `User created, but failed to record payment: ${paymentError.message}. Please contact support.`};
+        }
+      }
+      
+      // If everything is successful
+      return { user: authData.user, error: null };
     },
 
     registerCustomer: async (fullName, email, password, siteId) => {
