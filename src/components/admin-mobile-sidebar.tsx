@@ -37,13 +37,22 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
   }
 
   const handleLogout = async () => {
-    await authLogout();
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
-    router.push(`/${username}/admin/login`);
-  }
+    try {
+      await authLogout();
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+      router.push(`/${username}/admin/login`);
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out. Please try again.',
+      });
+    }
+  };
 
   const adminNavLinks = [
     { href: `/${username}`, label: 'View Store', icon: Home },

@@ -33,12 +33,21 @@ export default function AdminSidebar({ username }: { username: string }) {
   const { user, loading, logout: authLogout } = useAuth();
 
   const handleLogout = async () => {
-    await authLogout();
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
-    router.push(`/${username}/admin/login`);
+    try {
+      await authLogout();
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+      router.push(`/${username}/admin/login`);
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out. Please try again.',
+      });
+    }
   };
   
   if (loading || !user) {

@@ -154,8 +154,12 @@ export const useAuth = create<AuthState>()((set, get) => ({
   
     
     logout: async () => {
-      await supabase.auth.signOut();
-      set({ user: null, session: null, loading: false });
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        throw error;
+      }
+      // The onAuthStateChange listener in AuthProvider will handle setting the state.
     },
     
     updateUserProfile: async (userId: string, updates: Partial<User>) => {
