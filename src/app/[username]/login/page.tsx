@@ -27,7 +27,6 @@ import {
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
@@ -41,23 +40,8 @@ export default function CustomerLoginPage() {
   const username = params.username as string;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [siteId, setSiteId] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    const getSiteId = async () => {
-        if (username) {
-            const { data } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('domain', username)
-            .single();
-            if (data) {
-                setSiteId(data.id);
-            }
-        }
-    }
-    getSiteId();
-  }, [username]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -66,34 +50,30 @@ export default function CustomerLoginPage() {
       password: '',
     },
   });
+  
+  useEffect(() => {
+    if (user) {
+        if (user.role === 'customer') {
+             router.push(`/${username}/profile`);
+        } else if (user.domain === username) {
+             router.push(`/${username}/admin`);
+        }
+    }
+  }, [user, router, username]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!siteId) {
-        toast({
-            variant: 'destructive',
-            title: 'ত্রুটি',
-            description: 'সাইট খুঁজে পাওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।',
-        });
-        return;
-    }
     setIsLoading(true);
-    const { user, error } = await storeLogin(values.email, values.password, siteId);
+    const { error } = await storeLogin(values.email, values.password);
     setIsLoading(false);
 
-    if (user) {
-      toast({
-        title: 'লগইন সফল',
-        description: `আবারও স্বাগতম, ${user.fullName}!`,
-      });
-      // Customers and admins both go to the profile page on this domain
-      router.push(`/${username}/profile`);
-    } else {
+    if (error) {
       toast({
         variant: 'destructive',
         title: 'লগইন ব্যর্থ',
-        description: error || 'অবৈধ ইমেল বা পাসওয়ার্ড।',
+        description: 'অবৈধ ইমেল বা পাসওয়ার্ড।',
       });
     }
+    // On success, the AuthProvider will handle the redirect via the useEffect above
   }
 
   return (
@@ -138,7 +118,7 @@ export default function CustomerLoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading || !siteId}>
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLoading ? 'সাইন ইন করা হচ্ছে...' : 'সাইন ইন'}
               </Button>
