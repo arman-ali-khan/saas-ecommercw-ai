@@ -75,70 +75,36 @@ export const useAuth = create<AuthState>()((set, get) => ({
       paymentMethod,
       transactionId
     ) => {
-      // Step 1: Create the auth user ONLY. This bypasses any broken on-creation triggers.
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-      });
-
-      if (authError || !authData.user) {
-        return { user: null, error: authError?.message || 'Could not create authentication user.' };
-      }
-      
-      const userId = authData.user.id;
-
-      // Step 2: Manually insert the profile data.
-      const subscription_status = plan === 'free' ? 'active' : 'pending_verification';
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          username,
-          full_name: fullName,
-          email,
-          domain,
-          site_name: siteName,
-          site_description: siteDescription,
-          subscription_plan: plan,
-          subscription_status,
-          role: 'admin',
-        });
-      
-      if (profileError) {
-        // This is a critical failure state where an auth user exists without a profile.
-        // On a client-only flow, we cannot safely delete the auth user.
-        // The user will need to contact support or try a different email.
-        console.error("CRITICAL: Auth user created but profile insertion failed.", profileError);
-        return { user: null, error: `Database error creating profile: ${profileError.message}. An orphaned user may have been created.` };
-      }
-
-      // Step 3: Manually create payment record if not a free plan.
-      if (plan !== 'free') {
-        const { data: planData, error: planError } = await supabase.from('plans').select('price').eq('id', plan).single();
-
-        if (planError || !planData) {
-            console.error("CRITICAL: User and profile created, but plan price not found.", planError);
-            return { user: null, error: `User created, but could not find plan details for plan: ${plan}. Please contact support.` };
-        }
-
-        const { error: paymentError } = await supabase.from('subscription_payments').insert({
-          user_id: userId,
-          plan_id: plan,
-          amount: planData.price,
-          payment_method: paymentMethod,
-          transaction_id: transactionId,
-          status: 'pending_verification',
+      try {
+        const response = await fetch('/api/auth/register-admin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username,
+            fullName,
+            email,
+            password,
+            domain,
+            siteName,
+            plan,
+            siteDescription,
+            paymentMethod,
+            transactionId,
+          }),
         });
 
-        if (paymentError) {
-            console.error("CRITICAL: User and profile created, but payment record failed.", paymentError);
-            return { user: null, error: `User created, but failed to record payment: ${paymentError.message}. Please contact support.` };
-        }
-      }
+        const result = await response.json();
 
-      // All steps successful
-      return { user: authData.user, error: null };
+        if (!response.ok) {
+          return { user: null, error: result.error || 'An unknown error occurred.' };
+        }
+
+        return { user: result.user, error: null };
+      } catch (error: any) {
+        return { user: null, error: error.message || 'Network error, please try again.' };
+      }
     },
 
     registerCustomer: async (fullName, email, password, siteId) => {
