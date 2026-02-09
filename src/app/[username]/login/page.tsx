@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,7 @@ import {
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
@@ -40,6 +41,23 @@ export default function CustomerLoginPage() {
   const username = params.username as string;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [siteId, setSiteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getSiteId = async () => {
+        if (username) {
+            const { data } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('domain', username)
+            .single();
+            if (data) {
+                setSiteId(data.id);
+            }
+        }
+    }
+    getSiteId();
+  }, [username]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,8 +68,16 @@ export default function CustomerLoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!siteId) {
+        toast({
+            variant: 'destructive',
+            title: 'ত্রুটি',
+            description: 'সাইট খুঁজে পাওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।',
+        });
+        return;
+    }
     setIsLoading(true);
-    const { user, error } = await login(values.email, values.password);
+    const { user, error } = await login(values.email, values.password, siteId);
     setIsLoading(false);
 
     if (user) {
@@ -112,7 +138,7 @@ export default function CustomerLoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || !siteId}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLoading ? 'সাইন ইন করা হচ্ছে...' : 'সাইন ইন'}
               </Button>

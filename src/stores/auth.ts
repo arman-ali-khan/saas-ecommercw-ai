@@ -8,7 +8,7 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ user: User | null; error: string | null }>;
+  login: (email: string, password: string, siteId?: string) => Promise<{ user: User | null; error: string | null }>;
   register: (
     username: string,
     fullName: string,
@@ -24,7 +24,8 @@ interface AuthState {
   registerCustomer: (
     fullName: string,
     email: string,
-    password: string
+    password: string,
+    siteId: string,
   ) => Promise<{ user: User | null, error: string | null }>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
@@ -42,42 +43,76 @@ export const useAuth = create<AuthState>()((set, get) => ({
     setSession: (session) => set({ session }),
     setLoading: (loading) => set({ loading }),
 
-    login: async (email, password) => {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    login: async (email, password, siteId) => {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       
-      if (error) {
-        return { user: null, error: error.message };
+      if (authError) {
+        return { user: null, error: authError.message };
       }
       
-      // The onAuthStateChange listener in AuthProvider will handle setting the user state.
-      if (data.user) {
-        // We can optimistically try to fetch the profile here to speed up UI,
-        // but the listener is the source of truth.
-         const { data: profile } = await supabase
+      if (authData.user) {
+        // First, check if the user is a site owner/admin
+        const { data: adminProfile } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', data.user.id)
+          .eq('id', authData.user.id)
           .single();
-        if (profile) {
-            const userToStore: User = {
-                id: profile.id,
-                username: profile.username,
-                fullName: profile.full_name,
-                email: data.user.email!,
-                domain: profile.domain,
-                siteName: profile.site_name,
-                siteDescription: profile.site_description,
-                subscriptionPlan: profile.subscription_plan,
-                subscription_status: profile.subscription_status,
-                role: profile.role,
-                isSaaSAdmin: profile.role === 'saas_admin',
-            };
-            set({ user: userToStore, session: data.session, loading: false });
-            return { user: userToStore, error: null };
+        
+        if (adminProfile) {
+          const userToStore: User = {
+            id: adminProfile.id,
+            username: adminProfile.username,
+            fullName: adminProfile.full_name,
+            email: authData.user.email!,
+            domain: adminProfile.domain,
+            siteName: adminProfile.site_name,
+            siteDescription: adminProfile.site_description,
+            subscriptionPlan: adminProfile.subscription_plan,
+            subscription_status: adminProfile.subscription_status,
+            role: adminProfile.role,
+            isSaaSAdmin: adminProfile.role === 'saas_admin',
+          };
+          set({ user: userToStore, session: authData.session, loading: false });
+          return { user: userToStore, error: null };
+        }
+
+        // If not an admin, check if they are a customer FOR THE CURRENT SITE
+        if (siteId) {
+            const { data: customerProfile } = await supabase
+              .from('customer_profiles')
+              .select('*')
+              .eq('id', authData.user.id)
+              .eq('site_id', siteId)
+              .single();
+
+            if (customerProfile) {
+                const appUser: User = {
+                  id: customerProfile.id,
+                  username: customerProfile.email.split('@')[0], // Create a fallback username
+                  fullName: customerProfile.full_name,
+                  email: authData.user.email!,
+                  role: 'customer',
+                  // Nullify site-owner specific fields
+                  domain: '',
+                  siteName: '',
+                  siteDescription: null,
+                  subscriptionPlan: null,
+                  subscription_status: 'active', // Customers are always active
+                  isSaaSAdmin: false,
+                };
+                set({ user: appUser, session: authData.session, loading: false });
+                return { user: appUser, error: null };
+            } else {
+                 // Correct credentials, but not registered for this specific store.
+                 // Sign them out to avoid confusion and inconsistent state.
+                 await supabase.auth.signOut();
+                 return { user: null, error: 'Invalid email or password for this site.' };
+            }
         }
       }
-      
-      return { user: null, error: 'Login successful, waiting for profile...' };
+      // If we are here, something is wrong (e.g. customer trying to log in via main /login)
+      await supabase.auth.signOut();
+      return { user: null, error: 'Invalid login context.' };
     },
 
     register: async (username, fullName, email, password, domain, siteName, plan, siteDescription, paymentMethod, transactionId) => {
@@ -114,7 +149,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
         return { user: null, error: 'An unknown error occurred during registration.' };
     },
 
-    registerCustomer: async (fullName, email, password) => {
+    registerCustomer: async (fullName, email, password, siteId) => {
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -122,6 +157,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
                 data: {
                     full_name: fullName,
                     role: 'customer',
+                    site_id: siteId,
                 }
             }
         });
