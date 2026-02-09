@@ -99,16 +99,18 @@ export default function CheckoutSuccessPage() {
           </div>
           <Separator className="my-4" />
           <div className="space-y-2 text-sm">
-            <h3 className="font-semibold text-base">শিপিং ঠিকানা</h3>
-            <p className="text-muted-foreground">
+            <h3 className="font-semibold text-base">যোগাযোগ ও শিপিং</h3>
+            <address className="text-muted-foreground not-italic">
               {lastOrder.shipping_info.name}
+              <br />
+              {lastOrder.customer_email}
               <br />
               {lastOrder.shipping_info.address}
               <br />
               {lastOrder.shipping_info.city}
               <br />
               {lastOrder.shipping_info.phone}
-            </p>
+            </address>
           </div>
           <Separator className="my-4" />
           <Button asChild className="w-full mt-6">

@@ -25,12 +25,13 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Loader2, Package, User, MapPin, Phone } from 'lucide-react';
+import { ArrowLeft, Loader2, Package, User, MapPin, Phone, Mail } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 
 type Order = {
     id: string;
     order_number: string;
+    customer_email: string;
     shipping_info: {
         name: string;
         address: string;
@@ -255,6 +256,10 @@ export default function OrderDetailsPage() {
                         <CardContent className="space-y-4 text-sm text-muted-foreground">
                             <div className="flex items-start gap-2">
                                 <p className="font-semibold text-foreground">{order.shipping_info.name}</p>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <Mail className="h-4 w-4 mt-0.5" />
+                                <p>{order.customer_email}</p>
                             </div>
                             <div className="flex items-start gap-2">
                                 <MapPin className="h-4 w-4 mt-0.5" />

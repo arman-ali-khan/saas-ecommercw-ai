@@ -37,6 +37,7 @@ type Order = {
         city: string;
         phone: string;
     };
+    customer_email: string;
     cart_items: {
         id: string;
         name: string;
@@ -61,7 +62,7 @@ export default function OrdersAdminPage() {
         if (!user?.id) return;
         const { data, error } = await supabase
             .from('orders')
-            .select('id, order_number, shipping_info, created_at, total, status, cart_items')
+            .select('id, order_number, shipping_info, created_at, total, status, cart_items, customer_email')
             .eq('site_id', user.id)
             .order('created_at', { ascending: false });
 
@@ -157,7 +158,10 @@ export default function OrdersAdminPage() {
                                     {orders.map(order => (
                                         <TableRow key={order.id}>
                                             <TableCell className="font-medium">{order.order_number}</TableCell>
-                                            <TableCell>{order.shipping_info?.name || 'Guest'}</TableCell>
+                                            <TableCell>
+                                                <div className="font-medium">{order.shipping_info?.name || 'Guest'}</div>
+                                                <div className="text-sm text-muted-foreground">{order.customer_email}</div>
+                                            </TableCell>
                                             <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
                                             <TableCell>
                                                 <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
@@ -204,6 +208,7 @@ export default function OrdersAdminPage() {
                                             <div>
                                                 <CardTitle className="text-lg">{order.order_number}</CardTitle>
                                                 <CardDescription>{order.shipping_info?.name || 'Guest'}</CardDescription>
+                                                <CardDescription className="text-xs">{order.customer_email}</CardDescription>
                                             </div>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>

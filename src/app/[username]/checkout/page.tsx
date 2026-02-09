@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 const checkoutSchema = z
   .object({
     name: z.string().min(2, 'নাম কমপক্ষে ২ অক্ষরের হতে হবে'),
+    email: z.string().email('অনুগ্রহ করে একটি বৈধ ইমেল ঠিকানা লিখুন'),
     address: z.string().min(5, 'অনুগ্রহ করে একটি বৈধ ঠিকানা লিখুন'),
     city: z.string().min(2, 'অনুগ্রহ করে একটি বৈধ শহর লিখুন'),
     phone: z.string().min(10, 'অনুগ্রহ করে একটি বৈধ ফোন নম্বর লিখুন'),
@@ -83,6 +84,7 @@ export default function CheckoutPage() {
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       name: '',
+      email: '',
       address: '',
       city: '',
       phone: '',
@@ -114,7 +116,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     const fetchPaymentSettings = async () => {
         setIsLoadingPaymentSettings(true);
-        // This assumes a public read policy on saas_settings for these fields.
         const { data, error } = await supabase
             .from('saas_settings')
             .select('mobile_banking_number, accepted_banking_methods')
@@ -124,13 +125,29 @@ export default function CheckoutPage() {
         
         if (data) {
             setPaymentSettings(data);
-        } else if (error) {
+        } else if (error && error.code !== 'PGRST116') {
             console.warn("Could not fetch payment settings:", error?.message);
         }
         setIsLoadingPaymentSettings(false);
     }
     fetchPaymentSettings();
   }, []);
+
+  // Pre-fill form if customer is logged in
+  useEffect(() => {
+    if (customerHasHydrated && customer) {
+      form.reset({
+        name: customer.full_name || '',
+        email: customer.email || '',
+        // Keep other fields as they might be different for shipping
+        address: form.getValues('address'),
+        city: form.getValues('city'),
+        phone: form.getValues('phone'),
+        paymentMethod: form.getValues('paymentMethod'),
+        transactionId: form.getValues('transactionId'),
+      })
+    }
+  }, [customer, customerHasHydrated, form]);
 
   const acceptedMethods = useMemo(() => {
     if (!paymentSettings?.accepted_banking_methods || paymentSettings.accepted_banking_methods.length === 0) {
@@ -254,7 +271,8 @@ export default function CheckoutPage() {
     const orderData = {
       order_number: orderNumber,
       site_id: siteId,
-      user_id: customer?.id || null,
+      user_id: customer?.id || null, // Keep sending user_id for logged-in users, may be null
+      customer_email: values.email, // Save email reliably
       shipping_info: {
         name: values.name,
         address: values.address,
@@ -381,7 +399,7 @@ export default function CheckoutPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <h1 className="text-3xl font-headline font-bold">
-              শিপিং বিবরণ
+              যোগাযোগ ও শিপিং
             </h1>
             <FormField
               control={form.control}
@@ -391,6 +409,19 @@ export default function CheckoutPage() {
                   <FormLabel>পুরো নাম</FormLabel>
                   <FormControl>
                     <Input placeholder="আপনার নাম" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ইমেল ঠিকানা</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="you@example.com" {...field} disabled={!!(customerHasHydrated && customer)} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
