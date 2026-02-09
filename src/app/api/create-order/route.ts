@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
     if (orderError) {
       console.error('Create Order API Error:', orderError);
-      return NextResponse.json({ error: 'Failed to create order', details: orderError.message }, { status: 500 });
+      return NextResponse.json({ error: `Database Error: ${orderError.message}` }, { status: 500 });
     }
 
     return NextResponse.json(newOrder, { status: 200 });

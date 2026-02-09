@@ -174,7 +174,6 @@ export default function CheckoutPage() {
     const orderData = {
       order_number: orderNumber,
       site_id: siteId,
-      user_id: customer ? customer.id : null,
       customer_email: values.email,
       shipping_info: {
         name: values.name,
