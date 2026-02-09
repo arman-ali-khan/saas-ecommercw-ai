@@ -2,10 +2,11 @@
 
 import AdminSidebar from '@/components/admin-sidebar';
 import AdminBottomNav from '@/components/admin-bottom-nav';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal } from 'lucide-react';
+import { Terminal, Loader2 } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function AdminLayout({
   children,
@@ -13,9 +14,38 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const params = useParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const username = params.username as string;
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  
+  // If we are not on the login page, and auth is still loading or the user is not the correct admin,
+  // we redirect to the login page.
+  useEffect(() => {
+    if (!loading && pathname !== `/${username}/admin/login`) {
+        if (!user || user.domain !== username) {
+            router.replace(`/${username}/admin/login`);
+        }
+    }
+  }, [user, loading, username, router, pathname]);
 
+  // On non-login pages, show a full-screen loader while we check auth.
+  // This prevents content flashing before the redirect can happen.
+  if (pathname !== `/${username}/admin/login` && (loading || !user || user.domain !== username)) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  // On the login page itself, we just render the page component,
+  // which will handle its own logic (e.g., redirecting if already logged in).
+  if (pathname === `/${username}/admin/login`) {
+    return <>{children}</>;
+  }
+  
+  // If we've reached this point, the user is authenticated for this admin area.
   const isPending = user?.subscription_status === 'pending' || user?.subscription_status === 'pending_verification';
 
   return (
