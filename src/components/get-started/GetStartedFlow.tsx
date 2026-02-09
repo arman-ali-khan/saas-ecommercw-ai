@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { type Plan } from '@/types';
 
@@ -58,9 +58,9 @@ export default function GetStartedFlow() {
 
   const selectedPlanDetails = plans.find((p) => p.id === formData.plan);
 
-  const updateFormData = (data: Partial<FormData>) => {
+  const updateFormData = useCallback((data: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
-  };
+  }, []);
 
   const goToNextStep = () => {
     const currentIndex = STEPS.indexOf(currentStep);
