@@ -67,9 +67,10 @@ export async function POST(request: Request) {
       const { error: profileUpdateError } = await supabaseAdmin
         .from('profiles')
         .update({
+          email: email, // Save the email explicitly
           subscription_plan: planData.id,
-          subscription_status: 'pending', // Use 'pending' instead of 'pending_verification'
-          site_description: siteDescription, // Explicitly update the site description
+          subscription_status: 'pending',
+          site_description: siteDescription,
         })
         .eq('id', userId);
 
@@ -97,8 +98,9 @@ export async function POST(request: Request) {
       const { error: profileUpdateError } = await supabaseAdmin
       .from('profiles')
       .update({
+        email: email, // Save the email explicitly
         site_description: siteDescription,
-        subscription_status: 'active' // Free plans are active immediately
+        subscription_status: 'active'
       })
       .eq('id', userId);
       
