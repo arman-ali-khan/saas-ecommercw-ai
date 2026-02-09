@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -17,14 +17,29 @@ import {
   Home,
   Tags,
   Users,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from './logo';
 import { useAuth } from '@/stores/auth';
+import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback } from './ui/avatar';
 
 export default function AdminSidebar({ username }: { username: string }) {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  const { user, loading, logout: authLogout } = useAuth();
+
+  const handleLogout = async () => {
+    await authLogout();
+    toast({
+      title: 'Logged Out',
+      description: 'You have been successfully logged out.',
+    });
+    router.push(`/${username}/admin/login`);
+  };
   
   if (loading || !user) {
     // You can return a loading skeleton here
@@ -97,6 +112,23 @@ export default function AdminSidebar({ username }: { username: string }) {
               <NavLink key={link.href} {...link} />
             ))}
           </nav>
+        </div>
+        <div className="mt-auto p-4 border-t border-sidebar-border">
+          <div className='space-y-4'>
+              <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9">
+                      <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                      <p className="text-sm font-semibold text-sidebar-foreground">{user.fullName}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+              </div>
+              <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+              </Button>
+          </div>
         </div>
       </div>
     </div>
