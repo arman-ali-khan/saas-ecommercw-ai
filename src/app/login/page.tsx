@@ -33,7 +33,7 @@ const formSchema = z.object({
 });
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { saasLogin } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    const { user, error } = await login(values.email, values.password);
+    const { user, error } = await saasLogin(values.email, values.password);
     setIsLoading(false);
 
     if (user) {

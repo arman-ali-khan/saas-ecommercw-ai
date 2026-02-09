@@ -35,7 +35,7 @@ const formSchema = z.object({
 });
 
 export default function CustomerLoginPage() {
-  const { login } = useAuth();
+  const { storeLogin } = useAuth();
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;
@@ -77,7 +77,7 @@ export default function CustomerLoginPage() {
         return;
     }
     setIsLoading(true);
-    const { user, error } = await login(values.email, values.password, siteId);
+    const { user, error } = await storeLogin(values.email, values.password, siteId);
     setIsLoading(false);
 
     if (user) {

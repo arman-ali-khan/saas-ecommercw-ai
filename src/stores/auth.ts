@@ -1,3 +1,4 @@
+'use client';
 
 import { create } from 'zustand';
 import type { User } from '@/types';
@@ -8,7 +9,8 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  login: (email: string, password: string, siteId?: string) => Promise<{ user: User | null; error: string | null }>;
+  saasLogin: (email: string, password: string) => Promise<{ user: User | null; error: string | null }>;
+  storeLogin: (email: string, password: string, siteId: string) => Promise<{ user: User | null; error: string | null }>;
   register: (
     username: string,
     fullName: string,
@@ -43,7 +45,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
     setSession: (session) => set({ session }),
     setLoading: (loading) => set({ loading }),
 
-    login: async (email, password, siteId) => {
+    saasLogin: async (email, password) => {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       
       if (authError) {
@@ -55,83 +57,84 @@ export const useAuth = create<AuthState>()((set, get) => ({
       }
 
       const { user: authUser, session } = authData;
+      
+      const { data: adminProfile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
 
-      // This is a login on a specific store's domain (customer or owner of that domain)
-      if (siteId) {
-        // Is the user the owner of this specific store?
-        // We check if the logged-in user's ID is the same as the ID associated with this store's domain.
-        if (authUser.id === siteId) {
+      if (adminProfile) {
+        const appUser: User = {
+          id: adminProfile.id,
+          username: adminProfile.username,
+          fullName: adminProfile.full_name,
+          email: authUser.email!,
+          domain: adminProfile.domain,
+          siteName: adminProfile.site_name,
+          siteDescription: adminProfile.site_description,
+          subscriptionPlan: adminProfile.subscription_plan,
+          subscription_status: adminProfile.subscription_status,
+          role: adminProfile.role,
+          isSaaSAdmin: adminProfile.role === 'saas_admin',
+        };
+        set({ user: appUser, session, loading: false });
+        return { user: appUser, error: null };
+      }
+      
+      // If user exists in auth but not in profiles table for a SaaS login, they are not a site owner.
+      await supabase.auth.signOut();
+      return { user: null, error: 'This login is for site owners and administrators only.' };
+    },
+
+    storeLogin: async (email, password, siteId) => {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) return { user: null, error: authError.message };
+      if (!authData.user) return { user: null, error: 'Login failed: no user data returned.' };
+      
+      const { user: authUser, session } = authData;
+
+      // Check if user is the owner of this specific site
+      if (authUser.id === siteId) {
           const { data: ownerProfile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
           if (ownerProfile) {
-            const appUser: User = {
-                id: ownerProfile.id,
-                username: ownerProfile.username,
-                fullName: ownerProfile.full_name,
-                email: authUser.email!,
-                domain: ownerProfile.domain,
-                siteName: ownerProfile.site_name,
-                siteDescription: ownerProfile.site_description,
-                subscriptionPlan: ownerProfile.subscription_plan,
-                subscription_status: ownerProfile.subscription_status,
-                role: ownerProfile.role,
-                isSaaSAdmin: ownerProfile.role === 'saas_admin',
-            };
-            set({ user: appUser, session, loading: false });
-            return { user: appUser, error: null };
+              const appUser: User = {
+                  id: ownerProfile.id,
+                  username: ownerProfile.username,
+                  fullName: ownerProfile.full_name,
+                  email: authUser.email!,
+                  domain: ownerProfile.domain,
+                  siteName: ownerProfile.site_name,
+                  siteDescription: ownerProfile.site_description,
+                  subscriptionPlan: ownerProfile.subscription_plan,
+                  subscription_status: ownerProfile.subscription_status,
+                  role: ownerProfile.role,
+                  isSaaSAdmin: ownerProfile.role === 'saas_admin',
+              };
+              set({ user: appUser, session, loading: false });
+              return { user: appUser, error: null };
           }
-        }
-
-        // If not the owner, are they a customer of this specific store?
-        const { data: customerProfile } = await supabase.from('customer_profiles').select('*').eq('id', authUser.id).eq('site_id', siteId).single();
-        if (customerProfile) {
-          const appUser: User = {
-            id: customerProfile.id,
-            username: customerProfile.email.split('@')[0],
-            fullName: customerProfile.full_name,
-            email: authUser.email!,
-            role: 'customer',
-            domain: '',
-            siteName: '',
-            siteDescription: null,
-            subscriptionPlan: null,
-            subscription_status: 'active',
-            isSaaSAdmin: false,
-          };
-          set({ user: appUser, session, loading: false });
-          return { user: appUser, error: null };
-        }
-        
-        // If they are neither the owner nor a customer of this site, then this login is invalid for this context.
-        await supabase.auth.signOut();
-        return { user: null, error: 'Invalid email or password for this site.' };
-
-      } 
-      // This is a login on the main SaaS page (e.g. /login) for site owners or saas admins
-      else {
-        const { data: adminProfile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
-
-        if (adminProfile) {
-          const appUser: User = {
-            id: adminProfile.id,
-            username: adminProfile.username,
-            fullName: adminProfile.full_name,
-            email: authUser.email!,
-            domain: adminProfile.domain,
-            siteName: adminProfile.site_name,
-            siteDescription: adminProfile.site_description,
-            subscriptionPlan: adminProfile.subscription_plan,
-            subscription_status: adminProfile.subscription_status,
-            role: adminProfile.role,
-            isSaaSAdmin: adminProfile.role === 'saas_admin',
-          };
-          set({ user: appUser, session, loading: false });
-          return { user: appUser, error: null };
-        }
-
-        // Customers are not allowed to log in via the main page
-        await supabase.auth.signOut();
-        return { user: null, error: 'Customer accounts must log in via their store\'s domain.' };
       }
+
+      // If not the owner, check if they are a customer of this specific site
+      const { data: customerProfile } = await supabase.from('customer_profiles').select('*').eq('id', authUser.id).eq('site_id', siteId).single();
+      if (customerProfile) {
+        const appUser: User = {
+          id: customerProfile.id,
+          username: customerProfile.email.split('@')[0],
+          fullName: customerProfile.full_name,
+          email: authUser.email!,
+          role: 'customer',
+          domain: '',
+          siteName: '',
+          siteDescription: null,
+          subscriptionPlan: null,
+          subscription_status: 'active',
+          isSaaSAdmin: false,
+        };
+        set({ user: appUser, session, loading: false });
+        return { user: appUser, error: null };
+      }
+      
+      // If they are neither the owner nor a customer of this site, it's an invalid login for this context.
+      await supabase.auth.signOut();
+      return { user: null, error: 'Invalid email or password for this site.' };
     },
 
     register: async (username, fullName, email, password, domain, siteName, plan, siteDescription, paymentMethod, transactionId) => {
