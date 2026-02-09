@@ -117,7 +117,6 @@ export default function CheckoutPage() {
             .from('saas_settings')
             .select('mobile_banking_number, accepted_banking_methods')
             .eq('id', 1)
-            .limit(1)
             .maybeSingle();
         
         if (data) {
@@ -175,7 +174,7 @@ export default function CheckoutPage() {
     const orderData = {
       order_number: orderNumber,
       site_id: siteId,
-      user_id: customer?.id || null,
+      // user_id is removed to avoid triggering RLS policies based on auth.uid()
       customer_email: values.email,
       shipping_info: {
         name: values.name,
@@ -316,7 +315,7 @@ export default function CheckoutPage() {
                 <FormItem>
                   <FormLabel>ইমেল ঠিকানা</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="you@example.com" {...field} disabled={!!(customerHasHydrated && customer)} />
+                    <Input type="email" placeholder="you@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
