@@ -71,9 +71,6 @@ export default function CheckoutPage() {
   const { toast } = useToast();
 
   const [isHydrated, setIsHydrated] = useState(false);
-  const [uncompletedOrderId, setUncompletedOrderId] = useState<string | null>(
-    null
-  );
   const [siteId, setSiteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { customer, _hasHydrated: customerHasHydrated } = useCustomerAuth();
@@ -156,98 +153,6 @@ export default function CheckoutPage() {
     return paymentSettings.accepted_banking_methods.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ');
   }, [paymentSettings]);
 
-
-  // Fetch existing uncompleted order for logged-in user
-  useEffect(() => {
-    if (!customerHasHydrated || !customer || !siteId) return;
-
-    const getUncompletedOrder = async () => {
-      const { data } = await supabase
-        .from('uncompleted_orders')
-        .select('id')
-        .eq('user_id', customer.id)
-        .eq('site_id', siteId)
-        .limit(1)
-        .single();
-      if (data) {
-        setUncompletedOrderId(data.id);
-      }
-    };
-    getUncompletedOrder();
-  }, [customer, siteId, customerHasHydrated]);
-
-  const handleSaveUncompletedOrder = async () => {
-    // Wait until auth state is confirmed before saving.
-    if (!customerHasHydrated || cartCount === 0 || !siteId) {
-      return;
-    }
-
-    const formValues = form.getValues();
-    const customerInfo = {
-      name: formValues.name,
-      address: formValues.address,
-      city: formValues.city,
-      phone: formValues.phone,
-    };
-
-    if (!Object.values(customerInfo).some((val) => val && val.trim() !== '')) {
-      return;
-    }
-
-    const payload = {
-      site_id: siteId,
-      user_id: customer?.id || null,
-      customer_info: customerInfo,
-      cart_items: cartItems.map((item) => ({
-        id: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        imageUrl: item.images[0]?.imageUrl,
-      })),
-      cart_total: cartTotal,
-      status: 'shipping-info-entered',
-    };
-
-    let error;
-
-    if (customer && uncompletedOrderId) {
-      // Logged-in user is updating their existing record
-      const { error: updateError } = await supabase
-        .from('uncompleted_orders')
-        .update(payload)
-        .eq('id', uncompletedOrderId);
-      error = updateError;
-    } else if (!customer && !uncompletedOrderId) {
-      // Guest user creating a record for the first time
-      const { data, error: insertError } = await supabase
-        .from('uncompleted_orders')
-        .insert(payload)
-        .select('id')
-        .single();
-      error = insertError;
-      if (data) {
-        setUncompletedOrderId(data.id);
-      }
-    } else if (customer && !uncompletedOrderId) {
-        // Logged-in user creating record for the first time
-        const { data, error: insertError } = await supabase
-        .from('uncompleted_orders')
-        .insert(payload)
-        .select('id')
-        .single();
-      error = insertError;
-      if (data) {
-        setUncompletedOrderId(data.id);
-      }
-    }
-    // No action for guest user who already has an uncompletedOrderId
-
-    if (error) {
-      console.error('Error saving uncompleted order:', error.message);
-    }
-  };
-
   useEffect(() => {
     if (isHydrated && cartCount === 0) {
       router.push(`/${username}/products`);
@@ -255,7 +160,6 @@ export default function CheckoutPage() {
   }, [isHydrated, cartCount, router, username]);
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    if (!customerHasHydrated) return;
     if (!siteId) {
       toast({
         variant: 'destructive',
@@ -271,8 +175,7 @@ export default function CheckoutPage() {
     const orderData = {
       order_number: orderNumber,
       site_id: siteId,
-      user_id: customer?.id || null, // Keep sending user_id for logged-in users, may be null
-      customer_email: values.email, // Save email reliably
+      customer_email: values.email, 
       shipping_info: {
         name: values.name,
         address: values.address,
@@ -307,15 +210,6 @@ export default function CheckoutPage() {
       setIsSubmitting(false);
       return;
     }
-
-    // Only try to delete if it's a logged-in user who had an uncompleted order.
-    if (customer && uncompletedOrderId) {
-      await supabase
-        .from('uncompleted_orders')
-        .delete()
-        .eq('id', uncompletedOrderId);
-    }
-
 
     setLastOrder(newOrder);
     clearCart();
@@ -463,7 +357,6 @@ export default function CheckoutPage() {
                     <Input
                       placeholder="01712345678"
                       {...field}
-                      onBlur={handleSaveUncompletedOrder}
                     />
                   </FormControl>
                   <FormMessage />
@@ -583,7 +476,7 @@ export default function CheckoutPage() {
               type="submit"
               className="w-full mt-6"
               size="lg"
-              disabled={isSubmitting || !siteId || isLoadingPaymentSettings || !customerHasHydrated}
+              disabled={isSubmitting || !siteId || isLoadingPaymentSettings}
             >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
