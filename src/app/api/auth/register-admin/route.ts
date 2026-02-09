@@ -28,6 +28,7 @@ export async function POST(request: Request) {
       user_metadata: {
         // We pass this data so the trigger can create the basic profile row.
         // We will immediately overwrite/update it with a manual call to ensure correctness.
+        email: email, // Ensure email is passed to the trigger
         username,
         full_name: fullName,
         domain,
