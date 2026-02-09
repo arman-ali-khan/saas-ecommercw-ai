@@ -27,7 +27,6 @@ import {
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -35,7 +34,7 @@ const formSchema = z.object({
 });
 
 export default function AdminLoginPage() {
-  const { user: loggedInUser, loading: authLoading, logout } = useAuth();
+  const { user: loggedInUser, loading: authLoading, storeLogin } = useAuth();
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;
@@ -46,72 +45,52 @@ export default function AdminLoginPage() {
     resolver: zodResolver(formSchema),
     defaultValues: { email: '', password: '' },
   });
-  
+
   // If user is already logged in as the correct admin, redirect them away from login.
   useEffect(() => {
     if (!authLoading && loggedInUser?.domain === username) {
       router.replace(`/${username}/admin`);
+    } else if (!authLoading && loggedInUser && loggedInUser.domain !== username) {
+      // If logged in as a *different* admin, redirect to their correct dashboard
+      toast({
+        title: 'Redirecting...',
+        description: `You are logged in as an admin for '${loggedInUser.domain}'. Redirecting you now.`,
+      });
+      router.replace(`/${loggedInUser.domain}/admin`);
     }
-  }, [authLoading, loggedInUser, username, router]);
+  }, [authLoading, loggedInUser, username, router, toast]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    const { data: loginData, error } = await supabase.auth.signInWithPassword(values);
+    // use `storeLogin` from `useAuth` which just calls `signInWithPassword`
+    const { error } = await storeLogin(values.email, values.password);
+    setIsSubmitting(false);
 
-    if (error || !loginData.user) {
+    if (error) {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: error?.message || 'Invalid email or password.',
+        description: error.message || 'Invalid email or password.',
       });
-      setIsSubmitting(false);
       return;
     }
 
-    // After a successful login, fetch the user's profile to check their domain.
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('domain, fullName')
-      .eq('id', loginData.user.id)
-      .single();
-
-    if (profile && profile.domain) {
-      // User is an admin for a site. Check if it's the correct one.
-      if (profile.domain === username) {
-        // Correct domain. The onAuthStateChange listener will handle setting global state.
-        toast({
-          title: 'Login Successful!',
-          description: `Welcome back, ${profile.fullName}.`,
-        });
-        router.push(`/${username}/admin`);
-      } else {
-        // Wrong domain. Redirect them to their correct admin panel.
-        toast({
-          title: 'Redirecting...',
-          description: `You are an admin for '${profile.domain}', not '${username}'. Redirecting you now.`,
-          duration: 5000,
-        });
-        router.push(`/${profile.domain}/admin`);
-      }
-    } else {
-      // This user has an auth account but no associated profile, so they aren't an admin.
-      toast({
-        variant: 'destructive',
-        title: 'Access Denied',
-        description: "You are not authorized to access any admin panel.",
-      });
-      await logout(); // Log out the user who just logged in incorrectly.
-      setIsSubmitting(false);
-    }
+    // On success, don't do anything here. The AuthProvider's onAuthStateChange
+    // will handle fetching the profile and setting the user state.
+    // The useEffect hook will then handle the redirect.
+    toast({
+      title: 'Login Successful!',
+      description: 'Redirecting to your dashboard...',
+    });
   }
 
-  // Show a full-screen loader while we are verifying if a user is already logged in.
-  if (authLoading) {
-      return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      );
+  // Show a full-screen loader while we are verifying if a user is already logged in or needs redirecting.
+  if (authLoading || loggedInUser) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
