@@ -17,26 +17,28 @@ import { CheckCircle2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export default function CheckoutSuccessPage() {
-  const { lastOrder, setLastOrder } = useCart();
+  const { lastOrder, setLastOrder, _hasHydrated } = useCart();
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;
 
   useEffect(() => {
-    // If there's no order data, the user likely refreshed or came here directly.
-    // Redirect them to the homepage.
-    if (!lastOrder) {
+    // After hydration, if there's no order data, redirect.
+    // This happens on page refresh or direct navigation.
+    if (_hasHydrated && !lastOrder) {
       router.replace(`/${username}`);
     }
+  }, [_hasHydrated, lastOrder, router, username]);
 
+  useEffect(() => {
     // Cleanup the lastOrder from state when the component unmounts
     return () => {
       setLastOrder(null);
     };
-  }, [lastOrder, router, username, setLastOrder]);
+  }, [setLastOrder]);
 
-  if (!lastOrder) {
-    // You can show a loading spinner or a simple message here while redirecting
+  if (!_hasHydrated || !lastOrder) {
+    // Show loading state until the store is hydrated and we have order data.
     return (
       <div className="flex justify-center items-center h-64">
         <p>লোড হচ্ছে...</p>

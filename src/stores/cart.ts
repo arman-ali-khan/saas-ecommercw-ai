@@ -7,11 +7,13 @@ import type { CartItem, Product } from '@/types';
 interface CartState {
   cartItems: CartItem[];
   lastOrder: any | null;
+  _hasHydrated: boolean;
   addToCart: (product: Product, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   setLastOrder: (order: any | null) => void;
+  setHasHydrated: (hydrated: boolean) => void;
 }
 
 export const useCart = create<CartState>()(
@@ -19,6 +21,10 @@ export const useCart = create<CartState>()(
     (set, get) => ({
       cartItems: [],
       lastOrder: null,
+      _hasHydrated: false,
+      setHasHydrated: (hydrated) => {
+        set({ _hasHydrated: hydrated });
+      },
       addToCart: (product, quantity) => {
         const { cartItems } = get();
         const existingItem = cartItems.find((item) => item.id === product.id);
@@ -61,6 +67,9 @@ export const useCart = create<CartState>()(
         cartItems: state.cartItems,
         lastOrder: state.lastOrder,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

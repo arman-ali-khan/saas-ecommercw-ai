@@ -154,7 +154,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (isHydrated && cartCount === 0) {
-      router.push(`/${username}/products`);
+      router.push(`/${username}/checkout/success`);
     }
   }, [isHydrated, cartCount, router, username]);
 
