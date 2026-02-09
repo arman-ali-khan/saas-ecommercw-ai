@@ -551,7 +551,7 @@ export default function CheckoutPage() {
               type="submit"
               className="w-full mt-6"
               size="lg"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !siteId || isLoadingPaymentSettings}
             >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
