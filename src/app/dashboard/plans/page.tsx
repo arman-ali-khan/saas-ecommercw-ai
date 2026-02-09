@@ -61,7 +61,10 @@ const planSchema = z.object({
     .string()
     .min(1, "ID is required. Use a short, lowercase name like 'pro' or 'starter'."),
   name: z.string().min(1, 'Plan name is required'),
-  price: z.string().min(1, 'Price is required'),
+  price: z.preprocess(
+    (a) => parseFloat(z.string().parse(a)),
+    z.number().min(0, "Price must be a non-negative number.")
+  ),
   period: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
   features: z.string().min(1, 'Please list at least one feature.'),
@@ -81,6 +84,9 @@ export default function PlansAdminPage() {
 
   const form = useForm<PlanFormData>({
     resolver: zodResolver(planSchema),
+    defaultValues: {
+        price: 0,
+    }
   });
 
   const fetchPlans = useCallback(async () => {
@@ -115,6 +121,7 @@ export default function PlansAdminPage() {
       if (selectedPlan) {
         form.reset({
           ...selectedPlan,
+          price: selectedPlan.price,
           features: selectedPlan.features.join('\n'),
           period: selectedPlan.period || '',
         });
@@ -122,8 +129,8 @@ export default function PlansAdminPage() {
         form.reset({
           id: '',
           name: '',
-          price: '',
-          period: '',
+          price: 0,
+          period: '/মাস',
           description: '',
           features: '',
         });
@@ -136,6 +143,7 @@ export default function PlansAdminPage() {
     try {
       const planPayload = {
         ...data,
+        price: data.price,
         period: data.period || null,
         features: data.features.split('\n').filter((f) => f.trim() !== ''),
       };
@@ -260,7 +268,8 @@ export default function PlansAdminPage() {
                   <TableRow key={plan.id}>
                     <TableCell className="font-medium">{plan.name}</TableCell>
                     <TableCell>
-                      {plan.price} {plan.period}
+                      {plan.price === 0 ? 'বিনামূল্যে' : `৳ ${plan.price.toFixed(2)}`}{' '}
+                      {plan.period}
                     </TableCell>
                     <TableCell>{plan.description}</TableCell>
                     <TableCell className="text-right">
@@ -296,7 +305,7 @@ export default function PlansAdminPage() {
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="font-semibold text-xl">
-                    {plan.price}{' '}
+                    {plan.price === 0 ? 'বিনামূল্যে' : `৳ ${plan.price.toFixed(2)}`}{' '}
                     <span className="text-sm text-muted-foreground">
                       {plan.period}
                     </span>
@@ -369,10 +378,12 @@ export default function PlansAdminPage() {
                   name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Price</FormLabel>
+                      <FormLabel>Price (BDT)</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="e.g., ৳ ৯৯৯ or বিনামূল্যে"
+                          type="number"
+                          step="1"
+                          placeholder="e.g., 999"
                           {...field}
                         />
                       </FormControl>

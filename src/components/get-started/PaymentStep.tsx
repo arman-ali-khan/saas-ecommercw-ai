@@ -65,7 +65,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext }: 
     }, []);
 
     const paymentMethod = form.watch('paymentMethod');
-    const price = plan?.price || '0';
+    const priceText = plan?.price === 0 ? '0' : plan?.price.toFixed(2) || '0';
     const merchantNumber = settings?.mobile_banking_number || '...';
     
     const acceptedMethods = useMemo(() => {
@@ -148,7 +148,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext }: 
                                         <li>আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ ({acceptedMethods}) খুলুন।</li>
                                         <li>"পেমেন্ট" অপশন নির্বাচন করুন।</li>
                                         <li>মার্চেন্ট নম্বর হিসেবে <strong>{merchantNumber}</strong> দিন।</li>
-                                        <li>টাকার পরিমাণ হিসেবে <strong>{price}</strong> লিখুন।</li>
+                                        <li>টাকার পরিমাণ হিসেবে <strong>৳{priceText}</strong> লিখুন।</li>
                                         <li>পেমেন্ট সম্পন্ন করুন এবং প্রাপ্ত ট্রানজেকশন আইডিটি কপি করুন।</li>
                                         <li>নিচের বক্সে ট্রানজেকশন আইডিটি পেস্ট করুন।</li>
                                     </ol>

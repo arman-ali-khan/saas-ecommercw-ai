@@ -41,7 +41,7 @@ export interface User {
 export interface Plan {
   id: string;
   name: string;
-  price: string;
+  price: number;
   period: string | null;
   description: string;
   features: string[];

@@ -44,10 +44,10 @@ export default function SaasLandingPage() {
         .order('price', { ascending: true });
 
       if (plans) {
-        const tiers = plans.map((plan) => ({
+        const tiers = plans.map((plan: Plan) => ({
           name: plan.name,
           id: plan.id,
-          price: plan.price,
+          price: plan.price === 0 ? 'বিনামূল্যে' : `৳ ${plan.price}`,
           period: plan.period,
           description: plan.description,
           features: plan.features,

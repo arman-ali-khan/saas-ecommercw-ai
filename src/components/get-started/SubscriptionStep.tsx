@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { CheckCircle } from 'lucide-react';
-import type { FormData } from '@/app/get-started/page';
+import type { FormData } from '@/components/get-started/GetStartedFlow';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { type Plan } from '@/types';
@@ -87,7 +87,7 @@ export default function SubscriptionStep({
               <CardDescription>{tier.description}</CardDescription>
               <div className="pt-4">
                 <span className="text-4xl font-bold font-headline">
-                  {tier.price}
+                  {tier.price === 0 ? 'বিনামূল্যে' : `৳ ${tier.price}`}
                 </span>
                 <span className="text-muted-foreground">{tier.period}</span>
               </div>
