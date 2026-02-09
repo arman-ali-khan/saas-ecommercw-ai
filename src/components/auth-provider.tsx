@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -68,8 +67,8 @@ export default function AuthProvider({
             setUser(appUser);
           } else {
             // User exists in auth but not in any profile table.
-            // This might happen for users created before the trigger was active.
-            console.error('User profile not found in `profiles` or `customer_profiles`. Signing out.');
+            // This is a data inconsistency. Silently sign the user out.
+            // The login form will show a user-friendly error.
             await supabase.auth.signOut();
             setUser(null);
           }
