@@ -48,7 +48,10 @@ export default function CheckoutSuccessPage() {
     <div className="max-w-2xl mx-auto py-8">
       <Card>
         <CardHeader className="items-center text-center">
-          <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
+          <div className="relative">
+             <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
+             <div className="absolute inset-0 -z-10 bg-green-500 rounded-full animate-pulse blur-xl opacity-30"></div>
+          </div>
           <CardTitle className="text-3xl">
             আপনার অর্ডার সম্পন্ন হয়েছে!
           </CardTitle>
