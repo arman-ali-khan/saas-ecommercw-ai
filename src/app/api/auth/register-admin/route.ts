@@ -20,41 +20,57 @@ export async function POST(request: Request) {
     transactionId,
   } = await request.json();
 
-  const subscription_status = plan === 'free' ? 'active' : 'pending_verification';
-
-  // --- 1. Create the authentication user WITH metadata for the trigger ---
+  // --- 1. Create the base authentication user WITHOUT metadata ---
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email: email,
     password: password,
-    email_confirm: true, // You can set this to false if you want to skip email verification
-    user_metadata: {
-      username: username,
-      full_name: fullName,
-      domain: domain,
-      site_name: siteName,
-      site_description: siteDescription,
-      subscription_plan: plan,
-      subscription_status: subscription_status,
-      role: 'admin',
-    }
+    email_confirm: true, // Auto-confirm user for simplicity
   });
 
-  if (authError || !authData.user) {
+  if (authError) {
+    // This error might happen if the email is already in use
     console.error('Error creating auth user:', authError);
-    return NextResponse.json({ error: `Authentication error: ${authError?.message}` }, { status: 400 });
+    return NextResponse.json({ error: `Authentication error: ${authError.message}` }, { status: 400 });
+  }
+
+  if (!authData.user) {
+    return NextResponse.json({ error: 'Failed to create user, please try again.' }, { status: 500 });
   }
 
   const userId = authData.user.id;
+  const subscription_status = plan === 'free' ? 'active' : 'pending_verification';
 
-  // --- 2. Create a payment record if the plan is not free ---
-  // The user's profile is now created by the database trigger, so we only need to handle the payment.
+  // --- 2. Manually create the user's profile in the 'profiles' table ---
+  const { error: profileError } = await supabaseAdmin.from('profiles').insert({
+    id: userId,
+    username: username,
+    full_name: fullName,
+    email: email, // email is included for completeness
+    domain: domain,
+    site_name: siteName,
+    site_description: siteDescription,
+    subscription_plan: plan,
+    subscription_status: subscription_status,
+    role: 'admin',
+  });
+
+  if (profileError) {
+    console.error('Error creating profile:', profileError);
+    // CRITICAL: Clean up the created auth user if profile creation fails
+    await supabaseAdmin.auth.admin.deleteUser(userId);
+    return NextResponse.json({ error: `Database error creating profile: ${profileError.message}` }, { status: 500 });
+  }
+
+
+  // --- 3. Create a payment record if the plan is not free ---
   if (plan !== 'free') {
     const { data: planData, error: planError } = await supabaseAdmin.from('plans').select('price').eq('id', plan).single();
 
     if (planError || !planData) {
         console.error('Error fetching plan price:', planError);
-        // If this fails, we should clean up the user that was just created
+        // Clean up the created auth user and profile
         await supabaseAdmin.auth.admin.deleteUser(userId);
+        // The profile will be deleted automatically due to the foreign key constraint with "on delete cascade"
         return NextResponse.json({ error: `Could not find plan details for plan: ${plan}` }, { status: 500 });
     }
 
@@ -69,12 +85,12 @@ export async function POST(request: Request) {
 
     if (paymentError) {
         console.error('Error creating payment record:', paymentError);
-        // If this fails, we should clean up the user that was just created
+        // Clean up
         await supabaseAdmin.auth.admin.deleteUser(userId);
         return NextResponse.json({ error: `Database error creating payment record: ${paymentError.message}` }, { status: 500 });
     }
   }
 
-  // If all steps are successful
+  // --- 4. Success ---
   return NextResponse.json({ user: authData.user }, { status: 200 });
 }
