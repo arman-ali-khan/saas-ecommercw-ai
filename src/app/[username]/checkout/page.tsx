@@ -61,7 +61,7 @@ const checkoutSchema = z
 export default function CheckoutPage() {
   const params = useParams();
   const username = params.username as string;
-  const { cartItems, clearCart, setLastOrder } = useCart();
+  const { cartItems, clearCart } = useCart();
   const cartTotal = cartItems.reduce(
     (total, item) => total + item.price * item.quantity,
     0
@@ -153,8 +153,8 @@ export default function CheckoutPage() {
   }, [paymentSettings]);
 
   useEffect(() => {
-    if (isHydrated && cartCount === 0) {
-      router.push(`/${username}/checkout/success`);
+    if (isHydrated && cartCount === 0 && !window.location.search.includes('order_id')) {
+      router.push(`/${username}`);
     }
   }, [isHydrated, cartCount, router, username]);
 
@@ -207,9 +207,8 @@ export default function CheckoutPage() {
           throw new Error(newOrder.error || 'অর্ডার স্থাপন ব্যর্থ হয়েছে');
       }
 
-      setLastOrder(newOrder);
       clearCart();
-      router.push(`/${username}/checkout/success`);
+      router.push(`/${username}/checkout/success?order_id=${newOrder.id}`);
 
     } catch (error: any) {
         toast({
@@ -221,7 +220,7 @@ export default function CheckoutPage() {
     }
   }
 
-  if (!isHydrated || cartCount === 0) {
+  if (!isHydrated || (cartCount === 0 && !window.location.search.includes('order_id'))) {
     return (
       <div className="grid md:grid-cols-2 gap-12">
         <div className="md:order-2 space-y-4">
@@ -247,49 +246,55 @@ export default function CheckoutPage() {
             <CardTitle>অর্ডার সারাংশ</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-4">
-                  <div className="relative h-16 w-16 rounded-md overflow-hidden">
-                    <Image
-                      src={item.images[0].imageUrl}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                    />
-                    <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                      {item.quantity}
-                    </span>
+            {cartItems.length > 0 ? (
+            <>
+              <div className="space-y-4">
+                {cartItems.map((item) => (
+                  <div key={item.id} className="flex items-center gap-4">
+                    <div className="relative h-16 w-16 rounded-md overflow-hidden">
+                      <Image
+                        src={item.images[0].imageUrl}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                      />
+                      <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                        {item.quantity}
+                      </span>
+                    </div>
+                    <div className="flex-grow">
+                      <p className="font-semibold">{item.name}</p>
+                    </div>
+                    <p>
+                      {(item.price * item.quantity).toFixed(2)} {item.currency}
+                    </p>
                   </div>
-                  <div className="flex-grow">
-                    <p className="font-semibold">{item.name}</p>
-                  </div>
-                  <p>
-                    {(item.price * item.quantity).toFixed(2)} {item.currency}
-                  </p>
+                ))}
+              </div>
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>উপমোট</span>
+                  <span>
+                    {cartTotal.toFixed(2)} {cartItems[0]?.currency}
+                  </span>
                 </div>
-              ))}
-            </div>
-            <Separator className="my-4" />
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>উপমোট</span>
+                <div className="flex justify-between">
+                  <span>শিপিং</span>
+                  <span>বিনামূল্যে</span>
+                </div>
+              </div>
+              <Separator className="my-4" />
+              <div className="flex justify-between font-bold text-lg">
+                <span>মোট</span>
                 <span>
                   {cartTotal.toFixed(2)} {cartItems[0]?.currency}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span>শিপিং</span>
-                <span>বিনামূল্যে</span>
-              </div>
-            </div>
-            <Separator className="my-4" />
-            <div className="flex justify-between font-bold text-lg">
-              <span>মোট</span>
-              <span>
-                {cartTotal.toFixed(2)} {cartItems[0]?.currency}
-              </span>
-            </div>
+            </>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">আপনার কার্ট খালি।</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -481,7 +486,7 @@ export default function CheckoutPage() {
               type="submit"
               className="w-full mt-6"
               size="lg"
-              disabled={isSubmitting || !siteId || isLoadingPaymentSettings}
+              disabled={isSubmitting || !siteId || isLoadingPaymentSettings || cartItems.length === 0}
             >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
