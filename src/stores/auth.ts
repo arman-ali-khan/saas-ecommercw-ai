@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import type { User } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import type { Session } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 interface AuthState {
   user: User | null;
@@ -86,13 +87,26 @@ export const useAuth = create<AuthState>()((set, get) => ({
     storeLogin: async (email, password, siteId) => {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) return { user: null, error: authError.message };
-      if (!authData.user) return { user: null, error: 'Login failed: no user data returned.' };
+      if (!authData.user || !authData.session) return { user: null, error: 'Login failed: no user data returned.' };
       
       const { user: authUser, session } = authData;
 
+      // Manually create a new Supabase client with the session's token to ensure RLS policies work correctly.
+      const supabaseAuthed = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+              global: {
+                  headers: {
+                      Authorization: `Bearer ${session.access_token}`,
+                  },
+              },
+          }
+      );
+
       // Check if user is the owner of this specific site
       if (authUser.id === siteId) {
-          const { data: ownerProfile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+          const { data: ownerProfile } = await supabaseAuthed.from('profiles').select('*').eq('id', authUser.id).single();
           if (ownerProfile) {
               const appUser: User = {
                   id: ownerProfile.id,
@@ -113,7 +127,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
       }
 
       // If not the owner, check if they are a customer of this specific site
-      const { data: customerProfile } = await supabase.from('customer_profiles').select('*').eq('id', authUser.id).eq('site_id', siteId).single();
+      const { data: customerProfile } = await supabaseAuthed.from('customer_profiles').select('*').eq('id', authUser.id).eq('site_id', siteId).single();
       if (customerProfile) {
         const appUser: User = {
           id: customerProfile.id,
