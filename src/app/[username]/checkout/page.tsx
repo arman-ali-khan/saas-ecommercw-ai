@@ -119,12 +119,13 @@ export default function CheckoutPage() {
             .from('saas_settings')
             .select('mobile_banking_number, accepted_banking_methods')
             .eq('id', 1)
-            .single();
+            .limit(1)
+            .maybeSingle();
         
         if (data) {
             setPaymentSettings(data);
-        } else {
-            console.error("Could not fetch payment settings:", error?.message);
+        } else if (error) {
+            console.warn("Could not fetch payment settings:", error?.message);
         }
         setIsLoadingPaymentSettings(false);
     }
