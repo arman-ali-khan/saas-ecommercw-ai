@@ -3,13 +3,17 @@ import FloatingChatButton from '@/components/floating-chat-button';
 import { createServerClient } from '@supabase/ssr';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
+import CustomerAuthInitializer from '@/components/auth/customer-auth-initializer';
 
+// এখানে 'generateMetadata' নামটি যোগ করা হয়েছে
 export async function generateMetadata({
   params,
 }: {
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }): Promise<Metadata> {
-  const cookieStore = cookies();
+  const { username } = await params; 
+  const cookieStore = await cookies(); 
+  
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -25,13 +29,12 @@ export async function generateMetadata({
   const { data: profile } = await supabase
     .from('profiles')
     .select('site_name, site_description')
-    .eq('domain', params.username)
+    .eq('domain', username)
     .single();
 
   if (!profile) {
     return {
       title: 'Store Not Found',
-      description: 'The requested store does not exist.',
     };
   }
 
@@ -41,18 +44,20 @@ export async function generateMetadata({
   };
 }
 
-
-export default function UsernameLayout({
+export default async function UsernameLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }) {
+  const { username } = await params;
+
   return (
     <>
+      <CustomerAuthInitializer /> 
       {children}
-      <FixedCartButton username={params.username} />
+      <FixedCartButton username={username} />
       <FloatingChatButton />
     </>
   );

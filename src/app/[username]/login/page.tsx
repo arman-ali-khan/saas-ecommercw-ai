@@ -24,7 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useAuth } from '@/stores/auth';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
@@ -35,13 +35,13 @@ const formSchema = z.object({
 });
 
 export default function CustomerLoginPage() {
-  const { customerLogin, user } = useAuth();
+  const { customerLogin,customer:user } = useCustomerAuth();
   const router = useRouter();
   const params = useParams();
-  const domain = params.domain as string;
+  const domain = params.username as string;
   const { toast } = useToast();
   
-  console.log(router,'router')
+  console.log(user,'router')
   
   const [isLoading, setIsLoading] = useState(false);
   const [siteId, setSiteId] = useState<string | null>(null);

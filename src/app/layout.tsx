@@ -7,16 +7,17 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
  
 export async function generateMetadata(): Promise<Metadata> {
-  const cookieStore = cookies();
+  // ১. cookies() await করতে হবে
+  const cookieStore = await cookies();
 
-  // Create a Supabase client configured to use cookies
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
+          // এখন cookieStore একটি resolved অবজেক্ট
+          return cookieStore.get(name)?.value;
         },
       },
     }
@@ -40,8 +41,8 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-
-export default function RootLayout({
+// ২. RootLayout-কে async করতে হবে যাতে এটি সার্ভার রেন্ডারিং ঠিকমতো করতে পারে
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

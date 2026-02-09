@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useAuth } from '@/stores/auth';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,10 +10,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
 import { LogOut, LayoutDashboard, ShoppingBag, DollarSign, Star, MapPin, Settings as SettingsIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
 
 const StatCard = ({ title, value, icon: Icon }: { title: string, value: string, icon: React.ElementType }) => (
     <Card>
@@ -28,53 +27,22 @@ const StatCard = ({ title, value, icon: Icon }: { title: string, value: string, 
     </Card>
 );
 
-
 export default function ProfilePage() {
-  const { user, logout: logoutAction, loading } = useAuth();
+  const { customer: user, customerLogout } = useCustomerAuth();
   const router = useRouter();
+  const params = useParams();
+  const username = params.username as string;
   const { toast } = useToast();
 
-  const logout = async () => {
-    await logoutAction();
+  const logout = () => {
+    customerLogout();
     toast({ title: 'লগ আউট', description: "আপনি সফলভাবে লগ আউট হয়েছেন।" });
-    router.push(`/`);
-  }
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Skeleton className="h-28 w-full" />
-                <Skeleton className="h-28 w-full" />
-                <Skeleton className="h-28 w-full" />
-            </div>
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <Skeleton className="h-16 w-16 rounded-full" />
-                        <div className='space-y-2'>
-                            <Skeleton className="h-7 w-48" />
-                            <Skeleton className="h-5 w-56" />
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <Skeleton className="h-5 w-full" />
-                    <div className="flex gap-4">
-                        <Skeleton className="h-10 w-48" />
-                        <Skeleton className="h-10 w-28" />
-                    </div>
-                </CardContent>
-            </Card>
-      </div>
-    );
+    router.push(`/${username}/login`);
   }
 
   if (!user) {
-    return <div>Loading user...</div>
+    return null; // Layout handles loading/redirect
   }
-  
-  const username = user.domain || user.username; // Fallback for customers
   
   const quickLinks = [
     { href: `/${username}/profile/orders`, label: 'আমার অর্ডার', description: 'আপনার অর্ডারের ইতিহাস এবং স্ট্যাটাস দেখুন।', icon: ShoppingBag },
@@ -88,24 +56,16 @@ export default function ProfilePage() {
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
              <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 text-3xl">
-                    <AvatarFallback>{user.fullName.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{user.full_name.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
                     <h1 className="text-2xl font-bold">
-                    স্বাগতম, {user.fullName}!
+                    স্বাগতম, {user.full_name}!
                     </h1>
                     <p className="text-muted-foreground">{user.email}</p>
                 </div>
             </div>
             <div className="flex gap-2">
-                {user.role !== 'customer' && user.domain && (
-                    <Button asChild>
-                        <Link href={`/${user.domain}/admin`}>
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        অ্যাডমিন ড্যাশবোর্ড
-                        </Link>
-                    </Button>
-                )}
                 <Button onClick={logout} variant="outline">
                     <LogOut className="mr-2 h-4 w-4" />
                     লগআউট

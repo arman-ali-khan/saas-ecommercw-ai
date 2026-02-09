@@ -10,23 +10,18 @@ import {
   Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/stores/auth';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
 
-export default function ProfileSidebar({ username }: { username: string }) {
+export default function ProfileSidebar() {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const { customer:user, _hasHydrated } = useCustomerAuth();
 
-  if (loading || !user) {
-    // Skeleton can be shown by parent layout
+  if (!_hasHydrated || !user) {
     return null;
   }
-  
-  // For site owners, ensure they are on their own profile page.
-  // The layout component handles the redirect itself.
-  if (user.domain && user.domain !== username) {
-      return null;
-  }
 
+  const username = pathname.split('/')[1];
+  
   const navLinks = [
     { href: `/${username}/profile`, label: 'ড্যাশবোর্ড', icon: User },
     { href: `/${username}/profile/orders`, label: 'আমার অর্ডার', icon: ShoppingBag },

@@ -1,10 +1,10 @@
 'use client';
 
 import ProfileSidebar from '@/components/profile-sidebar';
-import { useAuth } from '@/stores/auth';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
 
 export default function ProfileLayout({
   children,
@@ -13,32 +13,22 @@ export default function ProfileLayout({
 }) {
   const params = useParams();
   const username = params.username as string;
-  const { user, loading } = useAuth();
+  const { customer: user, _hasHydrated } = useCustomerAuth();
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    if (loading) {
+    if (!_hasHydrated) {
       return;
     }
 
-    // If no user is logged in, redirect to the domain-specific login page
+    // If no user is logged in after hydration, redirect to the domain-specific login page
     if (!user) {
       router.push(`/${username}/login`);
       return;
     }
+  }, [user, _hasHydrated, username, router]);
 
-    // If the logged-in user is a site owner (has a domain) and they are trying to
-    // access a profile page on a different domain, redirect them to their own.
-    if (user.domain && user.domain !== username) {
-      const newPath = pathname.replace(`/${username}/`, `/${user.domain}/`);
-      router.replace(newPath);
-    }
-    // If the user is a customer (user.domain is null), they are allowed to view the
-    // profile page on the current site's domain. No redirect is necessary.
-  }, [user, loading, username, router, pathname]);
-
-  const shouldShowSkeleton = loading || !user || (user.domain && user.domain !== username);
+  const shouldShowSkeleton = !_hasHydrated;
 
   if (shouldShowSkeleton) {
     return (
@@ -56,10 +46,12 @@ export default function ProfileLayout({
     );
   }
 
-  return (
+  // Once hydrated, if there is no user, the useEffect will redirect.
+  // If there is a user, we can render the children.
+  return user ? (
     <div className="grid md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] gap-8 items-start">
-      <ProfileSidebar username={username} />
+      <ProfileSidebar />
       <main>{children}</main>
     </div>
-  );
+  ) : null; // Render nothing while redirecting
 }

@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import type { User } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import type { Session } from '@supabase/supabase-js';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface AuthState {
   user: User | null;
