@@ -18,6 +18,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
 import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const profileSchema = z.object({
   fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
@@ -36,6 +38,7 @@ export default function SettingsPage() {
     const { toast } = useToast();
     const { user, updateUserProfile } = useAuth();
     const [isProfileLoading, setProfileLoading] = useState(false);
+    const [isPasswordLoading, setPasswordLoading] = useState(false);
     
     const profileForm = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
@@ -67,103 +70,125 @@ export default function SettingsPage() {
     }
 
     function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
-        console.log(values);
+        setPasswordLoading(true);
         // In a real app, you would call supabase.auth.updateUser({ password: values.newPassword })
         // and handle current password verification on the server.
-        toast({ title: 'পাসওয়ার্ড পরিবর্তন হয়েছে! (সিমুলেটেড)' });
-        passwordForm.reset();
+        setTimeout(() => {
+            console.log(values);
+            toast({ title: 'পাসওয়ার্ড পরিবর্তন হয়েছে! (সিমুলেটেড)' });
+            passwordForm.reset();
+            setPasswordLoading(false);
+        }, 1000);
     }
 
   return (
-    <div className="space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>অ্যাকাউন্ট সেটিংস</CardTitle>
-          <CardDescription>আপনার ব্যক্তিগত বিবরণ আপডেট করুন।</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...profileForm}>
-            <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-              <FormField
-                control={profileForm.control}
-                name="fullName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>পুরো নাম</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormItem>
-                <FormLabel>ইমেল</FormLabel>
-                <FormControl>
-                  <Input value={user?.email || ''} readOnly disabled />
-                </FormControl>
-                <FormDescription>ইমেল পরিবর্তন করা যাবে না।</FormDescription>
-              </FormItem>
-              <Button type="submit" disabled={isProfileLoading}>
-                {isProfileLoading ? 'সংরক্ষণ করা হচ্ছে...' : 'পরিবর্তনগুলি সংরক্ষণ করুন'}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>পাসওয়ার্ড পরিবর্তন</CardTitle>
-          <CardDescription>নিরাপত্তার জন্য নিয়মিত আপনার পাসওয়ার্ড পরিবর্তন করুন।</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...passwordForm}>
-            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-              <FormField
-                control={passwordForm.control}
-                name="currentPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>বর্তমান পাসওয়ার্ড</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={passwordForm.control}
-                name="newPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>নতুন পাসওয়ার্ড</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={passwordForm.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>নতুন পাসওয়ার্ড নিশ্চিত করুন</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit">পাসওয়ার্ড আপডেট করুন</Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+    <div>
+        <div className="mb-6">
+            <h1 className="text-2xl font-bold">সেটিংস</h1>
+            <p className="text-muted-foreground">আপনার অ্যাকাউন্ট এবং ব্যক্তিগত তথ্য পরিচালনা করুন।</p>
+        </div>
+
+        <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="profile">প্রোফাইল</TabsTrigger>
+                <TabsTrigger value="security">নিরাপত্তা</TabsTrigger>
+            </TabsList>
+            <TabsContent value="profile">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>প্রোফাইলের তথ্য</CardTitle>
+                        <CardDescription>আপনার সর্বজনীন প্রোফাইলের তথ্য আপডেট করুন।</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <Form {...profileForm}>
+                        <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
+                        <FormField
+                            control={profileForm.control}
+                            name="fullName"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>পুরো নাম</FormLabel>
+                                <FormControl>
+                                <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormItem>
+                            <FormLabel>ইমেল</FormLabel>
+                            <FormControl>
+                            <Input value={user?.email || ''} readOnly disabled />
+                            </FormControl>
+                            <FormDescription>ইমেল পরিবর্তন করা যাবে না।</FormDescription>
+                        </FormItem>
+                        <Button type="submit" disabled={isProfileLoading}>
+                            {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isProfileLoading ? 'সংরক্ষণ করা হচ্ছে...' : 'পরিবর্তনগুলি সংরক্ষণ করুন'}
+                        </Button>
+                        </form>
+                    </Form>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="security">
+                <Card>
+                    <CardHeader>
+                    <CardTitle>পাসওয়ার্ড পরিবর্তন</CardTitle>
+                    <CardDescription>নিরাপত্তার জন্য নিয়মিত আপনার পাসওয়ার্ড পরিবর্তন করুন।</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <Form {...passwordForm}>
+                        <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
+                        <FormField
+                            control={passwordForm.control}
+                            name="currentPassword"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>বর্তমান পাসওয়ার্ড</FormLabel>
+                                <FormControl>
+                                <Input type="password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={passwordForm.control}
+                            name="newPassword"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>নতুন পাসওয়ার্ড</FormLabel>
+                                <FormControl>
+                                <Input type="password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={passwordForm.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>নতুন পাসওয়ার্ড নিশ্চিত করুন</FormLabel>
+                                <FormControl>
+                                <Input type="password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <Button type="submit" disabled={isPasswordLoading}>
+                            {isPasswordLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            পাসওয়ার্ড আপডেট করুন
+                        </Button>
+                        </form>
+                    </Form>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+        </Tabs>
     </div>
   );
 }

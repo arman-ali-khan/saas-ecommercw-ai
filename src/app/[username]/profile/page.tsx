@@ -12,10 +12,21 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LogOut, LayoutDashboard } from 'lucide-react';
+import { LogOut, LayoutDashboard, ShoppingBag, DollarSign, Star, MapPin, Settings as SettingsIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect, useState } from 'react';
+
+const StatCard = ({ title, value, icon: Icon }: { title: string, value: string, icon: React.ElementType }) => (
+    <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            <Icon className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+            <div className="text-2xl font-bold">{value}</div>
+        </CardContent>
+    </Card>
+);
 
 
 export default function ProfilePage() {
@@ -32,6 +43,11 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-28 w-full" />
+                <Skeleton className="h-28 w-full" />
+                <Skeleton className="h-28 w-full" />
+            </div>
             <Card>
                 <CardHeader>
                     <div className="flex items-center gap-4">
@@ -50,51 +66,43 @@ export default function ProfilePage() {
                     </div>
                 </CardContent>
             </Card>
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-8 w-1/3" />
-                    <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-32 w-full" />
-                </CardContent>
-            </Card>
       </div>
     );
   }
 
   if (!user) {
-    // This can be a more friendly "Please log in" message
     return <div>Loading user...</div>
   }
+  
+  const username = user.domain || user.username; // Fallback for customers
+  
+  const quickLinks = [
+    { href: `/${username}/profile/orders`, label: 'আমার অর্ডার', description: 'আপনার অর্ডারের ইতিহাস এবং স্ট্যাটাস দেখুন।', icon: ShoppingBag },
+    { href: `/${username}/profile/reviews`, label: 'আমার রিভিউ', description: 'আপনার দেওয়া সকল রিভিউ দেখুন।', icon: Star },
+    { href: `/${username}/profile/addresses`, label: 'আমার ঠিকানা', description: 'আপনার সংরক্ষিত ঠিকানা পরিচালনা করুন।', icon: MapPin },
+    { href: `/${username}/profile/settings`, label: 'সেটিংস', description: 'আপনার অ্যাকাউন্ট সেটিংস পরিচালনা করুন।', icon: SettingsIcon },
+  ];
 
   return (
     <div className="space-y-8">
-        <Card>
-            <CardHeader>
-                <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+             <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 text-3xl">
                     <AvatarFallback>{user.fullName.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
-                    <CardTitle className="text-2xl font-bold">
+                    <h1 className="text-2xl font-bold">
                     স্বাগতম, {user.fullName}!
-                    </CardTitle>
-                    <CardDescription>{user.email}</CardDescription>
+                    </h1>
+                    <p className="text-muted-foreground">{user.email}</p>
                 </div>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <p className="text-muted-foreground">
-                এটি আপনার ব্যক্তিগত ড্যাশবোর্ড। এখান থেকে আপনি আপনার কেনাকাটা এবং
-                অ্যাকাউন্ট পরিচালনা করতে পারেন। শুরু করতে বাম পাশের মেনু ব্যবহার করুন।
-                </p>
-                <div className="flex gap-4">
+            </div>
+            <div className="flex gap-2">
                 {user.role !== 'customer' && user.domain && (
                     <Button asChild>
                         <Link href={`/${user.domain}/admin`}>
                         <LayoutDashboard className="mr-2 h-4 w-4" />
-                        অ্যাডমিন ড্যাশবোর্ডে যান
+                        অ্যাডমিন ড্যাশবোর্ড
                         </Link>
                     </Button>
                 )}
@@ -102,43 +110,36 @@ export default function ProfilePage() {
                     <LogOut className="mr-2 h-4 w-4" />
                     লগআউট
                 </Button>
-                </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <StatCard title="মোট অর্ডার" value="5" icon={ShoppingBag} />
+            <StatCard title="মোট খরচ" value="BDT 7,850" icon={DollarSign} />
+            <StatCard title="রিভিউ লিখেছেন" value="3" icon={Star} />
+        </div>
 
         <Card>
             <CardHeader>
                 <CardTitle>দ্রুত কার্যক্রম</CardTitle>
-                 <CardDescription>আপনার সাম্প্রতিক কার্যক্রমের একটি দ্রুত লিঙ্ক।</CardDescription>
+                 <CardDescription>আপনার প্রোফাইলের বিভিন্ন অংশে দ্রুত নেভিগেট করুন।</CardDescription>
             </CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">
-                <Link href={`/${user.domain || user.username}/profile/orders`} className="block">
-                    <div className="p-4 border rounded-lg hover:bg-muted">
-                        <h3 className="font-semibold text-lg">আমার অর্ডার</h3>
-                        <p className="text-muted-foreground text-sm">আপনার অর্ডারের ইতিহাস এবং স্ট্যাটাস দেখুন।</p>
-                    </div>
-                </Link>
-                <Link href={`/${user.domain || user.username}/profile/reviews`} className="block">
-                     <div className="p-4 border rounded-lg hover:bg-muted">
-                        <h3 className="font-semibold text-lg">আমার রিভিউ</h3>
-                        <p className="text-muted-foreground text-sm">আপনার দেওয়া সকল রিভিউ দেখুন।</p>
-                    </div>
-                </Link>
-                <Link href={`/${user.domain || user.username}/profile/addresses`} className="block">
-                     <div className="p-4 border rounded-lg hover:bg-muted">
-                        <h3 className="font-semibold text-lg">আমার ঠিকানা</h3>
-                        <p className="text-muted-foreground text-sm">আপনার সংরক্ষিত ঠিকানা পরিচালনা করুন।</p>
-                    </div>
-                </Link>
-                 <Link href={`/${user.domain || user.username}/profile/settings`} className="block">
-                     <div className="p-4 border rounded-lg hover:bg-muted">
-                        <h3 className="font-semibold text-lg">সেটিংস</h3>
-                        <p className="text-muted-foreground text-sm">আপনার অ্যাকাউন্ট সেটিংস পরিচালনা করুন।</p>
-                    </div>
-                </Link>
+                {quickLinks.map(link => (
+                     <Link key={link.href} href={link.href} className="block group">
+                         <div className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted transition-colors">
+                            <div className="bg-muted p-3 rounded-full group-hover:bg-primary group-hover:text-primary-foreground">
+                                <link.icon className="h-5 w-5 text-primary group-hover:text-primary-foreground" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-base">{link.label}</h3>
+                                <p className="text-muted-foreground text-sm">{link.description}</p>
+                            </div>
+                        </div>
+                    </Link>
+                ))}
             </CardContent>
         </Card>
-
     </div>
   );
 }

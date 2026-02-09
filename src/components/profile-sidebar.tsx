@@ -16,9 +16,15 @@ export default function ProfileSidebar({ username }: { username: string }) {
   const pathname = usePathname();
   const { user, loading } = useAuth();
 
-  if (loading || !user || user.domain !== username) {
+  if (loading || !user) {
     // Skeleton can be shown by parent layout
     return null;
+  }
+  
+  // For site owners, ensure they are on their own profile page.
+  // The layout component handles the redirect itself.
+  if (user.domain && user.domain !== username) {
+      return null;
   }
 
   const navLinks = [
