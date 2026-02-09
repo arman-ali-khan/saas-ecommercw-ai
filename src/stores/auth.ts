@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import type { User } from '@/types';
 import { supabase } from '@/lib/supabase/client';
@@ -48,39 +49,35 @@ export const useAuth = create<AuthState>()((set, get) => ({
         return { user: null, error: error.message };
       }
       
+      // The onAuthStateChange listener in AuthProvider will handle setting the user state.
       if (data.user) {
-        const { data: profile, error: profileError } = await supabase
+        // We can optimistically try to fetch the profile here to speed up UI,
+        // but the listener is the source of truth.
+         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
           .single();
-        
-        if (profileError) {
-            await supabase.auth.signOut(); // Log out if profile is missing
-            return { user: null, error: 'Could not find user profile.' };
+        if (profile) {
+            const userToStore: User = {
+                id: profile.id,
+                username: profile.username,
+                fullName: profile.full_name,
+                email: data.user.email!,
+                domain: profile.domain,
+                siteName: profile.site_name,
+                siteDescription: profile.site_description,
+                subscriptionPlan: profile.subscription_plan,
+                subscription_status: profile.subscription_status,
+                role: profile.role,
+                isSaaSAdmin: profile.role === 'saas_admin',
+            };
+            set({ user: userToStore, session: data.session, loading: false });
+            return { user: userToStore, error: null };
         }
-        
-        const isSaaSAdmin = profile.role === 'saas_admin';
-
-        const userToStore: User = {
-          id: profile.id,
-          username: profile.username,
-          fullName: profile.full_name,
-          email: data.user.email!,
-          domain: profile.domain,
-          siteName: profile.site_name,
-          siteDescription: profile.site_description,
-          subscriptionPlan: profile.subscription_plan,
-          subscription_status: profile.subscription_status,
-          role: profile.role,
-          isSaaSAdmin,
-        };
-
-        set({ user: userToStore, session: data.session, loading: false });
-        return { user: userToStore, error: null };
       }
       
-      return { user: null, error: 'An unknown error occurred.' };
+      return { user: null, error: 'Login successful, waiting for profile...' };
     },
 
     register: async (username, fullName, email, password, domain, siteName, plan, siteDescription, paymentMethod, transactionId) => {
@@ -93,15 +90,14 @@ export const useAuth = create<AuthState>()((set, get) => ({
                 data: {
                     username,
                     full_name: fullName,
-                    email: email,
                     domain,
                     site_name: siteName,
                     site_description: siteDescription,
                     subscription_plan: plan,
                     subscription_status: subscription_status,
                     role: 'admin',
-                    payment_method: paymentMethod,
-                    transaction_id: transactionId,
+                    paymentMethod: paymentMethod,
+                    transactionId: transactionId
                 }
             }
         });
@@ -110,6 +106,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
             return { user: null, error: error.message };
         }
 
+        // The trigger will handle profile creation.
         if (data.user) {
             return { user: { id: data.user.id } as User, error: null };
         }
@@ -118,24 +115,13 @@ export const useAuth = create<AuthState>()((set, get) => ({
     },
 
     registerCustomer: async (fullName, email, password) => {
-        // Create a simple, likely unique username.
-        // Supabase will enforce uniqueness on the 'profiles' table if a constraint exists.
-        const username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000);
-
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
                 data: {
-                    username,
                     full_name: fullName,
-                    email,
                     role: 'customer',
-                    domain: null,
-                    site_name: null,
-                    site_description: null,
-                    subscription_plan: null,
-                    subscription_status: 'active',
                 }
             }
         });
@@ -143,7 +129,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
         if (error) {
             return { user: null, error: error.message };
         }
-
+        
+        // The trigger will handle profile creation.
         if (data.user) {
             return { user: { id: data.user.id } as User, error: null };
         }
