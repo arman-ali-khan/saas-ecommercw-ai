@@ -84,16 +84,16 @@ export const useAuth = create<AuthState>()((set, get) => ({
     },
 
     storeLogin: async (email, password, siteId) => {
+      // Step 1: Sign in the user with their credentials.
+      // This automatically sets the session for subsequent Supabase client calls.
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) return { user: null, error: authError.message };
       if (!authData.user || !authData.session) return { user: null, error: 'Login failed: no user data returned.' };
       
       const { user: authUser, session } = authData;
 
-      // The global Supabase client's auth state is automatically updated by `signInWithPassword`.
-      // We can now use it directly for subsequent RLS-protected queries.
-
-      // Check if user is the owner of this specific site
+      // Step 2: Check if the logged-in user is the owner of the current site.
+      // We directly compare the user's ID with the siteId passed from the login page.
       if (authUser.id === siteId) {
           const { data: ownerProfile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
           if (ownerProfile) {
@@ -115,10 +115,17 @@ export const useAuth = create<AuthState>()((set, get) => ({
           }
       }
 
-      // If not the owner, check if they are a customer of this specific site
-      const { data: customerProfile } = await supabase.from('customer_profiles').select('*').eq('id', authUser.id).eq('site_id', siteId).single();
+      // Step 3: If not the owner, check if they are a customer registered specifically to this site.
+      // This query uses the now-active session and RLS should permit it.
+      const { data: customerProfile } = await supabase
+        .from('customer_profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .eq('site_id', siteId)
+        .single();
       
       if (customerProfile) {
+        // This is a valid customer for this specific store.
         const appUser: User = {
           id: customerProfile.id,
           username: customerProfile.email.split('@')[0],
@@ -136,7 +143,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
         return { user: appUser, error: null };
       }
       
-      // If they are neither the owner nor a customer of this site, it's an invalid login for this context.
+      // Step 4: If the user is neither the owner nor a customer of this site, it's an invalid login attempt.
+      // Sign them out to clear the session and prevent inconsistent states.
       await supabase.auth.signOut();
       return { user: null, error: 'Invalid email or password for this site.' };
     },
