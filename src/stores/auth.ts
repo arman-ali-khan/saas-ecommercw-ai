@@ -64,37 +64,39 @@ export const useAuth = create<AuthState>()((set, get) => ({
     },
 
     register: async (username, fullName, email, password, domain, siteName, plan, siteDescription, paymentMethod, transactionId) => {
-        const subscription_status = plan === 'free' ? 'active' : 'pending_verification';
-        
-        const { data, error } = await supabase.auth.signUp({
+      try {
+        const response = await fetch('/api/auth/register-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username,
+            fullName,
             email,
             password,
-            options: {
-                data: {
-                    username,
-                    full_name: fullName,
-                    domain,
-                    site_name: siteName,
-                    site_description: siteDescription,
-                    subscription_plan: plan,
-                    subscription_status: subscription_status,
-                    role: 'admin',
-                    payment_method: paymentMethod || null,
-                    transaction_id: transactionId || null
-                }
-            }
+            domain,
+            siteName,
+            plan,
+            siteDescription,
+            paymentMethod,
+            transactionId,
+          }),
         });
 
-        if (error) {
-            return { user: null, error: error.message };
-        }
+        const result = await response.json();
 
-        // The trigger will handle profile creation.
-        if (data.user) {
-            return { user: data.user, error: null };
+        if (!response.ok) {
+          // Use the more specific error from our API
+          return { user: null, error: result.error || 'An unknown error occurred during registration.' };
         }
+        
+        // The API now handles everything, so we just return its success response.
+        // We expect the user to go to the login page and verify their email now.
+        return { user: result.user, error: null };
 
-        return { user: null, error: 'An unknown error occurred during registration.' };
+      } catch (e: any) {
+        console.error("Registration API call failed:", e);
+        return { user: null, error: 'Failed to connect to the registration service.' };
+      }
     },
 
     registerCustomer: async (fullName, email, password, siteId) => {
