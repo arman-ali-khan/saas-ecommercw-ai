@@ -37,7 +37,7 @@ export default function ProfilePage() {
   const logout = async () => {
     await logoutAction();
     toast({ title: 'লগ আউট', description: "আপনি সফলভাবে লগ আউট হয়েছেন।" });
-    router.push('/');
+    router.push(`/`);
   }
 
   if (loading) {

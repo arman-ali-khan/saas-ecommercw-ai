@@ -27,6 +27,7 @@ import {
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
@@ -34,15 +35,18 @@ const formSchema = z.object({
 });
 
 export default function CustomerLoginPage() {
-  const { storeLogin } = useAuth();
+  const { customerLogin, user } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const username = params.username as string;
+  const domain = params.domain as string;
   const { toast } = useToast();
+  
+  console.log(router,'router')
+  
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const [siteId, setSiteId] = useState<string | null>(null);
 
-
+  // Define the form correctly using useForm
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -50,30 +54,45 @@ export default function CustomerLoginPage() {
       password: '',
     },
   });
-  
+
+  useEffect(() => {
+    async function fetchSiteId() {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('domain', domain)
+        .single();
+      
+      if (data) setSiteId(data.id);
+    }
+    fetchSiteId();
+  }, [domain]);
+
+  // Redirect if already logged in
   useEffect(() => {
     if (user) {
-        if (user.role === 'customer') {
-             router.push(`/${username}/profile`);
-        } else if (user.domain === username) {
-             router.push(`/${username}/admin`);
-        }
+      if (user.role === 'customer') {
+        router.push(`/${domain}/profile`);
+      } else if (user.domain === domain) {
+        router.push(`/${domain}/admin`);
+      }
     }
-  }, [user, router, username]);
+  }, [user, router, domain]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Note: You need a way to get siteId. 
+    // Usually, you fetch it based on the 'username' from the URL.
     setIsLoading(true);
-    const { error } = await storeLogin(values.email, values.password);
+    const result = await customerLogin(values.email, values.password, siteId || '');
     setIsLoading(false);
 
-    if (error) {
+    if (result.error) {
       toast({
         variant: 'destructive',
         title: 'লগইন ব্যর্থ',
-        description: 'অবৈধ ইমেল বা পাসওয়ার্ড।',
+        description: result.error,
       });
     }
-    // On success, the AuthProvider will handle the redirect via the useEffect above
   }
 
   return (
@@ -81,11 +100,10 @@ export default function CustomerLoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">লগ ইন</CardTitle>
-          <CardDescription>
-            আপনার অ্যাকাউন্টে চালিয়ে যেতে সাইন ইন করুন।
-          </CardDescription>
+          <CardDescription>আপনার অ্যাকাউন্টে চালিয়ে যেতে সাইন ইন করুন।</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Form component receives the 'form' variable defined above */}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -108,11 +126,7 @@ export default function CustomerLoginPage() {
                   <FormItem>
                     <FormLabel>পাসওয়ার্ড</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                      />
+                      <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -126,10 +140,7 @@ export default function CustomerLoginPage() {
           </Form>
           <div className="mt-6 text-center text-sm">
             অ্যাকাউন্ট নেই?{' '}
-            <Link
-              href={`/${username}/register`}
-              className="font-medium text-primary hover:underline"
-            >
+            <Link href={`/${domain}/register`} className="font-medium text-primary hover:underline">
               সাইন আপ
             </Link>
           </div>

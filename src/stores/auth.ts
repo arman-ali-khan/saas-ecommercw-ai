@@ -11,6 +11,7 @@ interface AuthState {
   loading: boolean;
   saasLogin: (email: string, password: string) => Promise<{ user: any | null; error: string | null }>;
   storeLogin: (email: string, password: string) => Promise<{ user: any | null; error: string | null }>;
+  customerLogin: (email: string, password: string, siteId:string) => Promise<{ user: any | null; error: string | null }>;
   register: (
     username: string,
     fullName: string,
@@ -96,29 +97,50 @@ export const useAuth = create<AuthState>()((set, get) => ({
     },
 
     registerCustomer: async (fullName, email, password, siteId) => {
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name: fullName,
-                    role: 'customer',
-                    site_id: siteId,
-                }
-            }
-        });
+      try {
+          // We call a server-side function to handle the sensitive hashing
+          const response = await fetch('/api/auth/register-customer', {
+              method: 'POST',
+              body: JSON.stringify({ fullName, email, password, siteId }),
+              headers: { 'Content-Type': 'application/json' }
+          });
+  
+          const result = await response.json();
+  
+          if (!response.ok) {
+              return { user: null, error: result.error };
+          }
+  
+          return { user: result.user, error: null };
+      } catch (err) {
+          return { user: null, error: 'Connection failed' };
+      }
+  },
 
-        if (error) {
-            return { user: null, error: error.message };
-        }
-        
-        // The trigger will handle profile creation.
-        if (data.user) {
-            return { user: data.user, error: null };
-        }
-
-        return { user: null, error: 'An unknown error occurred during registration.' };
-    },
+  // Inside useAuth.ts
+  customerLogin: async (email, password, siteId) => {
+    try {
+      const response = await fetch('/api/auth/login-customer', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, siteId }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+  
+      const result = await response.json();
+  
+      if (!response.ok) {
+        return { user: null, error: result.error || 'লগইন করতে সমস্যা হয়েছে' };
+      }
+  
+      set({ user: result.user, loading: false });
+      return { user: result.user, error: null };
+    } catch (err) {
+      // এখানে console.log দিন যাতে আপনি ব্রাউজারের Inspect > Console-এ আসল এরর দেখতে পান
+      console.error("Login Fetch Error:", err);
+      return { user: null, error: 'সার্ভারের সাথে সংযোগ করতে ব্যর্থ হয়েছে' };
+    }
+  },
+  
     
     logout: async () => {
       await supabase.auth.signOut();
