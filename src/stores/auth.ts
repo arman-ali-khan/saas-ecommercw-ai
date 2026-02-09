@@ -79,8 +79,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
                     subscription_plan: plan,
                     subscription_status: subscription_status,
                     role: 'admin',
-                    paymentMethod: paymentMethod,
-                    transactionId: transactionId
+                    payment_method: paymentMethod || null,
+                    transaction_id: transactionId || null
                 }
             }
         });
