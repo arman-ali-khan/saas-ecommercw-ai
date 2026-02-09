@@ -50,20 +50,72 @@ export const useAuth = create<AuthState>()((set, get) => ({
         return { user: null, error: authError.message };
       }
       
-      if (authData.user) {
-        // First, check if the user is a site owner/admin
-        const { data: adminProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
+      if (!authData.user) {
+        return { user: null, error: 'Login failed: no user data returned.' };
+      }
+
+      const { user: authUser, session } = authData;
+
+      // This is a login on a specific store's domain (customer or owner of that domain)
+      if (siteId) {
+        // First, check if they are a customer registered to THIS site
+        const { data: customerProfile } = await supabase.from('customer_profiles').select('*').eq('id', authUser.id).eq('site_id', siteId).single();
+
+        if (customerProfile) {
+          const appUser: User = {
+            id: customerProfile.id,
+            username: customerProfile.email.split('@')[0],
+            fullName: customerProfile.full_name,
+            email: authUser.email!,
+            role: 'customer',
+            domain: '',
+            siteName: '',
+            siteDescription: null,
+            subscriptionPlan: null,
+            subscription_status: 'active',
+            isSaaSAdmin: false,
+          };
+          set({ user: appUser, session, loading: false });
+          return { user: appUser, error: null };
+        }
+
+        // If not a customer, check if they are the owner of THIS site
+        const { data: ownerProfile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+
+        // Check if they are an owner AND their ID matches the siteId they're on
+        if (ownerProfile && ownerProfile.id === siteId) {
+          const appUser: User = {
+            id: ownerProfile.id,
+            username: ownerProfile.username,
+            fullName: ownerProfile.full_name,
+            email: authUser.email!,
+            domain: ownerProfile.domain,
+            siteName: ownerProfile.site_name,
+            siteDescription: ownerProfile.site_description,
+            subscriptionPlan: ownerProfile.subscription_plan,
+            subscription_status: ownerProfile.subscription_status,
+            role: ownerProfile.role,
+            isSaaSAdmin: ownerProfile.role === 'saas_admin',
+          };
+          set({ user: appUser, session, loading: false });
+          return { user: appUser, error: null };
+        }
         
+        // If they are neither a customer nor the owner of this site, then this login is invalid for this context
+        await supabase.auth.signOut();
+        return { user: null, error: 'Invalid email or password for this site.' };
+
+      } 
+      // This is a login on the main SaaS page (e.g. /login) for site owners or saas admins
+      else {
+        const { data: adminProfile } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+
         if (adminProfile) {
-          const userToStore: User = {
+          const appUser: User = {
             id: adminProfile.id,
             username: adminProfile.username,
             fullName: adminProfile.full_name,
-            email: authData.user.email!,
+            email: authUser.email!,
             domain: adminProfile.domain,
             siteName: adminProfile.site_name,
             siteDescription: adminProfile.site_description,
@@ -72,47 +124,14 @@ export const useAuth = create<AuthState>()((set, get) => ({
             role: adminProfile.role,
             isSaaSAdmin: adminProfile.role === 'saas_admin',
           };
-          set({ user: userToStore, session: authData.session, loading: false });
-          return { user: userToStore, error: null };
+          set({ user: appUser, session, loading: false });
+          return { user: appUser, error: null };
         }
 
-        // If not an admin, check if they are a customer FOR THE CURRENT SITE
-        if (siteId) {
-            const { data: customerProfile } = await supabase
-              .from('customer_profiles')
-              .select('*')
-              .eq('id', authData.user.id)
-              .eq('site_id', siteId)
-              .single();
-
-            if (customerProfile) {
-                const appUser: User = {
-                  id: customerProfile.id,
-                  username: customerProfile.email.split('@')[0], // Create a fallback username
-                  fullName: customerProfile.full_name,
-                  email: authData.user.email!,
-                  role: 'customer',
-                  // Nullify site-owner specific fields
-                  domain: '',
-                  siteName: '',
-                  siteDescription: null,
-                  subscriptionPlan: null,
-                  subscription_status: 'active', // Customers are always active
-                  isSaaSAdmin: false,
-                };
-                set({ user: appUser, session: authData.session, loading: false });
-                return { user: appUser, error: null };
-            } else {
-                 // Correct credentials, but not registered for this specific store.
-                 // Sign them out to avoid confusion and inconsistent state.
-                 await supabase.auth.signOut();
-                 return { user: null, error: 'Invalid email or password for this site.' };
-            }
-        }
+        // Customers are not allowed to log in via the main page
+        await supabase.auth.signOut();
+        return { user: null, error: 'Customer accounts must log in via their store\'s domain.' };
       }
-      // If we are here, something is wrong (e.g. customer trying to log in via main /login)
-      await supabase.auth.signOut();
-      return { user: null, error: 'Invalid login context.' };
     },
 
     register: async (username, fullName, email, password, domain, siteName, plan, siteDescription, paymentMethod, transactionId) => {
