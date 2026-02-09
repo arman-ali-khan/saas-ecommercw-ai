@@ -174,7 +174,7 @@ export default function CheckoutPage() {
     const orderData = {
       order_number: orderNumber,
       site_id: siteId,
-      // user_id is removed to avoid triggering RLS policies based on auth.uid()
+      user_id: customer ? customer.id : null,
       customer_email: values.email,
       shipping_info: {
         name: values.name,
@@ -195,25 +195,31 @@ export default function CheckoutPage() {
       status: 'processing',
     };
 
-    const { data: newOrder, error: orderError } = await supabase
-      .from('orders')
-      .insert(orderData)
-      .select()
-      .single();
-
-    if (orderError) {
-      toast({
-        variant: 'destructive',
-        title: 'অর্ডার স্থাপন ব্যর্থ হয়েছে',
-        description: orderError.message,
+    try {
+      const response = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderData),
       });
-      setIsSubmitting(false);
-      return;
-    }
 
-    setLastOrder(newOrder);
-    clearCart();
-    router.push(`/${username}/checkout/success`);
+      const newOrder = await response.json();
+
+      if (!response.ok) {
+          throw new Error(newOrder.error || 'অর্ডার স্থাপন ব্যর্থ হয়েছে');
+      }
+
+      setLastOrder(newOrder);
+      clearCart();
+      router.push(`/${username}/checkout/success`);
+
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'অর্ডার স্থাপন ব্যর্থ হয়েছে',
+            description: error.message || 'একটি অপ্রত্যাশিত সমস্যা হয়েছে।',
+        });
+        setIsSubmitting(false);
+    }
   }
 
   if (!isHydrated || cartCount === 0) {
