@@ -57,7 +57,10 @@ export const useCart = create<CartState>()(
     {
       name: 'bangla-naturals-cart',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ cartItems: state.cartItems }),
+      partialize: (state) => ({
+        cartItems: state.cartItems,
+        lastOrder: state.lastOrder,
+      }),
     }
   )
 );
