@@ -29,7 +29,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
-import { useAuth } from '@/stores/auth';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -75,7 +75,7 @@ export default function CheckoutPage() {
   );
   const [siteId, setSiteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user, loading: authLoading } = useAuth();
+  const { customer, _hasHydrated: customerHasHydrated } = useCustomerAuth();
   const [paymentSettings, setPaymentSettings] = useState<{mobile_banking_number: string | null, accepted_banking_methods: string[] | null} | null>(null);
   const [isLoadingPaymentSettings, setIsLoadingPaymentSettings] = useState(true);
 
@@ -142,13 +142,13 @@ export default function CheckoutPage() {
 
   // Fetch existing uncompleted order for logged-in user
   useEffect(() => {
-    if (authLoading || !isHydrated || !user || !siteId) return;
+    if (!customerHasHydrated || !customer || !siteId) return;
 
     const getUncompletedOrder = async () => {
       const { data } = await supabase
         .from('uncompleted_orders')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', customer.id)
         .eq('site_id', siteId)
         .limit(1)
         .single();
@@ -157,11 +157,11 @@ export default function CheckoutPage() {
       }
     };
     getUncompletedOrder();
-  }, [user, siteId, isHydrated, authLoading]);
+  }, [customer, siteId, customerHasHydrated]);
 
   const handleSaveUncompletedOrder = async () => {
     // Wait until auth state is confirmed before saving.
-    if (authLoading || !isHydrated || cartCount === 0 || !siteId) {
+    if (!customerHasHydrated || cartCount === 0 || !siteId) {
       return;
     }
 
@@ -179,7 +179,7 @@ export default function CheckoutPage() {
 
     const payload = {
       site_id: siteId,
-      user_id: user?.id || null,
+      user_id: customer?.id || null,
       customer_info: customerInfo,
       cart_items: cartItems.map((item) => ({
         id: item.id,
@@ -194,14 +194,14 @@ export default function CheckoutPage() {
 
     let error;
 
-    if (user && uncompletedOrderId) {
+    if (customer && uncompletedOrderId) {
       // Logged-in user is updating their existing record
       const { error: updateError } = await supabase
         .from('uncompleted_orders')
         .update(payload)
         .eq('id', uncompletedOrderId);
       error = updateError;
-    } else if (!user && !uncompletedOrderId) {
+    } else if (!customer && !uncompletedOrderId) {
       // Guest user creating a record for the first time
       const { data, error: insertError } = await supabase
         .from('uncompleted_orders')
@@ -212,7 +212,7 @@ export default function CheckoutPage() {
       if (data) {
         setUncompletedOrderId(data.id);
       }
-    } else if (user && !uncompletedOrderId) {
+    } else if (customer && !uncompletedOrderId) {
         // Logged-in user creating record for the first time
         const { data, error: insertError } = await supabase
         .from('uncompleted_orders')
@@ -238,7 +238,7 @@ export default function CheckoutPage() {
   }, [isHydrated, cartCount, router, username]);
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    if (authLoading) return;
+    if (!customerHasHydrated) return;
     if (!siteId) {
       toast({
         variant: 'destructive',
@@ -254,7 +254,7 @@ export default function CheckoutPage() {
     const orderData = {
       order_number: orderNumber,
       site_id: siteId,
-      user_id: user?.id || null,
+      user_id: customer?.id || null,
       shipping_info: {
         name: values.name,
         address: values.address,
@@ -291,7 +291,7 @@ export default function CheckoutPage() {
     }
 
     // Only try to delete if it's a logged-in user who had an uncompleted order.
-    if (user && uncompletedOrderId) {
+    if (customer && uncompletedOrderId) {
       await supabase
         .from('uncompleted_orders')
         .delete()
@@ -552,7 +552,7 @@ export default function CheckoutPage() {
               type="submit"
               className="w-full mt-6"
               size="lg"
-              disabled={isSubmitting || !siteId || isLoadingPaymentSettings}
+              disabled={isSubmitting || !siteId || isLoadingPaymentSettings || !customerHasHydrated}
             >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
