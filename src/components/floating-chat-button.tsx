@@ -71,7 +71,7 @@ export default function FloatingChatButton() {
   useEffect(() => {
     if (_hasHydrated) {
       if (customer) {
-        setSenderName(customer.full_name);
+        setSenderName(customer.full_name || customer.email || 'Registered User');
       } else {
         let guestName = localStorage.getItem('chat_guest_name');
         if (!guestName) {

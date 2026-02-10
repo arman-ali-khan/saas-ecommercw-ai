@@ -272,7 +272,7 @@ export default function LiveQuestionsAdminPage() {
                         )}>
                             {message.sender_type === 'customer' && (
                                 <Avatar className="h-8 w-8 self-end">
-                                    <AvatarFallback>{message.sender_name.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback>{message.sender_name.charAt(0) || '?'}</AvatarFallback>
                                 </Avatar>
                             )}
                             <div className={cn(
