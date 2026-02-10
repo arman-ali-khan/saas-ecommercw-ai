@@ -64,21 +64,6 @@ export default function LiveQuestionsAdminPage() {
     // Fetch the initial data
     fetchMessages();
 
-    const handleNewMessage = (payload: any) => {
-        const newMessage = payload.new as LiveChatMessage;
-        setMessagesByConversation(prevMap => {
-            const newMap = new Map(prevMap);
-            const conversation = [...(newMap.get(newMessage.conversation_id) || [])];
-            
-            // Avoid adding duplicates from optimistic updates or re-fetches
-            if (!conversation.find(m => m.id === newMessage.id)) {
-                conversation.push(newMessage);
-                newMap.set(newMessage.conversation_id, conversation);
-            }
-            return newMap;
-        });
-    };
-
     const channel = supabase
         .channel(`admin-live-chat-${user.id}`)
         .on(
@@ -89,7 +74,11 @@ export default function LiveQuestionsAdminPage() {
                 table: 'live_chat_messages',
                 filter: `site_id=eq.${user.id}`,
             },
-            handleNewMessage
+            (payload) => {
+              // When a new message is inserted, re-fetch all messages
+              // This is a simple and robust way to ensure the UI is up-to-date.
+              fetchMessages();
+            }
         )
         .subscribe();
         
