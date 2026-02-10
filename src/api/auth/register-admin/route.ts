@@ -2,6 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -76,40 +77,24 @@ export async function POST(request: Request) {
       const priceString = String(planData.price || '0');
       const priceNumber = parseFloat(priceString.replace(/[^0-9.]/g, '')) || 0;
 
-      // Use upsert to handle potential retries with the same transaction ID
-      if (transactionId) {
-        const { error: paymentError } = await supabaseAdmin
-          .from('subscription_payments')
-          .upsert({
-            user_id: userId,
-            plan_id: planData.id,
-            amount: priceNumber,
-            payment_method: paymentMethod || 'manual',
-            transaction_id: transactionId,
-            status: 'pending',
-          }, {
-            onConflict: 'transaction_id'
-          });
-        
-        if (paymentError) {
-          throw new Error(`Could not create or update payment record: ${paymentError.message}`);
-        }
-      } else {
-        // Fallback to insert if no transaction ID is provided
-        const { error: paymentError } = await supabaseAdmin
-          .from('subscription_payments')
-          .insert({
-            user_id: userId,
-            plan_id: planData.id,
-            amount: priceNumber,
-            payment_method: paymentMethod || 'manual',
-            transaction_id: null,
-            status: 'pending',
-          });
-        
-        if (paymentError) {
-          throw new Error(`Could not create payment record: ${paymentError.message}`);
-        }
+      // If a transactionId is not provided (e.g. for manual verification), generate one.
+      const finalTransactionId = (transactionId && transactionId.trim()) ? transactionId.trim() : uuidv4();
+
+      const { error: paymentError } = await supabaseAdmin
+        .from('subscription_payments')
+        .upsert({
+          user_id: userId,
+          plan_id: planData.id,
+          amount: priceNumber,
+          payment_method: paymentMethod || 'manual',
+          transaction_id: finalTransactionId,
+          status: 'pending',
+        }, {
+          onConflict: 'transaction_id',
+        });
+      
+      if (paymentError) {
+        throw new Error(`Could not create payment record: ${paymentError.message}`);
       }
     }
 
