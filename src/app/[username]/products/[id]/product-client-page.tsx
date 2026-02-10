@@ -55,6 +55,14 @@ export default function ProductClientPage({ product }: { product: Product }) {
   const [thumbApi, setThumbApi] = useState<CarouselApi>();
   const [selectedSnap, setSelectedSnap] = useState(0);
 
+  const [shareUrl, setShareUrl] = useState('');
+
+  useEffect(() => {
+    // This effect runs only on the client side, after hydration is complete.
+    // It safely accesses `window.location.href`.
+    setShareUrl(window.location.href);
+  }, []);
+
   const onThumbClick = useCallback(
     (index: number) => {
       if (!mainApi || !thumbApi) return;
@@ -93,12 +101,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
     });
   };
 
-  const currentUrl =
-    typeof window !== 'undefined'
-      ? window.location.href
-      : `https://banglanaturals.example.com/products/${product.id}`;
   const shareText = `বাংলা ন্যাচারালস থেকে ${product.name} দেখুন!`;
-
   const images = product.images || [];
 
   return (
@@ -229,10 +232,10 @@ export default function ProductClientPage({ product }: { product: Product }) {
         <div className="mt-8">
           <h3 className="font-semibold mb-2">এই পণ্যটি শেয়ার করুন:</h3>
           <div className="flex gap-2">
-            <Button asChild variant="outline" size="icon">
+            <Button asChild variant="outline" size="icon" disabled={!shareUrl}>
               <a
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                  currentUrl
+                  shareUrl
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -241,10 +244,10 @@ export default function ProductClientPage({ product }: { product: Product }) {
                 <Facebook className="h-5 w-5" />
               </a>
             </Button>
-            <Button asChild variant="outline" size="icon">
+            <Button asChild variant="outline" size="icon" disabled={!shareUrl}>
               <a
                 href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
-                  currentUrl
+                  shareUrl
                 )}&text=${encodeURIComponent(shareText)}`}
                 target="_blank"
                 rel="noopener noreferrer"
