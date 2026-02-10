@@ -19,37 +19,50 @@ export async function POST(request: Request) {
   let userId: string | undefined;
 
   try {
-    // 1. Create the user, but tell the trigger it's a 'free' plan to bypass faulty logic.
-    // The trigger is unreliable, so we will manually update the profile with the correct data immediately after.
+    // Step 1: Create the auth user.
+    // Data in user_metadata is stored on the auth.users table in the raw_user_meta_data column.
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm user
+      email_confirm: true, // Auto-confirm user as we are in a server environment
       user_metadata: {
-        // We pass this data so the trigger can create the basic profile row.
-        // We will immediately overwrite/update it with a manual call to ensure correctness.
-        email: email, // Ensure email is passed to the trigger
-        username,
         full_name: fullName,
-        domain,
-        site_name: siteName,
-        site_description: siteDescription,
-        subscription_plan: 'free', // Lie to the trigger. We'll fix this next.
-        role: 'admin',
+        role: 'admin', // Store basic, non-critical data here
       }
     });
 
     if (authError) {
-      console.error('Authentication error:', authError.message);
-      // The error from Supabase is what the user is seeing.
+      // This is the most likely place for "user already registered" errors
       return NextResponse.json({ error: `Authentication error: ${authError.message}` }, { status: 400 });
     }
 
     userId = authData.user.id;
 
-    // 2. If the plan is NOT free, we must manually update the profile and create payment records.
+    // Step 2: Manually insert the user's full profile into the public 'profiles' table.
+    // This gives us full control and avoids any faulty database triggers.
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        id: userId,
+        username,
+        full_name: fullName,
+        email,
+        domain,
+        site_name: siteName,
+        site_description: siteDescription,
+        subscription_plan: planId,
+        // Set status based on plan
+        subscription_status: planId === 'free' ? 'active' : 'pending',
+        role: 'admin' // Explicitly set application-level role
+      });
+
+    if (profileError) {
+      // If profile creation fails, we must delete the auth user to allow them to retry registration.
+      throw new Error(`Database error creating profile: ${profileError.message}`);
+    }
+
+    // Step 3: If the plan is not free, create the payment record.
     if (planId !== 'free') {
-      // 2a. Fetch the plan details to get the price.
       const { data: planData, error: planError } = await supabaseAdmin
         .from('plans')
         .select('id, price')
@@ -57,28 +70,12 @@ export async function POST(request: Request) {
         .single();
 
       if (planError || !planData) {
-        throw new Error('Invalid plan selected.');
+        throw new Error('Invalid plan selected during payment record creation.');
       }
       
       const priceString = String(planData.price || '0');
       const priceNumber = parseFloat(priceString.replace(/[^0-9.]/g, '')) || 0;
 
-      // 2b. Manually update the user's profile with the correct plan and set their status to 'pending'.
-      const { error: profileUpdateError } = await supabaseAdmin
-        .from('profiles')
-        .update({
-          email: email, // Save the email explicitly
-          subscription_plan: planData.id,
-          subscription_status: 'pending',
-          site_description: siteDescription,
-        })
-        .eq('id', userId);
-
-      if (profileUpdateError) {
-        throw new Error(`Could not update user profile: ${profileUpdateError.message}`);
-      }
-      
-      // 2c. Manually insert the payment record.
       const { error: paymentError } = await supabaseAdmin
         .from('subscription_payments')
         .insert({
@@ -87,25 +84,11 @@ export async function POST(request: Request) {
           amount: priceNumber,
           payment_method: paymentMethod || 'manual',
           transaction_id: transactionId || null,
-          status: 'pending', // Use 'pending' for consistency
+          status: 'pending',
         });
 
       if (paymentError) {
         throw new Error(`Could not create payment record: ${paymentError.message}`);
-      }
-    } else {
-      // For FREE plans, we still should ensure the site_description is saved.
-      const { error: profileUpdateError } = await supabaseAdmin
-      .from('profiles')
-      .update({
-        email: email, // Save the email explicitly
-        site_description: siteDescription,
-        subscription_status: 'active'
-      })
-      .eq('id', userId);
-      
-      if (profileUpdateError) {
-        throw new Error(`Could not update free user profile: ${profileUpdateError.message}`);
       }
     }
 
@@ -113,11 +96,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ user: authData.user }, { status: 200 });
 
   } catch (err: any) {
-    // If anything fails after user creation, we must delete the user to allow them to try again.
+    // Generic catch block. If something failed, and we have a userId,
+    // we must delete the auth user to allow a clean retry.
     if (userId) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
     }
-    console.error("Registration Process Error:", err.message);
+    console.error("Full Registration Process Error:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
