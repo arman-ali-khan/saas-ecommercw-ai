@@ -4,7 +4,6 @@ import { create } from 'zustand';
 import type { User } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import type { Session } from '@supabase/supabase-js';
-import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface AuthState {
   user: User | null;
@@ -36,6 +35,7 @@ interface AuthState {
   setSession: (session: Session | null) => void;
   setLoading: (loading: boolean) => void;
   updateUserProfile: (userId: string, updates: Partial<User>) => Promise<{ user: User | null, error: string | null }>;
+  refreshUser: () => Promise<void>;
 }
 
 export const useAuth = create<AuthState>()((set, get) => ({
@@ -46,6 +46,39 @@ export const useAuth = create<AuthState>()((set, get) => ({
     setUser: (user) => set({ user }),
     setSession: (session) => set({ session }),
     setLoading: (loading) => set({ loading }),
+
+    refreshUser: async () => {
+        try {
+          const response = await fetch('/api/auth/get-profile');
+          if (response.ok) {
+            const { profile: adminProfile } = await response.json();
+            if (!adminProfile) {
+                set({ user: null });
+                return;
+            }
+            const appUser: User = {
+              id: adminProfile.id,
+              username: adminProfile.username,
+              fullName: adminProfile.full_name,
+              email: adminProfile.email,
+              domain: adminProfile.domain,
+              siteName: adminProfile.site_name,
+              siteDescription: adminProfile.site_description,
+              subscriptionPlan: adminProfile.subscription_plan,
+              subscription_status: adminProfile.subscription_status,
+              role: adminProfile.role,
+              isSaaSAdmin: adminProfile.role === 'saas_admin',
+            };
+            set({ user: appUser });
+          } else {
+            console.error('Failed to fetch profile via API route');
+            set({ user: null });
+          }
+        } catch (e) {
+          console.error('Error fetching profile via API route:', e);
+          set({ user: null });
+        }
+    },
 
     saasLogin: async (email, password) => {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
