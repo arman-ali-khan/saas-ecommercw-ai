@@ -19,6 +19,9 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Section } from '@/types';
 
+// Force dynamic rendering to ensure the latest section settings are always used.
+export const dynamic = 'force-dynamic';
+
 export default async function UserPage({
   params,
 }: {
@@ -94,8 +97,8 @@ export default async function UserPage({
     })),
   ];
 
-  // @ts-ignore
-  const homepageSections = profile?.store_settings?.[0]?.homepage_sections;
+  // Safely access homepage_sections from the joined store_settings table
+  const homepageSections = (profile?.store_settings as any)?.[0]?.homepage_sections;
   const sectionsToRender: Section[] = Array.isArray(homepageSections)
     ? homepageSections
     : defaultSections;
