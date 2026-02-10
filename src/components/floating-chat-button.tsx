@@ -219,7 +219,7 @@ export default function FloatingChatButton() {
                     <div className="p-4 space-y-4">
                         {chatMessages.map((chat, index) => (
                         <div
-                            key={chat.id || index}
+                            key={chat.id ? `db-${chat.id}` : `optimistic-${index}`}
                             ref={index === chatMessages.length - 1 ? lastMessageRef : null}
                             className={cn(
                             'flex items-end gap-2',
