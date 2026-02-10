@@ -6,6 +6,9 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import CustomerAuthInitializer from '@/components/auth/customer-auth-initializer';
 
+// Force dynamic rendering to ensure the latest settings (like favicon) are always used.
+export const dynamic = 'force-dynamic';
+
 // This function generates dynamic metadata for the store's pages.
 export async function generateMetadata({
   params,
