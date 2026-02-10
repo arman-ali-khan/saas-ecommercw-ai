@@ -30,18 +30,10 @@ import {
 } from '@/components/ui/accordion';
 import { getProductsBySiteId } from '@/lib/products';
 import { useAuth } from '@/stores/auth';
-import type { Product } from '@/types';
+import type { Product, Section } from '@/types';
 import { ArrowUp, ArrowDown, Loader2, GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase/client';
-
-type Section = {
-  id: string;
-  title: string;
-  enabled: boolean;
-  isCategorySection: boolean;
-  category?: string;
-};
 
 export default function SectionManagerPage() {
   const { toast } = useToast();
@@ -96,6 +88,12 @@ export default function SectionManagerPage() {
             enabled: true,
             isCategorySection: false,
           },
+          {
+            id: 'why-us',
+            title: 'Why We Are Different',
+            enabled: true,
+            isCategorySection: false,
+          },
           ...categories.map((cat) => ({
             id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
             title: `${cat} Section`,
@@ -103,12 +101,6 @@ export default function SectionManagerPage() {
             isCategorySection: true,
             category: cat,
           })),
-          {
-            id: 'about',
-            title: 'About Us Snippet',
-            enabled: true,
-            isCategorySection: false,
-          },
         ];
         setSections(initialSections);
     }

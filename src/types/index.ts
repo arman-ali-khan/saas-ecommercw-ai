@@ -1,4 +1,5 @@
 
+
 export interface ProductImage {
   imageUrl: string;
   imageHint: string;
@@ -130,4 +131,12 @@ export interface Notification {
     message: string;
     is_read: boolean;
     link: string | null;
+}
+
+export interface Section {
+  id: string;
+  title: string;
+  enabled: boolean;
+  isCategorySection: boolean;
+  category?: string;
 }

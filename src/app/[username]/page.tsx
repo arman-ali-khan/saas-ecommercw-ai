@@ -15,6 +15,9 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { getProductsByDomain, checkDomainExists } from '@/lib/products';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import type { Section } from '@/types';
 
 export default async function UserPage({
   params,
@@ -29,23 +32,74 @@ export default async function UserPage({
         <SearchX className="w-24 h-24 text-muted-foreground mb-6" />
         <h1 className="text-4xl font-headline font-bold">Store Not Found</h1>
         <p className="mt-4 max-w-md mx-auto text-lg text-muted-foreground">
-          The store at "{params.username}.banglanaturals.site" does not exist.
-        </p>
-        <p className="mt-2 text-muted-foreground">
-          If you want this domain, visit our homepage to get a subscription.
+          The store at "{params.username}" does not exist.
         </p>
         <Button asChild className="mt-8">
-          <Link href="/">
-            Go to Homepage
-          </Link>
+          <Link href="/">Go to Homepage</Link>
         </Button>
       </div>
     );
   }
 
+  const cookieStore = cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*, store_settings(homepage_sections)')
+    .eq('domain', params.username)
+    .single();
+
   const allProducts = await getProductsByDomain(params.username);
   const featuredProducts = allProducts.filter((p) => p.is_featured);
-  const categories = [...new Set(allProducts.flatMap((p) => p.categories || []))];
+  const allCategories = [
+    ...new Set(allProducts.flatMap((p) => p.categories || [])),
+  ];
+
+  const defaultSections: Section[] = [
+    {
+      id: 'hero',
+      title: 'Hero Carousel',
+      enabled: true,
+      isCategorySection: false,
+    },
+    {
+      id: 'featured',
+      title: 'Featured Products',
+      enabled: true,
+      isCategorySection: false,
+    },
+    {
+      id: 'why-us',
+      title: 'Why We Are Different',
+      enabled: true,
+      isCategorySection: false,
+    },
+    ...allCategories.map((cat) => ({
+      id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
+      title: cat,
+      enabled: true,
+      isCategorySection: true,
+      category: cat,
+    })),
+  ];
+
+  // @ts-ignore
+  const homepageSections = profile?.store_settings?.[0]?.homepage_sections;
+  const sectionsToRender: Section[] = Array.isArray(homepageSections)
+    ? homepageSections
+    : defaultSections;
+
   const aboutImage = PlaceHolderImages.find(
     (img) => img.id === 'about-traceability'
   );
@@ -84,281 +138,199 @@ export default async function UserPage({
     },
   ];
 
+  const welcomeTitle =
+    profile?.site_name || `Welcome to ${params.username}'s Store`;
+  const welcomeDescription =
+    profile?.site_description ||
+    'The best natural products from Bangladesh.';
+
   return (
     <div className="space-y-16">
       <div className="text-center">
         <h1 className="text-4xl md:text-5xl font-headline font-bold">
-          {decodeURIComponent(params.username)}-এর পাতায় স্বাগতম
+          {welcomeTitle}
         </h1>
         <p className="mt-4 max-w-3xl mx-auto text-lg text-muted-foreground">
-          এটি একটি ব্যক্তিগতকৃত পাতা যা বাংলা ন্যাচারালস-এর সেরা পণ্যগুলি প্রদর্শন করে।
+          {welcomeDescription}
         </p>
       </div>
 
-      <section className="-mx-4 sm:-mx-6 lg:-mx-8">
-        <HeroCarousel slides={heroSlides} />
-      </section>
+      {sectionsToRender.map((section) => {
+        if (!section.enabled) return null;
 
-      {featuredProducts.length > 0 && (
-        <section>
-          <h2 className="text-3xl font-headline font-bold text-center mb-8">
-            বিশেষ পণ্য
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                username={params.username}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+        switch (section.id) {
+          case 'hero':
+            return (
+              <section key={section.id} className="-mx-4 sm:-mx-6 lg:-mx-8">
+                <HeroCarousel slides={heroSlides} />
+              </section>
+            );
 
-      <section>
-        <h2 className="text-3xl font-headline font-bold text-center mb-8">
-          কেন আমরা আলাদা
-        </h2>
-        <div className="hidden lg:grid grid-cols-3 gap-6">
-          <Card className="overflow-hidden flex flex-col">
-            <div className="relative h-64 w-full">
-              {aboutImage && (
-                <Image
-                  src={aboutImage.imageUrl}
-                  alt={aboutImage.description}
-                  data-ai-hint={aboutImage.imageHint}
-                  fill
-                  className="object-cover"
-                />
-              )}
-            </div>
-            <div className="p-6 flex flex-col flex-grow">
-              <CardHeader className="p-0">
-                <Leaf className="w-10 h-10 text-accent mb-4" />
-                <CardTitle className="font-headline text-2xl">
-                  আমাদের ভূমি থেকে, আপনার ঘরে
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 mt-4 flex-grow">
-                <p className="text-muted-foreground">
-                  আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।
-                </p>
-              </CardContent>
-              <Button asChild variant="secondary" className="mt-6 w-fit">
-                <Link href={`/${params.username}/about`}>
-                  আরও জানুন <ArrowRight className="ml-2" />
-                </Link>
-              </Button>
-            </div>
-          </Card>
-          <Card className="overflow-hidden flex flex-col">
-            <div className="relative h-64 w-full">
-              {storyImage && (
-                <Image
-                  src={storyImage.imageUrl}
-                  alt={storyImage.description}
-                  data-ai-hint={storyImage.imageHint}
-                  fill
-                  className="object-cover"
-                />
-              )}
-            </div>
-            <div className="p-6 flex flex-col flex-grow">
-              <CardHeader className="p-0">
-                <Users className="w-10 h-10 text-accent mb-4" />
-                <CardTitle className="font-headline text-2xl">
-                  কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 mt-4 flex-grow">
-                <p className="text-muted-foreground">
-                  আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।
-                </p>
-              </CardContent>
-              <Button asChild variant="secondary" className="mt-6 w-fit">
-                <Link href={`/${params.username}/about`}>
-                  আরও জানুন <ArrowRight className="ml-2" />
-                </Link>
-              </Button>
-            </div>
-          </Card>
-          <Card className="overflow-hidden flex flex-col">
-            <div className="relative h-64 w-full">
-              {qualityImage && (
-                <Image
-                  src={qualityImage.imageUrl}
-                  alt={qualityImage.description}
-                  data-ai-hint={qualityImage.imageHint}
-                  fill
-                  className="object-cover"
-                />
-              )}
-            </div>
-            <div className="p-6 flex flex-col flex-grow">
-              <CardHeader className="p-0">
-                <Heart className="w-10 h-10 text-accent mb-4" />
-                <CardTitle className="font-headline text-2xl">
-                  বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 mt-4 flex-grow">
-                <p className="text-muted-foreground">
-                  প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।
-                </p>
-              </CardContent>
-              <Button asChild variant="secondary" className="mt-6 w-fit">
-                <Link href={`/${params.username}/about`}>
-                  আরও জানুন <ArrowRight className="ml-2" />
-                </Link>
-              </Button>
-            </div>
-          </Card>
-        </div>
+          case 'featured':
+            if (featuredProducts.length === 0) return null;
+            return (
+              <section key={section.id}>
+                <h2 className="text-3xl font-headline font-bold text-center mb-8">
+                  {section.title}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {featuredProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      username={params.username}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          
+          case 'why-us':
+            return (
+              <section key={section.id}>
+                <h2 className="text-3xl font-headline font-bold text-center mb-8">
+                  {section.title}
+                </h2>
+                <div className="hidden lg:grid grid-cols-3 gap-6">
+                  <Card className="overflow-hidden flex flex-col">
+                    <div className="relative h-64 w-full">
+                      {aboutImage && (
+                        <Image src={aboutImage.imageUrl} alt={aboutImage.description} data-ai-hint={aboutImage.imageHint} fill className="object-cover" />
+                      )}
+                    </div>
+                    <div className="p-6 flex flex-col flex-grow">
+                      <CardHeader className="p-0">
+                        <Leaf className="w-10 h-10 text-accent mb-4" />
+                        <CardTitle className="font-headline text-2xl">আমাদের ভূমি থেকে, আপনার ঘরে</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0 mt-4 flex-grow">
+                        <p className="text-muted-foreground">আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।</p>
+                      </CardContent>
+                      <Button asChild variant="secondary" className="mt-6 w-fit">
+                        <Link href={`/${params.username}/about`}>আরও জানুন <ArrowRight className="ml-2" /></Link>
+                      </Button>
+                    </div>
+                  </Card>
+                  <Card className="overflow-hidden flex flex-col">
+                    <div className="relative h-64 w-full">
+                      {storyImage && (
+                         <Image src={storyImage.imageUrl} alt={storyImage.description} data-ai-hint={storyImage.imageHint} fill className="object-cover" />
+                      )}
+                    </div>
+                    <div className="p-6 flex flex-col flex-grow">
+                      <CardHeader className="p-0">
+                        <Users className="w-10 h-10 text-accent mb-4" />
+                        <CardTitle className="font-headline text-2xl">কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0 mt-4 flex-grow">
+                        <p className="text-muted-foreground">আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।</p>
+                      </CardContent>
+                      <Button asChild variant="secondary" className="mt-6 w-fit">
+                        <Link href={`/${params.username}/about`}>আরও জানুন <ArrowRight className="ml-2" /></Link>
+                      </Button>
+                    </div>
+                  </Card>
+                  <Card className="overflow-hidden flex flex-col">
+                    <div className="relative h-64 w-full">
+                      {qualityImage && (
+                        <Image src={qualityImage.imageUrl} alt={qualityImage.description} data-ai-hint={qualityImage.imageHint} fill className="object-cover"/>
+                      )}
+                    </div>
+                    <div className="p-6 flex flex-col flex-grow">
+                      <CardHeader className="p-0">
+                        <Heart className="w-10 h-10 text-accent mb-4" />
+                        <CardTitle className="font-headline text-2xl">বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0 mt-4 flex-grow">
+                        <p className="text-muted-foreground">প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।</p>
+                      </CardContent>
+                      <Button asChild variant="secondary" className="mt-6 w-fit">
+                        <Link href={`/${params.username}/about`}>আরও জানুন <ArrowRight className="ml-2" /></Link>
+                      </Button>
+                    </div>
+                  </Card>
+                </div>
 
-        <div className="lg:hidden">
-          <Carousel
-            opts={{
-              align: 'start',
-              loop: true,
-            }}
-            className="w-full"
-          >
-            <CarouselContent>
-              <CarouselItem>
-                <Card className="overflow-hidden">
-                  <div className="relative h-64 w-full">
-                    {aboutImage && (
-                      <Image
-                        src={aboutImage.imageUrl}
-                        alt={aboutImage.description}
-                        data-ai-hint={aboutImage.imageHint}
-                        fill
-                        className="object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="p-6">
-                    <CardHeader className="p-0">
-                      <Leaf className="w-10 h-10 text-accent mb-4" />
-                      <CardTitle className="font-headline text-2xl">
-                        আমাদের ভূমি থেকে, আপনার ঘরে
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 mt-4">
-                      <p className="text-muted-foreground">
-                        আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।
-                      </p>
-                    </CardContent>
-                    <Button asChild variant="secondary" className="mt-6 w-fit">
-                      <Link href={`/${params.username}/about`}>
-                        আরও জানুন <ArrowRight className="ml-2" />
+                <div className="lg:hidden">
+                  <Carousel opts={{ align: 'start', loop: true }} className="w-full">
+                    <CarouselContent>
+                      <CarouselItem>
+                        <Card className="overflow-hidden">
+                          <div className="relative h-64 w-full">
+                            {aboutImage && (<Image src={aboutImage.imageUrl} alt={aboutImage.description} data-ai-hint={aboutImage.imageHint} fill className="object-cover" />)}
+                          </div>
+                          <div className="p-6">
+                            <CardHeader className="p-0"><Leaf className="w-10 h-10 text-accent mb-4" /><CardTitle className="font-headline text-2xl">আমাদের ভূমি থেকে, আপনার ঘরে</CardTitle></CardHeader>
+                            <CardContent className="p-0 mt-4"><p className="text-muted-foreground">আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।</p></CardContent>
+                            <Button asChild variant="secondary" className="mt-6 w-fit"><Link href={`/${params.username}/about`}>আরও জানুন <ArrowRight className="ml-2" /></Link></Button>
+                          </div>
+                        </Card>
+                      </CarouselItem>
+                      <CarouselItem>
+                        <Card className="overflow-hidden">
+                          <div className="relative h-64 w-full">
+                            {storyImage && (<Image src={storyImage.imageUrl} alt={storyImage.description} data-ai-hint={storyImage.imageHint} fill className="object-cover" />)}
+                          </div>
+                          <div className="p-6">
+                            <CardHeader className="p-0"><Users className="w-10 h-10 text-accent mb-4" /><CardTitle className="font-headline text-2xl">কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব</CardTitle></CardHeader>
+                            <CardContent className="p-0 mt-4"><p className="text-muted-foreground">আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।</p></CardContent>
+                             <Button asChild variant="secondary" className="mt-6 w-fit"><Link href={`/${params.username}/about`}>আরও জানুন <ArrowRight className="ml-2" /></Link></Button>
+                          </div>
+                        </Card>
+                      </CarouselItem>
+                      <CarouselItem>
+                         <Card className="overflow-hidden">
+                          <div className="relative h-64 w-full">
+                            {qualityImage && (<Image src={qualityImage.imageUrl} alt={qualityImage.description} data-ai-hint={qualityImage.imageHint} fill className="object-cover" />)}
+                          </div>
+                          <div className="p-6">
+                            <CardHeader className="p-0"><Heart className="w-10 h-10 text-accent mb-4" /><CardTitle className="font-headline text-2xl">বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি</CardTitle></CardHeader>
+                            <CardContent className="p-0 mt-4"><p className="text-muted-foreground">প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।</p></CardContent>
+                             <Button asChild variant="secondary" className="mt-6 w-fit"><Link href={`/${params.username}/about`}>আরও জানুন <ArrowRight className="ml-2" /></Link></Button>
+                          </div>
+                        </Card>
+                      </CarouselItem>
+                    </CarouselContent>
+                    <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
+                    <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
+                  </Carousel>
+                </div>
+              </section>
+            );
+
+          default:
+            if (section.isCategorySection && section.category) {
+              const categoryProducts = allProducts
+                .filter((p) => p.categories?.includes(section.category!))
+                .slice(0, 3);
+              if (categoryProducts.length === 0) return null;
+
+              return (
+                <section key={section.id}>
+                  <div className="flex justify-between items-center mb-8">
+                    <h2 className="text-3xl font-headline font-bold">
+                      {section.title}
+                    </h2>
+                    <Button asChild variant="ghost">
+                      <Link href={`/${params.username}/products`}>
+                        সব দেখুন <ArrowRight className="ml-2" />
                       </Link>
                     </Button>
                   </div>
-                </Card>
-              </CarouselItem>
-              <CarouselItem>
-                <Card className="overflow-hidden">
-                  <div className="relative h-64 w-full">
-                    {storyImage && (
-                      <Image
-                        src={storyImage.imageUrl}
-                        alt={storyImage.description}
-                        data-ai-hint={storyImage.imageHint}
-                        fill
-                        className="object-cover"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {categoryProducts.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        username={params.username}
                       />
-                    )}
+                    ))}
                   </div>
-                  <div className="p-6">
-                    <CardHeader className="p-0">
-                      <Users className="w-10 h-10 text-accent mb-4" />
-                      <CardTitle className="font-headline text-2xl">
-                        কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 mt-4">
-                      <p className="text-muted-foreground">
-                        আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।
-                      </p>
-                    </CardContent>
-                    <Button asChild variant="secondary" className="mt-6 w-fit">
-                      <Link href={`/${params.username}/about`}>
-                        আরও জানুন <ArrowRight className="ml-2" />
-                      </Link>
-                    </Button>
-                  </div>
-                </Card>
-              </CarouselItem>
-              <CarouselItem>
-                <Card className="overflow-hidden">
-                  <div className="relative h-64 w-full">
-                    {qualityImage && (
-                      <Image
-                        src={qualityImage.imageUrl}
-                        alt={qualityImage.description}
-                        data-ai-hint={qualityImage.imageHint}
-                        fill
-                        className="object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="p-6">
-                    <CardHeader className="p-0">
-                      <Heart className="w-10 h-10 text-accent mb-4" />
-                      <CardTitle className="font-headline text-2xl">
-                        বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 mt-4">
-                      <p className="text-muted-foreground">
-                        প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।
-                      </p>
-                    </CardContent>
-                    <Button asChild variant="secondary" className="mt-6 w-fit">
-                      <Link href={`/${params.username}/about`}>
-                        আরও জানুন <ArrowRight className="ml-2" />
-                      </Link>
-                    </Button>
-                  </div>
-                </Card>
-              </CarouselItem>
-            </CarouselContent>
-            <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
-            <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
-          </Carousel>
-        </div>
-      </section>
-
-      {categories.map((category) => {
-        const categoryProducts = allProducts
-          .filter((p) => p.categories?.includes(category))
-          .slice(0, 3);
-
-        if (categoryProducts.length === 0) return null;
-
-        return (
-          <section key={category}>
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-headline font-bold">{category}</h2>
-              <Button asChild variant="ghost">
-                <Link href={`/${params.username}/products`}>
-                  সব দেখুন <ArrowRight className="ml-2" />
-                </Link>
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {categoryProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  username={params.username}
-                />
-              ))}
-            </div>
-          </section>
-        );
+                </section>
+              );
+            }
+            return null;
+        }
       })}
     </div>
   );
