@@ -152,3 +152,14 @@ export interface LiveChatMessage {
   content: string;
   is_read?: boolean;
 }
+
+export interface Page {
+  id: string;
+  site_id: string;
+  title: string;
+  slug: string;
+  content: any; // For now, will refine later
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}

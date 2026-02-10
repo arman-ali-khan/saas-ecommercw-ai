@@ -1,0 +1,312 @@
+
+'use client';
+
+import { useEffect, useState, useCallback, useTransition } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { supabase } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/stores/auth';
+import type { Page } from '@/types';
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
+import { Switch } from '@/components/ui/switch';
+
+// Helper function to generate a URL-friendly slug
+const generateSlug = (title: string) => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with a single one
+    .trim();
+};
+
+const pageFormSchema = z.object({
+  title: z.string().min(1, 'Title is required.'),
+  slug: z
+    .string()
+    .min(3, 'Slug must be at least 3 characters.')
+    .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens.'),
+  content: z.string().optional(), // Will be JSON content
+  is_published: z.boolean().default(false),
+});
+
+type PageFormData = z.infer<typeof pageFormSchema>;
+
+export default function ManagePage() {
+  const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+
+  const pageId = params.pageId as string;
+  const username = params.username as string;
+  const isNew = pageId === 'new';
+
+  const [isLoading, setIsLoading] = useState(!isNew);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const form = useForm<PageFormData>({
+    resolver: zodResolver(pageFormSchema),
+    defaultValues: {
+      title: '',
+      slug: '',
+      content: '',
+      is_published: false,
+    },
+  });
+  
+  const titleValue = form.watch('title');
+
+  // Auto-generate slug from title for new pages
+  useEffect(() => {
+    if (isNew && titleValue) {
+      const slug = generateSlug(titleValue);
+      form.setValue('slug', slug, { shouldValidate: true });
+    }
+  }, [titleValue, isNew, form]);
+
+
+  const fetchPage = useCallback(async () => {
+    if (isNew || !user) return;
+    
+    const { data, error } = await supabase
+      .from('pages')
+      .select('*')
+      .eq('id', pageId)
+      .eq('site_id', user.id)
+      .single();
+
+    if (error || !data) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Page not found.' });
+      router.push(`/${username}/admin/pages`);
+      return;
+    }
+    
+    form.reset({
+        title: data.title,
+        slug: data.slug,
+        content: data.content ? JSON.stringify(data.content, null, 2) : '',
+        is_published: data.is_published,
+    });
+    setIsLoading(false);
+  }, [pageId, isNew, user, router, toast, form, username]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (isNew) {
+        setIsLoading(false);
+      } else {
+        fetchPage();
+      }
+    }
+  }, [authLoading, isNew, fetchPage]);
+
+  const onSubmit = async (values: PageFormData) => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Authentication error' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    let contentAsJson;
+    try {
+        contentAsJson = values.content ? JSON.parse(values.content) : null;
+    } catch(e) {
+        form.setError('content', { type: 'manual', message: 'Content must be valid JSON.'});
+        setIsSubmitting(false);
+        return;
+    }
+
+    const payload = { 
+        ...values, 
+        content: contentAsJson,
+        site_id: user.id
+    };
+
+    let error;
+
+    if (isNew) {
+      const { error: insertError } = await supabase.from('pages').insert(payload);
+      error = insertError;
+    } else {
+      const { error: updateError } = await supabase
+        .from('pages')
+        .update(payload)
+        .eq('id', pageId);
+      error = updateError;
+    }
+
+    if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+            form.setError('slug', { type: 'manual', message: 'This slug is already in use. Please choose another.'});
+        } else {
+            toast({
+                variant: 'destructive',
+                title: `Failed to ${isNew ? 'create' : 'update'} page`,
+                description: error.message,
+            });
+        }
+    } else {
+        toast({ title: `Page ${isNew ? 'created' : 'updated'} successfully!` });
+        startTransition(() => {
+            router.push(`/${username}/admin/pages`);
+            router.refresh();
+        });
+    }
+    setIsSubmitting(false);
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
+        <CardContent className="space-y-6">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-10 w-32" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div>
+      <Button variant="ghost" asChild className="mb-4 -ml-4">
+        <Link href={`/${username}/admin/pages`}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Pages
+        </Link>
+      </Button>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="grid gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>{isNew ? 'Create New Page' : 'Edit Page'}</CardTitle>
+                <CardDescription>Fill in the details for your custom page.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-6">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., About Our Farm" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="slug"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>URL Slug</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input {...field} placeholder="e.g., about-our-farm" className="pl-20" />
+                           <span className="absolute left-1 top-1/2 -translate-y-1/2 text-sm text-muted-foreground bg-muted h-8 px-2 flex items-center rounded-l-md border border-r-0 border-input">
+                            /{username}/pages/
+                          </span>
+                        </div>
+                      </FormControl>
+                      <FormDescription>The unique URL path for this page.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Content</CardTitle>
+                    <CardDescription>This is a temporary JSON editor. A visual block editor will be added in a future update.</CardDescription>
+                </CardHeader>
+                 <CardContent>
+                    <FormField
+                        control={form.control}
+                        name="content"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormControl>
+                                <Textarea {...field} rows={15} placeholder='{ "type": "paragraph", "text": "Hello, world!" }' className="font-mono text-sm" />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                 </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Publishing</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="is_published"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Publish Page</FormLabel>
+                        <FormDescription>
+                          Make this page accessible to the public.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+            
+            <div className="flex justify-end">
+                <Button type="submit" disabled={isSubmitting || isPending}>
+                    {(isSubmitting || isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isNew ? 'Create Page' : 'Save Changes'}
+                </Button>
+            </div>
+          </div>
+        </form>
+      </Form>
+    </div>
+  );
+}
