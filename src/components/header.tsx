@@ -2,10 +2,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, User, LogOut, LayoutDashboard, Bell, Leaf } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Bell } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 
-import Logo from './logo';
 import { Button } from './ui/button';
 import ShoppingCart from './shopping-cart';
 import {
@@ -37,6 +36,8 @@ import { Badge } from './ui/badge';
 import { type Notification } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
+import DynamicIcon from './dynamic-icon';
+import Image from 'next/image';
 
 function CustomerNotificationBell({
   customer,
@@ -202,7 +203,10 @@ export default function Header() {
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
     description: string | null;
-  }>({ name: 'বাংলা ন্যাচারালস', description: '' });
+    logoType: 'icon' | 'image';
+    logoIcon: string;
+    logoImageUrl: string | null;
+  }>({ name: 'বাংলা ন্যাচারালস', description: '', logoType: 'icon', logoIcon: 'Leaf', logoImageUrl: null });
   const [isSiteInfoLoading, setIsSiteInfoLoading] = useState(true);
 
   // Create a unified user object for easier handling in the UI
@@ -247,35 +251,51 @@ export default function Header() {
     async function fetchInfo() {
       setIsSiteInfoLoading(true);
       if (domain) {
-        const { data } = await supabase
+        const { data: profileData } = await supabase
           .from('profiles')
-          .select('site_name, site_description')
+          .select('id, site_name, site_description')
           .eq('domain', domain)
           .single();
-        if (data && data.site_name) {
+        if (profileData) {
+          const { data: settingsData } = await supabase
+            .from('store_settings')
+            .select('logo_type, logo_icon, logo_image_url')
+            .eq('site_id', profileData.id)
+            .single();
+
           setSiteInfo({
-            name: data.site_name,
-            description: data.site_description,
+            name: profileData.site_name || domain,
+            description: profileData.site_description,
+            logoType: settingsData?.logo_type || 'icon',
+            logoIcon: settingsData?.logo_icon || 'Leaf',
+            logoImageUrl: settingsData?.logo_image_url || null
           });
         } else {
-          setSiteInfo({ name: domain, description: 'An e-commerce store' });
+          setSiteInfo({ name: domain, description: 'An e-commerce store', logoType: 'icon', logoIcon: 'Leaf', logoImageUrl: null });
         }
       } else {
         const { data } = await supabase
           .from('saas_settings')
-          .select('platform_name, platform_description')
+          .select('platform_name, platform_description, logo_icon, logo_type, logo_image_url')
           .eq('id', 1)
           .single();
-        if (data && data.platform_name) {
+        if (data) {
           setSiteInfo({
-            name: data.platform_name,
-            description: data.platform_description,
+            name: data.platform_name || 'বাংলা ন্যাচারালস',
+            description: data.platform_description ||
+              'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
+            logoType: data.logo_type || 'icon',
+            logoIcon: data.logo_icon || 'Leaf',
+            logoImageUrl: data.logo_image_url || null,
           });
         } else {
           setSiteInfo({
             name: 'বাংলা ন্যাচারালস',
             description:
               'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
+            logoType: 'icon', 
+            logoIcon: 'Leaf', 
+            logoImageUrl: null 
           });
         }
       }
@@ -368,8 +388,14 @@ export default function Header() {
       </div>
     ) : (
       <Link href={basePath || '/'} className="flex items-center gap-3">
-        <div className="bg-primary p-2 rounded-full">
-          <Leaf className="h-6 w-6 text-primary-foreground" />
+        <div className="bg-primary p-2 rounded-full flex items-center justify-center h-10 w-10">
+          {siteInfo.logoType === 'image' && siteInfo.logoImageUrl ? (
+            <div className="relative h-8 w-8">
+              <Image src={siteInfo.logoImageUrl} alt={siteInfo.name} fill className="object-contain rounded-sm" />
+            </div>
+          ) : (
+            <DynamicIcon name={siteInfo.logoIcon} className="h-6 w-6 text-primary-foreground" />
+          )}
         </div>
         <div>
           <div className="text-lg font-bold font-headline">{siteInfo.name}</div>
