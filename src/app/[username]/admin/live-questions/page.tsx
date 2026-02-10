@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
 import { supabase } from '@/lib/supabase/client';
-import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
+import { format, isToday, isYesterday } from 'date-fns';
 import { bn } from 'date-fns/locale';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
@@ -32,60 +32,65 @@ export default function LiveQuestionsAdminPage() {
 
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
-  const fetchMessages = useCallback(async () => {
-    if (!user) return;
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from('live_chat_messages')
-      .select('*')
-      .eq('site_id', user.id)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error("Error fetching messages:", error);
-    } else {
-      const grouped = new Map<string, LiveChatMessage[]>();
-      for (const message of data) {
-        const conversation = grouped.get(message.conversation_id) || [];
-        conversation.push(message);
-        grouped.set(message.conversation_id, conversation);
-      }
-      setMessagesByConversation(grouped);
-    }
-    setIsLoading(false);
-  }, [user]);
-
-  // Initial fetch and real-time subscription
+  // Re-architected data fetching and subscription logic.
   useEffect(() => {
     if (authLoading || !user) {
-        return;
+      return;
     }
 
-    // Fetch the initial data
-    fetchMessages();
+    const fetchAndGroupMessages = async (isInitialLoad: boolean) => {
+      if (isInitialLoad) {
+        setIsLoading(true);
+      }
+      const { data, error } = await supabase
+        .from('live_chat_messages')
+        .select('*')
+        .eq('site_id', user.id)
+        .order('created_at', { ascending: true });
 
+      if (error) {
+        console.error("Error fetching messages:", error);
+      } else {
+        const grouped = new Map<string, LiveChatMessage[]>();
+        for (const message of data) {
+          const conversation = grouped.get(message.conversation_id) || [];
+          conversation.push(message);
+          grouped.set(message.conversation_id, conversation);
+        }
+        setMessagesByConversation(grouped);
+      }
+      if (isInitialLoad) {
+        setIsLoading(false);
+      }
+    };
+    
+    // Perform initial fetch
+    fetchAndGroupMessages(true);
+
+    // Set up subscription
     const channel = supabase
-        .channel(`admin-live-chat-${user.id}`)
-        .on(
-            'postgres_changes',
-            {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'live_chat_messages',
-                filter: `site_id=eq.${user.id}`,
-            },
-            (payload) => {
-              // When a new message is inserted, re-fetch all messages
-              // This is a simple and robust way to ensure the UI is up-to-date.
-              fetchMessages();
-            }
-        )
-        .subscribe();
+      .channel(`admin-live-chat-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'live_chat_messages',
+          filter: `site_id=eq.${user.id}`,
+        },
+        () => {
+          // On new message, simply re-fetch all data.
+          // This is the most robust way to ensure consistency.
+          fetchAndGroupMessages(false);
+        }
+      )
+      .subscribe();
         
     return () => {
-        supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
-  }, [authLoading, user, fetchMessages]);
+  }, [authLoading, user]);
+
 
   // Scroll to bottom when a conversation is selected or a new message arrives
   useEffect(() => {
