@@ -54,12 +54,12 @@ export default function LoginPage() {
       if (user.isSaaSAdmin) {
         toast({ title: 'Admin login successful' });
         router.push('/dashboard');
-      } else if (user.domain) {
+      } else if (user.domain && user.role==='admin') {
         toast({
           title: 'লগইন সফল',
           description: `আবারও স্বাগতম, ${user.email}!`,
         });
-        router.push(`/${user.domain}/profile`);
+        router.push(`/${user.domain}/admin`);
       }
     }
   }, [user, loading, router, toast]);

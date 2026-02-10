@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/stores/auth';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -20,76 +20,34 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Loader2, MoreHorizontal, Mail, Phone, Eye } from 'lucide-react';
+import { Loader2, Mail, MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-type OrderFromDB = {
+type CustomerProfile = {
   id: string;
-  order_number: string;
-  shipping_info: {
-    name: string;
-    address: string;
-    city: string;
-    phone: string;
-  };
+  full_name: string;
+  email: string;
   created_at: string;
-  total: number;
-  status: string;
-  user_id: string | null;
-};
-
-type Customer = {
-  identifier: string;
-  name: string;
-  phone: string;
-  email: string | null; // Assuming email is not yet available, but preparing for it
-  orderIds: string[];
-  totalSpent: number;
-  orderCount: number;
 };
 
 export default function CustomersAdminPage() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const params = useParams();
-  const username = params.username as string;
 
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [allOrders, setAllOrders] = useState<OrderFromDB[]>([]);
+  const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null
-  );
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const fetchAndProcessCustomers = useCallback(async () => {
+  const fetchCustomers = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
 
     const { data, error } = await supabase
-      .from('orders')
-      .select(
-        'id, order_number, shipping_info, total, user_id, created_at, status'
-      )
-      .eq('site_id', user.id);
+      .from('customer_profiles')
+      .select('id, full_name, email, created_at')
+      .eq('site_id', user.id)
+      .order('created_at', { ascending: false });
 
     if (error) {
       toast({
@@ -97,90 +55,20 @@ export default function CustomersAdminPage() {
         title: 'Error fetching customer data',
         description: error.message,
       });
-      setIsLoading(false);
-      return;
+    } else if (data) {
+      setCustomers(data as CustomerProfile[]);
     }
-
-    setAllOrders(data as OrderFromDB[]);
-
-    const customerMap = new Map<string, Customer>();
-
-    data.forEach((order: OrderFromDB) => {
-      const info = order.shipping_info;
-      if (!info || !info.name) return;
-
-      // Use phone number as the primary unique identifier for a customer.
-      const identifier = info.phone || `${info.name}-${info.address}`;
-
-      if (customerMap.has(identifier)) {
-        const existing = customerMap.get(identifier)!;
-        existing.orderCount++;
-        existing.totalSpent += order.total;
-        existing.orderIds.push(order.id);
-      } else {
-        customerMap.set(identifier, {
-          identifier: identifier,
-          name: info.name,
-          phone: info.phone,
-          email: null, // Placeholder for now
-          orderCount: 1,
-          totalSpent: order.total,
-          orderIds: [order.id],
-        });
-      }
-    });
-
-    const processedCustomers = Array.from(customerMap.values()).sort(
-      (a, b) => b.totalSpent - a.totalSpent
-    );
-    setCustomers(processedCustomers);
+    
     setIsLoading(false);
   }, [user, toast]);
 
   useEffect(() => {
     if (!authLoading && user) {
-      fetchAndProcessCustomers();
+      fetchCustomers();
     } else if (!authLoading && !user) {
       setIsLoading(false);
     }
-  }, [user, authLoading, fetchAndProcessCustomers]);
-
-  const openDetailsDialog = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setIsDetailsOpen(true);
-  };
-
-  const translateStatus = (status: string): string => {
-    switch (status.toLowerCase()) {
-      case 'processing':
-        return 'প্রক্রিয়াকরণ চলছে';
-      case 'shipped':
-        return 'পাঠানো হয়েছে';
-      case 'delivered':
-        return 'বিতরণ করা হয়েছে';
-      case 'canceled':
-        return 'বাতিল করা হয়েছে';
-      default:
-        return status;
-    }
-  };
-
-  const getStatusBadgeVariant = (
-    status: string
-  ): 'default' | 'secondary' | 'outline' | 'destructive' => {
-    switch (status.toLowerCase()) {
-      case 'delivered':
-        return 'default';
-      case 'shipped':
-        return 'secondary';
-      case 'processing':
-        return 'outline';
-      case 'canceled':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  };
+  }, [user, authLoading, fetchCustomers]);
 
   if (isLoading) {
     return (
@@ -188,7 +76,7 @@ export default function CustomersAdminPage() {
         <CardHeader>
           <CardTitle>গ্রাহক ব্যবস্থাপনা</CardTitle>
           <CardDescription>
-            আপনার দোকানে যারা কেনাকাটা করেছেন তাদের দেখুন।
+            আপনার দোকানে যারা নিবন্ধন করেছেন তাদের দেখুন।
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-16">
@@ -204,15 +92,14 @@ export default function CustomersAdminPage() {
         <CardHeader>
           <CardTitle>গ্রাহক ব্যবস্থাপনা</CardTitle>
           <CardDescription>
-            আপনার দোকানের সমস্ত গ্রাহকদের একটি তালিকা। মোট {customers.length} জন
-            গ্রাহক।
+            আপনার দোকানের সমস্ত নিবন্ধিত গ্রাহকদের একটি তালিকা। মোট {customers.length} জন গ্রাহক।
           </CardDescription>
         </CardHeader>
         <CardContent>
           {customers.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-muted-foreground">
-                কোনো গ্রাহকের তথ্য পাওয়া যায়নি।
+                কোনো নিবন্ধিত গ্রাহক পাওয়া যায়নি।
               </p>
             </div>
           ) : (
@@ -223,36 +110,29 @@ export default function CustomersAdminPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>গ্রাহক</TableHead>
-                      <TableHead>ফোন</TableHead>
-                      <TableHead>মোট অর্ডার</TableHead>
-                      <TableHead>মোট খরচ</TableHead>
+                      <TableHead>ইমেল</TableHead>
+                      <TableHead>নিবন্ধন তারিখ</TableHead>
                       <TableHead className="text-right">কার্যকলাপ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {customers.map((customer) => (
-                      <TableRow key={customer.identifier}>
+                      <TableRow key={customer.id}>
                         <TableCell className="font-medium flex items-center gap-3">
                           <Avatar className="h-9 w-9">
                             <AvatarFallback>
-                              {customer.name.charAt(0)}
+                              {customer.full_name?.charAt(0) || '?'}
                             </AvatarFallback>
                           </Avatar>
-                          {customer.name}
+                          {customer.full_name}
                         </TableCell>
-                        <TableCell>{customer.phone || 'N/A'}</TableCell>
-                        <TableCell>{customer.orderCount}</TableCell>
-                        <TableCell>
-                          {customer.totalSpent.toFixed(2)} BDT
-                        </TableCell>
+                        <TableCell>{customer.email}</TableCell>
+                        <TableCell>{format(new Date(customer.created_at), 'PP')}</TableCell>
                         <TableCell className="text-right">
-                          {/* Actions can be added here, e.g., view customer's orders */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openDetailsDialog(customer)}
-                          >
-                            <Eye className="mr-2 h-4 w-4" /> বিস্তারিত দেখুন
+                          <Button variant="ghost" size="sm" asChild>
+                            <a href={`mailto:${customer.email}`}>
+                               <Mail className="mr-2 h-4 w-4" /> ইমেল করুন
+                            </a>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -263,21 +143,21 @@ export default function CustomersAdminPage() {
               {/* Mobile View */}
               <div className="grid gap-4 md:hidden">
                 {customers.map((customer) => (
-                  <Card key={customer.identifier}>
+                  <Card key={customer.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-3">
                           <Avatar>
                             <AvatarFallback>
-                              {customer.name.charAt(0)}
+                              {customer.full_name?.charAt(0) || '?'}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <CardTitle className="text-lg">
-                              {customer.name}
+                              {customer.full_name}
                             </CardTitle>
                             <CardDescription>
-                              {customer.phone || 'ফোন নম্বর নেই'}
+                              {customer.email}
                             </CardDescription>
                           </div>
                         </div>
@@ -292,33 +172,19 @@ export default function CustomersAdminPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => openDetailsDialog(customer)}
-                            >
-                              <Eye className="mr-2 h-4 w-4" /> বিস্তারিত দেখুন
+                            <DropdownMenuItem asChild>
+                               <a href={`mailto:${customer.email}`}>
+                                <Mail className="mr-2 h-4 w-4" /> ইমেল করুন
+                              </a>
                             </DropdownMenuItem>
-                            {customer.phone && (
-                              <DropdownMenuItem asChild>
-                                <a href={`tel:${customer.phone}`}>
-                                  <Phone className="mr-2 h-4 w-4" /> Call
-                                </a>
-                              </DropdownMenuItem>
-                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
                     </CardHeader>
-                    <CardContent className="flex justify-between items-center text-sm">
-                      <div>
-                        <p className="text-muted-foreground">মোট অর্ডার</p>
-                        <p className="font-semibold">{customer.orderCount}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-muted-foreground">মোট খরচ</p>
-                        <p className="font-semibold">
-                          {customer.totalSpent.toFixed(2)} BDT
-                        </p>
-                      </div>
+                    <CardContent>
+                       <p className="text-sm text-muted-foreground">
+                        নিবন্ধন করেছেন: {format(new Date(customer.created_at), 'PP')}
+                       </p>
                     </CardContent>
                   </Card>
                 ))}
@@ -327,66 +193,6 @@ export default function CustomersAdminPage() {
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Customer Details: {selectedCustomer?.name}</DialogTitle>
-            <DialogDescription>
-              Viewing order history for {selectedCustomer?.phone || 'N/A'}.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedCustomer && (
-            <div className="max-h-[60vh] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order #</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allOrders
-                    .filter((order) =>
-                      selectedCustomer.orderIds.includes(order.id)
-                    )
-                    .sort(
-                      (a, b) =>
-                        new Date(b.created_at).getTime() -
-                        new Date(a.created_at).getTime()
-                    )
-                    .map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-mono text-xs">
-                          {order.order_number}
-                        </TableCell>
-                        <TableCell>
-                          {format(new Date(order.created_at), 'PP')}
-                        </TableCell>
-                        <TableCell>{order.total.toFixed(2)} BDT</TableCell>
-                        <TableCell>
-                          <Badge variant={getStatusBadgeVariant(order.status)}>
-                            {translateStatus(order.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button asChild variant="ghost" size="sm">
-                            <Link href={`/${username}/admin/orders/${order.id}`}>
-                              View
-                            </Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
