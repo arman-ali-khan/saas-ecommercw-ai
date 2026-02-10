@@ -26,37 +26,6 @@ import {
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useParams } from 'next/navigation';
-import type { Metadata } from 'next';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-
-export async function generateMetadata({ params }: { params: { username: string } }): Promise<Metadata> {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) { return cookieStore.get(name)?.value },
-      },
-    }
-  );
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('site_name, site_description')
-    .eq('domain', params.username)
-    .single();
-
-  const siteName = profile?.site_name || params.username;
-  const title = `All Products | ${siteName}`;
-  const description = `Browse all available products from ${siteName}. ${profile?.site_description || ''}`;
-
-  return {
-    title,
-    description,
-  };
-}
 
 const PRODUCTS_PER_PAGE = 8;
 
