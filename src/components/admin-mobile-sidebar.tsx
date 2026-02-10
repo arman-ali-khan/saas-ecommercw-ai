@@ -25,12 +25,51 @@ import { useAuth } from '@/stores/auth';
 import { SheetClose } from './ui/sheet';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import { Badge } from './ui/badge';
 
 export default function AdminMobileSidebar({ username }: { username: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading, logout: authLogout } = useAuth();
+  const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      const fetchProcessingOrders = async () => {
+        const { count } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('site_id', user.id)
+          .eq('status', 'processing');
+        setProcessingOrdersCount(count || 0);
+      };
+
+      fetchProcessingOrders();
+
+      const ordersChannel = supabase
+        .channel(`mobile-sidebar-orders-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `site_id=eq.${user.id}`,
+          },
+          () => {
+            fetchProcessingOrders();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(ordersChannel);
+      };
+    }
+  }, [user]);
   
   if (loading || !user) {
     return null;
@@ -59,7 +98,7 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
     { href: `/${username}/admin`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/${username}/admin/products`, label: 'Products', icon: Package },
     { href: `/${username}/admin/categories`, label: 'Categories', icon: Tags },
-    { href: `/${username}/admin/orders`, label: 'Orders', icon: ShoppingBag },
+    { href: `/${username}/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
     { href: `/${username}/admin/customers`, label: 'Customers', icon: Users },
     { href: `/${username}/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/${username}/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
@@ -75,10 +114,12 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
     href,
     label,
     icon: Icon,
+    count,
   }: {
     href: string;
     label: string;
     icon: React.ElementType;
+    count?: number;
   }) => {
     const isActive = pathname === href;
     return (
@@ -92,6 +133,9 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
             >
                 <Icon className="h-4 w-4" />
                 {label}
+                {count && count > 0 ? (
+                  <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground">{count}</Badge>
+                ) : null}
             </Link>
       </SheetClose>
     );

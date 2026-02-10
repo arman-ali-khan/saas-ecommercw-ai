@@ -20,16 +20,57 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import AdminMobileSidebar from './admin-mobile-sidebar';
+import { useAuth } from '@/stores/auth';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase/client';
 
 export default function AdminBottomNav({ username }: { username: string }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      const fetchProcessingOrders = async () => {
+        const { count } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('site_id', user.id)
+          .eq('status', 'processing');
+        setProcessingOrdersCount(count || 0);
+      };
+
+      fetchProcessingOrders();
+
+      const channel = supabase
+        .channel(`bottom-nav-orders-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `site_id=eq.${user.id}`,
+          },
+          () => {
+            fetchProcessingOrders();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
+
 
   const navLinks = [
     {
       href: `/${username}/admin/orders`,
       label: 'Orders',
       icon: ShoppingBag,
-      count: 5, // Mock count
+      count: processingOrdersCount,
     },
     {
       href: `/${username}/admin/products`,
@@ -83,7 +124,7 @@ export default function AdminBottomNav({ username }: { username: string }) {
               >
                 <div className="relative">
                   <link.icon className="h-5 w-5" />
-                  {link.count && (
+                  {link.count && link.count > 0 && (
                     <span className="absolute -top-1.5 -right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
                       {link.count}
                     </span>
