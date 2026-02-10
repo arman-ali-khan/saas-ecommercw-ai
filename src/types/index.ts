@@ -24,6 +24,30 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+export interface Order {
+  id: string;
+  order_number: string;
+  customer_id: string | null;
+  site_id: string;
+  customer_email: string;
+  shipping_info: {
+    name: string;
+    address: string;
+    city: string;
+    phone: string;
+  };
+  cart_items: {
+    id: string;
+    name: string;
+    quantity: number;
+    price: number;
+    imageUrl: string;
+  }[];
+  created_at: string;
+  total: number;
+  status: string;
+}
+
 export interface User {
   id: string;
   username: string;

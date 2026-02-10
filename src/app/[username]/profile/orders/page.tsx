@@ -1,12 +1,22 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
+import { format } from 'date-fns';
+import { bn } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
+import type { Order } from '@/types';
+
 import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
+    CardFooter,
 } from '@/components/ui/card';
 import {
     Table,
@@ -18,34 +28,93 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, XCircle } from 'lucide-react';
-
-
-// Mock data, in a real app this would come from an API
-const orders = [
-  { id: 'ORD001', date: '২০২৩-১০-২৬', total: 2150.00, status: 'বিতরণ করা হয়েছে', currency: 'BDT' },
-  { id: 'ORD002', date: '২০২৩-১১-১৫', total: 850.00, status: 'প্রক্রিয়াকরণ চলছে', currency: 'BDT' },
-  { id: 'ORD003', date: '২০২৩-১২-০১', total: 500.00, status: 'পাঠানো হয়েছে', currency: 'BDT' },
-  { id: 'ORD004', date: '২০২৪-০১-০৫', total: 1250.00, status: 'বাতিল করা হয়েছে', currency: 'BDT' },
-  { id: 'ORD005', date: '২০২৪-০২-২০', total: 3000.00, status: 'বিতরণ করা হয়েছে', currency: 'BDT' },
-];
+import { Eye, XCircle, Loader2 } from 'lucide-react';
 
 export default function OrdersPage() {
+    const { customer, _hasHydrated } = useCustomerAuth();
+    const { toast } = useToast();
+    const params = useParams();
+    const username = params.username as string;
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchOrders = useCallback(async () => {
+        if (!customer) {
+            setIsLoading(false);
+            return;
+        };
+
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('customer_id', customer.id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            toast({ variant: 'destructive', title: 'Error fetching orders', description: error.message });
+        } else {
+            setOrders(data as Order[]);
+        }
+        setIsLoading(false);
+    }, [customer, toast]);
+
+    useEffect(() => {
+        if (_hasHydrated) {
+            fetchOrders();
+        }
+    }, [_hasHydrated, fetchOrders]);
+    
+    const translateStatus = (status: string): string => {
+        switch (status.toLowerCase()) {
+            case 'processing': return 'প্রক্রিয়াকরণ চলছে';
+            case 'shipped': return 'পাঠানো হয়েছে';
+            case 'delivered': return 'বিতরণ করা হয়েছে';
+            case 'canceled': return 'বাতিল করা হয়েছে';
+            default: return status;
+        }
+    };
+
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
-        switch (status) {
-          case 'বিতরণ করা হয়েছে':
-            return 'default';
-          case 'পাঠানো হয়েছে':
-            return 'secondary';
-          case 'প্রক্রিয়াকরণ চলছে':
-            return 'outline';
-          default:
-            return 'destructive';
+        switch (status.toLowerCase()) {
+          case 'delivered': return 'default';
+          case 'shipped': return 'secondary';
+          case 'processing': return 'outline';
+          case 'canceled': return 'destructive';
+          default: return 'outline';
         }
       };
       
     const isCancellable = (status: string) => {
-        return status === 'প্রক্রিয়াকরণ চলছে' || status === 'পাঠানো হয়েছে';
+        return status === 'processing';
+    };
+
+    const handleCancelOrder = async (orderId: string) => {
+        const { error } = await supabase
+            .from('orders')
+            .update({ status: 'canceled' })
+            .eq('id', orderId);
+        
+        if (error) {
+            toast({ variant: 'destructive', title: 'Error canceling order', description: error.message });
+        } else {
+            toast({ title: 'অর্ডার বাতিল করা হয়েছে' });
+            fetchOrders(); // Refresh orders
+        }
+    };
+    
+    if (isLoading || !_hasHydrated) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>আমার অর্ডার</CardTitle>
+                    <CardDescription>আপনার সমস্ত অর্ডারের একটি তালিকা এখানে দেখুন।</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center items-center py-16">
+                    <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+                </CardContent>
+            </Card>
+        )
     }
 
     return (
@@ -55,6 +124,8 @@ export default function OrdersPage() {
                 <CardDescription>আপনার সমস্ত অর্ডারের একটি তালিকা এখানে দেখুন।</CardDescription>
             </CardHeader>
             <CardContent>
+                {orders.length > 0 ? (
+                <>
                 {/* Desktop View: Table */}
                 <div className="hidden md:block">
                     <Table>
@@ -70,18 +141,20 @@ export default function OrdersPage() {
                         <TableBody>
                             {orders.map(order => (
                                 <TableRow key={order.id}>
-                                    <TableCell className="font-medium">{order.id}</TableCell>
-                                    <TableCell>{order.date}</TableCell>
+                                    <TableCell className="font-medium">{order.order_number}</TableCell>
+                                    <TableCell>{format(new Date(order.created_at), 'PPp', { locale: bn })}</TableCell>
                                     <TableCell>
-                                        <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
+                                        <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
                                     </TableCell>
-                                    <TableCell>{order.total.toFixed(2)} {order.currency}</TableCell>
+                                    <TableCell>{order.total.toFixed(2)} BDT</TableCell>
                                     <TableCell className="text-right space-x-2">
-                                        <Button variant="outline" size="sm">
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            বিস্তারিত
+                                        <Button variant="outline" size="sm" asChild>
+                                            <Link href={`/${username}/profile/orders/${order.id}`}>
+                                                <Eye className="mr-2 h-4 w-4" />
+                                                বিস্তারিত
+                                            </Link>
                                         </Button>
-                                        <Button variant="destructive" size="sm" disabled={!isCancellable(order.status)}>
+                                        <Button variant="destructive" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={!isCancellable(order.status)}>
                                             <XCircle className="mr-2 h-4 w-4" />
                                             বাতিল
                                         </Button>
@@ -98,20 +171,22 @@ export default function OrdersPage() {
                         <Card key={order.id}>
                             <CardHeader>
                                 <div className="flex justify-between items-center">
-                                    <CardTitle className="text-lg">{order.id}</CardTitle>
-                                    <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
+                                    <CardTitle className="text-lg">{order.order_number}</CardTitle>
+                                    <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
                                 </div>
-                                <CardDescription>{order.date}</CardDescription>
+                                <CardDescription>{format(new Date(order.created_at), 'PPp', { locale: bn })}</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <p className="font-semibold text-lg text-right">{order.total.toFixed(2)} {order.currency}</p>
+                                <p className="font-semibold text-lg text-right">{order.total.toFixed(2)} BDT</p>
                             </CardContent>
                             <CardFooter className="flex justify-end gap-2">
-                                <Button variant="outline" size="sm">
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    বিস্তারিত
+                                 <Button variant="outline" size="sm" asChild>
+                                    <Link href={`/${username}/profile/orders/${order.id}`}>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        বিস্তারিত
+                                    </Link>
                                 </Button>
-                                <Button variant="destructive" size="sm" disabled={!isCancellable(order.status)}>
+                                <Button variant="destructive" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={!isCancellable(order.status)}>
                                     <XCircle className="mr-2 h-4 w-4" />
                                     বাতিল
                                 </Button>
@@ -119,7 +194,8 @@ export default function OrdersPage() {
                         </Card>
                     ))}
                 </div>
-                 {orders.length === 0 && (
+                </>
+                ) : (
                     <p className="text-muted-foreground text-center py-8">আপনার কোনো অর্ডার নেই।</p>
                 )}
             </CardContent>
