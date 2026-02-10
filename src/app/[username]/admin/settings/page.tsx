@@ -65,6 +65,7 @@ const brandingSchema = z.object({
     logo_type: z.enum(['icon', 'image']).default('icon'),
     logo_icon: z.string().default('Leaf'),
     logo_image_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
+    favicon_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
 });
 
 export default function SettingsAdminPage() {
@@ -90,7 +91,7 @@ export default function SettingsAdminPage() {
 
   const brandingForm = useForm<z.infer<typeof brandingSchema>>({
     resolver: zodResolver(brandingSchema),
-    defaultValues: { logo_type: 'icon', logo_icon: 'Leaf', logo_image_url: '' },
+    defaultValues: { logo_type: 'icon', logo_icon: 'Leaf', logo_image_url: '', favicon_url: '' },
   });
   
   useEffect(() => {
@@ -129,6 +130,7 @@ export default function SettingsAdminPage() {
                 logo_type: data?.logo_type || 'icon',
                 logo_icon: data?.logo_icon || 'Leaf',
                 logo_image_url: data?.logo_image_url || '',
+                favicon_url: data?.favicon_url || '',
             });
 
             setIsLoading(false);
@@ -200,6 +202,7 @@ export default function SettingsAdminPage() {
         logo_type: values.logo_type,
         logo_icon: values.logo_icon,
         logo_image_url: values.logo_image_url,
+        favicon_url: values.favicon_url,
     });
     setIsSubmitting(false);
     if (error) {
@@ -216,10 +219,19 @@ export default function SettingsAdminPage() {
       toast({ title: 'Image Uploaded', description: 'Click "Save" to apply the changes.' });
     }
   };
+  
+  const handleFaviconUpload = (result: any) => {
+    if (result.event === 'success') {
+      const secureUrl = result.info.secure_url;
+      brandingForm.setValue('favicon_url', secureUrl, { shouldValidate: true });
+      toast({ title: 'Favicon Uploaded', description: 'Click "Save" to apply the changes.' });
+    }
+  };
 
   const logoType = brandingForm.watch('logo_type');
   const logoImageUrl = brandingForm.watch('logo_image_url');
   const logoIcon = brandingForm.watch('logo_icon');
+  const faviconUrl = brandingForm.watch('favicon_url');
 
   const isLogoUrlValid = useMemo(() => {
     if (!logoImageUrl) return false;
@@ -230,6 +242,16 @@ export default function SettingsAdminPage() {
       return false;
     }
   }, [logoImageUrl]);
+  
+  const isFaviconUrlValid = useMemo(() => {
+    if (!faviconUrl) return false;
+    try {
+      new URL(faviconUrl);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [faviconUrl]);
 
   if (isLoading) {
     return (
@@ -389,6 +411,32 @@ export default function SettingsAdminPage() {
                                 )}
                             />
                         )}
+                        <FormField
+                            control={brandingForm.control}
+                            name="favicon_url"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Favicon</FormLabel>
+                                <div className="flex items-start gap-4">
+                                    <div className="relative h-16 w-16 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                                        {isFaviconUrlValid ? (
+                                            <Image src={faviconUrl!} alt="Favicon Preview" fill className="object-contain p-1" />
+                                        ) : <p className='text-xs text-muted-foreground'>Preview</p>}
+                                    </div>
+                                    <div className='flex-grow space-y-2'>
+                                        <FormControl>
+                                            <Input placeholder="https://example.com/favicon.ico" {...field} />
+                                        </FormControl>
+                                        <ImageUploader onUpload={handleFaviconUpload} label='Upload Favicon' />
+                                        <FormDescription>
+                                            Upload a favicon (.ico, .png, .svg). Recommended size: 32x32px.
+                                        </FormDescription>
+                                    </div>
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
                         <div className="pt-4">
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

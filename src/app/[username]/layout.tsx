@@ -1,3 +1,4 @@
+
 import FixedCartButton from '@/components/fixed-cart-button';
 import FloatingChatButton from '@/components/floating-chat-button';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
@@ -52,7 +53,7 @@ export async function generateMetadata({
   // Fetch the specific SEO settings for this site
   const { data: settings } = await supabase
     .from('store_settings')
-    .select('seo_title, seo_description, seo_keywords')
+    .select('seo_title, seo_description, seo_keywords, favicon_url')
     .eq('site_id', profile.id)
     .single();
 
@@ -60,11 +61,13 @@ export async function generateMetadata({
   const title = settings?.seo_title || profile.site_name || 'Store';
   const description = settings?.seo_description || profile.site_description || 'An e-commerce store.';
   const keywords = settings?.seo_keywords || '';
+  const faviconUrl = settings?.favicon_url;
 
   return {
     title,
     description,
     keywords,
+    icons: faviconUrl ? { icon: faviconUrl } : null,
   };
 }
 
