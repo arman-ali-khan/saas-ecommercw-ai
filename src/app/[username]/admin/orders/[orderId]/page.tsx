@@ -31,6 +31,8 @@ import { useAuth } from '@/stores/auth';
 type Order = {
     id: string;
     order_number: string;
+    customer_id: string | null;
+    site_id: string;
     customer_email: string;
     shipping_info: {
         name: string;
@@ -91,11 +93,21 @@ export default function OrderDetailsPage() {
             fetchOrder();
         }
     }, [authLoading, fetchOrder]);
+    
+    const translateStatus = (status: string): string => {
+        switch (status.toLowerCase()) {
+            case 'processing': return 'প্রক্রিয়াকরণ চলছে';
+            case 'shipped': return 'পাঠানো হয়েছে';
+            case 'delivered': return 'বিতরণ করা হয়েছে';
+            case 'canceled': return 'বাতিল করা হয়েছে';
+            default: return status;
+        }
+    };
 
     const handleUpdateStatus = async () => {
         if (!order) return;
         setIsSubmitting(true);
-        const { data, error } = await supabase
+        const { data: updatedOrder, error } = await supabase
             .from('orders')
             .update({ status })
             .eq('id', order.id)
@@ -107,18 +119,29 @@ export default function OrderDetailsPage() {
             toast({ variant: 'destructive', title: 'Error updating status', description: error.message });
         } else {
             toast({ title: 'Order status updated!' });
-            setOrder(data as Order); // Update local order state to reflect change immediately
-            setStatus(data.status);
-        }
-    };
+            setOrder(updatedOrder as Order);
+            setStatus(updatedOrder.status);
 
-    const translateStatus = (status: string): string => {
-        switch (status.toLowerCase()) {
-            case 'processing': return 'প্রক্রিয়াকরণ চলছে';
-            case 'shipped': return 'পাঠানো হয়েছে';
-            case 'delivered': return 'বিতরণ করা হয়েছে';
-            case 'canceled': return 'বাতিল করা হয়েছে';
-            default: return status;
+            // --- Create notification for customer ---
+            if (updatedOrder.customer_id) {
+                const notificationMessage = `Your order #${updatedOrder.order_number} has been updated to: ${translateStatus(updatedOrder.status)}.`;
+                const { error: notificationError } = await supabase
+                    .from('notifications')
+                    .insert({
+                        recipient_id: updatedOrder.customer_id,
+                        recipient_type: 'customer',
+                        site_id: updatedOrder.site_id,
+                        order_id: updatedOrder.id,
+                        message: notificationMessage,
+                        link: `/${username}/profile/orders`
+                    });
+
+                if (notificationError) {
+                    console.error("Failed to create notification for customer:", notificationError.message);
+                    // Don't show an error to the admin for this, just log it.
+                }
+            }
+            // --- End notification ---
         }
     };
 

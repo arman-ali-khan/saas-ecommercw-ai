@@ -174,6 +174,7 @@ export default function CheckoutPage() {
     const orderData = {
       order_number: orderNumber,
       site_id: siteId,
+      customer_id: customer?.id || null,
       customer_email: values.email,
       shipping_info: {
         name: values.name,
@@ -192,6 +193,7 @@ export default function CheckoutPage() {
       payment_method: values.paymentMethod,
       transaction_id: values.transactionId || null,
       status: 'processing',
+      domain: username, // Pass domain for notification link
     };
 
     try {
