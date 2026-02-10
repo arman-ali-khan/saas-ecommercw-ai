@@ -388,7 +388,7 @@ export default function Header() {
       </div>
     ) : (
       <Link href={basePath || '/'} className="flex items-center gap-3">
-        <div className={`${siteInfo.logoType === 'image' ? '':''} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
+        <div className={`${siteInfo.logoType === 'image' ? '':'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
           {siteInfo.logoType === 'image' && siteInfo.logoImageUrl ? (
             <div className="relative h-8 w-8">
               <Image src={siteInfo.logoImageUrl} alt={siteInfo.name} fill className="object-contain rounded-sm" />
