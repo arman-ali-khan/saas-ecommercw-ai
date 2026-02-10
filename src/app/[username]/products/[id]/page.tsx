@@ -28,6 +28,56 @@ import { Separator } from '@/components/ui/separator';
 import type { Product } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import type { Metadata } from 'next';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+export async function generateMetadata({ params }: { params: { id: string, username: string } }): Promise<Metadata> {
+  const cookieStore = cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value },
+      },
+    }
+  );
+
+  const { data: product } = await supabase
+    .from('products')
+    .select('name, description, images')
+    .eq('id', params.id)
+    .single<Pick<Product, 'name' | 'description' | 'images'>>();
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('site_name')
+    .eq('domain', params.username)
+    .single();
+
+  if (!product) {
+    return {
+      title: 'Product Not Found',
+    }
+  }
+
+  const siteName = profile?.site_name || params.username;
+  const title = `${product.name} | ${siteName}`;
+  const description = product.description;
+  const imageUrl = product.images?.[0]?.imageUrl;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : [],
+    },
+  };
+}
+
 
 const TikTokIcon = () => (
   <svg
