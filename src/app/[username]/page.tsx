@@ -59,8 +59,30 @@ export default async function UserPage({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*, store_settings(homepage_sections)')
+    .select('*')
     .eq('domain', params.username)
+    .single();
+    
+  // This should not happen if domainExists is true, but it's a good safeguard.
+  if (!profile) {
+     return (
+      <div className="flex flex-col items-center justify-center text-center py-20 min-h-[60vh]">
+        <SearchX className="w-24 h-24 text-muted-foreground mb-6" />
+        <h1 className="text-4xl font-headline font-bold">Store Not Found</h1>
+        <p className="mt-4 max-w-md mx-auto text-lg text-muted-foreground">
+          Could not load store profile for "{params.username}".
+        </p>
+        <Button asChild className="mt-8">
+          <Link href="/">Go to Homepage</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const { data: settingsData } = await supabase
+    .from('store_settings')
+    .select('homepage_sections')
+    .eq('site_id', profile.id)
     .single();
 
   const allProducts = await getProductsByDomain(params.username);
@@ -97,8 +119,8 @@ export default async function UserPage({
     })),
   ];
 
-  // Safely access homepage_sections from the joined store_settings table
-  const homepageSections = (profile?.store_settings as any)?.[0]?.homepage_sections;
+  // Use sections from DB if they exist, otherwise fall back to the default generated sections.
+  const homepageSections = settingsData?.homepage_sections;
   const sectionsToRender: Section[] = Array.isArray(homepageSections)
     ? homepageSections
     : defaultSections;
