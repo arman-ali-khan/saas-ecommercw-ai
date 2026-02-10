@@ -61,6 +61,9 @@ export default function LiveQuestionsAdminPage() {
         return;
     }
 
+    // Fetch the initial data
+    fetchMessages();
+
     const handleNewMessage = (payload: any) => {
         const newMessage = payload.new as LiveChatMessage;
         setMessagesByConversation(prevMap => {
@@ -88,12 +91,7 @@ export default function LiveQuestionsAdminPage() {
             },
             handleNewMessage
         )
-        .subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                // The connection is established, now fetch the initial data to avoid race conditions.
-                await fetchMessages();
-            }
-        });
+        .subscribe();
         
     return () => {
         supabase.removeChannel(channel);
