@@ -57,38 +57,47 @@ export default function LiveQuestionsAdminPage() {
 
   // Initial fetch and real-time subscription
   useEffect(() => {
-    if (!authLoading && user) {
-      fetchMessages();
+    if (authLoading || !user) {
+        return;
+    }
 
-      const channel = supabase
+    const handleNewMessage = (payload: any) => {
+        const newMessage = payload.new as LiveChatMessage;
+        setMessagesByConversation(prevMap => {
+            const newMap = new Map(prevMap);
+            const conversation = [...(newMap.get(newMessage.conversation_id) || [])];
+            
+            // Avoid adding duplicates from optimistic updates or re-fetches
+            if (!conversation.find(m => m.id === newMessage.id)) {
+                conversation.push(newMessage);
+                newMap.set(newMessage.conversation_id, conversation);
+            }
+            return newMap;
+        });
+    };
+
+    const channel = supabase
         .channel(`admin-live-chat-${user.id}`)
         .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'live_chat_messages',
-            filter: `site_id=eq.${user.id}`,
-          },
-          (payload) => {
-            const newMessage = payload.new as LiveChatMessage;
-            setMessagesByConversation(prevMap => {
-                const newMap = new Map(prevMap);
-                const conversation = newMap.get(newMessage.conversation_id) || [];
-                // Avoid adding duplicates
-                if (!conversation.find(m => m.id === newMessage.id)) {
-                    newMap.set(newMessage.conversation_id, [...conversation, newMessage]);
-                }
-                return newMap;
-            });
-          }
+            'postgres_changes',
+            {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'live_chat_messages',
+                filter: `site_id=eq.${user.id}`,
+            },
+            handleNewMessage
         )
-        .subscribe();
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                // The connection is established, now fetch the initial data to avoid race conditions.
+                await fetchMessages();
+            }
+        });
         
-      return () => {
+    return () => {
         supabase.removeChannel(channel);
-      };
-    }
+    };
   }, [authLoading, user, fetchMessages]);
 
   // Scroll to bottom when a conversation is selected or a new message arrives
@@ -135,6 +144,7 @@ export default function LiveQuestionsAdminPage() {
     if (!newMessage.trim() || !selectedConversationId || !user) return;
 
     const optimisticMessage: LiveChatMessage = {
+        id: Math.random(), // Temporary ID for the key
         conversation_id: selectedConversationId,
         site_id: user.id,
         sender_id: user.id,
@@ -253,7 +263,7 @@ export default function LiveQuestionsAdminPage() {
                     <p className="font-semibold">{conversationSummaries.find(c => c.id === selectedConversationId)?.customerName}</p>
                 </div>
                 </div>
-                <ScrollArea className="flex-grow p-4" viewportRef={scrollViewportRef}>
+                <ScrollArea className="flex-grow h-20 p-4" viewportRef={scrollViewportRef}>
                 <div className="space-y-4">
                     {selectedConversationMessages.map((message, index) => (
                         <div key={message.id ? `db-${message.id}` : `optimistic-${index}`} className={cn(
