@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -101,11 +102,13 @@ export default function FloatingChatButton() {
         } else {
           // If no messages, add initial bot message
           setChatMessages([{
+            id: -1, // Dummy ID for initial message
             conversation_id: conversationId,
             site_id: siteId,
             sender_name: 'বাংলা ন্যাচারালস',
             sender_type: 'agent',
             content: 'নমস্কার! আজ আমরা আপনাকে কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।',
+            created_at: new Date().toISOString(),
           }]);
         }
         setIsLoading(false);
@@ -129,7 +132,12 @@ export default function FloatingChatButton() {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          setChatMessages((prev) => [...prev, payload.new as LiveChatMessage]);
+          const newMessage = payload.new as LiveChatMessage;
+          // Only add messages from the agent via real-time to prevent duplication
+          // of the customer's own optimistically-rendered messages.
+          if (newMessage.sender_type === 'agent') {
+            setChatMessages((prev) => [...prev, newMessage]);
+          }
         }
       )
       .subscribe();
