@@ -112,22 +112,27 @@ export default function CheckoutPage() {
   
   useEffect(() => {
     const fetchPaymentSettings = async () => {
-        setIsLoadingPaymentSettings(true);
-        const { data, error } = await supabase
-            .from('saas_settings')
-            .select('mobile_banking_number, accepted_banking_methods')
-            .eq('id', 1)
-            .maybeSingle();
-        
-        if (data) {
-            setPaymentSettings(data);
-        } else if (error && error.code !== 'PGRST116') {
-            console.warn("Could not fetch payment settings:", error?.message);
-        }
+      if (!siteId) {
         setIsLoadingPaymentSettings(false);
-    }
+        return;
+      }
+      setIsLoadingPaymentSettings(true);
+      const { data, error } = await supabase
+        .from('store_settings')
+        .select('mobile_banking_number, accepted_banking_methods')
+        .eq('site_id', siteId)
+        .maybeSingle();
+
+      if (data) {
+        setPaymentSettings(data);
+      } else if (error && error.code !== 'PGRST116') {
+        console.warn("Could not fetch store payment settings:", error?.message);
+      }
+      setIsLoadingPaymentSettings(false);
+    };
+
     fetchPaymentSettings();
-  }, []);
+  }, [siteId]);
 
   // Pre-fill form if customer is logged in
   useEffect(() => {
