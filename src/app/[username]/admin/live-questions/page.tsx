@@ -256,7 +256,7 @@ export default function LiveQuestionsAdminPage() {
                 <ScrollArea className="flex-grow p-4" viewportRef={scrollViewportRef}>
                 <div className="space-y-4">
                     {selectedConversationMessages.map((message, index) => (
-                        <div key={message.id || index} className={cn(
+                        <div key={message.id ? `db-${message.id}` : `optimistic-${index}`} className={cn(
                             'flex items-end gap-2 max-w-[80%] group',
                             message.sender_type === 'agent' ? 'ml-auto flex-row-reverse' : 'mr-auto'
                         )}>
