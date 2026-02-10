@@ -19,31 +19,30 @@ export async function POST(request: Request) {
   let userId: string | undefined;
 
   try {
-    // Step 1: Create the auth user.
-    // Data in user_metadata is stored on the auth.users table in the raw_user_meta_data column.
+    // Step 1: Create the auth user. This also triggers the `on_auth_user_created`
+    // function in Supabase, which creates a basic row in the `profiles` table.
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true, // Auto-confirm user as we are in a server environment
       user_metadata: {
         full_name: fullName,
-        role: 'admin', // Store basic, non-critical data here
+        role: 'admin', 
       }
     });
 
     if (authError) {
-      // This is the most likely place for "user already registered" errors
+      // This handles cases like a user with this email already existing.
       return NextResponse.json({ error: `Authentication error: ${authError.message}` }, { status: 400 });
     }
 
     userId = authData.user.id;
 
-    // Step 2: Manually insert the user's full profile into the public 'profiles' table.
-    // This gives us full control and avoids any faulty database triggers.
+    // Step 2: Update the newly created profile row with the rest of the site info.
+    // We use UPDATE instead of INSERT to avoid a race condition with the database trigger.
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        id: userId,
+      .update({
         username,
         full_name: fullName,
         email,
@@ -54,11 +53,12 @@ export async function POST(request: Request) {
         // Set status based on plan
         subscription_status: planId === 'free' ? 'active' : 'pending',
         role: 'admin' // Explicitly set application-level role
-      });
+      })
+      .eq('id', userId); // Target the row that the trigger just created.
 
     if (profileError) {
-      // If profile creation fails, we must delete the auth user to allow them to retry registration.
-      throw new Error(`Database error creating profile: ${profileError.message}`);
+      // If the profile update fails, we must delete the auth user to allow them to retry registration.
+      throw new Error(`Database error updating profile: ${profileError.message}`);
     }
 
     // Step 3: If the plan is not free, create the payment record.
