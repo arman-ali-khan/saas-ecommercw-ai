@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/lib/supabase/client';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
+import type { LiveChatMessage } from '@/types';
 import {
   Popover,
   PopoverContent,
@@ -13,62 +17,130 @@ import { MessageSquare, Send, X, Leaf } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-
-type ChatMessage = {
-  id: number;
-  text: string;
-  sender: 'user' | 'bot';
-};
+import { Skeleton } from './ui/skeleton';
 
 export default function FloatingChatButton() {
   const pathname = usePathname();
+  const { customer, _hasHydrated } = useCustomerAuth();
+
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<LiveChatMessage[]>([]);
+  const [siteId, setSiteId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [senderName, setSenderName] = useState('অতিথি');
+  const [isLoading, setIsLoading] = useState(true);
+
   const lastMessageRef = useRef<HTMLDivElement>(null);
 
-  // Load messages from localStorage on mount
+  const domain = pathname.split('/')[1];
+
+  // 1. Initialize siteId and conversationId
   useEffect(() => {
-    try {
-      const storedMessages = localStorage.getItem('chat-messages');
-      if (storedMessages) {
-        setChatMessages(JSON.parse(storedMessages));
+    async function initializeChat() {
+      setIsLoading(true);
+
+      // Fetch siteId from domain
+      if (domain) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('domain', domain)
+          .single();
+        if (data) {
+          setSiteId(data.id);
+        } else {
+            console.error("Could not find site for domain:", domain);
+            setIsLoading(false);
+            return;
+        }
+      }
+
+      // Get or create conversation ID
+      let convId = localStorage.getItem(`chat_conversation_id_${domain}`);
+      if (!convId) {
+        convId = uuidv4();
+        localStorage.setItem(`chat_conversation_id_${domain}`, convId);
+      }
+      setConversationId(convId);
+    }
+    initializeChat();
+  }, [domain]);
+
+  // 2. Set sender name based on auth state
+  useEffect(() => {
+    if (_hasHydrated) {
+      if (customer) {
+        setSenderName(customer.full_name);
       } else {
-        // Set initial welcome message if no history
-        setChatMessages([
-          {
-            id: 1,
-            text: 'নমস্কার! আজ আমরা আপনাকে কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।',
-            sender: 'bot',
-          },
-        ]);
+        let guestName = localStorage.getItem('chat_guest_name');
+        if (!guestName) {
+            guestName = `অতিথি-${Math.floor(1000 + Math.random() * 9000)}`;
+            localStorage.setItem('chat_guest_name', guestName);
+        }
+        setSenderName(guestName);
       }
-    } catch (error) {
-      console.error('Failed to parse chat messages from localStorage', error);
-      // Set initial welcome message on error
-      setChatMessages([
-        {
-          id: 1,
-          text: 'নমস্কার! আজ আমরা আপনাকে কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।',
-          sender: 'bot',
-        },
-      ]);
     }
-  }, []);
+  }, [_hasHydrated, customer]);
 
-  // Save messages to localStorage whenever they change
+
+  // 3. Fetch initial messages once we have IDs
   useEffect(() => {
-    // We only save when there are messages to prevent overwriting with empty array on first load
-    if (chatMessages.length > 0) {
-      try {
-        localStorage.setItem('chat-messages', JSON.stringify(chatMessages));
-      } catch (error) {
-        console.error('Failed to save chat messages to localStorage', error);
-      }
-    }
-  }, [chatMessages]);
+    if (conversationId && siteId) {
+      const fetchMessages = async () => {
+        const { data, error } = await supabase
+          .from('live_chat_messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true });
 
-  // Scroll to bottom when new messages are added
+        if (error) {
+          console.error("Error fetching messages:", error);
+        } else if (data && data.length > 0) {
+          setChatMessages(data);
+        } else {
+          // If no messages, add initial bot message
+          setChatMessages([{
+            conversation_id: conversationId,
+            site_id: siteId,
+            sender_name: 'বাংলা ন্যাচারালস',
+            sender_type: 'agent',
+            content: 'নমস্কার! আজ আমরা আপনাকে কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।',
+          }]);
+        }
+        setIsLoading(false);
+      };
+      fetchMessages();
+    }
+  }, [conversationId, siteId]);
+
+  // 4. Subscribe to real-time messages
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const channel = supabase
+      .channel(`live-chat-${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'live_chat_messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          setChatMessages((prev) => [...prev, payload.new as LiveChatMessage]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId]);
+
+
+  // 5. Scroll to bottom on new message
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
@@ -81,28 +153,44 @@ export default function FloatingChatButton() {
     return null;
   }
 
-  const handleSendMessage = () => {
-    if (message.trim() === '') return;
+  const handleSendMessage = async () => {
+    if (!message.trim() || !conversationId || !siteId) return;
 
-    const userMessage: ChatMessage = {
-      id: Date.now(),
-      text: message,
-      sender: 'user',
+    const newMessage: LiveChatMessage = {
+      conversation_id: conversationId,
+      site_id: siteId,
+      sender_id: customer?.id || null,
+      sender_name: senderName,
+      sender_type: 'customer',
+      content: message.trim(),
     };
 
-    setChatMessages((prev) => [...prev, userMessage]);
+    // Optimistically update UI
+    setChatMessages((prev) => [...prev, newMessage]);
     setMessage('');
 
-    // Simulate bot response
-    setTimeout(() => {
-      const botResponse: ChatMessage = {
-        id: Date.now() + 1,
-        text: 'যোগাযোগ করার জন্য ধন্যবাদ! একজন এজেন্ট শীঘ্রই আপনার সাথে থাকবেন।',
-        sender: 'bot',
-      };
-      setChatMessages((prev) => [...prev, botResponse]);
-    }, 1500);
+    const { error } = await supabase.from('live_chat_messages').insert(newMessage);
+    if (error) {
+        console.error('Error sending message:', error);
+        // TODO: Add error handling to UI, maybe show a "failed to send" state
+    }
   };
+
+  const ChatSkeleton = () => (
+    <div className="p-4 space-y-4">
+        <div className="flex items-end gap-2 justify-start">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-16 w-3/4" />
+        </div>
+        <div className="flex items-end gap-2 justify-end">
+             <Skeleton className="h-10 w-1/2" />
+        </div>
+        <div className="flex items-end gap-2 justify-start">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-10 w-2/3" />
+        </div>
+    </div>
+  )
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
@@ -127,36 +215,38 @@ export default function FloatingChatButton() {
               </p>
             </div>
             <ScrollArea className="flex-grow bg-background">
-              <div className="p-4 space-y-4">
-                {chatMessages.map((chat, index) => (
-                  <div
-                    key={chat.id}
-                    ref={index === chatMessages.length - 1 ? lastMessageRef : null}
-                    className={cn(
-                      'flex items-end gap-2',
-                      chat.sender === 'user' ? 'justify-end' : 'justify-start'
-                    )}
-                  >
-                    {chat.sender === 'bot' && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary-foreground border">
-                          <Leaf className="h-5 w-5 text-accent" />
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div
-                      className={cn(
-                        'max-w-[75%] rounded-lg px-3 py-2 text-sm shadow-sm',
-                        chat.sender === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      )}
-                    >
-                      {chat.text}
+                {isLoading ? <ChatSkeleton /> : (
+                    <div className="p-4 space-y-4">
+                        {chatMessages.map((chat, index) => (
+                        <div
+                            key={chat.id || index}
+                            ref={index === chatMessages.length - 1 ? lastMessageRef : null}
+                            className={cn(
+                            'flex items-end gap-2',
+                            chat.sender_type === 'customer' ? 'justify-end' : 'justify-start'
+                            )}
+                        >
+                            {chat.sender_type === 'agent' && (
+                            <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-primary-foreground border">
+                                <Leaf className="h-5 w-5 text-accent" />
+                                </AvatarFallback>
+                            </Avatar>
+                            )}
+                            <div
+                            className={cn(
+                                'max-w-[75%] rounded-lg px-3 py-2 text-sm shadow-sm break-words',
+                                chat.sender_type === 'customer'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted'
+                            )}
+                            >
+                            {chat.content}
+                            </div>
+                        </div>
+                        ))}
                     </div>
-                  </div>
-                ))}
-              </div>
+                )}
             </ScrollArea>
             <div className="p-2 border-t bg-background">
               <div className="flex items-center gap-2">
@@ -172,12 +262,14 @@ export default function FloatingChatButton() {
                     }
                   }}
                   className="flex-grow"
+                  disabled={isLoading}
                 />
                 <Button
                   onClick={handleSendMessage}
                   size="icon"
                   className="shrink-0"
                   aria-label="বার্তা পাঠান"
+                  disabled={isLoading || !message.trim()}
                 >
                   <Send className="h-4 w-4" />
                 </Button>

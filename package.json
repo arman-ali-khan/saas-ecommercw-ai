@@ -58,7 +58,7 @@
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
-    "uuid": "^13.0.0",
+    "uuid": "^9.0.1",
     "zod": "^3.24.2",
     "zustand": "^4.5.4"
   },
@@ -67,7 +67,7 @@
     "@types/node": "^20",
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.1",
-    "@types/uuid": "^10.0.0",
+    "@types/uuid": "^9.0.8",
     "bcryptjs": "^3.0.3",
     "genkit-cli": "^1.20.0",
     "install": "^0.13.0",

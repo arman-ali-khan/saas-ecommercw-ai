@@ -140,3 +140,15 @@ export interface Section {
   isCategorySection: boolean;
   category?: string;
 }
+
+export interface LiveChatMessage {
+  id?: number;
+  created_at?: string;
+  conversation_id: string;
+  site_id: string;
+  sender_id?: string | null;
+  sender_name: string;
+  sender_type: 'customer' | 'agent';
+  content: string;
+  is_read?: boolean;
+}
