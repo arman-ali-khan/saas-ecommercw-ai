@@ -87,43 +87,31 @@ export default async function UserPage({
 
   const allProducts = await getProductsByDomain(params.username);
   const featuredProducts = allProducts.filter((p) => p.is_featured);
-  const allCategories = [
-    ...new Set(allProducts.flatMap((p) => p.categories || [])),
-  ];
+  
+  // Determine which sections to render based on database settings.
+  const sectionsToRender: Section[] = (() => {
+    const dbSections = settingsData?.homepage_sections;
 
-  const defaultSections: Section[] = [
-    {
-      id: 'hero',
-      title: 'Hero Carousel',
-      enabled: true,
-      isCategorySection: false,
-    },
-    {
-      id: 'featured',
-      title: 'Featured Products',
-      enabled: true,
-      isCategorySection: false,
-    },
-    {
-      id: 'why-us',
-      title: 'Why We Are Different',
-      enabled: true,
-      isCategorySection: false,
-    },
-    ...allCategories.map((cat) => ({
-      id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
-      title: cat,
-      enabled: true,
-      isCategorySection: true,
-      category: cat,
-    })),
-  ];
+    // If sections are defined in the database (even as an empty array), use them as the source of truth.
+    if (Array.isArray(dbSections)) {
+      return dbSections as Section[];
+    }
 
-  // Use sections from DB if they exist, otherwise fall back to the default generated sections.
-  const homepageSections = settingsData?.homepage_sections;
-  const sectionsToRender: Section[] = Array.isArray(homepageSections)
-    ? homepageSections
-    : defaultSections;
+    // If no settings are found in the DB, generate a default layout for the first time.
+    const allCategories = [...new Set(allProducts.flatMap((p) => p.categories || []))];
+    return [
+      { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false },
+      { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false },
+      { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false },
+      ...allCategories.map((cat) => ({
+        id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
+        title: cat,
+        enabled: true,
+        isCategorySection: true,
+        category: cat,
+      })),
+    ];
+  })();
 
   const aboutImage = PlaceHolderImages.find(
     (img) => img.id === 'about-traceability'
