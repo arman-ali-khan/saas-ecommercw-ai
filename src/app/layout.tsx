@@ -3,12 +3,11 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import SiteLayout from '@/components/site-layout';
 import AuthProvider from '@/components/auth-provider';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
  
 export async function generateMetadata(): Promise<Metadata> {
-  // ১. cookies() await করতে হবে
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,8 +15,17 @@ export async function generateMetadata(): Promise<Metadata> {
     {
       cookies: {
         get(name: string) {
-          // এখন cookieStore একটি resolved অবজেক্ট
           return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {}
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {}
         },
       },
     }
@@ -41,7 +49,6 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-// ২. RootLayout-কে async করতে হবে যাতে এটি সার্ভার রেন্ডারিং ঠিকমতো করতে পারে
 export default async function RootLayout({
   children,
 }: Readonly<{

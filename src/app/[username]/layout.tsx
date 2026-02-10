@@ -1,6 +1,6 @@
 import FixedCartButton from '@/components/fixed-cart-button';
 import FloatingChatButton from '@/components/floating-chat-button';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import CustomerAuthInitializer from '@/components/auth/customer-auth-initializer';
@@ -12,7 +12,7 @@ export async function generateMetadata({
   params: Promise<{ username: string }>;
 }): Promise<Metadata> {
   const { username } = await params; 
-  const cookieStore = await cookies(); 
+  const cookieStore = cookies(); 
   
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,6 +21,16 @@ export async function generateMetadata({
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {}
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {}
         },
       },
     }
