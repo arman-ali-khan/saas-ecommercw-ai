@@ -1,39 +1,12 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createRouteHandlerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
 export async function GET() {
   const cookieStore = cookies()
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-      },
-    }
-  )
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -43,26 +16,10 @@ export async function GET() {
     }
     
     // Now create an admin client to fetch the profile, bypassing RLS
-    const supabaseAdmin = createServerClient(
+    const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              return cookieStore.get(name)?.value
-            },
-            set(name: string, value: string, options: CookieOptions) {
-              try {
-                cookieStore.set({ name, value, ...options })
-              } catch (error) {}
-            },
-            remove(name: string, options: CookieOptions) {
-              try {
-                cookieStore.set({ name, value: '', ...options })
-              } catch (error) {}
-            },
-          },
-        }
+        { auth: { persistSession: false } }
     )
 
     const { data: profile, error } = await supabaseAdmin
