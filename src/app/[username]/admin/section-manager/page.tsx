@@ -33,6 +33,7 @@ import { useAuth } from '@/stores/auth';
 import type { Product } from '@/types';
 import { ArrowUp, ArrowDown, Loader2, GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/lib/supabase/client';
 
 type Section = {
   id: string;
@@ -56,53 +57,72 @@ export default function SectionManagerPage() {
     [products]
   );
 
-  const fetchProductsAndBuildSections = useCallback(async () => {
+  const fetchAndBuildSections = useCallback(async () => {
     if (!user) return;
-    const fetchedProducts = await getProductsBySiteId(user.id);
+    setIsLoading(true);
+
+    const productsPromise = getProductsBySiteId(user.id);
+    const settingsPromise = supabase
+      .from('store_settings')
+      .select('homepage_sections')
+      .eq('site_id', user.id)
+      .single();
+    
+    const [fetchedProducts, { data: settingsData, error: settingsError }] = await Promise.all([productsPromise, settingsPromise]);
+
+    if (settingsError && settingsError.code !== 'PGRST116') {
+        toast({ variant: 'destructive', title: 'Error fetching settings', description: settingsError.message });
+    }
+    
     setProducts(fetchedProducts);
 
-    const categories = [
-      ...new Set(fetchedProducts.flatMap((p) => p.categories || [])),
-    ];
-    const initialSections: Section[] = [
-      {
-        id: 'hero',
-        title: 'Hero Carousel',
-        enabled: true,
-        isCategorySection: false,
-      },
-      {
-        id: 'featured',
-        title: 'Featured Products',
-        enabled: true,
-        isCategorySection: false,
-      },
-      ...categories.map((cat) => ({
-        id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
-        title: `${cat} Section`,
-        enabled: false,
-        isCategorySection: true,
-        category: cat,
-      })),
-      {
-        id: 'about',
-        title: 'About Us Snippet',
-        enabled: true,
-        isCategorySection: false,
-      },
-    ];
-    setSections(initialSections);
+    if (settingsData && settingsData.homepage_sections) {
+        // @ts-ignore
+        setSections(settingsData.homepage_sections);
+    } else {
+        const categories = [
+          ...new Set(fetchedProducts.flatMap((p) => p.categories || [])),
+        ];
+        const initialSections: Section[] = [
+          {
+            id: 'hero',
+            title: 'Hero Carousel',
+            enabled: true,
+            isCategorySection: false,
+          },
+          {
+            id: 'featured',
+            title: 'Featured Products',
+            enabled: true,
+            isCategorySection: false,
+          },
+          ...categories.map((cat) => ({
+            id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
+            title: `${cat} Section`,
+            enabled: true,
+            isCategorySection: true,
+            category: cat,
+          })),
+          {
+            id: 'about',
+            title: 'About Us Snippet',
+            enabled: true,
+            isCategorySection: false,
+          },
+        ];
+        setSections(initialSections);
+    }
 
     setIsLoading(false);
-  }, [user]);
+  }, [user, toast]);
 
   useEffect(() => {
     if (!authLoading && user) {
-      fetchProductsAndBuildSections();
+      fetchAndBuildSections();
     } else if (!authLoading && !user) {
       setIsLoading(false);
     }
-  }, [user, authLoading, fetchProductsAndBuildSections]);
+  }, [user, authLoading, fetchAndBuildSections]);
 
   const handleToggle = (sectionId: string, enabled: boolean) => {
     setSections((prev) =>
@@ -136,17 +156,23 @@ export default function SectionManagerPage() {
     });
   };
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
+    if (!user) return;
     setIsSaving(true);
-    // Simulate async operation
-    setTimeout(() => {
-        console.log('Saving section configuration:', sections);
+    
+    const { error } = await supabase
+        .from('store_settings')
+        .upsert({ site_id: user.id, homepage_sections: sections });
+
+    setIsSaving(false);
+    if (error) {
+        toast({ variant: 'destructive', title: 'Error Saving Changes', description: error.message });
+    } else {
         toast({
         title: 'Success!',
         description: 'Homepage sections have been updated.',
         });
-        setIsSaving(false);
-    }, 1000);
+    }
   };
 
   if (isLoading) {
@@ -249,7 +275,7 @@ export default function SectionManagerPage() {
                       />
                     </div>
 
-                    {section.isCategorySection && section.category && (
+                    {section.isCategorySection && (
                       <div className="space-y-2">
                         <Label htmlFor={`category-${section.id}`}>
                           Category

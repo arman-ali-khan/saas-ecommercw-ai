@@ -27,6 +27,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { supabase } from '@/lib/supabase/client';
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 const availableBankingMethods = [
   { id: 'bkash', label: 'বিকাশ' },
@@ -48,28 +51,116 @@ const settingsSchema = z.object({
 
 export default function SettingsAdminPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
-      siteName: user?.siteName || '',
-      siteDescription: user?.siteDescription || 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
+      siteName: '',
+      siteDescription: '',
       seoTitle: '',
       seoDescription: '',
       seoKeywords: '',
-      mobileBankingEnabled: true,
-      mobileBankingNumber: '01234567890',
-      acceptedBankingMethods: ['bkash', 'nagad'],
+      mobileBankingEnabled: false,
+      mobileBankingNumber: '',
+      acceptedBankingMethods: [],
     },
   });
+  
+  useEffect(() => {
+    if (user) {
+        setIsLoading(true);
+        const fetchSettings = async () => {
+            const { data, error } = await supabase
+                .from('store_settings')
+                .select('*')
+                .eq('site_id', user.id)
+                .single();
 
-  function onSubmit(values: z.infer<typeof settingsSchema>) {
-    console.log('Saving settings:', values);
-    toast({
-      title: 'সেটিংস সংরক্ষিত হয়েছে!',
-      description: 'আপনার সাইটের তথ্য সফলভাবে আপডেট করা হয়েছে।',
-    });
+            if (error && error.code !== 'PGRST116') {
+                toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
+            }
+
+            // Always reset with profile data, then override with store_settings if they exist.
+            form.reset({
+                siteName: user.siteName || '',
+                siteDescription: user.siteDescription || '',
+                seoTitle: data?.seo_title || '',
+                seoDescription: data?.seo_description || '',
+                seoKeywords: data?.seo_keywords || '',
+                mobileBankingEnabled: data?.mobile_banking_enabled ?? false,
+                mobileBankingNumber: data?.mobile_banking_number || '',
+                acceptedBankingMethods: data?.accepted_banking_methods || [],
+            });
+            setIsLoading(false);
+        }
+        fetchSettings();
+    }
+  }, [user, form, toast]);
+
+  async function onSubmit(values: z.infer<typeof settingsSchema>) {
+    if (!user) return;
+    setIsSubmitting(true);
+
+    const { siteName, siteDescription, ...storeSettingsData } = values;
+
+    // Update profiles table for site name and description
+    const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+            site_name: siteName,
+            site_description: siteDescription,
+        })
+        .eq('id', user.id);
+    
+    if (profileError) {
+        toast({ variant: 'destructive', title: 'Error updating site info', description: profileError.message });
+        setIsSubmitting(false);
+        return;
+    }
+
+    // Upsert store_settings table for other settings
+    const { error: settingsError } = await supabase
+        .from('store_settings')
+        .upsert({
+            site_id: user.id,
+            seo_title: storeSettingsData.seoTitle,
+            seo_description: storeSettingsData.seoDescription,
+            seo_keywords: storeSettingsData.seoKeywords,
+            mobile_banking_enabled: storeSettingsData.mobileBankingEnabled,
+            mobile_banking_number: storeSettingsData.mobileBankingNumber,
+            accepted_banking_methods: storeSettingsData.acceptedBankingMethods,
+        });
+        
+    setIsSubmitting(false);
+
+    if (settingsError) {
+        toast({ variant: 'destructive', title: 'Error saving settings', description: settingsError.message });
+    } else {
+        toast({
+            title: 'সেটিংস সংরক্ষিত হয়েছে!',
+            description: 'আপনার সাইটের তথ্য সফলভাবে আপডেট করা হয়েছে।',
+        });
+        await refreshUser(); // Refresh user data in the auth store
+    }
+  }
+
+  if (isLoading) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>সাইট সেটিংস</CardTitle>
+                <CardDescription>আপনার সাইটের সাধারণ তথ্য এবং এসইও (SEO) বিবরণ পরিচালনা করুন।</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex justify-center items-center py-16">
+                    <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+                </div>
+            </CardContent>
+        </Card>
+    );
   }
 
   return (
@@ -253,7 +344,7 @@ export default function SettingsAdminPage() {
                                         checked={field.value?.includes(item.id)}
                                         onCheckedChange={(checked) => {
                                           return checked
-                                            ? field.onChange([...field.value, item.id])
+                                            ? field.onChange([...(field.value || []), item.id])
                                             : field.onChange(
                                                 field.value?.filter(
                                                   (value) => value !== item.id
@@ -279,7 +370,10 @@ export default function SettingsAdminPage() {
               </TabsContent>
             </Tabs>
             <div className="pt-4">
-              <Button type="submit">পরিবর্তনগুলি সংরক্ষণ করুন</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                পরিবর্তনগুলি সংরক্ষণ করুন
+              </Button>
             </div>
           </form>
         </Form>
