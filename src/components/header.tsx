@@ -1,7 +1,8 @@
+
 'use client';
 
 import Link from 'next/link';
-import { Menu, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Bell } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 
 import Logo from './logo';
@@ -30,6 +31,117 @@ import { useAuth } from '@/stores/auth';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import { Badge } from './ui/badge';
+import { type Notification } from '@/types';
+import { formatDistanceToNow } from 'date-fns';
+import { bn } from 'date-fns/locale';
+
+function CustomerNotificationBell({ customer, domain }: { customer: any, domain: string | null }) {
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        if (!customer) return;
+
+        const fetchNotifications = async () => {
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('recipient_id', customer.id)
+                .eq('recipient_type', 'customer')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            if (data) {
+                setNotifications(data);
+                const unread = data.filter(n => !n.is_read).length;
+                setUnreadCount(unread);
+            }
+        };
+
+        const fetchUnreadCount = async () => {
+            const { count } = await supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('recipient_id', customer.id)
+                .eq('recipient_type', 'customer')
+                .eq('is_read', false);
+            setUnreadCount(count || 0);
+        }
+
+        fetchNotifications();
+        fetchUnreadCount();
+
+        const channel = supabase
+            .channel(`header-customer-notifications-${customer.id}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${customer.id}` },
+                (payload) => {
+                    setNotifications(prev => [payload.new as Notification, ...prev.slice(0,4)]);
+                    setUnreadCount(prev => prev + 1);
+                }
+            )
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${customer.id}` },
+                (payload) => {
+                    setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new as Notification : n));
+                    fetchUnreadCount();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+
+    }, [customer]);
+    
+    const handleMarkAsRead = async (id: string) => {
+        await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', id);
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-6 w-6" />
+                    {unreadCount > 0 && (
+                        <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 justify-center p-0">{unreadCount}</Badge>
+                    )}
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-80" align="end">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {notifications.length > 0 ? (
+                    notifications.map(n => (
+                        <DropdownMenuItem key={n.id} asChild>
+                            <Link href={n.link || '#'} className={cn("cursor-pointer",!n.is_read && 'font-bold')} onClick={() => handleMarkAsRead(n.id)}>
+                                <div className='flex flex-col gap-1 w-full'>
+                                    <p className="text-sm whitespace-normal">{n.message}</p>
+                                    <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: bn })}</p>
+                                </div>
+                            </Link>
+                        </DropdownMenuItem>
+                    ))
+                ) : (
+                    <p className="p-2 text-sm text-muted-foreground">No new notifications.</p>
+                )}
+                 <DropdownMenuSeparator />
+                 <DropdownMenuItem asChild>
+                    <Link href={`/${domain}/profile/notifications`} className='justify-center cursor-pointer'>
+                       View all notifications
+                    </Link>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    )
+
+}
+
 
 export default function Header() {
   const pathname = usePathname();
@@ -170,6 +282,7 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           <ShoppingCart />
+          {customer && <CustomerNotificationBell customer={customer} domain={domain} />}
           {isLoading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
           ) : currentUser ? (

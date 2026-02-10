@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -18,6 +19,7 @@ import {
   Tags,
   Users,
   LogOut,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from './logo';
@@ -35,38 +37,39 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
   const { toast } = useToast();
   const { user, loading, logout: authLogout } = useAuth();
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   useEffect(() => {
     if (user) {
-      const fetchProcessingOrders = async () => {
-        const { count } = await supabase
+      // Fetch initial counts
+      const fetchCounts = async () => {
+        const { count: orderCount } = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('site_id', user.id)
           .eq('status', 'processing');
-        setProcessingOrdersCount(count || 0);
+        setProcessingOrdersCount(orderCount || 0);
+
+        const { count: notifCount } = await supabase
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('recipient_id', user.id)
+          .eq('recipient_type', 'admin')
+          .eq('is_read', false);
+        setUnreadNotificationsCount(notifCount || 0);
       };
+      
+      fetchCounts();
 
-      fetchProcessingOrders();
-
-      const ordersChannel = supabase
-        .channel(`mobile-sidebar-orders-${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'orders',
-            filter: `site_id=eq.${user.id}`,
-          },
-          () => {
-            fetchProcessingOrders();
-          }
-        )
+      // Subscriptions
+      const channel = supabase
+        .channel(`mobile-sidebar-realtime-${user.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `site_id=eq.${user.id}` }, fetchCounts)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` }, fetchCounts)
         .subscribe();
 
       return () => {
-        supabase.removeChannel(ordersChannel);
+        supabase.removeChannel(channel);
       };
     }
   }, [user]);
@@ -96,6 +99,7 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
   const adminNavLinks = [
     { href: `/${username}`, label: 'View Store', icon: Home },
     { href: `/${username}/admin`, label: 'Dashboard', icon: LayoutDashboard },
+    { href: `/${username}/admin/notifications`, label: 'Notifications', icon: Bell, count: unreadNotificationsCount },
     { href: `/${username}/admin/products`, label: 'Products', icon: Package },
     { href: `/${username}/admin/categories`, label: 'Categories', icon: Tags },
     { href: `/${username}/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
@@ -121,7 +125,8 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
     icon: React.ElementType;
     count?: number;
   }) => {
-    const isActive = pathname === href;
+    const isBasePage = href === `/${username}` || href === `/${username}/admin`;
+    const isActive = isBasePage ? pathname === href : pathname.startsWith(href);
     return (
         <SheetClose asChild>
             <Link

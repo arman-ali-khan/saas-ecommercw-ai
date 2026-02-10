@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -7,6 +8,7 @@ import {
   Package,
   MessageSquare,
   PanelLeft,
+  Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
@@ -28,34 +30,36 @@ export default function AdminBottomNav({ username }: { username: string }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [unreadChatCount, setUnreadChatCount] = useState(2); // Mock count
 
   useEffect(() => {
     if (user) {
-      const fetchProcessingOrders = async () => {
-        const { count } = await supabase
+      // Fetch initial counts
+      const fetchCounts = async () => {
+        const { count: orderCount } = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('site_id', user.id)
           .eq('status', 'processing');
-        setProcessingOrdersCount(count || 0);
+        setProcessingOrdersCount(orderCount || 0);
+
+        const { count: notifCount } = await supabase
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('recipient_id', user.id)
+          .eq('recipient_type', 'admin')
+          .eq('is_read', false);
+        setUnreadNotificationsCount(notifCount || 0);
       };
+      
+      fetchCounts();
 
-      fetchProcessingOrders();
-
+      // Set up subscriptions
       const channel = supabase
-        .channel(`bottom-nav-orders-${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'orders',
-            filter: `site_id=eq.${user.id}`,
-          },
-          () => {
-            fetchProcessingOrders();
-          }
-        )
+        .channel(`bottom-nav-realtime-${user.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `site_id=eq.${user.id}` }, fetchCounts)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` }, fetchCounts)
         .subscribe();
 
       return () => {
@@ -63,7 +67,6 @@ export default function AdminBottomNav({ username }: { username: string }) {
       };
     }
   }, [user]);
-
 
   const navLinks = [
     {
@@ -73,15 +76,16 @@ export default function AdminBottomNav({ username }: { username: string }) {
       count: processingOrdersCount,
     },
     {
-      href: `/${username}/admin/products`,
-      label: 'Products',
-      icon: Package,
+      href: `/${username}/admin/notifications`,
+      label: 'Alerts',
+      icon: Bell,
+      count: unreadNotificationsCount,
     },
     {
       href: `/${username}/admin/live-questions`,
       label: 'Chat',
       icon: MessageSquare,
-      count: 2, // Mock count
+      count: unreadChatCount,
     },
     {
       href: `/${username}/admin`,

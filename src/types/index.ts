@@ -95,3 +95,15 @@ export interface SubscriptionPaymentWithDetails extends SubscriptionPayment {
     name: string;
   } | null;
 }
+
+export interface Notification {
+    id: string;
+    created_at: string;
+    recipient_id: string;
+    recipient_type: 'admin' | 'customer';
+    site_id: string;
+    order_id: string | null;
+    message: string;
+    is_read: boolean;
+    link: string | null;
+}

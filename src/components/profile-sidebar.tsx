@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -8,6 +9,7 @@ import {
   Settings,
   User,
   Star,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
@@ -24,6 +26,7 @@ export default function ProfileSidebar() {
   
   const navLinks = [
     { href: `/${username}/profile`, label: 'ড্যাশবোর্ড', icon: User },
+    { href: `/${username}/profile/notifications`, label: 'নোটিফিকেশন', icon: Bell },
     { href: `/${username}/profile/orders`, label: 'আমার অর্ডার', icon: ShoppingBag },
     { href: `/${username}/profile/reviews`, label: 'আমার রিভিউ', icon: Star },
     { href: `/${username}/profile/addresses`, label: 'ঠিকানা বই', icon: MapPin },
