@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           alt: product.name,
         },
       ],
-      type: 'product',
+      type: 'website',
     },
   };
 }
