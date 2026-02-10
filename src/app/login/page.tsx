@@ -51,24 +51,17 @@ export default function LoginPage() {
     const { user, error } = await saasLogin(values.email, values.password);
     setIsLoading(false);
 
-    if (user) {
-      if (user.isSaaSAdmin) {
+    if (user.user_metadata) {
+      console.log(user,'user')
+      if (user.user_metadata.role==='saas_admin') {
         toast({ title: 'Admin login successful' });
         router.push('/dashboard');
-      }
-      else if(!user.domain){
-        toast({
-          variant: 'destructive',
-          title: 'Admin login successful',
-          description: error || 'অবৈধ ইমেল বা পাসওয়ার্ড।',
-        });
-      }
-      else {
+      } else {
         toast({
           title: 'লগইন সফল',
-          description: `আবারও স্বাগতম, ${user.fullName}!`,
+          description: `আবারও স্বাগতম, ${user.email}!`,
         });
-        router.push(`/${user.domain}/profile`);
+        router.push(`/${user.user_metadata.domain}/profile`);
       }
     } else {
       toast({
