@@ -30,7 +30,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
@@ -76,7 +76,7 @@ export default function ManagePage() {
     defaultValues: {
       title: '',
       slug: '',
-      content: '',
+      content: '[]',
       is_published: false,
     },
   });
@@ -111,7 +111,7 @@ export default function ManagePage() {
     form.reset({
         title: data.title,
         slug: data.slug,
-        content: data.content ? JSON.stringify(data.content, null, 2) : '',
+        content: data.content ? JSON.stringify(data.content, null, 2) : '[]',
         is_published: data.is_published,
     });
     setIsLoading(false);
@@ -126,6 +126,51 @@ export default function ManagePage() {
       }
     }
   }, [authLoading, isNew, fetchPage]);
+  
+  const handleAddBlock = (type: 'heading' | 'paragraph' | 'image') => {
+    const currentContent = form.getValues('content') || '[]';
+    let blocks = [];
+
+    try {
+        const parsed = JSON.parse(currentContent);
+        if (Array.isArray(parsed)) {
+            blocks = parsed;
+        } else if (currentContent.trim() === '') {
+            blocks = [];
+        } else {
+            blocks = [parsed];
+        }
+    } catch (e) {
+        if (currentContent.trim() === '') {
+            blocks = [];
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Invalid JSON Content",
+                description: "Could not add block because the current content is not a valid JSON array.",
+            });
+            return;
+        }
+    }
+
+    let newBlock;
+    switch (type) {
+        case 'heading':
+            newBlock = { type: 'heading', level: 2, text: 'Your Heading' };
+            break;
+        case 'paragraph':
+            newBlock = { type: 'paragraph', text: 'Start writing your paragraph here.' };
+            break;
+        case 'image':
+            newBlock = { type: 'image', src: 'https://placehold.co/1200x600?text=Your+Image', alt: 'Placeholder Image' };
+            break;
+    }
+
+    blocks.push(newBlock);
+
+    form.setValue('content', JSON.stringify(blocks, null, 2), { shouldValidate: true, shouldDirty: true });
+  };
+
 
   const onSubmit = async (values: PageFormData) => {
     if (!user) {
@@ -252,19 +297,35 @@ export default function ManagePage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Content</CardTitle>
-                    <CardDescription>This is a temporary JSON editor. A visual block editor will be added in a future update.</CardDescription>
+                    <CardDescription>Use the toolbar to add content blocks. The content is stored as JSON.</CardDescription>
                 </CardHeader>
                  <CardContent>
                     <FormField
                         control={form.control}
                         name="content"
                         render={({ field }) => (
-                            <FormItem>
-                            <FormControl>
-                                <Textarea {...field} rows={15} placeholder='{ "type": "paragraph", "text": "Hello, world!" }' className="font-mono text-sm" />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
+                            <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-6">
+                                <FormItem>
+                                    <FormControl>
+                                        <Textarea {...field} rows={25} placeholder='[&#10;  { "type": "paragraph", "text": "Hello, world!" }&#10;]' className="font-mono text-sm h-full" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                <div className="border-l pl-4 -ml-2">
+                                    <h3 className="font-semibold text-sm mb-4 text-muted-foreground">ADD BLOCK</h3>
+                                    <div className="space-y-2">
+                                        <Button type="button" variant="outline" size="sm" className="w-full justify-start" onClick={() => handleAddBlock('heading')}>
+                                            <Heading2 className="mr-2" /> Heading
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" className="w-full justify-start" onClick={() => handleAddBlock('paragraph')}>
+                                            <Type className="mr-2" /> Paragraph
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" className="w-full justify-start" onClick={() => handleAddBlock('image')}>
+                                            <ImageIcon className="mr-2" /> Image
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
                         )}
                         />
                  </CardContent>
