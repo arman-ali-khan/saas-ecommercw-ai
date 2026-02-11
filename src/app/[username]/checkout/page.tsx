@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/stores/cart';
@@ -10,7 +11,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,6 +20,7 @@ import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { Loader2, Truck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ShippingZone } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
 
 const checkoutSchema = z
   .object({
@@ -29,7 +30,7 @@ const checkoutSchema = z
     city: z.string().min(2, 'অনুগ্রহ করে একটি বৈধ শহর লিখুন'),
     phone: z.string().min(10, 'অনুগ্রহ করে একটি বৈধ ফোন নম্বর লিখুন'),
     shippingZoneId: z.string({ required_error: 'একটি শিপিং পদ্ধতি নির্বাচন করুন।' }),
-    paymentMethod: z.string({ required_error: 'একটি পেমেন্ট পদ্ধতি নির্বাচন করুন।' }),
+    paymentMethod: z.enum(['cod', 'mobile_banking'], { required_error: 'একটি পেমেন্ট পদ্ধতি নির্বাচন করুন।' }),
     transactionId: z.string().optional(),
     notes: z.string().optional(),
   })
@@ -295,56 +296,95 @@ export default function CheckoutPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <h1 className="text-3xl font-headline font-bold">যোগাযোগ ও শিপিং</h1>
-            <FormField control={form.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>পুরো নাম</FormLabel> <FormControl> <Input placeholder="আপনার নাম" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-            <FormField control={form.control} name="email" render={({ field }) => ( <FormItem> <FormLabel>ইমেল ঠিকানা</FormLabel> <FormControl> <Input type="email" placeholder="you@example.com" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-            <FormField control={form.control} name="address" render={({ field }) => ( <FormItem> <FormLabel>ঠিকানা</FormLabel> <FormControl> <Input placeholder="বাসা/রাস্তা নং" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-            <FormField control={form.control} name="city" render={({ field }) => ( <FormItem> <FormLabel>শহর</FormLabel> <FormControl> <Input placeholder="ঢাকা" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-            <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem> <FormLabel>ফোন নম্বর</FormLabel> <FormControl> <Input placeholder="01712345678" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
             
-            <div className="space-y-3">
-                <Label>শিপিং পদ্ধতি</Label>
-                {isLoadingShipping ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                        <Skeleton className="h-24 w-full" />
-                        <Skeleton className="h-24 w-full" />
-                    </div>
-                ) : (
-                    <RadioGroup
-                        onValueChange={(value) => form.setValue('shippingZoneId', value, { shouldValidate: true })}
-                        value={form.watch('shippingZoneId')}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"
-                    >
-                        {shippingZones.map((zone) => (
-                            <div key={zone.id}>
-                                <RadioGroupItem
-                                    value={zone.id.toString()}
-                                    id={`shipping-${zone.id}`}
-                                    className="peer sr-only"
-                                />
-                                <Label
-                                    htmlFor={`shipping-${zone.id}`}
-                                    className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                                >
-                                    <Truck className="h-6 w-6" />
-                                    <div className="flex-grow">
-                                        <p className="font-medium">{zone.name}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {zone.price.toFixed(2)} BDT
-                                        </p>
-                                    </div>
-                                </Label>
-                            </div>
-                        ))}
-                    </RadioGroup>
-                )}
-                {form.formState.errors.shippingZoneId && (
-                    <p className="text-sm font-medium text-destructive pt-2">{`${form.formState.errors.shippingZoneId.message}`}</p>
-                )}
+            <div className="grid md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>পুরো নাম</FormLabel><FormControl><Input placeholder="আপনার পুরো নাম" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>ইমেল ঠিকানা</FormLabel><FormControl><Input placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
             </div>
+            
+            <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>ঠিকানা</FormLabel><FormControl><Input placeholder="বাড়ির ঠিকানা" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            
+            <div className="grid md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>শহর</FormLabel><FormControl><Input placeholder="আপনার শহর" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>ফোন নম্বর</FormLabel><FormControl><Input placeholder="আপনার ফোন নম্বর" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            </div>
+
+            <div className="space-y-3">
+              <Label>শিপিং পদ্ধতি</Label>
+              {isLoadingShipping ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                      {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+                  </div>
+              ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                      {shippingZones.map((zone) => (
+                          <label
+                              key={zone.id}
+                              htmlFor={`shipping-${zone.id}`}
+                              className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 cursor-pointer transition-colors has-[:checked]:border-primary"
+                          >
+                              <input
+                                  type="radio"
+                                  id={`shipping-${zone.id}`}
+                                  value={zone.id.toString()}
+                                  {...form.register("shippingZoneId")}
+                                  className="sr-only"
+                              />
+                              <Truck className="h-6 w-6 text-muted-foreground" />
+                              <div className="flex-grow">
+                                  <p className="font-medium">{zone.name}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                      {zone.price.toFixed(2)} BDT
+                                  </p>
+                              </div>
+                          </label>
+                      ))}
+                  </div>
+              )}
+              {form.formState.errors.shippingZoneId && (
+                  <p className="text-sm font-medium text-destructive pt-2">{`${form.formState.errors.shippingZoneId.message}`}</p>
+              )}
+            </div>
+
+            <FormField control={form.control} name="notes" render={({ field }) => ( <FormItem><FormLabel>অর্ডার নোট (ঐচ্ছিক)</FormLabel><FormControl><Textarea placeholder="আপনার অর্ডারের জন্য কোনো বিশেষ নির্দেশনা থাকলে এখানে লিখুন..." {...field} /></FormControl><FormMessage /></FormItem> )} />
             
             <div className="pt-4">
               <h2 className="text-2xl font-headline font-bold mb-4">পেমেন্ট</h2>
-              <FormField control={form.control} name="paymentMethod" render={({ field }) => ( <FormItem className="space-y-3"> <FormControl> <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-4"> <Label htmlFor="cod" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"> <RadioGroupItem value="cod" id="cod" className="sr-only" /> <p className="text-lg font-medium">ক্যাশ অন ডেলিভারি</p> </Label> <Label htmlFor="mobile_banking" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"> <RadioGroupItem value="mobile_banking" id="mobile_banking" className="sr-only" /> <p className="text-lg font-medium">মোবাইল ব্যাংকিং</p> </Label> </RadioGroup> </FormControl> <FormMessage /> </FormItem> )} />
+                <div className="space-y-3">
+                    <FormLabel>পেমেন্ট পদ্ধতি</FormLabel>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label
+                            htmlFor="cod"
+                            className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 cursor-pointer transition-colors has-[:checked]:border-primary"
+                        >
+                            <input
+                                type="radio"
+                                id="cod"
+                                value="cod"
+                                {...form.register("paymentMethod")}
+                                className="sr-only"
+                            />
+                            <p className="text-lg font-medium">ক্যাশ অন ডেলিভারি</p>
+                        </label>
+                        <label
+                            htmlFor="mobile_banking"
+                            className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 cursor-pointer transition-colors has-[:checked]:border-primary"
+                        >
+                            <input
+                                type="radio"
+                                id="mobile_banking"
+                                value="mobile_banking"
+                                {...form.register("paymentMethod")}
+                                className="sr-only"
+                            />
+                            <p className="text-lg font-medium">মোবাইল ব্যাংকিং</p>
+                        </label>
+                    </div>
+                    {form.formState.errors.paymentMethod && (
+                        <p className="text-sm font-medium text-destructive pt-2">{`${form.formState.errors.paymentMethod.message}`}</p>
+                    )}
+                </div>
+
               {paymentMethod === 'mobile_banking' && (
                 <Card className="mt-6">
                   <CardHeader> <CardTitle>মোবাইল ব্যাংকিং নির্দেশনা</CardTitle> </CardHeader>
@@ -370,3 +410,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
