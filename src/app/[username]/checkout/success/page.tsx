@@ -72,6 +72,8 @@ function SuccessPageContent() {
     );
   }
 
+  console.log(order,'order')
+
   return (
     <div className="max-w-2xl mx-auto py-8">
       <Card>
@@ -87,6 +89,7 @@ function SuccessPageContent() {
             আপনার অর্ডারের জন্য ধন্যবাদ। আমরা আপনার পার্সেল প্রস্তুত করছি।
           </CardDescription>
           <p className="font-bold pt-2">অর্ডার #{order.order_number}</p>
+          <p className='font-bold pt-2'>{order.payment_method === 'cod' ? 'টাকা হাতে পেয়ে মূল্য পরিশোধ করুন।':''}</p>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -115,14 +118,15 @@ function SuccessPageContent() {
           </div>
           <Separator className="my-4" />
           <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+              <span className="text-muted-foreground">শিপিং</span>
+              <span>{order.shipping_info.shipping_cost.toFixed(2)} BDT</span>
+            </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">উপমোট</span>
               <span>{order.total.toFixed(2)} BDT</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">শিপিং</span>
-              <span>বিনামূল্যে</span>
-            </div>
+           
             <div className="flex justify-between font-bold text-base">
               <span>মোট</span>
               <span>{order.total.toFixed(2)} BDT</span>
