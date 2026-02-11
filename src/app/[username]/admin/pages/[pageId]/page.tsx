@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState, useCallback, useTransition } from 'react';
@@ -136,175 +137,6 @@ const defaultColorPalette = [
     { name: 'Stone', color: '#44403c' },
 ];
 
-const ProductSelector = ({ control, namePrefix, allProducts }: { control: Control<PageFormData>, namePrefix: string, allProducts: Product[] }) => {
-    const { field } = useController({ control, name: `${namePrefix}.product_ids` as any });
-    const selectedIds = field.value || [];
-
-    const handleToggle = (productId: string) => {
-        const newIds = selectedIds.includes(productId)
-            ? selectedIds.filter((id: string) => id !== productId)
-            : [...selectedIds, productId];
-        field.onChange(newIds);
-    };
-
-    return (
-        <div>
-            <Label>Select Products</Label>
-            <ScrollArea className="h-48 mt-2 rounded-md border">
-                <div className="p-4 space-y-2">
-                    {allProducts.length > 0 ? allProducts.map(product => (
-                        <div key={product.id} className="flex items-center space-x-2">
-                            <Checkbox
-                                id={`product-${namePrefix}-${product.id}`}
-                                checked={selectedIds.includes(product.id)}
-                                onCheckedChange={() => handleToggle(product.id)}
-                            />
-                            <Label htmlFor={`product-${namePrefix}-${product.id}`} className="font-normal">{product.name}</Label>
-                        </div>
-                    )) : <p className="text-sm text-muted-foreground text-center">No products found.</p>}
-                </div>
-            </ScrollArea>
-        </div>
-    );
-};
-
-const BlockEditor = ({ control, namePrefix, allProducts }: { control: Control<PageFormData>, namePrefix: string, allProducts: Product[] }) => {
-    const { fields, append, remove, move } = useFieldArray({
-        control,
-        name: namePrefix as any,
-    });
-
-    const addBlock = (type: 'heading' | 'paragraph' | 'image' | 'button' | 'youtube' | 'coloredBox' | 'layout' | 'product_showcase', columnCount?: number) => {
-        const id = uuidv4();
-        let newBlock: any;
-
-        switch (type) {
-            case 'heading': newBlock = { id, type: 'heading', level: 2, text: 'Your Heading', align: 'left' }; break;
-            case 'paragraph': newBlock = { id, type: 'paragraph', text: 'Start writing your paragraph here.', align: 'left' }; break;
-            case 'image': newBlock = { id, type: 'image', src: 'https://placehold.co/1200x600?text=Your+Image', alt: 'Placeholder Image' }; break;
-            case 'button': newBlock = { id, type: 'button', text: 'Click Me', href: '#', variant: 'default' }; break;
-            case 'youtube': newBlock = { id, type: 'youtube', videoId: 'dQw4w9WgXcQ' }; break;
-            case 'coloredBox': newBlock = { id, type: 'coloredBox', color: 'hsl(var(--card))', text: 'This is a colored box.' }; break;
-            case 'layout': newBlock = { id, type: 'layout', columnCount, columns: Array.from({ length: columnCount || 1 }, () => ({ id: uuidv4(), blocks: [] })) }; break;
-            case 'product_showcase': newBlock = { id, type: 'product_showcase', product_ids: [], title: 'Special Offer' }; break;
-        }
-        append(newBlock);
-    };
-
-    return (
-        <div className="space-y-4">
-            {fields.map((field, index) => {
-                const currentFieldName = `${namePrefix}.${index}`;
-                if ((field as any).type === 'layout') {
-                    const layout = field as any;
-                    return (
-                        <Card key={field.id} className="p-4 bg-muted/20">
-                            <div className="flex justify-between items-center mb-4">
-                                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground"><Columns className="h-5 w-5" /> Layout: <span className="capitalize text-foreground">{layout.columnCount} Column</span></div>
-                                <div className="flex items-center gap-2">
-                                    <Button type="button" size="icon" variant="ghost" onClick={() => move(index, index - 1)} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
-                                    <Button type="button" size="icon" variant="ghost" onClick={() => move(index, index + 1)} disabled={index === fields.length - 1}><ArrowDown className="h-4 w-4" /></Button>
-                                    <Button type="button" size="icon" variant="ghost" className="text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
-                                </div>
-                            </div>
-                            <div className={`grid grid-cols-1 md:grid-cols-${layout.columnCount} gap-4`}>
-                                {layout.columns.map((col: any, colIndex: number) => (
-                                    <div key={col.id} className="bg-background/50 p-3 rounded-lg border-dashed border">
-                                        <BlockEditor control={control} namePrefix={`${currentFieldName}.columns.${colIndex}.blocks`} allProducts={allProducts} />
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                    );
-                }
-                
-                // Regular block rendering
-                return (
-                    <Card key={field.id} className="p-4 bg-muted/20">
-                        <div className="flex justify-between items-center mb-4">
-                          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground"><GripVertical className="cursor-grab h-5 w-5" /> Block: <span className="capitalize text-foreground">{(field as any).type.replace('_', ' ')}</span></div>
-                          <div className="flex items-center gap-2">
-                            <Button type="button" size="icon" variant="ghost" onClick={() => move(index, index - 1)} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
-                            <Button type="button" size="icon" variant="ghost" onClick={() => move(index, index + 1)} disabled={index === fields.length - 1}><ArrowDown className="h-4 w-4" /></Button>
-                            <Button type="button" size="icon" variant="ghost" className="text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                            {(field as any).type === 'heading' && (
-                                <>
-                                    <FormField control={control} name={`${currentFieldName}.text`} render={({ field: f }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={control} name={`${currentFieldName}.align`} render={({ field: f }) => (<FormItem><FormLabel>Alignment</FormLabel><Select onValueChange={f.onChange} defaultValue={f.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="left"><AlignLeft className="inline-block mr-2 h-4 w-4"/>Left</SelectItem><SelectItem value="center"><AlignCenter className="inline-block mr-2 h-4 w-4"/>Center</SelectItem><SelectItem value="right"><AlignRight className="inline-block mr-2 h-4 w-4"/>Right</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                                </>
-                            )}
-                            {(field as any).type === 'paragraph' && (
-                                <>
-                                    <FormField control={control} name={`${currentFieldName}.text`} render={({ field: f }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...f} rows={4} /></FormControl><FormDescription>Use **bold** for bold and *italic* for italic text.</FormDescription><FormMessage /></FormItem>)} />
-                                    <FormField control={control} name={`${currentFieldName}.align`} render={({ field: f }) => (<FormItem><FormLabel>Alignment</FormLabel><Select onValueChange={f.onChange} defaultValue={f.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="left"><AlignLeft className="inline-block mr-2 h-4 w-4"/>Left</SelectItem><SelectItem value="center"><AlignCenter className="inline-block mr-2 h-4 w-4"/>Center</SelectItem><SelectItem value="right"><AlignRight className="inline-block mr-2 h-4 w-4"/>Right</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                                </>
-                            )}
-                            {(field as any).type === 'image' && (
-                                <>
-                                <FormField control={control} name={`${currentFieldName}.src`} render={({ field: f }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={control} name={`${currentFieldName}.alt`} render={({ field: f }) => (<FormItem><FormLabel>Alt Text</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
-                                <ImageUploader onUpload={(res) => (control as any)._form.setValue(`${currentFieldName}.src`, res.info.secure_url)} />
-                                </>
-                            )}
-                            {(field as any).type === 'button' && (
-                                <>
-                                    <FormField control={control} name={`${currentFieldName}.text`} render={({ field: f }) => (<FormItem><FormLabel>Button Text</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={control} name={`${currentFieldName}.href`} render={({ field: f }) => (<FormItem><FormLabel>Button Link (URL)</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={control} name={`${currentFieldName}.variant`} render={({ field: f }) => (<FormItem><FormLabel>Style</FormLabel><Select onValueChange={f.onChange} defaultValue={f.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="default">Default</SelectItem><SelectItem value="secondary">Secondary</SelectItem><SelectItem value="outline">Outline</SelectItem><SelectItem value="ghost">Ghost</SelectItem><SelectItem value="link">Link</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                                </>
-                            )}
-                            {(field as any).type === 'youtube' && (
-                                <FormField control={control} name={`${currentFieldName}.videoId`} render={({ field: f }) => (<FormItem><FormLabel>YouTube Video ID</FormLabel><FormControl><Input {...f} /></FormControl><FormDescription>From a URL like youtube.com/watch?v=VIDEO_ID</FormDescription><FormMessage /></FormItem>)} />
-                            )}
-                            {(field as any).type === 'coloredBox' && (
-                                <>
-                                    <FormField control={control} name={`${currentFieldName}.text`} render={({ field: f }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...f} rows={3} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={control} name={`${currentFieldName}.color`} render={({ field: f }) => (<FormItem><FormLabel>Background Color</FormLabel><div className="flex items-center gap-2"><FormControl><Input {...f} placeholder="hsl(var(--card))" /></FormControl><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon"><Palette className="h-4 w-4" /><span className="sr-only">Open color picker</span></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Theme Colors</DropdownMenuLabel><DropdownMenuSeparator />{Object.entries(themeColorPalette).map(([name, color]) => (<DropdownMenuItem key={name} onSelect={() => (control as any)._form.setValue(`${currentFieldName}.color`, color)}><div className="h-4 w-4 rounded-full border mr-2" style={{ backgroundColor: color }}/>{name}</DropdownMenuItem>))}<DropdownMenuSeparator /><DropdownMenuLabel>Standard Palette</DropdownMenuLabel><div className="p-2 grid grid-cols-4 gap-2">{defaultColorPalette.map(({name, color}) => (<button type="button" key={name} title={name} className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring" style={{ backgroundColor: color }} onClick={() => (control as any)._form.setValue(`${currentFieldName}.color`, color)}/>))}</div></DropdownMenuContent></DropdownMenu></div><FormDescription>Enter a custom HSL/hex code, or select from the palette.</FormDescription><FormMessage /></FormItem>)} />
-                                </>
-                            )}
-                            {(field as any).type === 'product_showcase' && (
-                                <>
-                                    <FormField control={control} name={`${currentFieldName}.title`} render={({ field: f }) => (<FormItem><FormLabel>Title (Optional)</FormLabel><FormControl><Input {...f} placeholder="Special Offer" /></FormControl><FormMessage /></FormItem>)} />
-                                    <ProductSelector control={control} namePrefix={currentFieldName} allProducts={allProducts} />
-                                </>
-                            )}
-                        </div>
-                    </Card>
-                )
-            })}
-             {fields.length === 0 && <p className="text-center text-muted-foreground py-8">Add your first content block.</p>}
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="secondary" className="w-full">
-                        <Plus className="mr-2 h-4 w-4" /> Add Block
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-64">
-                    <DropdownMenuItem onSelect={() => addBlock('heading')}><Heading2 className="mr-2" /> Heading</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => addBlock('paragraph')}><Type className="mr-2" /> Paragraph</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => addBlock('image')}><ImageIcon className="mr-2" /> Image</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => addBlock('button')}><LinkIcon className="mr-2" /> Button</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => addBlock('youtube')}><Youtube className="mr-2" /> YouTube Video</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => addBlock('coloredBox')}><Palette className="mr-2" /> Colored Box</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => addBlock('product_showcase')}><ShoppingBag className="mr-2" /> Product Showcase</DropdownMenuItem>
-                    <DropdownMenuSub>
-                        <DropdownMenuSubTrigger><Columns className="mr-2" /> Layout</DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                            <DropdownMenuItem onSelect={() => addBlock('layout', 1)}>1 Column</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => addBlock('layout', 2)}>2 Columns</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => addBlock('layout', 3)}>3 Columns</DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-    );
-};
-
-
 export default function ManagePage() {
   const params = useParams();
   const router = useRouter();
@@ -324,6 +156,174 @@ export default function ManagePage() {
     resolver: zodResolver(pageFormSchema),
     defaultValues: { title: '', slug: '', content: [], is_published: false },
   });
+
+  const ProductSelector = ({ control, namePrefix, allProducts }: { control: Control<PageFormData>, namePrefix: string, allProducts: Product[] }) => {
+      const { field } = useController({ control, name: `${namePrefix}.product_ids` as any });
+      const selectedIds = field.value || [];
+  
+      const handleToggle = (productId: string) => {
+          const newIds = selectedIds.includes(productId)
+              ? selectedIds.filter((id: string) => id !== productId)
+              : [...selectedIds, productId];
+          field.onChange(newIds);
+      };
+  
+      return (
+          <div>
+              <Label>Select Products</Label>
+              <ScrollArea className="h-48 mt-2 rounded-md border">
+                  <div className="p-4 space-y-2">
+                      {allProducts.length > 0 ? allProducts.map(product => (
+                          <div key={product.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                  id={`product-${namePrefix}-${product.id}`}
+                                  checked={selectedIds.includes(product.id)}
+                                  onCheckedChange={() => handleToggle(product.id)}
+                              />
+                              <Label htmlFor={`product-${namePrefix}-${product.id}`} className="font-normal">{product.name}</Label>
+                          </div>
+                      )) : <p className="text-sm text-muted-foreground text-center">No products found.</p>}
+                  </div>
+              </ScrollArea>
+          </div>
+      );
+  };
+  
+  const BlockEditor = ({ control, namePrefix, allProducts }: { control: Control<PageFormData>, namePrefix: string, allProducts: Product[] }) => {
+      const { fields, append, remove, move } = useFieldArray({
+          control,
+          name: namePrefix as any,
+      });
+  
+      const addBlock = (type: 'heading' | 'paragraph' | 'image' | 'button' | 'youtube' | 'coloredBox' | 'layout' | 'product_showcase', columnCount?: number) => {
+          const id = uuidv4();
+          let newBlock: any;
+  
+          switch (type) {
+              case 'heading': newBlock = { id, type: 'heading', level: 2, text: 'Your Heading', align: 'left' }; break;
+              case 'paragraph': newBlock = { id, type: 'paragraph', text: 'Start writing your paragraph here.', align: 'left' }; break;
+              case 'image': newBlock = { id, type: 'image', src: 'https://placehold.co/1200x600?text=Your+Image', alt: 'Placeholder Image' }; break;
+              case 'button': newBlock = { id, type: 'button', text: 'Click Me', href: '#', variant: 'default' }; break;
+              case 'youtube': newBlock = { id, type: 'youtube', videoId: 'dQw4w9WgXcQ' }; break;
+              case 'coloredBox': newBlock = { id, type: 'coloredBox', color: 'hsl(var(--card))', text: 'This is a colored box.' }; break;
+              case 'layout': newBlock = { id, type: 'layout', columnCount, columns: Array.from({ length: columnCount || 1 }, () => ({ id: uuidv4(), blocks: [] })) }; break;
+              case 'product_showcase': newBlock = { id, type: 'product_showcase', product_ids: [], title: 'Special Offer' }; break;
+          }
+          append(newBlock);
+      };
+  
+      return (
+          <div className="space-y-4">
+              {fields.map((field, index) => {
+                  const currentFieldName = `${namePrefix}.${index}`;
+                  if ((field as any).type === 'layout') {
+                      const layout = field as any;
+                      return (
+                          <Card key={field.id} className="p-4 bg-muted/20">
+                              <div className="flex justify-between items-center mb-4">
+                                  <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground"><Columns className="h-5 w-5" /> Layout: <span className="capitalize text-foreground">{layout.columnCount} Column</span></div>
+                                  <div className="flex items-center gap-2">
+                                      <Button type="button" size="icon" variant="ghost" onClick={() => move(index, index - 1)} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
+                                      <Button type="button" size="icon" variant="ghost" onClick={() => move(index, index + 1)} disabled={index === fields.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                                      <Button type="button" size="icon" variant="ghost" className="text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
+                                  </div>
+                              </div>
+                              <div className={`grid grid-cols-1 md:grid-cols-${layout.columnCount} gap-4`}>
+                                  {layout.columns.map((col: any, colIndex: number) => (
+                                      <div key={col.id} className="bg-background/50 p-3 rounded-lg border-dashed border">
+                                          <BlockEditor control={control} namePrefix={`${currentFieldName}.columns.${colIndex}.blocks`} allProducts={allProducts} />
+                                      </div>
+                                  ))}
+                              </div>
+                          </Card>
+                      );
+                  }
+                  
+                  // Regular block rendering
+                  return (
+                      <Card key={field.id} className="p-4 bg-muted/20">
+                          <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground"><GripVertical className="cursor-grab h-5 w-5" /> Block: <span className="capitalize text-foreground">{(field as any).type.replace('_', ' ')}</span></div>
+                            <div className="flex items-center gap-2">
+                              <Button type="button" size="icon" variant="ghost" onClick={() => move(index, index - 1)} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
+                              <Button type="button" size="icon" variant="ghost" onClick={() => move(index, index + 1)} disabled={index === fields.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                              <Button type="button" size="icon" variant="ghost" className="text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                              {(field as any).type === 'heading' && (
+                                  <>
+                                      <FormField control={control} name={`${currentFieldName}.text`} render={({ field: f }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
+                                      <FormField control={control} name={`${currentFieldName}.align`} render={({ field: f }) => (<FormItem><FormLabel>Alignment</FormLabel><Select onValueChange={f.onChange} defaultValue={f.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="left"><AlignLeft className="inline-block mr-2 h-4 w-4"/>Left</SelectItem><SelectItem value="center"><AlignCenter className="inline-block mr-2 h-4 w-4"/>Center</SelectItem><SelectItem value="right"><AlignRight className="inline-block mr-2 h-4 w-4"/>Right</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                  </>
+                              )}
+                              {(field as any).type === 'paragraph' && (
+                                  <>
+                                      <FormField control={control} name={`${currentFieldName}.text`} render={({ field: f }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...f} rows={4} /></FormControl><FormDescription>Use **bold** for bold and *italic* for italic text.</FormDescription><FormMessage /></FormItem>)} />
+                                      <FormField control={control} name={`${currentFieldName}.align`} render={({ field: f }) => (<FormItem><FormLabel>Alignment</FormLabel><Select onValueChange={f.onChange} defaultValue={f.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="left"><AlignLeft className="inline-block mr-2 h-4 w-4"/>Left</SelectItem><SelectItem value="center"><AlignCenter className="inline-block mr-2 h-4 w-4"/>Center</SelectItem><SelectItem value="right"><AlignRight className="inline-block mr-2 h-4 w-4"/>Right</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                  </>
+                              )}
+                              {(field as any).type === 'image' && (
+                                  <>
+                                  <FormField control={control} name={`${currentFieldName}.src`} render={({ field: f }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
+                                  <FormField control={control} name={`${currentFieldName}.alt`} render={({ field: f }) => (<FormItem><FormLabel>Alt Text</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
+                                  <ImageUploader onUpload={(res) => form.setValue(`${currentFieldName}.src` as any, res.info.secure_url)} />
+                                  </>
+                              )}
+                              {(field as any).type === 'button' && (
+                                  <>
+                                      <FormField control={control} name={`${currentFieldName}.text`} render={({ field: f }) => (<FormItem><FormLabel>Button Text</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
+                                      <FormField control={control} name={`${currentFieldName}.href`} render={({ field: f }) => (<FormItem><FormLabel>Button Link (URL)</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
+                                      <FormField control={control} name={`${currentFieldName}.variant`} render={({ field: f }) => (<FormItem><FormLabel>Style</FormLabel><Select onValueChange={f.onChange} defaultValue={f.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="default">Default</SelectItem><SelectItem value="secondary">Secondary</SelectItem><SelectItem value="outline">Outline</SelectItem><SelectItem value="ghost">Ghost</SelectItem><SelectItem value="link">Link</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                  </>
+                              )}
+                              {(field as any).type === 'youtube' && (
+                                  <FormField control={control} name={`${currentFieldName}.videoId`} render={({ field: f }) => (<FormItem><FormLabel>YouTube Video ID</FormLabel><FormControl><Input {...f} /></FormControl><FormDescription>From a URL like youtube.com/watch?v=VIDEO_ID</FormDescription><FormMessage /></FormItem>)} />
+                              )}
+                              {(field as any).type === 'coloredBox' && (
+                                  <>
+                                      <FormField control={control} name={`${currentFieldName}.text`} render={({ field: f }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...f} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                                      <FormField control={control} name={`${currentFieldName}.color`} render={({ field: f }) => (<FormItem><FormLabel>Background Color</FormLabel><div className="flex items-center gap-2"><FormControl><Input {...f} placeholder="hsl(var(--card))" /></FormControl><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon"><Palette className="h-4 w-4" /><span className="sr-only">Open color picker</span></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Theme Colors</DropdownMenuLabel><DropdownMenuSeparator />{Object.entries(themeColorPalette).map(([name, color]) => (<DropdownMenuItem key={name} onSelect={() => form.setValue(`${currentFieldName}.color` as any, color)}><div className="h-4 w-4 rounded-full border mr-2" style={{ backgroundColor: color }}/>{name}</DropdownMenuItem>))}<DropdownMenuSeparator /><DropdownMenuLabel>Standard Palette</DropdownMenuLabel><div className="p-2 grid grid-cols-4 gap-2">{defaultColorPalette.map(({name, color}) => (<button type="button" key={name} title={name} className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring" style={{ backgroundColor: color }} onClick={() => form.setValue(`${currentFieldName}.color` as any, color)}/>))}</div></DropdownMenuContent></DropdownMenu></div><FormDescription>Enter a custom HSL/hex code, or select from the palette.</FormDescription><FormMessage /></FormItem>)} />
+                                  </>
+                              )}
+                              {(field as any).type === 'product_showcase' && (
+                                  <>
+                                      <FormField control={control} name={`${currentFieldName}.title`} render={({ field: f }) => (<FormItem><FormLabel>Title (Optional)</FormLabel><FormControl><Input {...f} placeholder="Special Offer" /></FormControl><FormMessage /></FormItem>)} />
+                                      <ProductSelector control={control} namePrefix={currentFieldName} allProducts={allProducts} />
+                                  </>
+                              )}
+                          </div>
+                      </Card>
+                  )
+              })}
+               {fields.length === 0 && <p className="text-center text-muted-foreground py-8">Add your first content block.</p>}
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="secondary" className="w-full">
+                          <Plus className="mr-2 h-4 w-4" /> Add Block
+                      </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-64">
+                      <DropdownMenuItem onSelect={() => addBlock('heading')}><Heading2 className="mr-2" /> Heading</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => addBlock('paragraph')}><Type className="mr-2" /> Paragraph</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => addBlock('image')}><ImageIcon className="mr-2" /> Image</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => addBlock('button')}><LinkIcon className="mr-2" /> Button</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => addBlock('youtube')}><Youtube className="mr-2" /> YouTube Video</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => addBlock('coloredBox')}><Palette className="mr-2" /> Colored Box</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => addBlock('product_showcase')}><ShoppingBag className="mr-2" /> Product Showcase</DropdownMenuItem>
+                      <DropdownMenuSub>
+                          <DropdownMenuSubTrigger><Columns className="mr-2" /> Layout</DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                              <DropdownMenuItem onSelect={() => addBlock('layout', 1)}>1 Column</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => addBlock('layout', 2)}>2 Columns</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => addBlock('layout', 3)}>3 Columns</DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                  </DropdownMenuContent>
+              </DropdownMenu>
+          </div>
+      );
+  };
 
   const titleValue = form.watch('title');
 
@@ -448,3 +448,4 @@ export default function ManagePage() {
     </div>
   );
 }
+
