@@ -82,6 +82,21 @@ export default function CustomerNotificationsPage() {
     };
   }, [customer]);
 
+  const handleMarkAsRead = async (notificationId: string) => {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId);
+
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } else {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+      );
+    }
+  };
+
   const handleMarkAllAsRead = async () => {
     if(!customer) return;
     const { error } = await supabase
@@ -151,11 +166,15 @@ export default function CustomerNotificationsPage() {
                       {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: bn })}
                     </p>
                   </div>
-                  {notification.link && (
+                  {notification.link ? (
                     <Button asChild variant="ghost" size="sm">
-                      <Link href={notification.link}>দেখুন</Link>
+                      <Link href={notification.link} onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}>দেখুন</Link>
                     </Button>
-                  )}
+                  ) : !notification.is_read ? (
+                    <Button variant="outline" size="sm" onClick={() => handleMarkAsRead(notification.id)}>
+                        পঠিত
+                    </Button>
+                  ) : null }
                 </div>
               ))}
             </div>

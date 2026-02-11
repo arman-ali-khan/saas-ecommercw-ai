@@ -163,12 +163,11 @@ export default function AdminNotificationsPage() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  {notification.link && (
+                  {notification.link ? (
                     <Button asChild variant="secondary" size="sm">
-                      <Link href={notification.link}>View</Link>
+                      <Link href={notification.link} onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}>View</Link>
                     </Button>
-                  )}
-                  {!notification.is_read && (
+                  ) : !notification.is_read ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -176,7 +175,7 @@ export default function AdminNotificationsPage() {
                     >
                       Mark as Read
                     </Button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             ))}
