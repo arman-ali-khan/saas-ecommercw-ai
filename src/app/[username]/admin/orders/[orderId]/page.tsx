@@ -15,22 +15,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Loader2, Package, User, MapPin, Phone, Mail, CreditCard } from 'lucide-react';
+import { ArrowLeft, Loader2, Package, User, MapPin, Phone, Mail, CreditCard, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import type { Order } from '@/types';
-
-const orderStatuses = ['processing', 'shipped', 'delivered', 'canceled'];
 
 export default function OrderDetailsPage() {
     const params = useParams();
@@ -43,8 +34,8 @@ export default function OrderDetailsPage() {
 
     const [order, setOrder] = useState<Order | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [status, setStatus] = useState('');
+    const [isActionLoading, setIsActionLoading] = useState(false);
+    const [actionTarget, setActionTarget] = useState<string | null>(null);
     
     const fetchOrder = useCallback(async () => {
         if (!orderId || !user) return;
@@ -61,7 +52,6 @@ export default function OrderDetailsPage() {
             return;
         }
         setOrder(data as Order);
-        setStatus(data.status);
         setIsLoading(false);
     }, [orderId, user, router, toast, username]);
 
@@ -88,23 +78,25 @@ export default function OrderDetailsPage() {
         return method;
     }
 
-    const handleUpdateStatus = async () => {
+    const handleUpdateStatus = async (newStatus: string) => {
         if (!order) return;
-        setIsSubmitting(true);
+        setIsActionLoading(true);
+        setActionTarget(newStatus);
         const { data: updatedOrder, error } = await supabase
             .from('orders')
-            .update({ status })
+            .update({ status: newStatus })
             .eq('id', order.id)
             .select()
             .single();
-        setIsSubmitting(false);
+        
+        setIsActionLoading(false);
+        setActionTarget(null);
 
         if (error) {
             toast({ variant: 'destructive', title: 'Error updating status', description: error.message });
         } else {
             toast({ title: 'Order status updated!' });
             setOrder(updatedOrder as Order);
-            setStatus(updatedOrder.status);
 
             // --- Create notification for customer ---
             if (updatedOrder.customer_id) {
@@ -235,25 +227,42 @@ export default function OrderDetailsPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>স্ট্যাটাস আপডেট করুন</CardTitle>
-                            <CardDescription>অর্ডারের বর্তমান অবস্থা পরিবর্তন করুন।</CardDescription>
+                            <CardDescription>অর্ডারটিকে পরবর্তী ধাপে নিয়ে যান।</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex items-center gap-4">
-                             <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="একটি স্ট্যাটাস নির্বাচন করুন" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {orderStatuses.map(s => (
-                                        <SelectItem key={s} value={s}>
-                                            {translateStatus(s)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Button onClick={handleUpdateStatus} disabled={isSubmitting || status === order.status}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                সংরক্ষণ করুন
-                            </Button>
+                        <CardContent className="flex flex-wrap items-center gap-4">
+                            {order.status === 'processing' && (
+                                <Button onClick={() => handleUpdateStatus('shipped')} disabled={isActionLoading}>
+                                    {isActionLoading && actionTarget === 'shipped' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    পাঠানো হয়েছে হিসেবে চিহ্নিত করুন
+                                </Button>
+                            )}
+                            {order.status === 'shipped' && (
+                                <Button onClick={() => handleUpdateStatus('delivered')} disabled={isActionLoading}>
+                                    {isActionLoading && actionTarget === 'delivered' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    বিতরণ করা হয়েছে হিসেবে চিহ্নিত করুন
+                                </Button>
+                            )}
+
+                            {order.status === 'delivered' && (
+                                <div className="flex items-center gap-2 text-sm font-medium text-green-600">
+                                    <CheckCircle className="h-5 w-5" />
+                                    অর্ডার সম্পন্ন হয়েছে
+                                </div>
+                            )}
+                            
+                            {order.status !== 'delivered' && order.status !== 'canceled' && (
+                                <Button variant="destructive" onClick={() => handleUpdateStatus('canceled')} disabled={isActionLoading}>
+                                    {isActionLoading && actionTarget === 'canceled' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    অর্ডার বাতিল করুন
+                                </Button>
+                            )}
+
+                            {order.status === 'canceled' && (
+                                <div className="flex items-center gap-2 text-sm font-medium text-destructive">
+                                    <XCircle className="h-5 w-5" />
+                                    অর্ডার বাতিল করা হয়েছে
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
