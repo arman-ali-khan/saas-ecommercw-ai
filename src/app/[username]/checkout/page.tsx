@@ -146,7 +146,6 @@ export default function CheckoutPage() {
   }, [paymentSettings]);
 
   useEffect(() => {
-    // This effect now has a lock to prevent the redirect while submitting
     if (isHydrated && cartCount === 0 && !isSubmitting && !window.location.search.includes('order_id')) {
       router.push(`/${username}`);
     }
@@ -306,21 +305,21 @@ export default function CheckoutPage() {
               render={({ field }) => (
                 <FormItem className="space-y-3">
                   <FormLabel>শিপিং পদ্ধতি</FormLabel>
-                  <FormControl>
-                    <RadioGroup
+                   <RadioGroup
                       onValueChange={field.onChange}
                       value={field.value}
                       className="grid grid-cols-1 md:grid-cols-2 gap-4"
                     >
-                      {isLoadingShipping
-                        ? Array.from({ length: 2 }).map((_, index) => (
-                            <Skeleton key={index} className="h-24 w-full" />
-                          ))
-                        : shippingZones.map((zone) => (
+                      {isLoadingShipping ? (
+                         Array.from({ length: 2 }).map((_, index) => (
+                           <Skeleton key={index} className="h-24 w-full" />
+                         ))
+                      ) : (
+                        shippingZones.map((zone) => (
                           <Label
                             key={zone.id}
                             htmlFor={`shipping-${zone.id}`}
-                            className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary"
+                            className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                           >
                             <RadioGroupItem
                               value={zone.id.toString()}
@@ -335,9 +334,9 @@ export default function CheckoutPage() {
                               </p>
                             </div>
                           </Label>
-                        ))}
+                        ))
+                      )}
                     </RadioGroup>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
