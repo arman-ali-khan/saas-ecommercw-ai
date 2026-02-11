@@ -38,6 +38,7 @@ export default function AdminSidebar({ username }: { username: string }) {
   const { user, loading, logout: authLogout } = useAuth();
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -59,6 +60,21 @@ export default function AdminSidebar({ username }: { username: string }) {
         .eq('recipient_type', 'admin')
         .eq('is_read', false);
       setUnreadNotificationsCount(notifCount || 0);
+
+      // Fetch unread chat conversations count
+      const { data: convosWithUnread } = await supabase
+        .from('live_chat_messages')
+        .select('conversation_id')
+        .eq('site_id', user.id)
+        .eq('is_read', false)
+        .eq('sender_type', 'customer');
+        
+      if (convosWithUnread) {
+          const uniqueConvoIds = [...new Set(convosWithUnread.map(c => c.conversation_id))];
+          setUnreadChatCount(uniqueConvoIds.length);
+      } else {
+          setUnreadChatCount(0);
+      }
     };
     
     fetchCounts(); // Initial fetch
@@ -82,6 +98,16 @@ export default function AdminSidebar({ username }: { username: string }) {
           schema: 'public',
           table: 'notifications',
           filter: `recipient_id=eq.${user.id}&recipient_type=eq.admin`,
+        },
+        fetchCounts
+      )
+      .on(
+        'postgres_changes',
+        {
+            event: '*',
+            schema: 'public',
+            table: 'live_chat_messages',
+            filter: `site_id=eq.${user.id}`
         },
         fetchCounts
       )
@@ -137,10 +163,10 @@ export default function AdminSidebar({ username }: { username: string }) {
     { href: `/${username}/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/${username}/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/${username}/admin/uncompleted`, label: 'Uncompleted', icon: FileClock },
-    { href: `/${username}/admin/payments`, label: 'Payments', icon: CreditCard },
+    // { href: `/${username}/admin/payments`, label: 'Payments', icon: CreditCard },
     { href: `/${username}/admin/pages`, label: 'Page Manager', icon: FileText },
-    { href: `/${username}/admin/reviews`, label: 'Reviews', icon: MessageSquare },
-    { href: `/${username}/admin/live-questions`, label: 'Live Questions', icon: Bot },
+    // { href: `/${username}/admin/reviews`, label: 'Reviews', icon: MessageSquare },
+    { href: `/${username}/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
     { href: `/${username}/admin/settings`, label: 'Settings', icon: Settings },
   ];
 

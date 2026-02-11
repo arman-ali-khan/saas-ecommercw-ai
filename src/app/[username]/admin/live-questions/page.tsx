@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '@/stores/auth';
 import { supabase } from '@/lib/supabase/client';
 import { format, isToday, isYesterday } from 'date-fns';
@@ -102,6 +102,30 @@ export default function LiveQuestionsAdminPage() {
     }
   }, [selectedConversationId, messagesByConversation]);
 
+  const handleSelectConversation = useCallback(async (conversationId: string) => {
+    setSelectedConversationId(conversationId);
+    
+    // Optimistically update the UI to mark messages as read
+    setMessagesByConversation(prevMap => {
+        const newMap = new Map(prevMap);
+        const conversation = newMap.get(conversationId);
+        if (conversation) {
+            const updatedConversation = conversation.map(msg => 
+                msg.sender_type === 'customer' ? { ...msg, is_read: true } : msg
+            );
+            newMap.set(conversationId, updatedConversation);
+        }
+        return newMap;
+    });
+
+    // Update the database in the background
+    await supabase
+        .from('live_chat_messages')
+        .update({ is_read: true })
+        .eq('conversation_id', conversationId)
+        .eq('sender_type', 'customer');
+  }, []);
+
   const conversationSummaries: ConversationSummary[] = useMemo(() => {
     const summaries: ConversationSummary[] = [];
     for (const [id, messages] of messagesByConversation.entries()) {
@@ -195,7 +219,7 @@ export default function LiveQuestionsAdminPage() {
                         conversationSummaries.map((convo) => (
                             <button
                             key={convo.id}
-                            onClick={() => setSelectedConversationId(convo.id)}
+                            onClick={() => handleSelectConversation(convo.id)}
                             className={cn(
                                 'w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors',
                                 selectedConversationId === convo.id && 'md:bg-muted',

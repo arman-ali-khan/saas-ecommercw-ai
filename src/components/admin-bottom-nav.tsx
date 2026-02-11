@@ -171,11 +171,11 @@ export default function AdminBottomNav({ username }: { username: string }) {
               >
                 <div className="relative">
                   <link.icon className="h-5 w-5" />
-                  {link.count && link.count > 0 && (
+                  {link.count && link.count > 0 ? (
                     <span className="absolute -top-1.5 -right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
                       {link.count}
                     </span>
-                  )}
+                  ):''}
                 </div>
                 <span className="text-xs font-normal">{link.label}</span>
               </div>
