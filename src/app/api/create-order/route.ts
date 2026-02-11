@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     const { data: newOrder, error: orderError } = await supabaseAdmin
       .from('orders')
-      .insert(dbOrderData)
+      .insert({ ...dbOrderData, status: 'pending' })
       .select()
       .single();
 

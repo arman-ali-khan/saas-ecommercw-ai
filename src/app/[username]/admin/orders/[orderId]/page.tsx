@@ -37,6 +37,20 @@ export default function OrderDetailsPage() {
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [actionTarget, setActionTarget] = useState<string | null>(null);
     
+    const translateStatus = (status: string): string => {
+        switch (status.toLowerCase()) {
+            case 'pending': return 'পেন্ডিং';
+            case 'approved': return 'অনুমোদিত';
+            case 'processing': return 'প্রক্রিয়াকরণ চলছে';
+            case 'packaging': return 'প্যাকেজিং চলছে';
+            case 'send for delivery': return 'ডেলিভারির জন্য পাঠানো হয়েছে';
+            case 'shipped': return 'পাঠানো হয়েছে'; // backwards compatibility
+            case 'delivered': return 'বিতরণ করা হয়েছে';
+            case 'canceled': return 'বাতিল করা হয়েছে';
+            default: return status;
+        }
+    };
+
     const fetchOrder = useCallback(async () => {
         if (!orderId || !user) return;
         setIsLoading(true);
@@ -61,16 +75,6 @@ export default function OrderDetailsPage() {
             fetchOrder();
         }
     }, [authLoading, fetchOrder]);
-    
-    const translateStatus = (status: string): string => {
-        switch (status.toLowerCase()) {
-            case 'processing': return 'প্রক্রিয়াকরণ চলছে';
-            case 'shipped': return 'পাঠানো হয়েছে';
-            case 'delivered': return 'বিতরণ করা হয়েছে';
-            case 'canceled': return 'বাতিল করা হয়েছে';
-            default: return status;
-        }
-    };
     
     const formatPaymentMethod = (method: string) => {
         if (method === 'mobile_banking') return 'Mobile Banking';
@@ -124,8 +128,12 @@ export default function OrderDetailsPage() {
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
         switch (status.toLowerCase()) {
             case 'delivered': return 'default';
+            case 'send for delivery': return 'secondary';
             case 'shipped': return 'secondary';
+            case 'approved': return 'secondary';
+            case 'packaging': return 'outline';
             case 'processing': return 'outline';
+            case 'pending': return 'outline';
             case 'canceled': return 'destructive';
             default: return 'outline';
         }
@@ -230,16 +238,34 @@ export default function OrderDetailsPage() {
                             <CardDescription>অর্ডারটিকে পরবর্তী ধাপে নিয়ে যান।</CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-wrap items-center gap-4">
-                            {order.status === 'processing' && (
-                                <Button onClick={() => handleUpdateStatus('shipped')} disabled={isActionLoading}>
-                                    {isActionLoading && actionTarget === 'shipped' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    পাঠানো হয়েছে হিসেবে চিহ্নিত করুন
+                            {order.status === 'pending' && (
+                                <Button onClick={() => handleUpdateStatus('approved')} disabled={isActionLoading}>
+                                    {isActionLoading && actionTarget === 'approved' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    অর্ডার অনুমোদন করুন
                                 </Button>
                             )}
-                            {order.status === 'shipped' && (
+                            {order.status === 'approved' && (
+                                <Button onClick={() => handleUpdateStatus('processing')} disabled={isActionLoading}>
+                                    {isActionLoading && actionTarget === 'processing' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    প্রসেসিং শুরু করুন
+                                </Button>
+                            )}
+                            {order.status === 'processing' && (
+                                <Button onClick={() => handleUpdateStatus('packaging')} disabled={isActionLoading}>
+                                    {isActionLoading && actionTarget === 'packaging' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    প্যাকেজিং এর জন্য প্রস্তুত
+                                </Button>
+                            )}
+                             {order.status === 'packaging' && (
+                                <Button onClick={() => handleUpdateStatus('send for delivery')} disabled={isActionLoading}>
+                                    {isActionLoading && actionTarget === 'send for delivery' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    ডেলিভারির জন্য পাঠান
+                                </Button>
+                            )}
+                            {(order.status === 'shipped' || order.status === 'send for delivery') && (
                                 <Button onClick={() => handleUpdateStatus('delivered')} disabled={isActionLoading}>
                                     {isActionLoading && actionTarget === 'delivered' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    বিতরণ করা হয়েছে হিসেবে চিহ্নিত করুন
+                                    ডেলিভারি সম্পন্ন
                                 </Button>
                             )}
 

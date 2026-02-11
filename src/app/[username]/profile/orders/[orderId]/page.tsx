@@ -64,8 +64,12 @@ export default function CustomerOrderDetailsPage() {
     
     const translateStatus = (status: string): string => {
         switch (status.toLowerCase()) {
+            case 'pending': return 'পেন্ডিং';
+            case 'approved': return 'অনুমোদিত';
             case 'processing': return 'প্রক্রিয়াকরণ চলছে';
-            case 'shipped': return 'পাঠানো হয়েছে';
+            case 'packaging': return 'প্যাকেজিং চলছে';
+            case 'send for delivery': return 'ডেলিভারির জন্য পাঠানো হয়েছে';
+            case 'shipped': return 'পাঠানো হয়েছে'; // backwards compatibility
             case 'delivered': return 'বিতরণ করা হয়েছে';
             case 'canceled': return 'বাতিল করা হয়েছে';
             default: return status;
@@ -75,8 +79,12 @@ export default function CustomerOrderDetailsPage() {
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
         switch (status.toLowerCase()) {
             case 'delivered': return 'default';
+            case 'send for delivery': return 'secondary';
             case 'shipped': return 'secondary';
+            case 'approved': return 'secondary';
+            case 'packaging': return 'outline';
             case 'processing': return 'outline';
+            case 'pending': return 'outline';
             case 'canceled': return 'destructive';
             default: return 'outline';
         }

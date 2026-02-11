@@ -50,6 +50,8 @@ export interface Order {
   created_at: string;
   total: number;
   status: string;
+  payment_method: string;
+  transaction_id: string | null;
 }
 
 export interface User {

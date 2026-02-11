@@ -26,7 +26,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, CheckCircle, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Eye, Loader2 } from 'lucide-react';
 
 type Order = {
     id: string;
@@ -81,21 +81,15 @@ export default function OrdersAdminPage() {
             setIsLoading(false);
         }
     }, [user, authLoading, fetchOrders]);
-
-    const handleMarkAsCompleted = async (orderId: string) => {
-        const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', orderId);
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error updating status', description: error.message });
-        } else {
-            toast({ title: 'Order marked as delivered!' });
-            await fetchOrders();
-        }
-    };
-
+    
     const translateStatus = (status: string): string => {
         switch (status.toLowerCase()) {
+            case 'pending': return 'পেন্ডিং';
+            case 'approved': return 'অনুমোদিত';
             case 'processing': return 'প্রক্রিয়াকরণ চলছে';
-            case 'shipped': return 'পাঠানো হয়েছে';
+            case 'packaging': return 'প্যাকেজিং চলছে';
+            case 'send for delivery': return 'ডেলিভারির জন্য পাঠানো হয়েছে';
+            case 'shipped': return 'পাঠানো হয়েছে'; // backwards compatibility
             case 'delivered': return 'বিতরণ করা হয়েছে';
             case 'canceled': return 'বাতিল করা হয়েছে';
             default: return status;
@@ -104,16 +98,15 @@ export default function OrdersAdminPage() {
 
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
         switch (status.toLowerCase()) {
-          case 'delivered':
-            return 'default';
-          case 'shipped':
-            return 'secondary';
-          case 'processing':
-            return 'outline';
-          case 'canceled':
-            return 'destructive';
-          default:
-            return 'outline';
+            case 'delivered': return 'default';
+            case 'send for delivery': return 'secondary';
+            case 'shipped': return 'secondary';
+            case 'approved': return 'secondary';
+            case 'packaging': return 'outline';
+            case 'processing': return 'outline';
+            case 'pending': return 'outline';
+            case 'canceled': return 'destructive';
+            default: return 'outline';
         }
     };
     
@@ -183,13 +176,6 @@ export default function OrdersAdminPage() {
                                                             অর্ডার দেখুন
                                                           </Link>
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem 
-                                                            onClick={() => handleMarkAsCompleted(order.id)}
-                                                            disabled={order.status === 'delivered' || order.status === 'canceled'}
-                                                        >
-                                                            <CheckCircle className="mr-2 h-4 w-4" />
-                                                            সম্পন্ন হিসেবে চিহ্নিত করুন
-                                                        </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
@@ -222,13 +208,6 @@ export default function OrdersAdminPage() {
                                                             <Eye className="mr-2 h-4 w-4" />
                                                             অর্ডার দেখুন
                                                         </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem 
-                                                        onClick={() => handleMarkAsCompleted(order.id)}
-                                                        disabled={order.status === 'delivered' || order.status === 'canceled'}
-                                                    >
-                                                        <CheckCircle className="mr-2 h-4 w-4" />
-                                                        সম্পন্ন হিসেবে চিহ্নিত করুন
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>

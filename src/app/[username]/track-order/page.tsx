@@ -12,8 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, Search, Package, Truck, CheckCircle } from 'lucide-react';
+import { Loader2, Search, Package, Truck, CheckCircle, Clock, BadgeCheck, Cog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
@@ -26,7 +25,7 @@ type TrackedOrder = {
     created_at: string;
 }
 
-const ORDER_STATUSES = ['processing', 'shipped', 'delivered'];
+const ORDER_STATUSES = ['pending', 'approved', 'processing', 'packaging', 'send for delivery', 'delivered'];
 
 export default function TrackOrderPage() {
   const params = useParams();
@@ -68,19 +67,25 @@ export default function TrackOrderPage() {
     }
   };
 
-  const currentStatusIndex = order ? ORDER_STATUSES.indexOf(order.status) : -1;
+  const currentStatusIndex = order ? ORDER_STATUSES.indexOf(order.status.toLowerCase()) : -1;
   
   const statusLabels: {[key: string]: string} = {
-    processing: 'প্রক্রিয়াকরণ চলছে',
-    shipped: 'পাঠানো হয়েছে',
-    delivered: 'বিতরণ করা হয়েছে',
+    pending: 'পেন্ডিং',
+    approved: 'অনুমোদিত',
+    processing: 'প্রসেসিং চলছে',
+    packaging: 'প্যাকেজিং চলছে',
+    'send for delivery': 'ডেলিভারির জন্য পাঠানো হয়েছে',
+    delivered: 'ডেলিভারি সম্পন্ন',
     canceled: 'বাতিল করা হয়েছে'
   };
 
   const StatusIcon = ({ status, isActive, isCompleted }: { status: string, isActive: boolean, isCompleted: boolean }) => {
     const icons: {[key: string]: React.ElementType} = {
-        processing: Package,
-        shipped: Truck,
+        pending: Clock,
+        approved: BadgeCheck,
+        processing: Cog,
+        packaging: Package,
+        'send for delivery': Truck,
         delivered: CheckCircle,
     }
     const Icon = icons[status];
@@ -136,17 +141,17 @@ export default function TrackOrderPage() {
                   <CardContent>
                      {order.status === 'canceled' ? (
                         <div className="text-center py-8">
-                            <p className="text-xl font-bold text-destructive">এই অর্ডারটি বাতিল করা হয়েছে।</p>
+                            <p className="text-xl font-bold text-destructive">{statusLabels.canceled}</p>
                         </div>
                      ) : (
                         <div className="flex justify-between items-start relative">
                             <div className="absolute top-6 left-0 w-full h-1 bg-border -z-10">
-                                <div className="h-full bg-primary transition-all duration-500" style={{width: `${(currentStatusIndex / (ORDER_STATUSES.length - 1)) * 100}%`}}></div>
+                                <div className="h-full bg-primary transition-all duration-500" style={{width: `${currentStatusIndex >= 0 ? (currentStatusIndex / (ORDER_STATUSES.length - 1)) * 100 : 0}%`}}></div>
                             </div>
                             {ORDER_STATUSES.map((status, index) => (
-                                <div key={status} className="flex flex-col items-center gap-2 w-1/3 text-center">
+                                <div key={status} className="flex flex-col items-center gap-2 w-1/5 text-center">
                                     <StatusIcon status={status} isActive={index === currentStatusIndex} isCompleted={index <= currentStatusIndex} />
-                                    <p className={cn("text-sm font-medium", index <= currentStatusIndex ? "text-foreground" : "text-muted-foreground")}>{statusLabels[status]}</p>
+                                    <p className={cn("text-xs font-medium", index <= currentStatusIndex ? "text-foreground" : "text-muted-foreground")}>{statusLabels[status]}</p>
                                 </div>
                             ))}
                         </div>
