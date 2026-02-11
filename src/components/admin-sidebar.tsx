@@ -39,43 +39,54 @@ export default function AdminSidebar({ username }: { username: string }) {
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   useEffect(() => {
-    if (user) {
-      // Fetch initial counts
-      const fetchCounts = async () => {
-        const { count: orderCount } = await supabase
-          .from('orders')
-          .select('*', { count: 'exact', head: true })
-          .eq('site_id', user.id)
-          .eq('status', 'processing');
-        setProcessingOrdersCount(orderCount || 0);
-        
-        const { count: notifCount } = await supabase
-          .from('notifications')
-          .select('*', { count: 'exact', head: true })
-          .eq('recipient_id', user.id)
-          .eq('recipient_type', 'admin')
-          .eq('is_read', false);
-        setUnreadNotificationsCount(notifCount || 0);
-      };
-      
-      fetchCounts();
+    if (!user) return;
 
-      // Set up subscriptions
-      const ordersChannel = supabase
-        .channel(`admin-sidebar-orders-${user.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `site_id=eq.${user.id}`}, fetchCounts)
-        .subscribe();
+    const fetchCounts = async () => {
+      const { count: orderCount } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', user.id)
+        .eq('status', 'processing');
+      setProcessingOrdersCount(orderCount || 0);
       
-      const notificationsChannel = supabase
-        .channel(`admin-sidebar-notifications-${user.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}`}, fetchCounts)
-        .subscribe();
+      const { count: notifCount } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('recipient_id', user.id)
+        .eq('recipient_type', 'admin')
+        .eq('is_read', false);
+      setUnreadNotificationsCount(notifCount || 0);
+    };
+    
+    fetchCounts();
 
-      return () => {
-        supabase.removeChannel(ordersChannel);
-        supabase.removeChannel(notificationsChannel);
-      };
-    }
+    const channel = supabase
+      .channel(`admin-sidebar-realtime-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `site_id=eq.${user.id}`,
+        },
+        fetchCounts
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `recipient_id=eq.${user.id}&recipient_type=eq.admin`,
+        },
+        fetchCounts
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const handleLogout = async () => {

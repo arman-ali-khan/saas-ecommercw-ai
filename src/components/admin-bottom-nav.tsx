@@ -34,38 +34,54 @@ export default function AdminBottomNav({ username }: { username: string }) {
   const [unreadChatCount, setUnreadChatCount] = useState(2); // Mock count
 
   useEffect(() => {
-    if (user) {
-      // Fetch initial counts
-      const fetchCounts = async () => {
-        const { count: orderCount } = await supabase
-          .from('orders')
-          .select('*', { count: 'exact', head: true })
-          .eq('site_id', user.id)
-          .eq('status', 'processing');
-        setProcessingOrdersCount(orderCount || 0);
+    if (!user) return;
 
-        const { count: notifCount } = await supabase
-          .from('notifications')
-          .select('*', { count: 'exact', head: true })
-          .eq('recipient_id', user.id)
-          .eq('recipient_type', 'admin')
-          .eq('is_read', false);
-        setUnreadNotificationsCount(notifCount || 0);
-      };
-      
-      fetchCounts();
+    const fetchCounts = async () => {
+      const { count: orderCount } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', user.id)
+        .eq('status', 'processing');
+      setProcessingOrdersCount(orderCount || 0);
 
-      // Set up subscriptions
-      const channel = supabase
-        .channel(`bottom-nav-realtime-${user.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `site_id=eq.${user.id}` }, fetchCounts)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` }, fetchCounts)
-        .subscribe();
+      const { count: notifCount } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('recipient_id', user.id)
+        .eq('recipient_type', 'admin')
+        .eq('is_read', false);
+      setUnreadNotificationsCount(notifCount || 0);
+    };
+    
+    fetchCounts();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
+    const channel = supabase
+      .channel(`bottom-nav-realtime-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `site_id=eq.${user.id}`,
+        },
+        fetchCounts
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `recipient_id=eq.${user.id}&recipient_type=eq.admin`,
+        },
+        fetchCounts
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const navLinks = [
