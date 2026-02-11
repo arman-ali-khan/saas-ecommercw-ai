@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ImageUploader from '@/components/image-uploader';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const generateSlug = (title: string) => {
   return title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
@@ -278,47 +279,42 @@ export default function ManagePage() {
                                 <FormField control={form.control} name={`content.${index}.color`} render={({ field: f }) => (
                                     <FormItem>
                                         <FormLabel>Background Color</FormLabel>
-                                        <FormControl><Input {...f} placeholder="hsl(var(--card))" /></FormControl>
-                                        <FormDescription>Select a color or enter a custom HSL or hex code.</FormDescription>
-                                        
-                                        <div className="space-y-2 pt-2">
-                                            <Label className="text-xs text-muted-foreground">Theme Colors</Label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {Object.entries(themeColorPalette).map(([name, color]) => (
-                                                    <Button
-                                                        type="button"
-                                                        key={name}
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className={`flex items-center gap-2 ${f.value === color ? 'ring-2 ring-ring' : ''}`}
-                                                        onClick={() => form.setValue(`content.${index}.color`, color)}
-                                                    >
-                                                        <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }}/>
-                                                        {name}
+                                        <div className="flex items-center gap-2">
+                                            <FormControl><Input {...f} placeholder="hsl(var(--card))" /></FormControl>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button type="button" variant="outline" size="icon">
+                                                        <Palette className="h-4 w-4" />
+                                                        <span className="sr-only">Open color picker</span>
                                                     </Button>
-                                                ))}
-                                            </div>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent>
+                                                    <DropdownMenuLabel>Theme Colors</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    {Object.entries(themeColorPalette).map(([name, color]) => (
+                                                        <DropdownMenuItem key={name} onSelect={() => form.setValue(`content.${index}.color`, color)}>
+                                                            <div className="h-4 w-4 rounded-full border mr-2" style={{ backgroundColor: color }}/>
+                                                            {name}
+                                                        </DropdownMenuItem>
+                                                    ))}
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuLabel>Standard Palette</DropdownMenuLabel>
+                                                    <div className="p-2 grid grid-cols-4 gap-2">
+                                                        {defaultColorPalette.map(({name, color}) => (
+                                                            <button
+                                                                type="button"
+                                                                key={name}
+                                                                title={name}
+                                                                className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring"
+                                                                style={{ backgroundColor: color }}
+                                                                onClick={() => form.setValue(`content.${index}.color`, color)}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
-
-                                        <div className="space-y-2 pt-2">
-                                            <Label className="text-xs text-muted-foreground">Standard Palette</Label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {defaultColorPalette.map(({name, color}) => (
-                                                    <Button
-                                                        type="button"
-                                                        key={name}
-                                                        variant="outline"
-                                                        size="icon"
-                                                        title={name}
-                                                        className={f.value === color ? 'ring-2 ring-ring' : ''}
-                                                        onClick={() => form.setValue(`content.${index}.color`, color)}
-                                                    >
-                                                        <div className="h-6 w-6 rounded-md border" style={{ backgroundColor: color }}/>
-                                                    </Button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        
+                                        <FormDescription>Enter a custom HSL/hex code, or select from the palette.</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
