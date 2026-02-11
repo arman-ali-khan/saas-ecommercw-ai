@@ -420,7 +420,7 @@ export default function ManagePage() {
               <CardHeader><CardTitle>{isNew ? 'Create New Page' : 'Edit Page'}</CardTitle><CardDescription>Fill in the details for your custom page.</CardDescription></CardHeader>
               <CardContent className="grid gap-6">
                 <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} placeholder="e.g., About Our Farm" /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="slug" render={({ field }) => (<FormItem><FormLabel>URL Slug</FormLabel><FormControl><div className="relative"><Input {...field} placeholder="e.g., about-our-farm" className="pl-20" /><span className="absolute left-1 top-1/2 -translate-y-1/2 text-sm text-muted-foreground bg-muted h-8 px-2 flex items-center rounded-l-md border border-r-0 border-input">/{username}/pages/</span></div></FormControl><FormDescription>The unique URL path for this page.</FormDescription><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="slug" render={({ field }) => (<FormItem><FormLabel>URL Slug</FormLabel><FormControl><div className="relative"><Input {...field} placeholder="e.g., about-our-farm" className="pl-20" /><span className="absolute left-1 top-1/2 -translate-y-1/2 text-sm text-muted-foreground bg-muted h-8 px-2 flex items-center rounded-l-md border border-r-0 border-input">/pages/</span></div></FormControl><FormDescription>The unique URL path for this page.</FormDescription><FormMessage /></FormItem>)} />
               </CardContent>
             </Card>
 
