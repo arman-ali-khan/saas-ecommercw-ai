@@ -32,25 +32,35 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const router = useRouter();
   const { toast } = useToast();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingSubscriptionsCount, setPendingSubscriptionsCount] = useState(0);
   
   if (!user || !user.isSaaSAdmin) {
     return null; // Or a loading skeleton
   }
 
   useEffect(() => {
-    const fetchCount = async () => {
-      const { count } = await supabase
+    const fetchCounts = async () => {
+      // Fetch notification count
+      const { count: notifCount } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('is_read', false);
-      setUnreadCount(count || 0);
+      setUnreadCount(notifCount || 0);
+
+      // Fetch pending subscriptions count
+      const { count: subCount } = await supabase
+        .from('subscription_payments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      setPendingSubscriptionsCount(subCount || 0);
     };
 
-    fetchCount();
+    fetchCounts();
 
     const channel = supabase
-      .channel('saas-admin-notifications-count')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, fetchCount)
+      .channel('saas-admin-sidebar-counts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, fetchCounts)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'subscription_payments' }, fetchCounts)
       .subscribe();
 
     return () => {
@@ -67,7 +77,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const adminNavLinks = [
     { href: `/dashboard`, label: 'Dashboard', icon: Home },
     { href: `/dashboard/users`, label: 'Users', icon: Users },
-    { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard },
+    { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: pendingSubscriptionsCount },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell, count: unreadCount },
     { href: `/dashboard/settings`, label: 'Settings', icon: Settings },
