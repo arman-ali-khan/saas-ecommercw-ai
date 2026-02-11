@@ -39,6 +39,8 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   }
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchCounts = async () => {
       // Fetch notification count
       const { count: notifCount } = await supabase
@@ -58,7 +60,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     fetchCounts();
 
     const channel = supabase
-      .channel('saas-admin-sidebar-counts')
+      .channel(`saas-admin-sidebar-counts-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, fetchCounts)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'subscription_payments' }, fetchCounts)
       .subscribe();
@@ -66,7 +68,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   const logout = async () => {
     await logoutAction();
