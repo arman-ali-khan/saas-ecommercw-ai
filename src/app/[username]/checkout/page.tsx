@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/stores/cart';
@@ -300,52 +299,45 @@ export default function CheckoutPage() {
             <FormField control={form.control} name="city" render={({ field }) => ( <FormItem> <FormLabel>শহর</FormLabel> <FormControl> <Input placeholder="ঢাকা" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
             <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem> <FormLabel>ফোন নম্বর</FormLabel> <FormControl> <Input placeholder="01712345678" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
             
-            {isLoadingShipping ? (
-              <div className="space-y-3">
-                <Label>শিপিং পদ্ধতি</Label>
+            <div className="space-y-3">
+              <Label>শিপিং পদ্ধতি</Label>
+              {isLoadingShipping ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-24 w-full" />
                 </div>
-              </div>
-            ) : (
-              <FormField
-                control={form.control}
-                name="shippingZoneId"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>শিপিং পদ্ধতি</FormLabel>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              ) : (
+                <RadioGroup
+                  onValueChange={(value) => form.setValue('shippingZoneId', value, { shouldValidate: true })}
+                  value={form.watch('shippingZoneId')}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  {shippingZones.map((zone) => (
+                    <Label
+                      key={zone.id}
+                      htmlFor={`shipping-${zone.id}`}
+                      className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                     >
-                      {shippingZones.map((zone) => (
-                          <Label
-                              key={zone.id}
-                              htmlFor={`shipping-${zone.id}`}
-                              className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                          >
-                              <RadioGroupItem
-                                  value={zone.id.toString()}
-                                  id={`shipping-${zone.id}`}
-                                  className="peer sr-only"
-                              />
-                              <Truck className="h-6 w-6" />
-                              <div className="flex-grow">
-                              <p className="font-medium">{zone.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                  {zone.price.toFixed(2)} BDT
-                              </p>
-                              </div>
-                          </Label>
-                      ))}
-                    </RadioGroup>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+                      <RadioGroupItem
+                        value={zone.id.toString()}
+                        id={`shipping-${zone.id}`}
+                        className="peer sr-only"
+                      />
+                      <Truck className="h-6 w-6" />
+                      <div className="flex-grow">
+                        <p className="font-medium">{zone.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {zone.price.toFixed(2)} BDT
+                        </p>
+                      </div>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              )}
+              {form.formState.errors.shippingZoneId && (
+                <p className="text-sm font-medium text-destructive pt-2">{`${form.formState.errors.shippingZoneId.message}`}</p>
+              )}
+            </div>
             
             <div className="pt-4">
               <h2 className="text-2xl font-headline font-bold mb-4">পেমেন্ট</h2>
@@ -375,5 +367,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    
