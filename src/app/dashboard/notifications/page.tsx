@@ -10,6 +10,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -42,6 +43,8 @@ type NotificationWithRecipient = Notification & {
   } | null;
 };
 
+const NOTIFICATIONS_PER_PAGE = 10;
+
 export default function SaasNotificationsPage() {
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<NotificationWithRecipient[]>([]);
@@ -51,6 +54,7 @@ export default function SaasNotificationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all'); // 'all', 'admin', 'customer'
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'read', 'unread'
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
@@ -91,6 +95,7 @@ export default function SaasNotificationsPage() {
             { data: customerProfilesData, error: customerProfilesError }
         ] = await Promise.all([profilesPromise, customerProfilesPromise]);
 
+
         if (profilesError) throw profilesError;
         if (customerProfilesError) throw customerProfilesError;
 
@@ -127,6 +132,10 @@ export default function SaasNotificationsPage() {
     fetchNotifications();
   }, [fetchNotifications]);
   
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, filterType, filterStatus]);
+
     const filteredNotifications = useMemo(() => {
         return notifications.filter(n => {
             const typeMatch = filterType === 'all' || n.recipient_type === filterType;
@@ -139,6 +148,12 @@ export default function SaasNotificationsPage() {
             return typeMatch && statusMatch && searchMatch;
         });
     }, [notifications, searchQuery, filterType, filterStatus]);
+
+    const totalPages = Math.ceil(filteredNotifications.length / NOTIFICATIONS_PER_PAGE);
+    const paginatedNotifications = filteredNotifications.slice(
+        (currentPage - 1) * NOTIFICATIONS_PER_PAGE,
+        currentPage * NOTIFICATIONS_PER_PAGE
+    );
 
     const clearFilters = () => {
         setSearchQuery('');
@@ -214,7 +229,7 @@ export default function SaasNotificationsPage() {
         </div>
       </CardHeader>
       <CardContent>
-        {filteredNotifications.length > 0 ? (
+        {paginatedNotifications.length > 0 ? (
           <>
             {/* Desktop View */}
             <div className="hidden md:block">
@@ -229,7 +244,7 @@ export default function SaasNotificationsPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {filteredNotifications.map((notification) => (
+                    {paginatedNotifications.map((notification) => (
                         <TableRow key={notification.id}>
                         <TableCell>
                             <div className="font-medium">{notification.profiles?.full_name || 'N/A'}</div>
@@ -260,7 +275,7 @@ export default function SaasNotificationsPage() {
             
             {/* Mobile View */}
             <div className="grid gap-4 md:hidden">
-                {filteredNotifications.map((notification) => (
+                {paginatedNotifications.map((notification) => (
                     <Card key={notification.id}>
                         <CardHeader>
                             <div className="flex justify-between items-start">
@@ -302,7 +317,31 @@ export default function SaasNotificationsPage() {
           <p className="text-muted-foreground text-center py-8">No notifications found matching your criteria.</p>
         )}
       </CardContent>
+      {totalPages > 1 && (
+        <CardFooter className="justify-center pt-6">
+          <div className="flex items-center gap-4 text-sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </CardFooter>
+      )}
     </Card>
   );
 }
-

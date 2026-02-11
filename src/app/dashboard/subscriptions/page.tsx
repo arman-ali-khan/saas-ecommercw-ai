@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -36,6 +37,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Eye, Loader2, User, CreditCard, FileText } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
+const PAYMENTS_PER_PAGE = 10;
+
 export default function SubscriptionPaymentsPage() {
   const [payments, setPayments] = useState<SubscriptionPaymentWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,6 +46,7 @@ export default function SubscriptionPaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchPayments = useCallback(async () => {
     if (!user) {
@@ -120,6 +124,12 @@ export default function SubscriptionPaymentsPage() {
     }
   }, [authLoading, fetchPayments]);
 
+  const totalPages = Math.ceil(payments.length / PAYMENTS_PER_PAGE);
+  const paginatedPayments = payments.slice(
+    (currentPage - 1) * PAYMENTS_PER_PAGE,
+    currentPage * PAYMENTS_PER_PAGE
+  );
+
   const handleUpdateStatus = async (payment: SubscriptionPaymentWithDetails, newPaymentStatus: 'completed' | 'failed', newProfileStatus: 'active' | 'inactive') => {
     setIsActionLoading(true);
     try {
@@ -188,7 +198,7 @@ export default function SubscriptionPaymentsPage() {
             <CardDescription>View all historical subscription payment records.</CardDescription>
         </CardHeader>
         <CardContent>
-          {payments.length > 0 ? (
+          {paginatedPayments.length > 0 ? (
             <>
               {/* Desktop View: Table */}
               <div className="hidden md:block">
@@ -205,7 +215,7 @@ export default function SubscriptionPaymentsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payments.map(payment => (
+                    {paginatedPayments.map(payment => (
                       <TableRow key={payment.id}>
                         <TableCell className="font-medium">{payment.profiles?.full_name || 'N/A'}</TableCell>
                         <TableCell><Badge variant="secondary">{payment.plans?.name || 'N/A'}</Badge></TableCell>
@@ -226,7 +236,7 @@ export default function SubscriptionPaymentsPage() {
               
               {/* Mobile View: Cards */}
               <div className="grid gap-4 md:hidden">
-                {payments.map(payment => (
+                {paginatedPayments.map(payment => (
                   <Card key={payment.id} onClick={() => setSelectedPayment(payment)} className="cursor-pointer hover:bg-muted/50">
                       <CardHeader>
                         <div className="flex items-start justify-between">
@@ -260,6 +270,31 @@ export default function SubscriptionPaymentsPage() {
             </div>
           )}
         </CardContent>
+        {totalPages > 1 && (
+            <CardFooter className="justify-center pt-6">
+                <div className="flex items-center gap-4 text-sm">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                    >
+                        Previous
+                    </Button>
+                    <span className="text-muted-foreground">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                    >
+                        Next
+                    </Button>
+                </div>
+            </CardFooter>
+        )}
       </Card>
 
       <Dialog open={!!selectedPayment} onOpenChange={(open) => !open && setSelectedPayment(null)}>
