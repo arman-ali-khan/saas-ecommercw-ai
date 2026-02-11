@@ -146,6 +146,7 @@ export default function CheckoutPage() {
   }, [paymentSettings]);
 
   useEffect(() => {
+    // Check if the order is submitting before redirecting
     if (isHydrated && cartCount === 0 && !isSubmitting && !window.location.search.includes('order_id')) {
       router.push(`/${username}`);
     }
@@ -305,12 +306,12 @@ export default function CheckoutPage() {
               render={({ field }) => (
                 <FormItem className="space-y-3">
                   <FormLabel>শিপিং পদ্ধতি</FormLabel>
-                   <RadioGroup
+                    <RadioGroup
                       onValueChange={field.onChange}
                       value={field.value}
                       className="grid grid-cols-1 md:grid-cols-2 gap-4"
                     >
-                      {isLoadingShipping ? (
+                      {!isHydrated || isLoadingShipping ? (
                          Array.from({ length: 2 }).map((_, index) => (
                            <Skeleton key={index} className="h-24 w-full" />
                          ))
@@ -321,11 +322,13 @@ export default function CheckoutPage() {
                             htmlFor={`shipping-${zone.id}`}
                             className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                           >
-                            <RadioGroupItem
-                              value={zone.id.toString()}
-                              id={`shipping-${zone.id}`}
-                              className="peer sr-only"
-                            />
+                            <FormControl>
+                                <RadioGroupItem
+                                value={zone.id.toString()}
+                                id={`shipping-${zone.id}`}
+                                className="peer sr-only"
+                                />
+                            </FormControl>
                             <Truck className="h-6 w-6" />
                             <div className="flex-grow">
                               <p className="font-medium">{zone.name}</p>
