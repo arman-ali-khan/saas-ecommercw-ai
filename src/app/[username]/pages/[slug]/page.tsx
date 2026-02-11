@@ -1,12 +1,13 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ProductShowcaseBlock } from '@/components/product-card';
 
 type Props = {
   params: { slug: string; username: string };
@@ -38,7 +39,7 @@ const alignmentClasses = {
 }
 
 
-function PageBlock({ block }: { block: any }) {
+function PageBlock({ block, username }: { block: any, username: string }) {
   if (!block || !block.type) {
     return null;
   }
@@ -91,12 +92,14 @@ function PageBlock({ block }: { block: any }) {
                 {(block.columns || []).map((column: any) => (
                     <div key={column.id}>
                         {(column.blocks || []).map((innerBlock: any, index: number) => (
-                            <PageBlock key={innerBlock.id || index} block={innerBlock} />
+                            <PageBlock key={innerBlock.id || index} block={innerBlock} username={username} />
                         ))}
                     </div>
                 ))}
             </div>
-        )
+        );
+    case 'product_showcase':
+        return <ProductShowcaseBlock product_ids={block.product_ids} title={block.title} username={username} />;
     default:
       return (
         <pre className="bg-muted p-4 rounded-md my-4 text-xs overflow-x-auto">
@@ -144,7 +147,7 @@ export default async function CustomPage({ params }: Props) {
       <h1 className="text-4xl md:text-5xl font-headline font-bold mb-8">{page.title}</h1>
       
       {contentBlocks.length > 0 ? (
-        contentBlocks.map((block, index) => <PageBlock key={block.id || index} block={block} />)
+        contentBlocks.map((block, index) => <PageBlock key={block.id || index} block={block} username={params.username} />)
       ) : (
         <p className="text-muted-foreground">This page has no content yet.</p>
       )}

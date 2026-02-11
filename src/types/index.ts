@@ -36,6 +36,7 @@ export interface Order {
     address: string;
     city: string;
     phone: string;
+    notes?: string;
   };
   cart_items: {
     id: string;

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -5,9 +6,28 @@ import Link from 'next/link';
 import type { Product } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Button } from './ui/button';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Loader2, Minus, Plus } from 'lucide-react';
 import { useCart } from '@/stores/cart';
 import { useToast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { supabase } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
+import { useState, useEffect } from 'react';
+
 
 interface ProductCardProps {
   product: Product;
@@ -59,4 +79,178 @@ export default function ProductCard({ product, username }: ProductCardProps) {
       </CardFooter>
     </Card>
   );
+}
+
+
+const orderFormSchema = z.object({
+  name: z.string().min(2, 'নাম প্রয়োজন'),
+  phone: z.string().min(11, '১১ সংখ্যার ফোন নম্বর প্রয়োজন'),
+  address: z.string().min(5, 'ঠিকানা প্রয়োজন'),
+  city: z.string().min(1, 'শহর প্রয়োজন'),
+  shipping: z.string({ required_error: 'শিপিং পদ্ধতি নির্বাচন করুন' }),
+  notes: z.string().optional(),
+});
+
+export function ProductShowcaseBlock({ product_ids, title, username }: { product_ids: string[], title?: string, username: string }) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [quantities, setQuantities] = useState<{[key: string]: number}>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+  const [siteId, setSiteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSiteAndProducts = async () => {
+      setIsLoading(true);
+      if (product_ids && product_ids.length > 0) {
+        const { data: productsData, error } = await supabase
+          .from('products')
+          .select('*')
+          .in('id', product_ids);
+
+        if (error) {
+          toast({ variant: 'destructive', title: 'Error fetching products' });
+        } else {
+          setProducts(productsData as Product[]);
+          const initialQuantities = (productsData as Product[]).reduce((acc, p) => {
+            acc[p.id] = 1;
+            return acc;
+          }, {} as {[key: string]: number});
+          setQuantities(initialQuantities);
+        }
+      }
+      
+      const { data: profileData } = await supabase.from('profiles').select('id').eq('domain', username).single();
+      if(profileData) {
+        setSiteId(profileData.id);
+      }
+
+      setIsLoading(false);
+    };
+    fetchSiteAndProducts();
+  }, [product_ids, username, toast]);
+
+  const form = useForm<z.infer<typeof orderFormSchema>>({
+    resolver: zodResolver(orderFormSchema),
+    defaultValues: { shipping: 'inside_dhaka', name: '', phone: '', address: '', city: '', notes: '' },
+  });
+  
+  const handleQuantityChange = (id: string, newQuantity: number) => {
+    setQuantities(prev => ({ ...prev, [id]: Math.max(1, newQuantity) }));
+  }
+
+  const shippingCost = form.watch('shipping') === 'inside_dhaka' ? 60 : 120;
+  const subtotal = products.reduce((acc, p) => acc + (p.price * (quantities[p.id] || 0)), 0);
+  const total = subtotal + shippingCost;
+  
+  const onSubmit = async (values: z.infer<typeof orderFormSchema>) => {
+    if (!siteId) {
+      toast({ variant: 'destructive', title: 'Site not found' });
+      return;
+    }
+    setIsSubmitting(true);
+    
+    const orderNumber = `BN-${Date.now().toString().slice(-6)}`;
+
+    const orderData = {
+      order_number: orderNumber,
+      site_id: siteId,
+      customer_email: 'quickorder@example.com', // No email field in this form
+      shipping_info: {
+        name: values.name,
+        address: values.address,
+        city: values.city,
+        phone: values.phone,
+        notes: values.notes,
+      },
+      cart_items: products.map(p => ({
+        id: p.id,
+        name: p.name,
+        quantity: quantities[p.id] || 1,
+        price: p.price,
+        imageUrl: p.images[0]?.imageUrl
+      })),
+      total: total,
+      payment_method: 'cod', // Hardcoded for this form
+      transaction_id: null,
+      status: 'processing',
+      domain: username,
+    };
+
+    try {
+      const response = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+      });
+      const newOrder = await response.json();
+      if (!response.ok) throw new Error(newOrder.error || 'Failed to create order');
+      
+      router.push(`/${username}/checkout/success?order_id=${newOrder.id}`);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Order failed', description: error.message });
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return <Card className="my-8"><CardContent><Loader2 className="mx-auto my-16 h-10 w-10 animate-spin" /></CardContent></Card>;
+  }
+
+  if (products.length === 0) {
+    return null;
+  }
+  
+  return (
+    <Card className="my-8">
+      <CardHeader>
+        {title && <CardTitle>{title}</CardTitle>}
+      </CardHeader>
+      <CardContent>
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Products List */}
+          <div className="space-y-4">
+             <h3 className="font-semibold text-lg">Selected Products</h3>
+             {products.map(p => (
+              <div key={p.id} className="flex gap-4 items-center">
+                <Image src={p.images[0].imageUrl} alt={p.name} width={64} height={64} className="rounded-md object-cover aspect-square" />
+                <div className="flex-grow">
+                  <p className="font-medium">{p.name}</p>
+                  <p className="text-sm text-muted-foreground">{p.price.toFixed(2)} {p.currency}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 1) - 1)}><Minus className="h-4 w-4" /></Button>
+                  <Input value={quantities[p.id] || 1} onChange={e => handleQuantityChange(p.id, parseInt(e.target.value) || 1)} className="h-7 w-12 text-center" />
+                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 1) + 1)}><Plus className="h-4 w-4" /></Button>
+                </div>
+              </div>
+             ))}
+             <Separator className="my-4" />
+             <div className="space-y-1 text-sm pt-4">
+                <div className="flex justify-between"><span>Subtotal</span><span>{subtotal.toFixed(2)} BDT</span></div>
+                <div className="flex justify-between"><span>Shipping</span><span>{shippingCost.toFixed(2)} BDT</span></div>
+                <div className="flex justify-between font-bold text-base mt-2"><span>Total</span><span>{total.toFixed(2)} BDT</span></div>
+             </div>
+          </div>
+          
+          {/* Order Form */}
+          <div>
+            <h3 className="font-semibold text-lg mb-4">Shipping Information</h3>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                 <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <FormField control={form.control} name="shipping" render={({ field }) => ( <FormItem><FormLabel>Shipping Area</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="inside_dhaka" id="inside_dhaka" /></FormControl><FormLabel htmlFor="inside_dhaka" className="font-normal">Inside Dhaka (60 BDT)</FormLabel></FormItem><FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="outside_dhaka" id="outside_dhaka" /></FormControl><FormLabel htmlFor="outside_dhaka" className="font-normal">Outside Dhaka (120 BDT)</FormLabel></FormItem></RadioGroup></FormControl></FormItem> )} />
+                 <FormField control={form.control} name="notes" render={({ field }) => ( <FormItem><FormLabel>Order Note (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Place Order</Button>
+              </form>
+            </Form>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
 }

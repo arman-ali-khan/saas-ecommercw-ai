@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -39,6 +40,7 @@ type Order = {
         address: string;
         city: string;
         phone: string;
+        notes?: string;
     };
     cart_items: {
         id: string;
@@ -302,6 +304,12 @@ export default function OrderDetailsPage() {
                                     </Button>
                                 }
                             </div>
+                             {order.shipping_info.notes && (
+                                <div className="pt-4 border-t mt-4">
+                                    <p className="font-semibold text-foreground">Order Note:</p>
+                                    <p className="text-muted-foreground whitespace-pre-wrap">{order.shipping_info.notes}</p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                  </div>
