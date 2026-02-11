@@ -26,10 +26,7 @@ import { Badge } from '@/components/ui/badge';
 
 const shippingZoneSchema = z.object({
     name: z.string().min(1, 'Zone name is required.'),
-    price: z.preprocess(
-      (a) => parseFloat(z.string().parse(a)),
-      z.number().min(0, 'Price must be a non-negative number.')
-    ),
+    price: z.coerce.number().min(0, 'Price must be a non-negative number.'),
     is_enabled: z.boolean().default(true),
 });
 
