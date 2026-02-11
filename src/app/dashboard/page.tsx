@@ -5,14 +5,13 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from '@/components/ui/card';
 import {
   Users,
   DollarSign,
   CreditCard,
-  Activity,
   ArrowRight,
+  Clock,
 } from 'lucide-react';
 import {
   Table,
@@ -27,65 +26,76 @@ import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Link from 'next/link';
-
-// Mock data from subscriptions page
-const subscriptions = [
-  {
-    id: '1',
-    user: 'আরিফুল ইসলাম',
-    plan: 'Pro',
-    status: 'Active',
-    nextBilling: '2024-08-25',
-  },
-  {
-    id: '2',
-    user: 'সুমাইয়া খাতুন',
-    plan: 'Free',
-    status: 'Active',
-    nextBilling: 'N/A',
-  },
-  {
-    id: '3',
-    user: 'রাশেদ আহমেদ',
-    plan: 'Pro',
-    status: 'Canceled',
-    nextBilling: '2024-07-30',
-  },
-  {
-    id: '4',
-    user: 'জান্নাতুল ফেরদৌস',
-    plan: 'Enterprise',
-    status: 'Active',
-    nextBilling: '2025-01-01',
-  },
-];
+import { format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { SubscriptionPaymentWithDetails } from '@/types';
 
 export default function SaasAdminDashboard() {
-  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    activeSubscriptions: 0,
+    totalUsers: 0,
+    pendingSubscriptions: 0,
+  });
+  const [pendingPayments, setPendingPayments] = useState<SubscriptionPaymentWithDetails[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const { data } = await supabase.from('profiles').select('*');
-      if (data) {
-        setAllUsers(data);
+    const fetchData = async () => {
+      setIsLoading(true);
+
+      const profilesPromise = supabase.from('profiles').select('*', { count: 'exact' });
+      const paymentsPromise = supabase.from('subscription_payments').select('*, plans(name), profiles(full_name, username)');
+      const notificationsPromise = supabase
+        .from('notifications')
+        .select('*, profiles!notifications_recipient_id_fkey(full_name, username)')
+        .eq('is_read', false)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const [
+        { data: profilesData, count: totalUsers, error: profilesError },
+        { data: paymentsData, error: paymentsError },
+        { data: notificationsData, error: notificationsError },
+      ] = await Promise.all([profilesPromise, paymentsPromise, notificationsPromise]);
+
+      if (profilesError || paymentsError || notificationsError) {
+        console.error("Dashboard fetch error:", profilesError || paymentsError || notificationsError);
+        setIsLoading(false);
+        return;
       }
+
+      // Calculate stats
+      const totalRevenue = paymentsData
+        ?.filter(p => p.status === 'completed')
+        .reduce((sum, p) => sum + p.amount, 0) || 0;
+
+      const activeSubscriptions = profilesData
+        ?.filter(p => p.subscription_status === 'active')
+        .length || 0;
+
+      const pendingSubscriptionsCount = paymentsData
+        ?.filter(p => p.status === 'pending')
+        .length || 0;
+
+      setStats({
+        totalRevenue,
+        activeSubscriptions,
+        totalUsers: totalUsers || 0,
+        pendingSubscriptions: pendingSubscriptionsCount,
+      });
+
+      // Using the types from the join directly
+      setPendingPayments((paymentsData?.filter(p => p.status === 'pending').slice(0, 5) || []) as SubscriptionPaymentWithDetails[]);
+      setUnreadNotifications(notificationsData || []);
+
+      setIsLoading(false);
     };
-    fetchUsers();
+
+    fetchData();
   }, []);
-
-  const getStatusBadgeVariant = (
-    status: string
-  ): 'default' | 'secondary' | 'destructive' => {
-    switch (status) {
-      case 'Active':
-        return 'default';
-      case 'Canceled':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
-  };
-
+  
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">SaaS Dashboard</h1>
@@ -96,21 +106,21 @@ export default function SaasAdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">BDT 1,245,231</div>
+            <div className="text-2xl font-bold">BDT {stats.totalRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              +20.1% from last month
+              All time from subscriptions
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Subscriptions</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+2350</div>
+            <div className="text-2xl font-bold">+{stats.activeSubscriptions}</div>
             <p className="text-xs text-muted-foreground">
-              +180.1% from last month
+              Currently active plans
             </p>
           </CardContent>
         </Card>
@@ -120,7 +130,7 @@ export default function SaasAdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{allUsers.length}</div>
+            <div className="text-2xl font-bold">{stats.totalUsers}</div>
             <p className="text-xs text-muted-foreground">
               Total registered site owners
             </p>
@@ -128,13 +138,13 @@ export default function SaasAdminDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Now</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Pending Subscriptions</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+573</div>
+            <div className="text-2xl font-bold">+{stats.pendingSubscriptions}</div>
             <p className="text-xs text-muted-foreground">
-              Users on the platform
+              Require manual approval
             </p>
           </CardContent>
         </Card>
@@ -142,61 +152,106 @@ export default function SaasAdminDashboard() {
 
       <div className="grid gap-6 lg:grid-cols-1 xl:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>User Management</CardTitle>
-            <CardDescription>
-              View and manage all {allUsers.length} registered users.
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Pending Subscriptions</CardTitle>
+                <CardDescription>
+                  The 5 most recent payments awaiting approval.
+                </CardDescription>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard/subscriptions">
+                    View All <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+              </Button>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
-              Click the button below to go to the dedicated user management
-              page.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild>
-              <Link href="/dashboard/users">
-                Manage Users <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Subscription Management</CardTitle>
-            <CardDescription>
-              View and manage all user subscriptions.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
+             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Plan</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {subscriptions.map((sub) => (
-                  <TableRow key={sub.id}>
-                    <TableCell className="font-medium">{sub.user}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={sub.plan === 'Pro' ? 'default' : 'secondary'}
-                      >
-                        {sub.plan}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusBadgeVariant(sub.status)}>
-                        {sub.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {isLoading ? (
+                    [...Array(3)].map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                        </TableRow>
+                    ))
+                ) : pendingPayments.length > 0 ? (
+                    pendingPayments.map((sub) => (
+                    <TableRow key={sub.id}>
+                        <TableCell className="font-medium">{sub.profiles?.full_name || 'N/A'}</TableCell>
+                        <TableCell>
+                        <Badge variant="secondary">
+                            {sub.plans?.name || 'N/A'}
+                        </Badge>
+                        </TableCell>
+                        <TableCell>
+                          ৳{sub.amount.toFixed(2)}
+                        </TableCell>
+                    </TableRow>
+                    ))
+                ) : (
+                    <TableRow>
+                        <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">No pending subscriptions.</TableCell>
+                    </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+           <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Unread Notifications</CardTitle>
+                <CardDescription>
+                  The 5 latest unread notifications across the platform.
+                </CardDescription>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard/notifications">
+                    View All <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+              </Button>
+          </CardHeader>
+          <CardContent>
+             <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Recipient</TableHead>
+                  <TableHead>Message</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                 {isLoading ? (
+                    [...Array(3)].map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                        </TableRow>
+                    ))
+                ) : unreadNotifications.length > 0 ? (
+                    unreadNotifications.map((notif) => (
+                    <TableRow key={notif.id}>
+                        <TableCell className="font-medium">{notif.profiles?.full_name || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground truncate max-w-xs">{notif.message}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{format(new Date(notif.created_at), 'PP')}</TableCell>
+                    </TableRow>
+                    ))
+                 ) : (
+                    <TableRow>
+                        <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">No unread notifications.</TableCell>
+                    </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
