@@ -307,6 +307,7 @@ export default function Header() {
   const navLinks = [
     { href: basePath || '/', label: 'হোম' },
     { href: `${basePath}/products`, label: 'পণ্য' },
+    { href: `${basePath}/track-order`, label: 'ট্র্যাক অর্ডার' },
     { href: `${basePath}/about`, label: 'আমাদের সম্পর্কে' },
   ];
 
