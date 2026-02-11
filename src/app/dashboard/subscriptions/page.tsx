@@ -154,7 +154,6 @@ export default function SubscriptionPaymentsPage() {
       case 'completed':
         return 'default';
       case 'pending':
-      case 'pending_verification':
         return 'secondary';
       default:
         return 'destructive';

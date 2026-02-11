@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         site_description: siteDescription,
         subscription_plan: planId,
         // Set status based on plan
-        subscription_status: planId === 'free' ? 'active' : 'pending_verification',
+        subscription_status: planId === 'free' ? 'active' : 'pending',
         role: 'admin'
       })
       .eq('id', userId); 
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
           amount: priceNumber,
           payment_method: paymentMethod || 'manual',
           transaction_id: finalTransactionId,
-          status: 'pending_verification',
+          status: 'pending',
         });
       
       if (paymentError) {
