@@ -63,7 +63,7 @@ const youtubeBlockSchema = blockBaseSchema.extend({
 
 const coloredBoxBlockSchema = blockBaseSchema.extend({
     type: z.literal('coloredBox'),
-    color: z.string().optional().default('#172554'),
+    color: z.string().optional().default('hsl(var(--card))'),
     text: z.string().min(1, 'Text cannot be empty.')
 });
 
@@ -84,6 +84,29 @@ const pageFormSchema = z.object({
 });
 
 type PageFormData = z.infer<typeof pageFormSchema>;
+
+const themeColorPalette = {
+    'Background': 'hsl(var(--background))',
+    'Foreground': 'hsl(var(--foreground))',
+    'Card': 'hsl(var(--card))',
+    'Popover': 'hsl(var(--popover))',
+    'Primary': 'hsl(var(--primary))',
+    'Secondary': 'hsl(var(--secondary))',
+    'Muted': 'hsl(var(--muted))',
+    'Accent': 'hsl(var(--accent))',
+    'Destructive': 'hsl(var(--destructive))',
+}
+
+const defaultColorPalette = [
+    { name: 'Navy', color: '#172554' },
+    { name: 'Green', color: '#064e3b' },
+    { name: 'Red', color: '#7f1d1d' },
+    { name: 'Amber', color: '#854d0e' },
+    { name: 'Indigo', color: '#1e1b4b' },
+    { name: 'Fuchsia', color: '#4a044e' },
+    { name: 'Slate', color: '#334155' },
+    { name: 'Stone', color: '#44403c' },
+];
 
 export default function ManagePage() {
   const params = useParams();
@@ -151,7 +174,7 @@ export default function ManagePage() {
       case 'image': newBlock = { id, type: 'image', src: 'https://placehold.co/1200x600?text=Your+Image', alt: 'Placeholder Image' }; break;
       case 'button': newBlock = { id, type: 'button', text: 'Click Me', href: '#', variant: 'default' }; break;
       case 'youtube': newBlock = { id, type: 'youtube', videoId: 'dQw4w9WgXcQ' }; break;
-      case 'coloredBox': newBlock = { id, type: 'coloredBox', color: '#172554', text: 'This is a colored box. You can change the background color and the text.' }; break;
+      case 'coloredBox': newBlock = { id, type: 'coloredBox', color: 'hsl(var(--card))', text: 'This is a colored box. You can change the background color and the text.' }; break;
     }
     append(newBlock);
   };
@@ -252,7 +275,53 @@ export default function ManagePage() {
                           {field.type === 'coloredBox' && (
                             <>
                                 <FormField control={form.control} name={`content.${index}.text`} render={({ field: f }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...f} rows={3} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name={`content.${index}.color`} render={({ field: f }) => (<FormItem><FormLabel>Background Color</FormLabel><FormControl><Input {...f} placeholder="#172554" /></FormControl><FormDescription>Enter a hex color code.</FormDescription><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name={`content.${index}.color`} render={({ field: f }) => (
+                                    <FormItem>
+                                        <FormLabel>Background Color</FormLabel>
+                                        <FormControl><Input {...f} placeholder="hsl(var(--card))" /></FormControl>
+                                        <FormDescription>Select a color or enter a custom HSL or hex code.</FormDescription>
+                                        
+                                        <div className="space-y-2 pt-2">
+                                            <Label className="text-xs text-muted-foreground">Theme Colors</Label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {Object.entries(themeColorPalette).map(([name, color]) => (
+                                                    <Button
+                                                        type="button"
+                                                        key={name}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className={`flex items-center gap-2 ${f.value === color ? 'ring-2 ring-ring' : ''}`}
+                                                        onClick={() => form.setValue(`content.${index}.color`, color)}
+                                                    >
+                                                        <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }}/>
+                                                        {name}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 pt-2">
+                                            <Label className="text-xs text-muted-foreground">Standard Palette</Label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {defaultColorPalette.map(({name, color}) => (
+                                                    <Button
+                                                        type="button"
+                                                        key={name}
+                                                        variant="outline"
+                                                        size="icon"
+                                                        title={name}
+                                                        className={f.value === color ? 'ring-2 ring-ring' : ''}
+                                                        onClick={() => form.setValue(`content.${index}.color`, color)}
+                                                    >
+                                                        <div className="h-6 w-6 rounded-md border" style={{ backgroundColor: color }}/>
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
                             </>
                           )}
                         </div>
