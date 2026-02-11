@@ -2,6 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
       user_metadata: {
         full_name: fullName,
         role: 'admin', 
+        email: email,
       }
     });
 
@@ -52,12 +54,11 @@ export async function POST(request: Request) {
         subscription_plan: planId,
         // Set status based on plan
         subscription_status: planId === 'free' ? 'active' : 'pending',
-        role: 'admin' // Explicitly set application-level role
+        role: 'admin'
       })
-      .eq('id', userId); // Target the row that the trigger just created.
+      .eq('id', userId); 
 
     if (profileError) {
-      // If the profile update fails, we must delete the auth user to allow them to retry registration.
       throw new Error(`Database error updating profile: ${profileError.message}`);
     }
 
@@ -76,6 +77,9 @@ export async function POST(request: Request) {
       const priceString = String(planData.price || '0');
       const priceNumber = parseFloat(priceString.replace(/[^0-9.]/g, '')) || 0;
 
+      // If a transactionId is not provided (e.g. for manual verification), generate one.
+      const finalTransactionId = (transactionId && transactionId.trim()) ? transactionId.trim() : uuidv4();
+
       const { error: paymentError } = await supabaseAdmin
         .from('subscription_payments')
         .insert({
@@ -83,10 +87,10 @@ export async function POST(request: Request) {
           plan_id: planData.id,
           amount: priceNumber,
           payment_method: paymentMethod || 'manual',
-          transaction_id: transactionId || null,
+          transaction_id: finalTransactionId,
           status: 'pending',
         });
-
+      
       if (paymentError) {
         throw new Error(`Could not create payment record: ${paymentError.message}`);
       }
