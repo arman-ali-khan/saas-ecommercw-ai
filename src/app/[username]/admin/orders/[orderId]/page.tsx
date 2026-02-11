@@ -28,33 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Loader2, Package, User, MapPin, Phone, Mail, CreditCard } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
-
-type Order = {
-    id: string;
-    order_number: string;
-    customer_id: string | null;
-    site_id: string;
-    customer_email: string;
-    shipping_info: {
-        name: string;
-        address: string;
-        city: string;
-        phone: string;
-        notes?: string;
-    };
-    cart_items: {
-        id: string;
-        name: string;
-        quantity: number;
-        price: number;
-        imageUrl: string;
-    }[];
-    created_at: string;
-    total: number;
-    status: string;
-    payment_method: string;
-    transaction_id: string | null;
-};
+import type { Order } from '@/types';
 
 const orderStatuses = ['processing', 'shipped', 'delivered', 'canceled'];
 
@@ -164,6 +138,8 @@ export default function OrderDetailsPage() {
             default: return 'outline';
         }
     };
+    
+    const subtotal = order?.cart_items.reduce((acc, item) => acc + (item.price * item.quantity), 0) || 0;
 
     if (isLoading) {
         return (
@@ -243,11 +219,11 @@ export default function OrderDetailsPage() {
                             <div className="space-y-2 text-right">
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">উপমোট</span>
-                                    <span>{order.total.toFixed(2)} BDT</span>
+                                    <span>{subtotal.toFixed(2)} BDT</span>
                                 </div>
                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">শিপিং</span>
-                                    <span>বিনামূল্যে</span>
+                                    <span className="text-muted-foreground">শিপিং ({order.shipping_info.shipping_method_name || 'N/A'})</span>
+                                    <span>{(order.shipping_info.shipping_cost || 0).toFixed(2)} BDT</span>
                                 </div>
                                  <div className="flex justify-between font-bold text-lg">
                                     <span>মোট</span>

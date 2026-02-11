@@ -37,6 +37,8 @@ export interface Order {
     city: string;
     phone: string;
     notes?: string;
+    shipping_cost?: number;
+    shipping_method_name?: string;
   };
   cart_items: {
     id: string;
@@ -78,6 +80,15 @@ export interface Category {
   site_id: string;
   name: string;
   description: string | null;
+  created_at: string;
+}
+
+export interface ShippingZone {
+  id: number;
+  site_id: string;
+  name: string;
+  price: number;
+  is_enabled: boolean;
   created_at: string;
 }
 

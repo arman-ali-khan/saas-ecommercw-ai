@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -80,6 +81,9 @@ export default function CustomerOrderDetailsPage() {
             default: return 'outline';
         }
     };
+    
+    const subtotal = order?.cart_items.reduce((acc, item) => acc + (item.price * item.quantity), 0) || 0;
+
 
     if (isLoading) {
         return (
@@ -159,13 +163,13 @@ export default function CustomerOrderDetailsPage() {
                             <div className="space-y-2 text-right">
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">উপমোট</span>
-                                    <span>{order.total.toFixed(2)} BDT</span>
+                                    <span>{subtotal.toFixed(2)} BDT</span>
                                 </div>
-                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">শিপিং</span>
-                                    <span>বিনামূল্যে</span>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">শিপিং ({order.shipping_info.shipping_method_name || 'N/A'})</span>
+                                    <span>{(order.shipping_info.shipping_cost || 0).toFixed(2)} BDT</span>
                                 </div>
-                                 <div className="flex justify-between font-bold text-lg">
+                                <div className="flex justify-between font-bold text-lg">
                                     <span>মোট</span>
                                     <span>{order.total.toFixed(2)} BDT</span>
                                 </div>

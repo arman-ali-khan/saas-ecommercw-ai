@@ -20,6 +20,7 @@ import {
   Users,
   LogOut,
   Bell,
+  Truck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from './logo';
@@ -148,6 +149,7 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
     { href: `/${username}/admin/categories`, label: 'Categories', icon: Tags },
     { href: `/${username}/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
     { href: `/${username}/admin/customers`, label: 'Customers', icon: Users },
+    { href: `/${username}/admin/shipping`, label: 'Shipping', icon: Truck },
     { href: `/${username}/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/${username}/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/${username}/admin/uncompleted`, label: 'Uncompleted', icon: FileClock },
