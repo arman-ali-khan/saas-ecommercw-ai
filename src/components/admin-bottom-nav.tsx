@@ -37,6 +37,7 @@ export default function AdminBottomNav({ username }: { username: string }) {
     if (!user) return;
 
     const fetchCounts = async () => {
+      // Fetch processing orders count
       const { count: orderCount } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
@@ -44,6 +45,7 @@ export default function AdminBottomNav({ username }: { username: string }) {
         .eq('status', 'processing');
       setProcessingOrdersCount(orderCount || 0);
 
+      // Fetch unread notifications count
       const { count: notifCount } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
@@ -53,10 +55,10 @@ export default function AdminBottomNav({ username }: { username: string }) {
       setUnreadNotificationsCount(notifCount || 0);
     };
     
-    fetchCounts();
+    fetchCounts(); // Initial fetch
 
     const channel = supabase
-      .channel(`bottom-nav-realtime-${user.id}`)
+      .channel(`admin-dashboard-counts-channel-${user.id}`)
       .on(
         'postgres_changes',
         {
