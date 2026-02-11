@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/stores/cart';
@@ -146,10 +145,11 @@ export default function CheckoutPage() {
   }, [paymentSettings]);
 
   useEffect(() => {
-    if (isHydrated && !isSubmitting && cartCount === 0 && !window.location.search.includes('order_id')) {
+    // This effect now has a lock to prevent the redirect while submitting
+    if (isHydrated && cartCount === 0 && !isSubmitting && !window.location.search.includes('order_id')) {
       router.push(`/${username}`);
     }
-  }, [isHydrated, isSubmitting, cartCount, router, username]);
+  }, [isHydrated, cartCount, router, username, isSubmitting]);
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     if (!siteId) {
@@ -310,22 +310,37 @@ export default function CheckoutPage() {
                 name="shippingZoneId"
                 render={({ field }) => (
                   <FormItem className="space-y-3">
-                      <FormLabel>শিপিং পদ্ধতি</FormLabel>
-                      <FormControl>
-                          <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {shippingZones.map(zone => (
-                              <Label key={zone.id} htmlFor={`shipping-${zone.id}`} className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                              <RadioGroupItem value={zone.id.toString()} id={`shipping-${zone.id}`} className="sr-only" />
+                    <FormLabel>শিপিং পদ্ধতি</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                      >
+                        {shippingZones.map((zone) => (
+                          <div key={zone.id}>
+                            <RadioGroupItem
+                              value={zone.id.toString()}
+                              id={`shipping-${zone.id}`}
+                              className="peer sr-only"
+                            />
+                            <Label
+                              htmlFor={`shipping-${zone.id}`}
+                              className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary"
+                            >
                               <Truck className="h-6 w-6" />
                               <div className="flex-grow">
-                                  <p className="font-medium">{zone.name}</p>
-                                  <p className="text-sm text-muted-foreground">{zone.price.toFixed(2)} BDT</p>
+                                <p className="font-medium">{zone.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {zone.price.toFixed(2)} BDT
+                                </p>
                               </div>
-                              </Label>
-                          ))}
-                          </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
