@@ -259,12 +259,10 @@ export default function ManageProductPage() {
     if (result.event === 'success') {
       const secureUrl = result.info.secure_url;
       if (fields.length > 0) {
-        update(0, {
-          ...(fields[0] || {}),
-          imageUrl: secureUrl,
-          imageHint: fields[0]?.imageHint || '',
-        });
+        // Use setValue for a more direct update of a specific field in the array
+        form.setValue(`images.0.imageUrl`, secureUrl, { shouldValidate: true, shouldDirty: true });
       } else {
+        // `append` is still correct for adding the very first image
         append({ imageUrl: secureUrl, imageHint: '' });
       }
     }
