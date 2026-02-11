@@ -301,10 +301,10 @@ export default function CheckoutPage() {
             <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem> <FormLabel>ফোন নম্বর</FormLabel> <FormControl> <Input placeholder="01712345678" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
             
             {isLoadingShipping ? (
-               <div className="space-y-3">
-                  <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-24 w-full" />
-                </div>
+              <div className="space-y-3">
+                <Label>শিপিং পদ্ধতি</Label>
+                <Skeleton className="h-24 w-full" />
+              </div>
             ) : (
               <FormField
                 control={form.control}
@@ -312,33 +312,34 @@ export default function CheckoutPage() {
                 render={({ field }) => (
                   <FormItem className="space-y-3">
                     <FormLabel>শিপিং পদ্ধতি</FormLabel>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                    >
-                      {shippingZones.map((zone) => (
-                        <div key={zone.id}>
-                          <RadioGroupItem
-                            value={zone.id.toString()}
-                            id={`shipping-${zone.id}`}
-                            className="peer sr-only"
-                          />
-                          <Label
-                            htmlFor={`shipping-${zone.id}`}
-                            className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary"
-                          >
-                            <Truck className="h-6 w-6" />
-                            <div className="flex-grow">
-                              <p className="font-medium">{zone.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {zone.price.toFixed(2)} BDT
-                              </p>
-                            </div>
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                      >
+                        {shippingZones.map((zone) => (
+                            <Label
+                              key={zone.id}
+                              htmlFor={`shipping-${zone.id}`}
+                              className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary"
+                            >
+                              <RadioGroupItem
+                                value={zone.id.toString()}
+                                id={`shipping-${zone.id}`}
+                                className="peer sr-only"
+                              />
+                              <Truck className="h-6 w-6" />
+                              <div className="flex-grow">
+                                <p className="font-medium">{zone.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {zone.price.toFixed(2)} BDT
+                                </p>
+                              </div>
+                            </Label>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -373,5 +374,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    
