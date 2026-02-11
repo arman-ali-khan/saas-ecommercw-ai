@@ -97,9 +97,13 @@ export default function CustomerLoginPage() {
 
   return (
     <div className="flex items-center justify-center py-12">
+      
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">লগ ইন</CardTitle>
+          <Link href={`/${domain}/admin/login`} className="font-medium text-primary hover:underline">
+              Admin
+            </Link>
           <CardDescription>আপনার অ্যাকাউন্টে চালিয়ে যেতে সাইন ইন করুন।</CardDescription>
         </CardHeader>
         <CardContent>
