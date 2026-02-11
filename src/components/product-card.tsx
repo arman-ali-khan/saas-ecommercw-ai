@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -27,7 +26,15 @@ import { Textarea } from './ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
-
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+  } from '@/components/ui/dialog';
+import { Label } from './ui/label';
 
 interface ProductCardProps {
   product: Product;
@@ -82,7 +89,7 @@ export default function ProductCard({ product, username }: ProductCardProps) {
 }
 
 
-const orderFormSchema = z.object({
+const shippingFormSchema = z.object({
   name: z.string().min(2, 'নাম প্রয়োজন'),
   phone: z.string().min(11, '১১ সংখ্যার ফোন নম্বর প্রয়োজন'),
   address: z.string().min(5, 'ঠিকানা প্রয়োজন'),
@@ -99,6 +106,11 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
   const router = useRouter();
   const { toast } = useToast();
   const [siteId, setSiteId] = useState<string | null>(null);
+
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [shippingData, setShippingData] = useState<z.infer<typeof shippingFormSchema> | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [transactionId, setTransactionId] = useState('');
 
   useEffect(() => {
     const fetchSiteAndProducts = async () => {
@@ -131,8 +143,8 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
     fetchSiteAndProducts();
   }, [product_ids, username, toast]);
 
-  const form = useForm<z.infer<typeof orderFormSchema>>({
-    resolver: zodResolver(orderFormSchema),
+  const form = useForm<z.infer<typeof shippingFormSchema>>({
+    resolver: zodResolver(shippingFormSchema),
     defaultValues: { shipping: 'inside_dhaka', name: '', phone: '', address: '', city: '', notes: '' },
   });
   
@@ -140,15 +152,26 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
     setQuantities(prev => ({ ...prev, [id]: Math.max(1, newQuantity) }));
   }
 
-  const shippingCost = form.watch('shipping') === 'inside_dhaka' ? 60 : 120;
+  const shippingCost = form.watch('shipping') === 'inside_dhaka' ? 80 : 150;
   const subtotal = products.reduce((acc, p) => acc + (p.price * (quantities[p.id] || 0)), 0);
   const total = subtotal + shippingCost;
   
-  const onSubmit = async (values: z.infer<typeof orderFormSchema>) => {
-    if (!siteId) {
-      toast({ variant: 'destructive', title: 'Site not found' });
-      return;
+  const onShippingSubmit = (values: z.infer<typeof shippingFormSchema>) => {
+    setShippingData(values);
+    setIsPaymentDialogOpen(true);
+  };
+  
+  const handleConfirmOrder = async () => {
+    if (!shippingData || !siteId) {
+        toast({ variant: 'destructive', title: 'An error occurred', description: 'Shipping data is missing.'});
+        return;
     }
+
+    if (paymentMethod === 'mobile_banking' && !transactionId.trim()) {
+        toast({ variant: 'destructive', title: 'Validation Error', description: 'Transaction ID is required for mobile banking.' });
+        return;
+    }
+
     setIsSubmitting(true);
     
     const orderNumber = `BN-${Date.now().toString().slice(-6)}`;
@@ -158,11 +181,11 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
       site_id: siteId,
       customer_email: 'quickorder@example.com', // No email field in this form
       shipping_info: {
-        name: values.name,
-        address: values.address,
-        city: values.city,
-        phone: values.phone,
-        notes: values.notes,
+        name: shippingData.name,
+        address: shippingData.address,
+        city: shippingData.city,
+        phone: shippingData.phone,
+        notes: shippingData.notes,
       },
       cart_items: products.map(p => ({
         id: p.id,
@@ -172,8 +195,8 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
         imageUrl: p.images[0]?.imageUrl
       })),
       total: total,
-      payment_method: 'cod', // Hardcoded for this form
-      transaction_id: null,
+      payment_method: paymentMethod,
+      transaction_id: paymentMethod === 'mobile_banking' ? transactionId : null,
       status: 'processing',
       domain: username,
     };
@@ -203,6 +226,7 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
   }
   
   return (
+    <>
     <Card className="my-8">
       <CardHeader>
         {title && <CardTitle>{title}</CardTitle>}
@@ -211,7 +235,7 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
         <div className="grid md:grid-cols-2 gap-8">
           {/* Products List */}
           <div className="space-y-4">
-             <h3 className="font-semibold text-lg">Selected Products</h3>
+             <h3 className="font-semibold text-lg">আপনার নির্বাচিত পণ্য</h3>
              {products.map(p => (
               <div key={p.id} className="flex gap-4 items-center">
                 <Image src={p.images[0].imageUrl} alt={p.name} width={64} height={64} className="rounded-md object-cover aspect-square" />
@@ -228,29 +252,70 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
              ))}
              <Separator className="my-4" />
              <div className="space-y-1 text-sm pt-4">
-                <div className="flex justify-between"><span>Subtotal</span><span>{subtotal.toFixed(2)} BDT</span></div>
-                <div className="flex justify-between"><span>Shipping</span><span>{shippingCost.toFixed(2)} BDT</span></div>
-                <div className="flex justify-between font-bold text-base mt-2"><span>Total</span><span>{total.toFixed(2)} BDT</span></div>
+                <div className="flex justify-between"><span>উপমোট</span><span>{subtotal.toFixed(2)} BDT</span></div>
+                <div className="flex justify-between"><span>শিপিং</span><span>{shippingCost.toFixed(2)} BDT</span></div>
+                <div className="flex justify-between font-bold text-base mt-2"><span>মোট</span><span>{total.toFixed(2)} BDT</span></div>
              </div>
           </div>
           
-          {/* Order Form */}
+          {/* Shipping Form */}
           <div>
-            <h3 className="font-semibold text-lg mb-4">Shipping Information</h3>
+            <h3 className="font-semibold text-lg mb-4">শিপিং তথ্য</h3>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                 <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                 <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                 <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                 <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                 <FormField control={form.control} name="shipping" render={({ field }) => ( <FormItem><FormLabel>Shipping Area</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="inside_dhaka" id="inside_dhaka" /></FormControl><FormLabel htmlFor="inside_dhaka" className="font-normal">Inside Dhaka (60 BDT)</FormLabel></FormItem><FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="outside_dhaka" id="outside_dhaka" /></FormControl><FormLabel htmlFor="outside_dhaka" className="font-normal">Outside Dhaka (120 BDT)</FormLabel></FormItem></RadioGroup></FormControl></FormItem> )} />
-                 <FormField control={form.control} name="notes" render={({ field }) => ( <FormItem><FormLabel>Order Note (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
-                 <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Place Order</Button>
+              <form onSubmit={form.handleSubmit(onShippingSubmit)} className="space-y-4">
+                 <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>পুরো নাম</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>ফোন নম্বর</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>ঠিকানা</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>শহর</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <FormField control={form.control} name="shipping" render={({ field }) => ( <FormItem><FormLabel>শিপিং এলাকা</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="inside_dhaka" id="showcase_inside_dhaka" /></FormControl><FormLabel htmlFor="showcase_inside_dhaka" className="font-normal">ঢাকার ভিতরে (৮০ BDT)</FormLabel></FormItem><FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="outside_dhaka" id="showcase_outside_dhaka" /></FormControl><FormLabel htmlFor="showcase_outside_dhaka" className="font-normal">ঢাকার বাইরে (১৫০ BDT)</FormLabel></FormItem></RadioGroup></FormControl></FormItem> )} />
+                 <FormField control={form.control} name="notes" render={({ field }) => ( <FormItem><FormLabel>অর্ডার নোট (ঐচ্ছিক)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <Button type="submit" className="w-full" size="lg">পেমেন্টে এগিয়ে যান</Button>
               </form>
             </Form>
           </div>
         </div>
       </CardContent>
     </Card>
+
+    <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>পেমেন্ট পদ্ধতি</DialogTitle>
+            <DialogDescription>
+              আপনার অর্ডার চূড়ান্ত করতে একটি পেমেন্ট পদ্ধতি নির্বাচন করুন। মোট: {total.toFixed(2)} BDT
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
+                <div>
+                    <RadioGroupItem value="cod" id="d-cod" className="sr-only peer" />
+                    <Label htmlFor="d-cod" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                        ক্যাশ অন ডেলিভারি
+                    </Label>
+                </div>
+                 <div>
+                    <RadioGroupItem value="mobile_banking" id="d-mb" className="sr-only peer" />
+                    <Label htmlFor="d-mb" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                        মোবাইল ব্যাংকিং
+                    </Label>
+                </div>
+             </RadioGroup>
+             {paymentMethod === 'mobile_banking' && (
+                <div className='space-y-2 pt-4 border-t'>
+                    <p className='text-sm text-muted-foreground'>অনুগ্রহ করে পেমেন্ট করার পর নিচের বক্সে ট্রানজেকশন আইডি প্রদান করুন।</p>
+                    <Label htmlFor="transactionId">ট্রানজেকশন আইডি</Label>
+                    <Input id="transactionId" value={transactionId} onChange={(e) => setTransactionId(e.target.value)} placeholder="e.g., 8N7F6G5H4J" />
+                </div>
+             )}
+          </div>
+          <DialogFooter>
+            <Button onClick={handleConfirmOrder} disabled={isSubmitting} className="w-full">
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              অর্ডার নিশ্চিত করুন
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

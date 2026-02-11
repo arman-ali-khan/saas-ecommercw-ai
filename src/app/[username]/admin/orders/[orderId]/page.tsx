@@ -26,7 +26,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Loader2, Package, User, MapPin, Phone, Mail } from 'lucide-react';
+import { ArrowLeft, Loader2, Package, User, MapPin, Phone, Mail, CreditCard } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 
 type Order = {
@@ -52,6 +52,8 @@ type Order = {
     created_at: string;
     total: number;
     status: string;
+    payment_method: string;
+    transaction_id: string | null;
 };
 
 const orderStatuses = ['processing', 'shipped', 'delivered', 'canceled'];
@@ -105,6 +107,12 @@ export default function OrderDetailsPage() {
             default: return status;
         }
     };
+    
+    const formatPaymentMethod = (method: string) => {
+        if (method === 'mobile_banking') return 'Mobile Banking';
+        if (method === 'cod') return 'Cash on Delivery';
+        return method;
+    }
 
     const handleUpdateStatus = async () => {
         if (!order) return;
@@ -309,6 +317,17 @@ export default function OrderDetailsPage() {
                                     <p className="font-semibold text-foreground">Order Note:</p>
                                     <p className="text-muted-foreground whitespace-pre-wrap">{order.shipping_info.notes}</p>
                                 </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> Payment Information</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm">
+                            <p><strong>Payment Method:</strong> {formatPaymentMethod(order.payment_method)}</p>
+                            {order.transaction_id && (
+                                <p><strong>Transaction ID:</strong> <span className="font-mono text-xs bg-muted p-1 rounded-sm">{order.transaction_id}</span></p>
                             )}
                         </CardContent>
                     </Card>
