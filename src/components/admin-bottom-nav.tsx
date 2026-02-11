@@ -77,7 +77,7 @@ export default function AdminBottomNav({ username }: { username: string }) {
     },
     {
       href: `/${username}/admin/notifications`,
-      label: 'Alerts',
+      label: 'Notifications',
       icon: Bell,
       count: unreadNotificationsCount,
     },
