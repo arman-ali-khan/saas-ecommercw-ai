@@ -45,52 +45,87 @@ export default function SaasAdminDashboard() {
     const fetchData = async () => {
       setIsLoading(true);
 
-      const profilesPromise = supabase.from('profiles').select('*', { count: 'exact' });
-      const paymentsPromise = supabase.from('subscription_payments').select('*, plans(name), profiles(full_name, username)');
-      const notificationsPromise = supabase
-        .from('notifications')
-        .select('*, profiles!notifications_recipient_id_fkey(full_name, username)')
-        .eq('is_read', false)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      try {
+        const profilesPromise = supabase.from('profiles').select('*', { count: 'exact' });
+        const paymentsPromise = supabase.from('subscription_payments').select('*');
+        const notificationsPromise = supabase
+          .from('notifications')
+          .select('*')
+          .eq('is_read', false)
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-      const [
-        { data: profilesData, count: totalUsers, error: profilesError },
-        { data: paymentsData, error: paymentsError },
-        { data: notificationsData, error: notificationsError },
-      ] = await Promise.all([profilesPromise, paymentsPromise, notificationsPromise]);
+        const [
+          { data: profilesData, count: totalUsers, error: profilesError },
+          { data: paymentsData, error: paymentsError },
+          { data: notificationsData, error: notificationsError },
+        ] = await Promise.all([profilesPromise, paymentsPromise, notificationsPromise]);
 
-      if (profilesError || paymentsError || notificationsError) {
-        console.error("Dashboard fetch error:", profilesError || paymentsError || notificationsError);
+        if (profilesError || paymentsError || notificationsError) {
+          console.error("Dashboard fetch error:", profilesError || paymentsError || notificationsError);
+          setIsLoading(false);
+          return;
+        }
+
+        // Calculate stats
+        const totalRevenue = paymentsData?.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0) || 0;
+        const activeSubscriptions = profilesData?.filter(p => p.subscription_status === 'active').length || 0;
+        const pendingSubscriptionsCount = paymentsData?.filter(p => p.status === 'pending').length || 0;
+
+        setStats({
+          totalRevenue,
+          activeSubscriptions,
+          totalUsers: totalUsers || 0,
+          pendingSubscriptions: pendingSubscriptionsCount,
+        });
+
+        // Manually "join" data for pending payments
+        const pending = paymentsData?.filter(p => p.status === 'pending').slice(0, 5) || [];
+        if (pending.length > 0) {
+            const userIdsForPending = [...new Set(pending.map(p => p.user_id))];
+            const planIdsForPending = [...new Set(pending.map(p => p.plan_id).filter(Boolean))];
+
+            const { data: pendingProfilesData } = await supabase.from('profiles').select('id, full_name, username').in('id', userIdsForPending);
+            const { data: pendingPlansData } = await supabase.from('plans').select('id, name').in('id', planIdsForPending);
+
+            const pendingProfilesMap = new Map((pendingProfilesData || []).map(p => [p.id, p]));
+            const pendingPlansMap = new Map((pendingPlansData || []).map(p => [p.id, p]));
+
+            const pendingWithDetails = pending.map(payment => ({
+                ...payment,
+                profiles: pendingProfilesMap.get(payment.user_id) || null,
+                plans: payment.plan_id ? pendingPlansMap.get(payment.plan_id) || null : null,
+            }));
+            setPendingPayments(pendingWithDetails as SubscriptionPaymentWithDetails[]);
+        } else {
+            setPendingPayments([]);
+        }
+
+        // Manually "join" data for unread notifications
+        if (notificationsData && notificationsData.length > 0) {
+            const adminRecipientIds = notificationsData.filter(n => n.recipient_type === 'admin').map(n => n.recipient_id);
+            
+            if (adminRecipientIds.length > 0) {
+                const { data: notifProfilesData } = await supabase.from('profiles').select('id, full_name, username').in('id', adminRecipientIds);
+                const notifProfilesMap = new Map((notifProfilesData || []).map(p => [p.id, p]));
+                
+                const notificationsWithDetails = notificationsData.map(notification => ({
+                    ...notification,
+                    profiles: notifProfilesMap.get(notification.recipient_id) || null,
+                })).filter(n => n.recipient_type === 'admin'); // Only show admin notifications on SaaS dash
+                setUnreadNotifications(notificationsWithDetails);
+            } else {
+                 setUnreadNotifications([]);
+            }
+        } else {
+            setUnreadNotifications([]);
+        }
+
+      } catch (e: any) {
+        console.error("Dashboard fetchData catch block error:", e);
+      } finally {
         setIsLoading(false);
-        return;
       }
-
-      // Calculate stats
-      const totalRevenue = paymentsData
-        ?.filter(p => p.status === 'completed')
-        .reduce((sum, p) => sum + p.amount, 0) || 0;
-
-      const activeSubscriptions = profilesData
-        ?.filter(p => p.subscription_status === 'active')
-        .length || 0;
-
-      const pendingSubscriptionsCount = paymentsData
-        ?.filter(p => p.status === 'pending')
-        .length || 0;
-
-      setStats({
-        totalRevenue,
-        activeSubscriptions,
-        totalUsers: totalUsers || 0,
-        pendingSubscriptions: pendingSubscriptionsCount,
-      });
-
-      // Using the types from the join directly
-      setPendingPayments((paymentsData?.filter(p => p.status === 'pending').slice(0, 5) || []) as SubscriptionPaymentWithDetails[]);
-      setUnreadNotifications(notificationsData || []);
-
-      setIsLoading(false);
     };
 
     fetchData();
