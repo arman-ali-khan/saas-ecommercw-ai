@@ -17,7 +17,7 @@ import { Loader2, Search, Package, Truck, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
-  orderNumber: z.string().min(1, 'অর্ডার আইডি প্রয়োজন।'),
+  identifier: z.string().min(1, 'অর্ডার বা ট্রানজেকশন আইডি প্রয়োজন।'),
 });
 
 type TrackedOrder = {
@@ -38,7 +38,7 @@ export default function TrackOrderPage() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { orderNumber: '' },
+    defaultValues: { identifier: '' },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -50,7 +50,7 @@ export default function TrackOrderPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderNumber: values.orderNumber,
+          identifier: values.identifier,
           domain: username,
         }),
       });
@@ -99,7 +99,7 @@ export default function TrackOrderPage() {
         <CardHeader>
           <CardTitle>আপনার অর্ডার ট্র্যাক করুন</CardTitle>
           <CardDescription>
-            আপনার অর্ডার আইডি লিখুন এবং বর্তমান অবস্থা জানুন।
+            আপনার অর্ডার আইডি বা ট্রানজেকশন আইডি ব্যবহার করে বর্তমান অবস্থা জানুন।
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -107,12 +107,12 @@ export default function TrackOrderPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-start gap-2">
               <FormField
                 control={form.control}
-                name="orderNumber"
+                name="identifier"
                 render={({ field }) => (
                   <FormItem className="flex-grow">
-                    <FormLabel className="sr-only">Order ID</FormLabel>
+                    <FormLabel className="sr-only">Order or Transaction ID</FormLabel>
                     <FormControl>
-                      <Input placeholder="অর্ডার আইডি, যেমন BN-123456" {...field} />
+                      <Input placeholder="অর্ডার আইডি বা ট্রানজেকশন আইডি" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

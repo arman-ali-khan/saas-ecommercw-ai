@@ -3,10 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
-    const { orderNumber, domain } = await request.json();
+    const { identifier, domain } = await request.json();
 
-    if (!orderNumber || !domain) {
-      return NextResponse.json({ error: 'অর্ডার আইডি এবং ডোমেইন প্রয়োজন।' }, { status: 400 });
+    if (!identifier || !domain) {
+      return NextResponse.json({ error: 'শনাক্তকারী এবং ডোমেইন প্রয়োজন।' }, { status: 400 });
     }
 
     const supabaseAdmin = createClient(
@@ -25,13 +25,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'সাইট খুঁজে পাওয়া যায়নি।' }, { status: 404 });
     }
 
-    // 2. Fetch order using order_number and site_id
+    // 2. Fetch order using order_number OR transaction_id
     const { data: orderData, error: orderError } = await supabaseAdmin
       .from('orders')
       .select('order_number, status, created_at') // Only select non-sensitive data
-      .eq('order_number', orderNumber)
       .eq('site_id', profileData.id)
-      .single();
+      .or(`order_number.eq.${identifier},transaction_id.eq.${identifier}`)
+      .maybeSingle();
 
     if (orderError || !orderData) {
       return NextResponse.json({ error: 'আপনার প্রদান করা আইডি দিয়ে কোনো অর্ডার খুঁজে পাওয়া যায়নি।' }, { status: 404 });
