@@ -13,6 +13,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -28,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -43,6 +44,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 
 const productFormSchema = z.object({
   id: z
@@ -113,7 +115,7 @@ export default function ManageProductPage() {
     },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove, move } = useFieldArray({
     control: form.control,
     name: 'images',
   });
@@ -255,26 +257,17 @@ export default function ManageProductPage() {
     }
   };
 
-  const handleFeaturedImageUpload = (result: any) => {
-    if (result.event === 'success') {
-      const secureUrl = result.info.secure_url;
-      if (fields.length > 0) {
-        // Use setValue for a more direct update of a specific field in the array
-        form.setValue(`images.0.imageUrl`, secureUrl, { shouldValidate: true, shouldDirty: true });
-      } else {
-        // `append` is still correct for adding the very first image
-        append({ imageUrl: secureUrl, imageHint: '' });
-      }
-    }
+  const handleSetFeatured = (fromIndex: number) => {
+    if (fromIndex === 0) return;
+    move(fromIndex, 0);
   };
 
-  const handleAdditionalImageUpload = (result: any) => {
+  const handleImageUpload = (result: any) => {
     if (result.event === 'success') {
       append({ imageUrl: result.info.secure_url, imageHint: '' });
     }
   };
 
-  const featuredImage = fields.length > 0 ? fields[0] : null;
 
   if (isLoading) {
     return (
@@ -528,124 +521,93 @@ export default function ManageProductPage() {
                 )}
               />
 
-              <div className="space-y-6">
-                <div className="space-y-4 rounded-lg border p-4">
-                  <FormLabel>Featured Image</FormLabel>
-                  <FormDescription>
-                    This is the main image for your product, shown first.
-                  </FormDescription>
-                  <div className="flex flex-col sm:flex-row items-start gap-4">
-                    {featuredImage && featuredImage.imageUrl ? (
-                      <div className="relative h-24 w-24 shrink-0 rounded-md overflow-hidden border">
-                        <Image
-                          src={featuredImage.imageUrl}
-                          alt="Featured Image"
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-24 w-24 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
-                        <p className="text-xs text-muted-foreground">
-                          No image
-                        </p>
-                      </div>
-                    )}
-                    <div className="flex-grow space-y-2">
-                      <ImageUploader
-                        onUpload={handleFeaturedImageUpload}
-                        label={
-                          featuredImage?.imageUrl
-                            ? 'Change Image'
-                            : 'Upload Featured Image'
-                        }
-                      />
-                      {featuredImage && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Product Images</CardTitle>
+                  <CardDescription>
+                    Upload images for your product. The first image in the list will be the featured image.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {fields.map((field, index) => (
+                      <div key={field.id} className="space-y-2">
+                        <Card className="overflow-hidden">
+                          <CardContent className="p-0">
+                            <div className="relative group aspect-square w-full">
+                              {field.imageUrl ? (
+                                <Image
+                                  src={field.imageUrl}
+                                  alt={`Product Image ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center bg-muted">
+                                  <p className="text-xs text-muted-foreground">No image</p>
+                                </div>
+                              )}
+
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {index > 0 && (
+                                  <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleSetFeatured(index)}
+                                    title="Set as featured"
+                                  >
+                                    <Star className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => remove(index)}
+                                  title="Delete image"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+
+                              {index === 0 && (
+                                <Badge className="absolute top-2 left-2">
+                                  Featured
+                                </Badge>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+
                         <FormField
                           control={form.control}
-                          name={`images.0.imageHint`}
-                          render={({ field }) => (
+                          name={`images.${index}.imageHint`}
+                          render={({ field: hintField }) => (
                             <FormItem>
-                              <FormLabel className="sr-only">
-                                Image Hint
-                              </FormLabel>
+                              <FormLabel className="sr-only">Image Hint</FormLabel>
                               <FormControl>
-                                <Input
-                                  {...field}
-                                  placeholder="AI Image Hint (e.g., ripe mango)"
-                                />
+                                <Input {...hintField} placeholder="AI Image Hint" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                      )}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-
-                <div className="space-y-4 rounded-lg border p-4">
-                  <FormLabel>Additional Images</FormLabel>
-                  <FormDescription>
-                    Add more images to showcase your product from different
-                    angles.
-                  </FormDescription>
-
-                  {fields.length > 1 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {fields.slice(1).map((field, index) => (
-                        <div key={field.id} className="space-y-2">
-                          <div className="relative group">
-                            <div className="relative aspect-square w-full rounded-md overflow-hidden border">
-                              {field.imageUrl && (
-                                <Image
-                                  src={field.imageUrl}
-                                  alt={`Product Image ${index + 2}`}
-                                  fill
-                                  className="object-cover"
-                                />
-                              )}
-                            </div>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => remove(index + 1)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <FormField
-                            control={form.control}
-                            name={`images.${index + 1}.imageHint`}
-                            render={({ field: hintField }) => (
-                              <FormItem>
-                                <FormLabel className="sr-only">
-                                  Image Hint
-                                </FormLabel>
-                                <FormControl>
-                                  <Input
-                                    {...hintField}
-                                    placeholder="AI Image Hint"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
+                </CardContent>
+                <CardFooter>
                   <ImageUploader
-                    onUpload={handleAdditionalImageUpload}
-                    label="Add Additional Image"
+                    onUpload={handleImageUpload}
+                    label="Upload Images"
+                    multiple={true}
                   />
-                </div>
-              </div>
-
+                </CardFooter>
+              </Card>
+              
               <Button type="submit" disabled={isSubmitting || isSubscriptionPending}>
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -659,3 +621,5 @@ export default function ManageProductPage() {
     </div>
   );
 }
+
+    
