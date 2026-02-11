@@ -309,49 +309,56 @@ export default function CheckoutPage() {
                 <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>ফোন নম্বর</FormLabel><FormControl><Input placeholder="আপনার ফোন নম্বর" {...field} /></FormControl><FormMessage /></FormItem> )} />
             </div>
 
-            <div className="space-y-3">
-              <Label>শিপিং পদ্ধতি</Label>
-              {isLoadingShipping ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                      {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
-                  </div>
-              ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                      {shippingZones.map((zone) => (
-                          <label
-                              key={zone.id}
+            <FormField
+              control={form.control}
+              name="shippingZoneId"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>শিপিং পদ্ধতি</FormLabel>
+                  {isLoadingShipping ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                          {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+                      </div>
+                  ) : (
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"
+                      >
+                        {shippingZones.map((zone) => (
+                          <FormItem key={zone.id}>
+                            <FormControl>
+                                <RadioGroupItem value={zone.id.toString()} id={`shipping-${zone.id}`} className="sr-only peer" />
+                            </FormControl>
+                            <Label
                               htmlFor={`shipping-${zone.id}`}
-                              className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 cursor-pointer transition-colors has-[:checked]:border-primary"
-                          >
-                              <input
-                                  type="radio"
-                                  id={`shipping-${zone.id}`}
-                                  value={zone.id.toString()}
-                                  {...form.register("shippingZoneId")}
-                                  className="sr-only"
-                              />
+                              className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 cursor-pointer transition-colors peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                            >
                               <Truck className="h-6 w-6 text-muted-foreground" />
                               <div className="flex-grow">
-                                  <p className="font-medium">{zone.name}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                      {zone.price.toFixed(2)} BDT
-                                  </p>
+                                <p className="font-medium">{zone.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {zone.price.toFixed(2)} BDT
+                                </p>
                               </div>
-                          </label>
-                      ))}
-                  </div>
+                            </Label>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                  )}
+                  <FormMessage />
+                </FormItem>
               )}
-              {form.formState.errors.shippingZoneId && (
-                  <p className="text-sm font-medium text-destructive pt-2">{`${form.formState.errors.shippingZoneId.message}`}</p>
-              )}
-            </div>
+            />
 
             <FormField control={form.control} name="notes" render={({ field }) => ( <FormItem><FormLabel>অর্ডার নোট (ঐচ্ছিক)</FormLabel><FormControl><Textarea placeholder="আপনার অর্ডারের জন্য কোনো বিশেষ নির্দেশনা থাকলে এখানে লিখুন..." {...field} /></FormControl><FormMessage /></FormItem> )} />
             
             <div className="pt-4">
               <h2 className="text-2xl font-headline font-bold mb-4">পেমেন্ট</h2>
                 <div className="space-y-3">
-                    <FormLabel>পেমেন্ট পদ্ধতি</FormLabel>
+                    <Label>পেমেন্ট পদ্ধতি</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <label
                             htmlFor="cod"
@@ -391,8 +398,20 @@ export default function CheckoutPage() {
                   <CardContent className="space-y-4">
                   {isLoadingPaymentSettings ? <Skeleton className="h-40 w-full" /> : (
                     <>
-                    <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg"> <ol className="list-decimal list-inside space-y-2"> <li> আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ ({acceptedMethods}) খুলুন। </li> <li>"পেমেন্ট" অপশন নির্বাচন করুন।</li> <li> মার্চেন্ট নম্বর হিসেবে <strong>{paymentSettings?.mobile_banking_number || '01...'}</strong> দিন। </li> <li> টাকার পরিমাণ হিসেবে <strong> {cartTotal.toFixed(2)} {cartItems[0]?.currency} </strong> লিখুন। </li> <li> পেমেন্ট সম্পন্ন করুন এবং প্রাপ্ত ট্রানজেকশন আইডিটি কপি করুন। </li> <li> নিচের বক্সে ট্রানজেকশন আইডিটি পেস্ট করুন। </li> </ol> </div>
-                    <FormField control={form.control} name="transactionId" render={({ field }) => ( <FormItem> <FormLabel>ট্রানজেকশন আইডি</FormLabel> <FormControl> <Input placeholder="e.g., 8N7F6G5H4J" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+                      <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg"> <ol className="list-decimal list-inside space-y-2"> <li> আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ ({acceptedMethods}) খুলুন। </li> <li>"পেমেন্ট" অপশন নির্বাচন করুন।</li> <li> মার্চেন্ট নম্বর হিসেবে <strong>{paymentSettings?.mobile_banking_number || '01...'}</strong> দিন। </li> <li> টাকার পরিমাণ হিসেবে <strong> {cartTotal.toFixed(2)} {cartItems[0]?.currency} </strong> লিখুন। </li> <li> পেমেন্ট সম্পন্ন করুন এবং প্রাপ্ত ট্রানজেকশন আইডিটি কপি করুন। </li> <li> নিচের বক্সে ট্রানজেকশন আইডিটি পেস্ট করুন। </li> </ol> </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="transactionId">ট্রানজেকশন আইডি</Label>
+                        <Input
+                          id="transactionId"
+                          placeholder="e.g., 8N7F6G5H4J"
+                          {...form.register("transactionId")}
+                        />
+                        {form.formState.errors.transactionId && (
+                          <p className="text-sm font-medium text-destructive">
+                            {`${form.formState.errors.transactionId.message}`}
+                          </p>
+                        )}
+                      </div>
                     </>
                   )}
                   </CardContent>
@@ -410,5 +429,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    
