@@ -21,6 +21,7 @@ import { Loader2, Truck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ShippingZone } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const checkoutSchema = z
   .object({
