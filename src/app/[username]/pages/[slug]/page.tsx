@@ -3,12 +3,34 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 type Props = {
   params: { slug: string; username: string };
 };
 
-// This component renders a single block from the page's content
+const SimpleMarkdown = ({ text }: { text: string }) => {
+  if (!text) return null;
+
+  const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i}>{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith('*') && part.endsWith('*')) {
+          return <em key={i}>{part.slice(1, -1)}</em>;
+        }
+        return part;
+      })}
+    </>
+  );
+};
+
+
 function PageBlock({ block }: { block: any }) {
   if (!block || !block.type) {
     return null;
@@ -19,16 +41,35 @@ function PageBlock({ block }: { block: any }) {
       const Tag = block.level === 1 ? 'h1' : block.level === 2 ? 'h2' : 'h3';
       return <Tag className="text-3xl font-bold my-4">{block.text}</Tag>;
     case 'paragraph':
-      return <p className="my-4 text-lg text-muted-foreground">{block.text}</p>;
+      return <p className="my-4 text-lg text-muted-foreground whitespace-pre-wrap"><SimpleMarkdown text={block.text} /></p>;
     case 'image':
       return (
-        <div className="relative my-6 aspect-video">
-          {/* We'll use a placeholder for now */}
-          <img src={`https://placehold.co/1200x600?text=${block.alt || 'Image'}`} alt={block.alt || ''} className="rounded-lg object-cover w-full h-full" />
+        <div className="relative my-6 aspect-video overflow-hidden rounded-lg">
+          <Image src={block.src} alt={block.alt || ''} fill className="object-cover" />
         </div>
       );
+    case 'button':
+      return (
+        <div className="my-4">
+          <Button asChild variant={block.variant || 'default'} size="lg">
+            <Link href={block.href || '#'}>{block.text || 'Click Me'}</Link>
+          </Button>
+        </div>
+      );
+    case 'youtube':
+        return (
+          <div className="relative my-6 aspect-video overflow-hidden rounded-lg">
+            <iframe
+              className="absolute top-0 left-0 w-full h-full"
+              src={`https://www.youtube.com/embed/${block.videoId}`}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
+        );
     default:
-      // Render a fallback for unknown block types
       return (
         <pre className="bg-muted p-4 rounded-md my-4 text-xs overflow-x-auto">
           {JSON.stringify(block, null, 2)}
@@ -45,33 +86,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     { cookies: { get: (name) => cookieStore.get(name)?.value } }
   );
 
-  const { data: site } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('domain', params.username)
-    .single();
-
-  if (!site) {
-    return { title: 'Page Not Found' };
-  }
+  const { data: site } = await supabase.from('profiles').select('id').eq('domain', params.username).single();
+  if (!site) return { title: 'Page Not Found' };
   
-  const { data: page } = await supabase
-    .from('pages')
-    .select('title')
-    .eq('site_id', site.id)
-    .eq('slug', params.slug)
-    .eq('is_published', true)
-    .single();
+  const { data: page } = await supabase.from('pages').select('title').eq('site_id', site.id).eq('slug', params.slug).eq('is_published', true).single();
+  if (!page) return { title: 'Page Not Found' };
 
-  if (!page) {
-    return { title: 'Page Not Found' };
-  }
-
-  return {
-    title: page.title,
-  };
+  return { title: page.title };
 }
-
 
 export default async function CustomPage({ params }: Props) {
   const cookieStore = cookies();
@@ -81,27 +103,11 @@ export default async function CustomPage({ params }: Props) {
     { cookies: { get: (name) => cookieStore.get(name)?.value } }
   );
 
-  const { data: site } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('domain', params.username)
-    .single();
+  const { data: site } = await supabase.from('profiles').select('id').eq('domain', params.username).single();
+  if (!site) notFound();
 
-  if (!site) {
-    notFound();
-  }
-
-  const { data: page } = await supabase
-    .from('pages')
-    .select('title, content')
-    .eq('site_id', site.id)
-    .eq('slug', params.slug)
-    .eq('is_published', true)
-    .single();
-
-  if (!page) {
-    notFound();
-  }
+  const { data: page } = await supabase.from('pages').select('title, content').eq('site_id', site.id).eq('slug', params.slug).eq('is_published', true).single();
+  if (!page) notFound();
 
   const contentBlocks = Array.isArray(page.content) ? page.content : [];
 
@@ -110,7 +116,7 @@ export default async function CustomPage({ params }: Props) {
       <h1 className="text-4xl md:text-5xl font-headline font-bold mb-8">{page.title}</h1>
       
       {contentBlocks.length > 0 ? (
-        contentBlocks.map((block, index) => <PageBlock key={index} block={block} />)
+        contentBlocks.map((block, index) => <PageBlock key={block.id || index} block={block} />)
       ) : (
         <p className="text-muted-foreground">This page has no content yet.</p>
       )}
