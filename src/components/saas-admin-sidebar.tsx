@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -17,6 +18,9 @@ import { useAuth } from '@/stores/auth';
 import { SheetClose } from './ui/sheet';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import { Badge } from './ui/badge';
 
 interface SaasAdminSidebarProps {
     isMobile?: boolean;
@@ -27,10 +31,32 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const { user, logout: logoutAction } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [unreadCount, setUnreadCount] = useState(0);
   
   if (!user || !user.isSaaSAdmin) {
     return null; // Or a loading skeleton
   }
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_read', false);
+      setUnreadCount(count || 0);
+    };
+
+    fetchCount();
+
+    const channel = supabase
+      .channel('saas-admin-notifications-count')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, fetchCount)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const logout = async () => {
     await logoutAction();
@@ -43,7 +69,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard/users`, label: 'Users', icon: Users },
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
-    { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell },
+    { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell, count: unreadCount },
     { href: `/dashboard/settings`, label: 'Settings', icon: Settings },
     { href: `/`, label: 'View Landing Page', icon: Building },
   ];
@@ -52,10 +78,12 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     href,
     label,
     icon: Icon,
+    count,
   }: {
     href: string;
     label: string;
     icon: React.ElementType;
+    count?: number;
   }) => {
     const isActive = pathname.startsWith(href) && (href !== '/dashboard' || pathname === '/dashboard');
     const linkComponent = (
@@ -68,6 +96,9 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
       >
         <Icon className="h-4 w-4" />
         {label}
+        {count && count > 0 ? (
+          <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground">{count}</Badge>
+        ) : null}
       </Link>
     );
 
