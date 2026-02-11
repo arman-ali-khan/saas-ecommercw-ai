@@ -10,6 +10,7 @@ import {
   LogOut,
   Shapes,
   Settings,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -42,6 +43,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard/users`, label: 'Users', icon: Users },
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
+    { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell },
     { href: `/dashboard/settings`, label: 'Settings', icon: Settings },
     { href: `/`, label: 'View Landing Page', icon: Building },
   ];
@@ -55,7 +57,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     label: string;
     icon: React.ElementType;
   }) => {
-    const isActive = pathname === href;
+    const isActive = pathname.startsWith(href) && (href !== '/dashboard' || pathname === '/dashboard');
     const linkComponent = (
       <Link
         href={href}
