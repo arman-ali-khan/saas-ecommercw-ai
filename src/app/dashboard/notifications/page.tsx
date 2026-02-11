@@ -39,21 +39,73 @@ export default function SaasNotificationsPage() {
 
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*, profiles(full_name, username)')
-      .order('created_at', { ascending: false });
+    try {
+        const { data: notificationsData, error: notificationsError } = await supabase
+            .from('notifications')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error fetching notifications',
-        description: error.message,
-      });
-    } else {
-      setNotifications(data as NotificationWithRecipient[]);
+        if (notificationsError) {
+            throw notificationsError;
+        }
+
+        if (!notificationsData || notificationsData.length === 0) {
+            setNotifications([]);
+            setIsLoading(false);
+            return;
+        }
+
+        const adminRecipientIds = notificationsData
+            .filter(n => n.recipient_type === 'admin')
+            .map(n => n.recipient_id);
+        
+        const customerRecipientIds = notificationsData
+            .filter(n => n.recipient_type === 'customer')
+            .map(n => n.recipient_id);
+
+        const profilesPromise = adminRecipientIds.length > 0 
+            ? supabase.from('profiles').select('id, full_name, username').in('id', adminRecipientIds)
+            : Promise.resolve({ data: [], error: null });
+
+        const customerProfilesPromise = customerRecipientIds.length > 0
+            ? supabase.from('customer_profiles').select('id, full_name, email').in('id', customerRecipientIds)
+            : Promise.resolve({ data: [], error: null });
+        
+        const [
+            { data: profilesData, error: profilesError },
+            { data: customerProfilesData, error: customerProfilesError }
+        ] = await Promise.all([profilesPromise, customerProfilesPromise]);
+
+        if (profilesError) throw profilesError;
+        if (customerProfilesError) throw customerProfilesError;
+
+        const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
+        const customerProfilesMap = new Map((customerProfilesData || []).map(p => [p.id, { ...p, username: p.email.split('@')[0] }]));
+
+        const combinedData = notificationsData.map(notification => {
+            let profileInfo = null;
+            if (notification.recipient_type === 'admin') {
+                profileInfo = profilesMap.get(notification.recipient_id) || null;
+            } else {
+                profileInfo = customerProfilesMap.get(notification.recipient_id) || null;
+            }
+            return {
+                ...notification,
+                profiles: profileInfo,
+            };
+        });
+
+        setNotifications(combinedData as NotificationWithRecipient[]);
+
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Error fetching notifications',
+            description: error.message,
+        });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, [toast]);
 
   useEffect(() => {
