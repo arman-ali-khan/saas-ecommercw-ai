@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         site_description: siteDescription,
         subscription_plan: planId,
         // Set status based on plan
-        subscription_status: planId === 'free' ? 'active' : 'pending',
+        subscription_status: planId === 'free' ? 'active' : 'pending_verification',
         role: 'admin'
       })
       .eq('id', userId); 
@@ -82,19 +82,27 @@ export async function POST(request: Request) {
 
       const { error: paymentError } = await supabaseAdmin
         .from('subscription_payments')
-        .upsert({
+        .insert({
           user_id: userId,
           plan_id: planData.id,
           amount: priceNumber,
           payment_method: paymentMethod || 'manual',
           transaction_id: finalTransactionId,
-          status: 'pending',
-        }, {
-          onConflict: 'transaction_id',
+          status: 'pending_verification',
         });
       
       if (paymentError) {
-        throw new Error(`Could not create payment record: ${paymentError.message}`);
+        // If payment fails, we need to clean up the created user and return a specific error.
+        if (userId) {
+            await supabaseAdmin.auth.admin.deleteUser(userId);
+        }
+        
+        if (paymentError.code === '23505') { // Unique constraint violation
+            return NextResponse.json({ error: 'This payment transaction ID has already been used. Please start the registration process again with a new payment.' }, { status: 409 }); // 409 Conflict
+        }
+        
+        // For other payment errors
+        return NextResponse.json({ error: `Could not create payment record: ${paymentError.message}` }, { status: 500 });
       }
     }
 
