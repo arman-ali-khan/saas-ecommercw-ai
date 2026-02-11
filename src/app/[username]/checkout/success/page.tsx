@@ -49,6 +49,7 @@ function SuccessPageContent() {
         router.replace(`/${username}`);
       } else {
         setOrder(data);
+        setLastOrder(data);
       }
       setIsLoading(false);
     };
