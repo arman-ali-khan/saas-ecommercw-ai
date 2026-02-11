@@ -17,7 +17,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
+import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
@@ -61,12 +61,19 @@ const youtubeBlockSchema = blockBaseSchema.extend({
   videoId: z.string().min(1, 'YouTube Video ID is required.'),
 });
 
+const coloredBoxBlockSchema = blockBaseSchema.extend({
+    type: z.literal('coloredBox'),
+    color: z.string().optional().default('#172554'),
+    text: z.string().min(1, 'Text cannot be empty.')
+});
+
 const blockSchema = z.discriminatedUnion('type', [
   headingBlockSchema,
   paragraphBlockSchema,
   imageBlockSchema,
   buttonBlockSchema,
   youtubeBlockSchema,
+  coloredBoxBlockSchema,
 ]);
 
 const pageFormSchema = z.object({
@@ -135,7 +142,7 @@ export default function ManagePage() {
     }
   }, [authLoading, isNew, fetchPage]);
 
-  const handleAddBlock = (type: 'heading' | 'paragraph' | 'image' | 'button' | 'youtube') => {
+  const handleAddBlock = (type: 'heading' | 'paragraph' | 'image' | 'button' | 'youtube' | 'coloredBox') => {
     const id = uuidv4();
     let newBlock;
     switch (type) {
@@ -144,6 +151,7 @@ export default function ManagePage() {
       case 'image': newBlock = { id, type: 'image', src: 'https://placehold.co/1200x600?text=Your+Image', alt: 'Placeholder Image' }; break;
       case 'button': newBlock = { id, type: 'button', text: 'Click Me', href: '#', variant: 'default' }; break;
       case 'youtube': newBlock = { id, type: 'youtube', videoId: 'dQw4w9WgXcQ' }; break;
+      case 'coloredBox': newBlock = { id, type: 'coloredBox', color: '#172554', text: 'This is a colored box. You can change the background color and the text.' }; break;
     }
     append(newBlock);
   };
@@ -241,6 +249,12 @@ export default function ManagePage() {
                           {field.type === 'youtube' && (
                               <FormField control={form.control} name={`content.${index}.videoId`} render={({ field: f }) => (<FormItem><FormLabel>YouTube Video ID</FormLabel><FormControl><Input {...f} /></FormControl><FormDescription>From a URL like youtube.com/watch?v=VIDEO_ID</FormDescription><FormMessage /></FormItem>)} />
                           )}
+                          {field.type === 'coloredBox' && (
+                            <>
+                                <FormField control={form.control} name={`content.${index}.text`} render={({ field: f }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...f} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name={`content.${index}.color`} render={({ field: f }) => (<FormItem><FormLabel>Background Color</FormLabel><FormControl><Input {...f} placeholder="#172554" /></FormControl><FormDescription>Enter a hex color code.</FormDescription><FormMessage /></FormItem>)} />
+                            </>
+                          )}
                         </div>
                       </Card>
                     ))}
@@ -254,6 +268,7 @@ export default function ManagePage() {
                       <Button type="button" variant="outline" size="sm" className="w-full justify-start" onClick={() => handleAddBlock('image')}><ImageIcon className="mr-2" /> Image</Button>
                       <Button type="button" variant="outline" size="sm" className="w-full justify-start" onClick={() => handleAddBlock('button')}><LinkIcon className="mr-2" /> Button</Button>
                       <Button type="button" variant="outline" size="sm" className="w-full justify-start" onClick={() => handleAddBlock('youtube')}><Youtube className="mr-2" /> YouTube Video</Button>
+                      <Button type="button" variant="outline" size="sm" className="w-full justify-start" onClick={() => handleAddBlock('coloredBox')}><Palette className="mr-2" /> Colored Box</Button>
                     </div>
                   </div>
                 </div>

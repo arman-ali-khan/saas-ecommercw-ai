@@ -69,6 +69,12 @@ function PageBlock({ block }: { block: any }) {
             ></iframe>
           </div>
         );
+    case 'coloredBox':
+        return (
+            <div className="my-4 p-6 rounded-lg" style={{ backgroundColor: block.color || '#172554' }}>
+                <p className="text-lg text-primary-foreground whitespace-pre-wrap"><SimpleMarkdown text={block.text} /></p>
+            </div>
+        );
     default:
       return (
         <pre className="bg-muted p-4 rounded-md my-4 text-xs overflow-x-auto">
