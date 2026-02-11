@@ -31,6 +31,7 @@ const checkoutSchema = z
     shippingZoneId: z.string({ required_error: 'একটি শিপিং পদ্ধতি নির্বাচন করুন।' }),
     paymentMethod: z.string({ required_error: 'একটি পেমেন্ট পদ্ধতি নির্বাচন করুন।' }),
     transactionId: z.string().optional(),
+    notes: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -73,6 +74,7 @@ export default function CheckoutPage() {
       phone: '',
       paymentMethod: 'cod',
       transactionId: '',
+      notes: '',
     },
   });
 
@@ -145,7 +147,6 @@ export default function CheckoutPage() {
   }, [paymentSettings]);
 
   useEffect(() => {
-    // Check if the order is submitting before redirecting
     if (isHydrated && cartCount === 0 && !isSubmitting && !window.location.search.includes('order_id')) {
       router.push(`/${username}`);
     }
@@ -171,6 +172,7 @@ export default function CheckoutPage() {
         address: values.address,
         city: values.city,
         phone: values.phone,
+        notes: values.notes,
         shipping_cost: selectedZone?.price || 0,
         shipping_method_name: selectedZone?.name || 'N/A'
       },
@@ -302,7 +304,7 @@ export default function CheckoutPage() {
             <div className="space-y-3">
               <Label>শিপিং পদ্ধতি</Label>
               {isLoadingShipping ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <Skeleton className="h-24 w-full" />
                   <Skeleton className="h-24 w-full" />
                 </div>
@@ -310,27 +312,28 @@ export default function CheckoutPage() {
                 <RadioGroup
                   onValueChange={(value) => form.setValue('shippingZoneId', value, { shouldValidate: true })}
                   value={form.watch('shippingZoneId')}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"
                 >
                   {shippingZones.map((zone) => (
-                    <Label
-                      key={zone.id}
-                      htmlFor={`shipping-${zone.id}`}
-                      className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                    >
+                    <div key={zone.id}>
                       <RadioGroupItem
                         value={zone.id.toString()}
                         id={`shipping-${zone.id}`}
                         className="peer sr-only"
                       />
-                      <Truck className="h-6 w-6" />
-                      <div className="flex-grow">
-                        <p className="font-medium">{zone.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {zone.price.toFixed(2)} BDT
-                        </p>
-                      </div>
-                    </Label>
+                      <Label
+                        htmlFor={`shipping-${zone.id}`}
+                        className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                      >
+                        <Truck className="h-6 w-6" />
+                        <div className="flex-grow">
+                          <p className="font-medium">{zone.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {zone.price.toFixed(2)} BDT
+                          </p>
+                        </div>
+                      </Label>
+                    </div>
                   ))}
                 </RadioGroup>
               )}
