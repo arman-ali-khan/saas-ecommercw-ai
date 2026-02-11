@@ -158,10 +158,12 @@ export default function CheckoutPage() {
   }, [paymentSettings]);
 
   useEffect(() => {
-    if (isHydrated && cartCount === 0 && !window.location.search.includes('order_id')) {
+    // This effect redirects to the homepage if the cart is empty.
+    // It should NOT run while the order is being submitted.
+    if (isHydrated && !isSubmitting && cartCount === 0 && !window.location.search.includes('order_id')) {
       router.push(`/${username}`);
     }
-  }, [isHydrated, cartCount, router, username]);
+  }, [isHydrated, isSubmitting, cartCount, router, username]);
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     if (!siteId) {
