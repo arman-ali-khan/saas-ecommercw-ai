@@ -201,24 +201,10 @@ export default function Header() {
     logoType: 'icon' | 'image';
     logoIcon: string;
     logoImageUrl: string | null;
-  }>({ name: 'বাংলা ন্যাচারালস', description: '', logoType: 'icon', logoIcon: 'Leaf', logoImageUrl: null });
+  }>({ name: 'Store', description: '', logoType: 'icon', logoIcon: 'Leaf', logoImageUrl: null });
   const [isSiteInfoLoading, setIsSiteInfoLoading] = useState(true);
-  const [isStorePage, setIsStorePage] = useState(false);
-  const [domain, setDomain] = useState<string | null>(null);
-
-  useEffect(() => {
-    const hostname = window.location.hostname;
-    const rootDomain = 'schoolbd.top';
-    const currentSubdomain = hostname.replace(`.${rootDomain}`, '');
-    const onStorePage = hostname !== rootDomain && hostname !== `www.${rootDomain}`;
-    
-    setIsStorePage(onStorePage);
-    if (onStorePage) {
-        setDomain(currentSubdomain);
-    } else {
-        setDomain(null);
-    }
-  }, [pathname]);
+  
+  const domain = params.username as string;
 
   // Create a unified user object for easier handling in the UI
   const currentUser = siteOwner
@@ -267,32 +253,7 @@ export default function Header() {
         } else {
           setSiteInfo({ name: domain, description: 'An e-commerce store', logoType: 'icon', logoIcon: 'Leaf', logoImageUrl: null });
         }
-      } else {
-        const { data } = await supabase
-          .from('saas_settings')
-          .select('platform_name, platform_description, logo_icon, logo_type, logo_image_url')
-          .eq('id', 1)
-          .single();
-        if (data) {
-          setSiteInfo({
-            name: data.platform_name || 'বাংলা ন্যাচারালস',
-            description: data.platform_description ||
-              'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
-            logoType: data.logo_type || 'icon',
-            logoIcon: data.logo_icon || 'Leaf',
-            logoImageUrl: data.logo_image_url || null,
-          });
-        } else {
-          setSiteInfo({
-            name: 'বাংলা ন্যাচারালস',
-            description:
-              'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
-            logoType: 'icon', 
-            logoIcon: 'Leaf', 
-            logoImageUrl: null 
-          });
-        }
-      }
+      } 
       setIsSiteInfoLoading(false);
     }
     fetchInfo();
@@ -363,7 +324,7 @@ export default function Header() {
         </SheetClose>
         <SheetClose asChild>
           <Button asChild className="w-full">
-            <Link href={isStorePage ? `/register` : '/get-started'}>
+            <Link href={`/register`}>
               সাইন আপ
             </Link>
           </Button>
@@ -513,7 +474,7 @@ export default function Header() {
             </DropdownMenu>
           ) : (
             <div className="hidden md:flex items-center gap-2">
-              {isStorePage ? (
+              {domain ? (
                 <>
                   <Button variant="ghost" asChild>
                     <Link href={`/login`}>লগ ইন</Link>

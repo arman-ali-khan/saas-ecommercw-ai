@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { Menu, LayoutDashboard } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-import Logo from './logo';
 import { Button } from './ui/button';
 import {
   Sheet,
@@ -18,6 +17,9 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
 import { Skeleton } from './ui/skeleton';
+import { supabase } from '@/lib/supabase/client';
+import DynamicIcon from './dynamic-icon';
+import Image from 'next/image';
 
 const navLinks = [
   { href: '#features', label: 'বৈশিষ্ট্য' },
@@ -29,8 +31,43 @@ export default function SaasHeader() {
   const user = useAuth((state) => state.user);
   
   const [isHydrated, setIsHydrated] = useState(false);
+  const [siteInfo, setSiteInfo] = useState<{
+    name: string;
+    logoType: 'icon' | 'image';
+    logoIcon: string;
+    logoImageUrl: string | null;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     setIsHydrated(true);
+
+    const fetchInfo = async () => {
+      setIsLoading(true);
+      const { data } = await supabase
+        .from('saas_settings')
+        .select('platform_name, logo_type, logo_icon, logo_image_url')
+        .eq('id', 1)
+        .single();
+      
+      if (data) {
+        setSiteInfo({
+          name: data.platform_name || 'Your SaaS',
+          logoType: data.logo_type || 'icon',
+          logoIcon: data.logo_icon || 'Sparkles',
+          logoImageUrl: data.logo_image_url || null,
+        });
+      } else {
+        setSiteInfo({
+          name: 'Your SaaS',
+          logoType: 'icon',
+          logoIcon: 'Sparkles',
+          logoImageUrl: null,
+        })
+      }
+      setIsLoading(false);
+    };
+    fetchInfo();
   }, []);
 
   const NavLink = ({
@@ -51,6 +88,32 @@ export default function SaasHeader() {
         )}
       >
         {label}
+      </Link>
+    );
+  };
+  
+  const HeaderLogo = () => {
+    if (isLoading || !siteInfo) {
+      return (
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-6 w-32" />
+        </div>
+      );
+    }
+
+    return (
+      <Link href="/" className="flex items-center gap-3">
+        <div className={`${siteInfo.logoType === 'image' ? '' : 'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
+          {siteInfo.logoType === 'image' && siteInfo.logoImageUrl ? (
+            <div className="relative h-8 w-8">
+              <Image src={siteInfo.logoImageUrl} alt={siteInfo.name} fill className="object-contain rounded-sm" />
+            </div>
+          ) : (
+            <DynamicIcon name={siteInfo.logoIcon} className="h-6 w-6 text-primary-foreground" />
+          )}
+        </div>
+        <span className="text-xl font-bold font-headline">{siteInfo.name}</span>
       </Link>
     );
   };
@@ -120,9 +183,9 @@ export default function SaasHeader() {
                   </SheetDescription>
                 </SheetHeader>
                 <SheetClose asChild>
-                  <Link href="/" className="mb-8">
-                    <Logo />
-                  </Link>
+                  <div className="mb-8">
+                    <HeaderLogo />
+                  </div>
                 </SheetClose>
                 <nav className="flex flex-col gap-6">
                   {navLinks.map((link) => (
@@ -138,9 +201,7 @@ export default function SaasHeader() {
             </Sheet>
           </div>
           <div className="hidden md:flex">
-            <Link href="/">
-              <Logo />
-            </Link>
+            <HeaderLogo />
           </div>
         </div>
 

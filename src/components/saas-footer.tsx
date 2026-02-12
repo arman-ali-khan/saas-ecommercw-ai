@@ -2,9 +2,12 @@
 
 import Link from 'next/link';
 import { Facebook, Twitter } from 'lucide-react';
-import Logo from './logo';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import DynamicIcon from './dynamic-icon';
+import Image from 'next/image';
+import { Skeleton } from './ui/skeleton';
+
 
 const TikTokIcon = () => (
   <svg
@@ -33,36 +36,80 @@ export default function SaasFooter() {
     tiktok: '',
   });
 
+  const [siteInfo, setSiteInfo] = useState<{
+    name: string;
+    description: string | null;
+    logoType: 'icon' | 'image';
+    logoIcon: string;
+    logoImageUrl: string | null;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    const fetchSocials = async () => {
-      const { data } = await supabase
-        .from('saas_settings')
-        .select('social_facebook, social_twitter, social_tiktok')
-        .eq('id', 1)
-        .single();
-      
-      if (data) {
-        setSocials({
-          facebook: data.social_facebook || '',
-          twitter: data.social_twitter || '',
-          tiktok: data.social_tiktok || '',
-        });
-      }
+    const fetchData = async () => {
+        setIsLoading(true);
+        const { data } = await supabase
+            .from('saas_settings')
+            .select('platform_name, platform_description, social_facebook, social_twitter, social_tiktok, logo_type, logo_icon, logo_image_url')
+            .eq('id', 1)
+            .single();
+        
+        if (data) {
+            setSocials({
+              facebook: data.social_facebook || '',
+              twitter: data.social_twitter || '',
+              tiktok: data.social_tiktok || '',
+            });
+            setSiteInfo({
+              name: data.platform_name || 'Your SaaS',
+              description: data.platform_description || 'Your platform description.',
+              logoType: data.logo_type || 'icon',
+              logoIcon: data.logo_icon || 'Sparkles',
+              logoImageUrl: data.logo_image_url || null,
+            });
+        }
+        setIsLoading(false);
     };
-    fetchSocials();
+    fetchData();
   }, []);
+  
+  const FooterLogo = () => {
+    if (isLoading || !siteInfo) {
+      return (
+        <div className="flex items-center gap-3 mb-4">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-6 w-32" />
+        </div>
+      );
+    }
+
+    return (
+       <Link href="/" className="mb-4 flex items-center gap-3">
+        <div className={`${siteInfo.logoType === 'image' ? '' : 'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
+          {siteInfo.logoType === 'image' && siteInfo.logoImageUrl ? (
+            <div className="relative h-8 w-8">
+              <Image src={siteInfo.logoImageUrl} alt={siteInfo.name} fill className="object-contain rounded-sm" />
+            </div>
+          ) : (
+            <DynamicIcon name={siteInfo.logoIcon} className="h-6 w-6 text-primary-foreground" />
+          )}
+        </div>
+        <span className="text-xl font-bold font-headline">{siteInfo.name}</span>
+      </Link>
+    );
+  };
   
   return (
     <footer className="bg-secondary text-secondary-foreground">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="flex flex-col items-start">
-            <Link href="/" className="mb-4">
-              <Logo />
-            </Link>
-            <p className="max-w-xs text-secondary-foreground/80">
-              আপনার নিজস্ব ই-কমার্স সাম্রাজ্য তৈরি করার প্ল্যাটফর্ম।
-            </p>
+            <FooterLogo />
+             {isLoading ? <Skeleton className="h-12 w-full max-w-xs" /> : (
+                <p className="max-w-xs text-secondary-foreground/80">
+                  {siteInfo?.description || 'আপনার নিজস্ব ই-কমার্স সাম্রাজ্য তৈরি করার প্ল্যাটফর্ম।'}
+                </p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-8">
             <div>
@@ -169,7 +216,7 @@ export default function SaasFooter() {
         </div>
         <div className="mt-8 border-t border-border pt-8 text-center text-sm text-secondary-foreground/60">
           <p>
-            &copy; {new Date().getFullYear()} বাংলা ন্যাচারালস। সর্বস্বত্ব
+            &copy; {new Date().getFullYear()} {siteInfo?.name || 'বাংলা ন্যাচারালস'}। সর্বস্বত্ব
             সংরক্ষিত।
           </p>
         </div>
