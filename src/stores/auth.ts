@@ -99,14 +99,17 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
         if (!response.ok) {
           const { error } = await response.json();
+          set({ loading: false });
           return { user: null, error: error || 'Invalid credentials for this store.' };
         }
       } catch (e: any) {
+        set({ loading: false });
         return { user: null, error: 'Could not validate user. Please check your connection.' };
       }
       
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
        if (error) {
+        set({ loading: false });
         return { user: null, error: error.message };
       }
       // onAuthStateChange will trigger refreshUser and set the user state
