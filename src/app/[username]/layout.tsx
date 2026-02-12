@@ -1,10 +1,7 @@
 
-import FixedCartButton from '@/components/fixed-cart-button';
-import FloatingChatButton from '@/components/floating-chat-button';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import type { Metadata } from 'next';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import CustomerAuthInitializer from '@/components/auth/customer-auth-initializer';
 
 // Force dynamic rendering to ensure the latest settings (like favicon) are always used.
 export const dynamic = 'force-dynamic';
@@ -74,22 +71,12 @@ export async function generateMetadata({
   };
 }
 
-
-export default async function UsernameLayout({
+// The default export now just passes its children through.
+// The actual layout is now handled by src/components/site-layout.tsx
+export default function UsernameLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: { username: string };
 }) {
-  const { username } = params;
-
-  return (
-    <>
-      <CustomerAuthInitializer />
-      {children}
-      <FixedCartButton username={username} />
-      <FloatingChatButton />
-    </>
-  );
+  return <>{children}</>;
 }
