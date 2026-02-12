@@ -57,11 +57,11 @@ const productFormSchema = z.object({
     ),
   name: z.string().min(1, 'Name is required.'),
   price: z.preprocess(
-    (a) => parseFloat(z.string().parse(a)),
+    (a) => parseFloat(String(a)),
     z.number().positive('Price must be a positive number.')
   ),
   stock: z.preprocess(
-    (a) => parseInt(z.string().parse(a), 10),
+    (a) => parseInt(String(a), 10),
     z.number().min(0, "Stock can't be negative.").default(0)
   ),
   currency: z.string().default('BDT'),
