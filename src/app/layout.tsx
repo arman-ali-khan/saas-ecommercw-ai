@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -33,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const { data } = await supabase
     .from('saas_settings')
-    .select('platform_name, platform_description, seo_title, seo_description, seo_keywords')
+    .select('platform_name, platform_description, seo_title, seo_description, seo_keywords, favicon_url')
     .eq('id', 1)
     .single();
 
@@ -46,6 +47,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: title,
     description: description,
     keywords: settings.seo_keywords || '',
+    icons: settings.favicon_url ? { icon: settings.favicon_url } : null,
   }
 }
 

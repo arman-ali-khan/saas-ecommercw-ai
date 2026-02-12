@@ -37,6 +37,7 @@ const generalSettingsSchema = z.object({
   platformName: z.string().min(2, { message: 'Platform name must be at least 2 characters.' }),
   platformDescription: z.string().min(10, { message: 'Platform description must be at least 10 characters.' }),
   logo_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  favicon_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   base_domain: z.string().optional().or(z.literal('')),
   social_facebook: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_twitter: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
@@ -80,6 +81,7 @@ export default function SaasSettingsPage() {
       platformName: '',
       platformDescription: '',
       logo_url: '',
+      favicon_url: '',
       base_domain: '',
       social_facebook: '',
       social_twitter: '',
@@ -119,6 +121,7 @@ export default function SaasSettingsPage() {
                 platformName: data.platform_name || '',
                 platformDescription: data.platform_description || '',
                 logo_url: data.logo_url || '',
+                favicon_url: data.favicon_url || '',
                 base_domain: data.base_domain || '',
                 social_facebook: data.social_facebook || '',
                 social_twitter: data.social_twitter || '',
@@ -158,6 +161,7 @@ export default function SaasSettingsPage() {
             platform_name: values.platformName,
             platform_description: values.platformDescription,
             logo_url: values.logo_url,
+            favicon_url: values.favicon_url,
             base_domain: values.base_domain,
             social_facebook: values.social_facebook,
             social_twitter: values.social_twitter,
@@ -243,7 +247,16 @@ export default function SaasSettingsPage() {
     }
   };
 
+  const handleFaviconUpload = (result: any) => {
+    if (result.event === 'success') {
+      const secureUrl = result.info.secure_url;
+      generalForm.setValue('favicon_url', secureUrl, { shouldValidate: true });
+      toast({ title: 'Favicon Uploaded', description: 'Click "Save" to apply the changes.' });
+    }
+  };
+
   const logoUrl = generalForm.watch('logo_url');
+  const faviconUrl = generalForm.watch('favicon_url');
 
   const isLogoUrlValid = useMemo(() => {
     if (!logoUrl) return false;
@@ -254,6 +267,17 @@ export default function SaasSettingsPage() {
       return false;
     }
   }, [logoUrl]);
+  
+  const isFaviconUrlValid = useMemo(() => {
+    if (!faviconUrl) return false;
+    try {
+      new URL(faviconUrl);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [faviconUrl]);
+
 
   return (
     <div className='space-y-6'>
@@ -344,7 +368,7 @@ export default function SaasSettingsPage() {
                             </div>
                            ) : (
                             <div className="h-16 w-16 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
-                                <p className="text-xs text-muted-foreground text-center">Invalid URL</p>
+                                <p className="text-xs text-muted-foreground text-center">Preview</p>
                             </div>
                            )}
                            <div className='flex-grow space-y-2'>
@@ -361,6 +385,38 @@ export default function SaasSettingsPage() {
                       </FormItem>
                     )}
                   />
+                  
+                  <FormField
+                    control={generalForm.control}
+                    name="favicon_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Platform Favicon</FormLabel>
+                        <div className="flex items-center gap-4">
+                           {isFaviconUrlValid ? (
+                            <div className="relative h-16 w-16 shrink-0 rounded-md border p-1 bg-white">
+                                <Image src={faviconUrl!} alt="Favicon preview" fill className="object-contain" />
+                            </div>
+                           ) : (
+                            <div className="h-16 w-16 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                                <p className="text-xs text-muted-foreground text-center">Preview</p>
+                            </div>
+                           )}
+                           <div className='flex-grow space-y-2'>
+                              <FormControl>
+                                <Input placeholder="https://example.com/favicon.ico" {...field} />
+                              </FormControl>
+                              <FormDescription>
+                                Upload a favicon (.ico, .png, .svg). Recommended size: 32x32px.
+                              </FormDescription>
+                           </div>
+                          <ImageUploader onUpload={handleFaviconUpload} label='Upload Favicon' />
+                        </div>
+                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
 
                   <div className="space-y-4 rounded-lg border p-4">
                       <h3 className="text-sm font-medium">Social Media Links</h3>
