@@ -26,7 +26,8 @@ export default async function UserPage({
 }: {
   params: { username: string };
 }) {
-  const domainExists = await checkDomainExists(params.username);
+  const { username } = params;
+  const domainExists = await checkDomainExists(username);
 
   if (!domainExists) {
     return (
@@ -34,7 +35,7 @@ export default async function UserPage({
         <SearchX className="w-24 h-24 text-muted-foreground mb-6" />
         <h1 className="text-4xl font-headline font-bold">Store Not Found</h1>
         <p className="mt-4 max-w-md mx-auto text-lg text-muted-foreground">
-          The store at "{params.username}" does not exist.
+          The store at "{username}" does not exist.
         </p>
         <Button asChild className="mt-8">
           <Link href="/">Go to Homepage</Link>
@@ -59,7 +60,7 @@ export default async function UserPage({
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('domain', params.username)
+    .eq('domain', username)
     .single();
 
   // This should not happen if domainExists is true, but it's a good safeguard.
@@ -69,7 +70,7 @@ export default async function UserPage({
         <SearchX className="w-24 h-24 text-muted-foreground mb-6" />
         <h1 className="text-4xl font-headline font-bold">Store Not Found</h1>
         <p className="mt-4 max-w-md mx-auto text-lg text-muted-foreground">
-          Could not load store profile for "{params.username}".
+          Could not load store profile for "{username}".
         </p>
         <Button asChild className="mt-8">
           <Link href="/">Go to Homepage</Link>
@@ -91,7 +92,7 @@ export default async function UserPage({
     .eq('is_enabled', true)
     .order('order', { ascending: true });
 
-  const allProducts = await getProductsByDomain(params.username);
+  const allProducts = await getProductsByDomain(username);
   const featuredProducts = allProducts.filter((p) => p.is_featured);
 
   // Determine which sections to render based on database settings.
