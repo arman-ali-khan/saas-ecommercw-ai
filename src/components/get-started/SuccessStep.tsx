@@ -10,6 +10,8 @@ interface SuccessStepProps {
     formData: FormData;
 }
 
+const domain = process.env.NEXT_PUBLIC_BASE_DOMAIN
+
 export default function SuccessStep({ formData }: SuccessStepProps) {
     const registrationUrl = `/register?siteName=${encodeURIComponent(formData.siteName)}&domain=${encodeURIComponent(formData.domain)}&plan=${formData.plan}&siteDescription=${encodeURIComponent(formData.siteDescription)}&paymentMethod=${formData.paymentMethod || ''}&transactionId=${formData.transactionId || ''}`;
 
@@ -25,7 +27,7 @@ export default function SuccessStep({ formData }: SuccessStepProps) {
             <CardContent className="space-y-6">
                 <div className="text-left bg-muted p-4 rounded-md">
                     <p><strong>দোকানের নাম:</strong> {formData.siteName}</p>
-                    <p><strong>ডোমেইন:</strong> <span className="font-mono">{formData.domain}.banglanaturals.site</span></p>
+                    <p><strong>ডোমেইন:</strong> <span className="font-mono">{formData.domain}.{domain}</span></p>
                     <p><strong>প্ল্যান:</strong> <span className="capitalize">{formData.plan}</span></p>
                 </div>
                 <p className="text-muted-foreground">
