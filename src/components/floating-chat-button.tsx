@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase/client';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
@@ -22,6 +22,7 @@ import { Skeleton } from './ui/skeleton';
 
 export default function FloatingChatButton() {
   const pathname = usePathname();
+  const params = useParams();
   const { customer, _hasHydrated } = useCustomerAuth();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -34,36 +35,35 @@ export default function FloatingChatButton() {
 
   const lastMessageRef = useRef<HTMLDivElement>(null);
 
-  const domain = pathname.split('/')[1];
+  const domain = params.username as string;
 
   // 1. Initialize siteId and conversationId
   useEffect(() => {
     async function initializeChat() {
       setIsLoading(true);
+      if (!domain) {
+        setIsLoading(false);
+        return;
+      }
 
-      // Fetch siteId from domain
-      if (domain) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('domain', domain)
-          .single();
-        if (data) {
-          setSiteId(data.id);
-        } else {
-            console.error("Could not find site for domain:", domain);
-            setIsLoading(false);
-            return;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('domain', domain)
+        .single();
+      
+      if (data) {
+        setSiteId(data.id);
+        let convId = localStorage.getItem(`chat_conversation_id_${domain}`);
+        if (!convId) {
+          convId = uuidv4();
+          localStorage.setItem(`chat_conversation_id_${domain}`, convId);
         }
+        setConversationId(convId);
+      } else {
+        console.error("Could not find site for domain:", domain, error);
+        setIsLoading(false);
       }
-
-      // Get or create conversation ID
-      let convId = localStorage.getItem(`chat_conversation_id_${domain}`);
-      if (!convId) {
-        convId = uuidv4();
-        localStorage.setItem(`chat_conversation_id_${domain}`, convId);
-      }
-      setConversationId(convId);
     }
     initializeChat();
   }, [domain]);
