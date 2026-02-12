@@ -102,10 +102,10 @@ export default function ProfilePage() {
             </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 grid-cols-2">
             <StatCard title="মোট অর্ডার" value={stats.totalOrders.toString()} icon={ShoppingBag} isLoading={isLoadingStats} />
             <StatCard title="মোট খরচ" value={stats.totalSpent} icon={DollarSign} isLoading={isLoadingStats} />
-            <StatCard title="রিভিউ লিখেছেন" value="3" icon={Star} isLoading={isLoadingStats} />
+            {/* <StatCard title="রিভিউ লিখেছেন" value="3" icon={Star} isLoading={isLoadingStats} /> */}
         </div>
 
         <Card>
