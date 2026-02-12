@@ -5,8 +5,8 @@ export function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host');
 
-  // Your main domain
-  const rootDomain = "schoolbd.top";
+  // Your main domain, now dynamically from an environment variable with a fallback.
+  const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
 
   // Extract subdomain (e.g., 'student1' from 'student1.schoolbd.top')
   const subdomain = hostname?.replace(`.${rootDomain}`, '');

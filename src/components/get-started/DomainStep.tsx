@@ -2,10 +2,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { FormData } from "@/app/get-started/page";
+import type { FormData } from "@/components/get-started/GetStartedFlow";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2 } from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DomainStepProps {
     formData: FormData;
@@ -20,6 +21,24 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
     const [availabilityStatus, setAvailabilityStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short' | 'reserved'>('empty');
     const [debouncedDomain, setDebouncedDomain] = useState(domain);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [baseDomain, setBaseDomain] = useState('banglanaturals.site');
+    const [isLoadingDomain, setIsLoadingDomain] = useState(true);
+
+    useEffect(() => {
+        const fetchBaseDomain = async () => {
+            setIsLoadingDomain(true);
+            const { data } = await supabase
+                .from('saas_settings')
+                .select('base_domain')
+                .eq('id', 1)
+                .single();
+            if (data && data.base_domain) {
+                setBaseDomain(data.base_domain);
+            }
+            setIsLoadingDomain(false);
+        };
+        fetchBaseDomain();
+    }, []);
 
     useEffect(() => {
         // When the component loads, if there's already a domain in formData,
@@ -27,7 +46,7 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
         if(formData.domain) {
             setDebouncedDomain(formData.domain);
         }
-    }, []);
+    }, [formData.domain]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -132,8 +151,12 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
                             className="rounded-r-none focus:ring-0 focus:ring-offset-0"
                             autoComplete="off"
                         />
-                        <span className="bg-muted px-4 py-2 rounded-r-md border border-l-0 border-input text-muted-foreground">
-                            .banglanaturals.site
+                        <span className="bg-muted px-4 h-10 flex items-center rounded-r-md border border-l-0 border-input text-muted-foreground">
+                            {isLoadingDomain ? (
+                                <Skeleton className="h-4 w-24" />
+                            ) : (
+                                `.${baseDomain}`
+                            )}
                         </span>
                     </div>
                     <div className="min-h-[20px]">

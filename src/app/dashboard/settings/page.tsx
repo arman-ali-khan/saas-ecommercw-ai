@@ -323,7 +323,9 @@ export default function SaasSettingsPage() {
                           <Input placeholder="e.g., myapp.com" {...field} />
                         </FormControl>
                         <FormDescription>
-                          The main domain for user sites (e.g., your-store.myapp.com). If empty, it defaults to banglanaturals.site.
+                          The main domain for user sites (e.g., your-store.myapp.com).
+                          <br />
+                          <strong className="text-destructive">Important:</strong> For routing to work correctly, this value must also be set in an environment variable named <code>NEXT_PUBLIC_BASE_DOMAIN</code> and your server must be restarted.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
