@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -29,7 +30,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Palette, Copy } from 'lucide-react';
+import { Loader2, Palette, Copy, Sparkles } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -37,6 +38,7 @@ import Image from 'next/image';
 import DynamicIcon from '@/components/dynamic-icon';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { type SeoRequest } from '@/types';
 
 
 const availableBankingMethods = [
@@ -114,6 +116,8 @@ export default function SettingsAdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sitemapUrl, setSitemapUrl] = useState('');
   const [robotsUrl, setRobotsUrl] = useState('');
+  const [seoRequest, setSeoRequest] = useState<SeoRequest | null>(null);
+  const [isSeoRequestLoading, setIsSeoRequestLoading] = useState(true);
   
   const form = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
@@ -149,12 +153,22 @@ export default function SettingsAdminPage() {
         setSitemapUrl(`${protocol}//${user.domain}.${baseDomain}/sitemap.xml`);
         setRobotsUrl(`${protocol}//${user.domain}.${baseDomain}/robots.txt`);
 
-        const fetchSettings = async () => {
-            const { data, error } = await supabase
+        const fetchSettingsAndRequests = async () => {
+            const settingsPromise = supabase
                 .from('store_settings')
                 .select('*')
                 .eq('site_id', user.id)
                 .single();
+            
+            const seoRequestPromise = supabase
+                .from('seo_requests')
+                .select('*')
+                .eq('site_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            const [{ data, error }, { data: seoRequestData, error: seoRequestError }] = await Promise.all([settingsPromise, seoRequestPromise]);
 
             if (error && error.code !== 'PGRST116') {
                 toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
@@ -165,40 +179,47 @@ export default function SettingsAdminPage() {
                 siteDescription: user.siteDescription || '',
             });
 
-            seoForm.reset({
-                seoTitle: data?.seo_title || '',
-                seoDescription: data?.seo_description || '',
-                seoKeywords: data?.seo_keywords || '',
-            });
+            if (data) {
+                seoForm.reset({
+                    seoTitle: data.seo_title || '',
+                    seoDescription: data.seo_description || '',
+                    seoKeywords: data.seo_keywords || '',
+                });
 
-            paymentForm.reset({
-                mobileBankingEnabled: data?.mobile_banking_enabled ?? false,
-                mobileBankingNumber: data?.mobile_banking_number || '',
-                acceptedBankingMethods: data?.accepted_banking_methods || [],
-            });
+                paymentForm.reset({
+                    mobileBankingEnabled: data.mobile_banking_enabled ?? false,
+                    mobileBankingNumber: data.mobile_banking_number || '',
+                    acceptedBankingMethods: data.accepted_banking_methods || [],
+                });
 
-            brandingForm.reset({
-                logo_type: data?.logo_type || 'icon',
-                logo_icon: data?.logo_icon || 'Leaf',
-                logo_image_url: data?.logo_image_url || '',
-                favicon_url: data?.favicon_url || '',
-                social_share_image_url: data?.social_share_image_url || '',
-            });
+                brandingForm.reset({
+                    logo_type: data.logo_type || 'icon',
+                    logo_icon: data.logo_icon || 'Leaf',
+                    logo_image_url: data.logo_image_url || '',
+                    favicon_url: data.favicon_url || '',
+                    social_share_image_url: data.social_share_image_url || '',
+                });
 
-            appearanceForm.reset({
-                theme_background: data?.theme_background || '',
-                theme_foreground: data?.theme_foreground || '',
-                theme_primary: data?.theme_primary || '',
-                theme_secondary: data?.theme_secondary || '',
-                theme_accent: data?.theme_accent || '',
-                theme_card: data?.theme_card || '',
-                font_primary: data?.font_primary || 'Hind Siliguri',
-                font_secondary: data?.font_secondary || 'Orbitron',
-            });
+                appearanceForm.reset({
+                    theme_background: data.theme_background || '',
+                    theme_foreground: data.theme_foreground || '',
+                    theme_primary: data.theme_primary || '',
+                    theme_secondary: data.theme_secondary || '',
+                    theme_accent: data.theme_accent || '',
+                    theme_card: data.theme_card || '',
+                    font_primary: data.font_primary || 'Hind Siliguri',
+                    font_secondary: data.font_secondary || 'Orbitron',
+                });
+            }
 
+            if (seoRequestData) {
+                setSeoRequest(seoRequestData as SeoRequest);
+            }
+            
+            setIsSeoRequestLoading(false);
             setIsLoading(false);
         };
-        fetchSettings();
+        fetchSettingsAndRequests();
     }
   }, [user, form, seoForm, paymentForm, brandingForm, appearanceForm, toast]);
 
@@ -290,6 +311,44 @@ export default function SettingsAdminPage() {
         toast({ title: 'Appearance settings saved!' });
     }
   }
+
+  async function handleSeoRequest() {
+    if (!user) return;
+    setIsSubmitting(true);
+    
+    // Get product count
+    const { count, error: countError } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', user.id);
+
+    if (countError) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not get product count.' });
+        setIsSubmitting(false);
+        return;
+    }
+
+    const { error } = await supabase.from('seo_requests').insert({
+        site_id: user.id,
+        status: 'pending',
+        product_count: count || 0,
+        user_name: user.fullName,
+        user_email: user.email,
+        site_domain: user.domain,
+        site_name: user.siteName,
+    });
+    setIsSubmitting(false);
+
+    if(error) {
+        toast({ variant: 'destructive', title: 'Error creating request', description: error.message });
+    } else {
+        toast({ title: 'SEO request submitted!', description: 'You will be notified when the review is complete.' });
+        // Refetch request status
+        const { data } = await supabase.from('seo_requests').select('*').eq('site_id', user.id).order('created_at', { ascending: false }).limit(1).single();
+        if (data) setSeoRequest(data as SeoRequest);
+    }
+  }
+
 
   const handleLogoUpload = (result: any) => {
     if (result.event === 'success') {
@@ -732,6 +791,30 @@ export default function SettingsAdminPage() {
                             </CardContent>
                         </Card>
 
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Professional SEO Review</CardTitle>
+                                <CardDescription>
+                                    Request a professional SEO audit and optimization service from our team to boost your store's visibility.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {isSeoRequestLoading ? <Loader2 className="animate-spin" /> : (
+                                    seoRequest?.status === 'pending' ? (
+                                        <p className="text-muted-foreground">Your SEO review request is currently <span className="font-bold text-amber-500">pending</span>. Our team will get back to you soon.</p>
+                                    ) : seoRequest?.status === 'completed' ? (
+                                         <p className="text-muted-foreground">Your last SEO review was <span className="font-bold text-green-500">completed</span>. You can request a new review if needed.</p>
+                                    ) : (
+                                        <Button onClick={handleSeoRequest} disabled={isSubmitting}>
+                                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            <Sparkles className="mr-2 h-4 w-4" /> Request SEO Review
+                                        </Button>
+                                    )
+                                )}
+                            </CardContent>
+                        </Card>
+
+
                         <div className="pt-4">
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -846,5 +929,7 @@ export default function SettingsAdminPage() {
     </Card>
   );
 }
+
+    
 
     

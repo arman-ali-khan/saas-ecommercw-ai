@@ -37,6 +37,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const { toast } = useToast();
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingSubscriptionsCount, setPendingSubscriptionsCount] = useState(0);
+  const [pendingSeoRequestsCount, setPendingSeoRequestsCount] = useState(0);
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
     logoUrl: string | null;
@@ -64,6 +65,13 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
       setPendingSubscriptionsCount(subCount || 0);
+      
+      // Fetch pending seo requests count
+      const { count: seoCount } = await supabase
+        .from('seo_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      setPendingSeoRequestsCount(seoCount || 0);
     };
 
     fetchCounts();
@@ -72,6 +80,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
       .channel(`saas-admin-sidebar-counts-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, fetchCounts)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'subscription_payments' }, fetchCounts)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'seo_requests' }, fetchCounts)
       .subscribe();
 
     return () => {
@@ -118,6 +127,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
     { href: `/dashboard/pages`, label: 'Pages', icon: FileText },
     { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell, count: unreadCount },
+    { href: `/dashboard/seo-requests`, label: 'SEO Requests', icon: Sparkles, count: pendingSeoRequestsCount },
     { href: `/dashboard/settings`, label: 'Settings', icon: Settings },
     { href: `/`, label: 'View Landing Page', icon: Building },
   ];
@@ -222,3 +232,5 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     </div>
   );
 }
+
+    

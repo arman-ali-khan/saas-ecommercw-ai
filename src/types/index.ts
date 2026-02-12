@@ -199,3 +199,18 @@ export interface SaasFeature {
   icon: string;
   created_at: string;
 }
+
+export interface SeoRequest {
+    id: string;
+    created_at: string;
+    site_id: string;
+    status: 'pending' | 'completed';
+    notes?: string | null;
+    product_count: number;
+    user_name: string;
+    user_email: string;
+    site_domain: string;
+    site_name: string;
+}
+
+    
