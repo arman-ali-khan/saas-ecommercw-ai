@@ -26,6 +26,8 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/sitemap.xml',
+    '/robots.txt',
     /*
      * Match all paths except static assets and internal Next.js files
      */

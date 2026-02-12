@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -30,7 +29,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Palette, Copy } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -38,7 +37,7 @@ import Image from 'next/image';
 import DynamicIcon from '@/components/dynamic-icon';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { Palette } from 'lucide-react';
+
 
 const availableBankingMethods = [
   { id: 'bkash', label: 'বিকাশ' },
@@ -113,6 +112,8 @@ export default function SettingsAdminPage() {
   const { user, refreshUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sitemapUrl, setSitemapUrl] = useState('');
+  const [robotsUrl, setRobotsUrl] = useState('');
   
   const form = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
@@ -142,6 +143,12 @@ export default function SettingsAdminPage() {
   useEffect(() => {
     if (user) {
         setIsLoading(true);
+
+        const protocol = window.location.protocol;
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
+        setSitemapUrl(`${protocol}//${user.domain}.${baseDomain}/sitemap.xml`);
+        setRobotsUrl(`${protocol}//${user.domain}.${baseDomain}/robots.txt`);
+
         const fetchSettings = async () => {
             const { data, error } = await supabase
                 .from('store_settings')
@@ -685,6 +692,46 @@ export default function SettingsAdminPage() {
                             </FormItem>
                             )}
                         />
+                        
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Sitemap & Robots.txt</CardTitle>
+                                <CardDescription>
+                                    These files are automatically generated to help search engines index your content.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <FormItem>
+                                    <FormLabel>Sitemap URL</FormLabel>
+                                    <div className="flex items-center gap-2">
+                                        <FormControl>
+                                            <Input value={sitemapUrl} readOnly />
+                                        </FormControl>
+                                        <Button type="button" variant="outline" size="icon" onClick={() => {
+                                            navigator.clipboard.writeText(sitemapUrl);
+                                            toast({ title: 'Sitemap URL copied!' });
+                                        }}>
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </FormItem>
+                                <FormItem>
+                                    <FormLabel>Robots.txt URL</FormLabel>
+                                    <div className="flex items-center gap-2">
+                                        <FormControl>
+                                            <Input value={robotsUrl} readOnly />
+                                        </FormControl>
+                                        <Button type="button" variant="outline" size="icon" onClick={() => {
+                                            navigator.clipboard.writeText(robotsUrl);
+                                            toast({ title: 'robots.txt URL copied!' });
+                                        }}>
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </FormItem>
+                            </CardContent>
+                        </Card>
+
                         <div className="pt-4">
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
