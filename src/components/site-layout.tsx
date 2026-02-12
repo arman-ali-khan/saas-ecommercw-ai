@@ -1,4 +1,3 @@
-
 'use client';
 
 import { usePathname, useParams } from 'next/navigation';
@@ -17,8 +16,8 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const params = useParams();
   const username = params.username as string | undefined;
 
-  // 1. Check for admin/dashboard pages first, as they have priority and no layout.
-  if (pathname.includes('/admin') || pathname.startsWith('/dashboard')) {
+  // 1. Check for pages that provide their own full layout.
+  if (pathname === '/' || pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
     return <>{children}</>;
   }
 
@@ -37,20 +36,8 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       </div>
     );
   }
-
-  // 3. Handle all other root-domain pages (SaaS landing, auth, etc.)
-  // We can assume if `username` is not present, it's a SaaS page.
-  if (pathname === '/') {
-     return (
-        <>
-            <SaasHeader />
-            <main>{children}</main>
-            <SaasFooter />
-        </>
-    );
-  }
-
-  // For other SaaS pages like /login, /register, etc., that need a container.
+  
+  // 3. For all other SaaS pages like /login, /register, etc., that need a container.
   return (
     <div className="flex flex-col min-h-screen">
         <SaasHeader />
