@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -24,7 +23,6 @@ import {
   GalleryHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Logo from './logo';
 import { useAuth } from '@/stores/auth';
 import { SheetClose } from './ui/sheet';
 import { Button } from './ui/button';
@@ -32,6 +30,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
+import DynamicIcon from './dynamic-icon';
+import Image from 'next/image';
 
 export default function AdminMobileSidebar() {
   const pathname = usePathname();
@@ -41,12 +41,17 @@ export default function AdminMobileSidebar() {
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [siteSettings, setSiteSettings] = useState<{
+    logo_type?: 'icon' | 'image';
+    logo_icon?: string;
+    logo_image_url?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
-    const fetchCounts = async () => {
-      // Fetch processing orders count
+    const fetchAllData = async () => {
+      // Fetch counts
       const { count: orderCount } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
@@ -54,7 +59,6 @@ export default function AdminMobileSidebar() {
         .eq('status', 'processing');
       setProcessingOrdersCount(orderCount || 0);
 
-      // Fetch unread notifications count
       const { count: notifCount } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
@@ -63,7 +67,6 @@ export default function AdminMobileSidebar() {
         .eq('is_read', false);
       setUnreadNotificationsCount(notifCount || 0);
 
-      // Fetch unread chat conversations count
       const { data: convosWithUnread } = await supabase
         .from('live_chat_messages')
         .select('conversation_id')
@@ -77,41 +80,46 @@ export default function AdminMobileSidebar() {
       } else {
           setUnreadChatCount(0);
       }
+
+      // Fetch site settings
+      const { data: settingsData } = await supabase
+        .from('store_settings')
+        .select('logo_type, logo_icon, logo_image_url')
+        .eq('site_id', user.id)
+        .single();
+      if (settingsData) {
+        setSiteSettings(settingsData);
+      }
     };
     
-    fetchCounts(); // Initial fetch
+    fetchAllData();
 
     const channel = supabase
-      .channel(`admin-dashboard-counts-channel-${user.id}`)
+      .channel(`admin-mobile-sidebar-channel-${user.id}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-          filter: `site_id=eq.${user.id}`,
-        },
-        fetchCounts
+        { event: '*', schema: 'public', table: 'orders' },
+        fetchAllData
       )
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${user.id}&recipient_type=eq.admin`,
-        },
-        fetchCounts
+        { event: '*', schema: 'public', table: 'notifications' },
+        fetchAllData
       )
        .on(
         'postgres_changes',
+        { event: '*', schema: 'public', table: 'live_chat_messages' },
+        fetchAllData
+      )
+      .on(
+        'postgres_changes',
         {
-            event: '*',
-            schema: 'public',
-            table: 'live_chat_messages',
-            filter: `site_id=eq.${user.id}`
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'store_settings',
+          filter: `site_id=eq.${user.id}`,
         },
-        fetchCounts
+        (payload) => setSiteSettings(payload.new as any)
       )
       .subscribe();
 
@@ -161,6 +169,10 @@ export default function AdminMobileSidebar() {
     { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
     { href: `/admin/settings`, label: 'Settings', icon: Settings },
   ];
+  
+  const logoType = siteSettings?.logo_type || 'icon';
+  const logoIcon = siteSettings?.logo_icon || 'Leaf';
+  const logoImageUrl = siteSettings?.logo_image_url;
 
   const NavLink = ({
     href,
@@ -198,8 +210,17 @@ export default function AdminMobileSidebar() {
     <div className="flex h-full max-h-screen flex-col gap-2 text-sidebar-foreground bg-sidebar">
         <div className="flex h-20 items-center border-b border-sidebar-border px-6">
           <SheetClose asChild>
-            <Link href={`/admin`}>
-                <Logo />
+            <Link href={`/admin`} className="flex items-center gap-3">
+              <div className={`${logoType === 'image' ? '' : 'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
+                  {logoType === 'image' && logoImageUrl ? (
+                  <div className="relative h-8 w-8">
+                      <Image src={logoImageUrl} alt={user?.siteName || 'Logo'} fill className="object-contain rounded-sm" />
+                  </div>
+                  ) : (
+                  <DynamicIcon name={logoIcon} className="h-6 w-6 text-primary-foreground" />
+                  )}
+              </div>
+              <div className="text-lg font-bold font-headline">{user.siteName}</div>
             </Link>
           </SheetClose>
         </div>
