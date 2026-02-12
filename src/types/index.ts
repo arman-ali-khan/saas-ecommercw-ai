@@ -177,3 +177,16 @@ export interface Page {
   created_at: string;
   updated_at: string;
 }
+
+export interface CarouselSlide {
+    id: string;
+    site_id: string;
+    image_url: string;
+    title: string;
+    description?: string | null;
+    link?: string | null;
+    link_text?: string | null;
+    order: number;
+    is_enabled: boolean;
+    created_at: string;
+}

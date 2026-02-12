@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ProductCard from '@/components/product-card';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { ArrowRight, Leaf, Users, Heart, SearchX } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
 import {
@@ -17,7 +16,7 @@ import {
 import { getProductsByDomain, checkDomainExists } from '@/lib/products';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Section } from '@/types';
+import type { Section, CarouselSlide } from '@/types';
 
 // Force dynamic rendering to ensure the latest section settings are always used.
 export const dynamic = 'force-dynamic';
@@ -84,6 +83,13 @@ export default async function UserPage({
     .select('homepage_sections')
     .eq('site_id', profile.id)
     .single();
+    
+  const { data: slidesData } = await supabase
+    .from('carousel_slides')
+    .select('*')
+    .eq('site_id', profile.id)
+    .eq('is_enabled', true)
+    .order('order', { ascending: true });
 
   const allProducts = await getProductsByDomain(params.username);
   const featuredProducts = allProducts.filter((p) => p.is_featured);
@@ -130,43 +136,22 @@ export default async function UserPage({
     ];
   })();
 
-  const aboutImage = PlaceHolderImages.find(
-    (img) => img.id === 'about-traceability'
-  );
-  const storyImage = PlaceHolderImages.find((img) => img.id === 'about-story');
-  const qualityImage = PlaceHolderImages.find(
-    (img) => img.id === 'quality-promise'
-  );
+  const heroSlides = (slidesData || []).map(slide => ({
+      id: slide.id,
+      image: {
+          imageUrl: slide.image_url,
+          description: slide.title, // Use title for alt text
+          imageHint: '' // Not available from DB
+      },
+      title: slide.title,
+      description: slide.description || '',
+      link: slide.link || '',
+      linkText: slide.link_text || 'Shop Now'
+  }));
 
-  const heroSlides = [
-    {
-      id: 'slide-1',
-      image: PlaceHolderImages.find((img) => img.id === 'home-hero'),
-      title: 'প্রকৃতির আসল স্বাদ',
-      description:
-        'বাংলাদেশের হৃদয় থেকে আসা সেরা প্রাকৃতিক পণ্য আবিষ্কার করুন। বিশুদ্ধ, খাঁটি, এবং আপনার দোরগোড়ায় পৌঁছে দেওয়া হয়।',
-      link: `/products`,
-      linkText: 'সব পণ্য দেখুন',
-    },
-    {
-      id: 'slide-2',
-      image: PlaceHolderImages.find((img) => img.id === 'honey-2'),
-      title: 'বন্য, অপরিশোধিত সুন্দরবনের মধু',
-      description:
-        'বিশ্বের বৃহত্তম ম্যানগ্রোভ বন থেকে মধুর এক অনন্য অভিজ্ঞতা অর্জন করুন।',
-      link: `/products/sundarban-honey`,
-      linkText: 'মধু আবিষ্কার করুন',
-    },
-    {
-      id: 'slide-3',
-      image: PlaceHolderImages.find((img) => img.id === 'dates-1'),
-      title: 'প্রিমিয়াম মরিয়ম খেজুর',
-      description:
-        'সমৃদ্ধ, চিবানো এবং ক্যারামেলের মতো। যেকোনো অনুষ্ঠানের জন্য একটি স্বাস্থ্যকর এবং সুস্বাদু ট্রিট।',
-      link: `/products/dates-mariam`,
-      linkText: 'খেজুর অন্বেষণ করুন',
-    },
-  ];
+  const aboutImage = { imageUrl: 'https://picsum.photos/seed/about1/800/600', description: 'Traceability', imageHint: 'farmer field' };
+  const storyImage = { imageUrl: 'https://picsum.photos/seed/about2/800/600', description: 'Community', imageHint: 'community farmers' };
+  const qualityImage = { imageUrl: 'https://picsum.photos/seed/about3/800/600', description: 'Quality', imageHint: 'quality product' };
 
   return (
     <div className="space-y-16">
@@ -175,6 +160,7 @@ export default async function UserPage({
 
         switch (section.id) {
           case 'hero':
+            if(heroSlides.length === 0) return null;
             return (
               <section key={section.id} className="-mx-4 sm:-mx-6 lg:-mx-8">
                 <HeroCarousel slides={heroSlides} />
@@ -208,15 +194,13 @@ export default async function UserPage({
                 <div className="hidden lg:grid grid-cols-3 gap-6">
                   <Card className="overflow-hidden flex flex-col">
                     <div className="relative h-64 w-full">
-                      {aboutImage && (
-                        <Image
-                          src={aboutImage.imageUrl}
-                          alt={aboutImage.description}
-                          data-ai-hint={aboutImage.imageHint}
-                          fill
-                          className="object-cover"
-                        />
-                      )}
+                      <Image
+                        src={aboutImage.imageUrl}
+                        alt={aboutImage.description}
+                        data-ai-hint={aboutImage.imageHint}
+                        fill
+                        className="object-cover"
+                      />
                     </div>
                     <div className="p-6 flex flex-col flex-grow">
                       <CardHeader className="p-0">
@@ -244,15 +228,13 @@ export default async function UserPage({
                   </Card>
                   <Card className="overflow-hidden flex flex-col">
                     <div className="relative h-64 w-full">
-                      {storyImage && (
-                        <Image
-                          src={storyImage.imageUrl}
-                          alt={storyImage.description}
-                          data-ai-hint={storyImage.imageHint}
-                          fill
-                          className="object-cover"
-                        />
-                      )}
+                      <Image
+                        src={storyImage.imageUrl}
+                        alt={storyImage.description}
+                        data-ai-hint={storyImage.imageHint}
+                        fill
+                        className="object-cover"
+                      />
                     </div>
                     <div className="p-6 flex flex-col flex-grow">
                       <CardHeader className="p-0">
@@ -280,15 +262,13 @@ export default async function UserPage({
                   </Card>
                   <Card className="overflow-hidden flex flex-col">
                     <div className="relative h-64 w-full">
-                      {qualityImage && (
-                        <Image
-                          src={qualityImage.imageUrl}
-                          alt={qualityImage.description}
-                          data-ai-hint={qualityImage.imageHint}
-                          fill
-                          className="object-cover"
-                        />
-                      )}
+                      <Image
+                        src={qualityImage.imageUrl}
+                        alt={qualityImage.description}
+                        data-ai-hint={qualityImage.imageHint}
+                        fill
+                        className="object-cover"
+                      />
                     </div>
                     <div className="p-6 flex flex-col flex-grow">
                       <CardHeader className="p-0">
@@ -325,15 +305,13 @@ export default async function UserPage({
                       <CarouselItem>
                         <Card className="overflow-hidden">
                           <div className="relative h-64 w-full">
-                            {aboutImage && (
-                              <Image
-                                src={aboutImage.imageUrl}
-                                alt={aboutImage.description}
-                                data-ai-hint={aboutImage.imageHint}
-                                fill
-                                className="object-cover"
-                              />
-                            )}
+                            <Image
+                              src={aboutImage.imageUrl}
+                              alt={aboutImage.description}
+                              data-ai-hint={aboutImage.imageHint}
+                              fill
+                              className="object-cover"
+                            />
                           </div>
                           <div className="p-6">
                             <CardHeader className="p-0">
@@ -363,15 +341,13 @@ export default async function UserPage({
                       <CarouselItem>
                         <Card className="overflow-hidden">
                           <div className="relative h-64 w-full">
-                            {storyImage && (
-                              <Image
-                                src={storyImage.imageUrl}
-                                alt={storyImage.description}
-                                data-ai-hint={storyImage.imageHint}
-                                fill
-                                className="object-cover"
-                              />
-                            )}
+                            <Image
+                              src={storyImage.imageUrl}
+                              alt={storyImage.description}
+                              data-ai-hint={storyImage.imageHint}
+                              fill
+                              className="object-cover"
+                            />
                           </div>
                           <div className="p-6">
                             <CardHeader className="p-0">
@@ -402,15 +378,13 @@ export default async function UserPage({
                       <CarouselItem>
                         <Card className="overflow-hidden">
                           <div className="relative h-64 w-full">
-                            {qualityImage && (
-                              <Image
-                                src={qualityImage.imageUrl}
-                                alt={qualityImage.description}
-                                data-ai-hint={qualityImage.imageHint}
-                                fill
-                                className="object-cover"
-                              />
-                            )}
+                            <Image
+                              src={qualityImage.imageUrl}
+                              alt={qualityImage.description}
+                              data-ai-hint={qualityImage.imageHint}
+                              fill
+                              className="object-cover"
+                            />
                           </div>
                           <div className="p-6">
                             <CardHeader className="p-0">

@@ -21,6 +21,7 @@ import {
   LogOut,
   Bell,
   Truck,
+  GalleryHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from './logo';
@@ -162,6 +163,7 @@ export default function AdminSidebar() {
     { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
     { href: `/admin/customers`, label: 'Customers', icon: Users },
     { href: `/admin/shipping`, label: 'Shipping', icon: Truck },
+    { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock },
