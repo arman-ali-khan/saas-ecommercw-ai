@@ -190,3 +190,11 @@ export interface CarouselSlide {
     is_enabled: boolean;
     created_at: string;
 }
+
+export interface SaasFeature {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  created_at: string;
+}
