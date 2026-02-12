@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import RichTextEditor from '@/components/rich-text-editor';
 
 const productFormSchema = z.object({
   id: z
@@ -471,12 +472,11 @@ export default function ManageProductPage() {
                   <FormItem>
                     <FormLabel>Long Description</FormLabel>
                     <FormControl>
-                      <Textarea
-                        {...field}
-                        rows={5}
-                        placeholder="Detailed description for the product page."
-                      />
+                       <RichTextEditor value={field.value || ''} onChange={field.onChange} />
                     </FormControl>
+                    <FormDescription>
+                       Use the rich text editor for detailed product information.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

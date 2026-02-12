@@ -4,7 +4,7 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
-export default function SaasPageRenderer({ content }: { content: any }) {
+export default function RichTextRenderer({ content }: { content: any }) {
   const editor = useEditor({
     extensions: [StarterKit],
     content: content || '',

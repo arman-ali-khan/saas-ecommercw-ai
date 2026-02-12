@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
@@ -25,6 +26,7 @@ import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
 import type { Product } from '@/types';
 import { cn } from '@/lib/utils';
+import RichTextRenderer from '@/components/saas-page-renderer';
 
 const TikTokIcon = () => (
   <svg
@@ -91,6 +93,30 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
   if (!product) {
     return null;
+  }
+
+  let longDescContent: any = null;
+  if (product.long_description) {
+    try {
+      // It's a JSON string from Tiptap, so parse it.
+      longDescContent = JSON.parse(product.long_description);
+    } catch (e) {
+      // It's just plain text, create a simple Tiptap structure.
+      longDescContent = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: product.long_description,
+              },
+            ],
+          },
+        ],
+      };
+    }
   }
 
   const handleAddToCart = () => {
@@ -180,12 +206,6 @@ export default function ProductClientPage({ product }: { product: Product }) {
         <p className="text-lg text-muted-foreground mt-4">
           {product.description}
         </p>
-        
-        {product.long_description && (
-          <p className="text-md text-muted-foreground/80 mt-4">
-            {product.long_description}
-          </p>
-        )}
 
         <Separator className="my-6" />
 
@@ -269,6 +289,14 @@ export default function ProductClientPage({ product }: { product: Product }) {
             </Button>
           </div>
         </div>
+        
+        {longDescContent && (
+          <div className="mt-8 pt-8 border-t">
+            <h3 className="text-2xl font-headline font-bold mb-4">পণ্যের বিবরণ</h3>
+            <RichTextRenderer content={longDescContent} />
+          </div>
+        )}
+
       </div>
       {product && (
         <AiShareTool

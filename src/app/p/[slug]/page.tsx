@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import SaasPageRenderer from '@/components/saas-page-renderer';
+import RichTextRenderer from '@/components/saas-page-renderer';
 
 type Props = {
   params: { slug: string; };
@@ -39,7 +39,7 @@ export default async function PublicSaasPage({ params }: Props) {
   return (
     <div className="max-w-4xl mx-auto py-8">
       <h1 className="text-4xl md:text-5xl font-headline font-bold mb-8">{page.title}</h1>
-      <SaasPageRenderer content={page.content} />
+      <RichTextRenderer content={page.content} />
     </div>
   );
 }
