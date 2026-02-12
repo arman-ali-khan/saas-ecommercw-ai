@@ -10,7 +10,7 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   saasLogin: (email: string, password: string) => Promise<{ user: any | null; error: string | null }>;
-  storeLogin: (email: string, password: string) => Promise<{ user: any | null; error: string | null }>;
+  storeLogin: (email: string, password: string, domain: string) => Promise<{ user: any | null; error: string | null }>;
   customerLogin: (email: string, password: string, siteId:string) => Promise<{ user: any | null; error: string | null }>;
   register: (
     username: string,
@@ -88,11 +88,28 @@ export const useAuth = create<AuthState>()((set, get) => ({
       return { user: data.user, error: null };
     },
 
-    storeLogin: async (email, password) => {
+    storeLogin: async (email, password, domain) => {
+      set({ loading: true });
+      try {
+        const response = await fetch('/api/auth/validate-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, domain }),
+        });
+
+        if (!response.ok) {
+          const { error } = await response.json();
+          return { user: null, error: error || 'Invalid credentials for this store.' };
+        }
+      } catch (e: any) {
+        return { user: null, error: 'Could not validate user. Please check your connection.' };
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
        if (error) {
         return { user: null, error: error.message };
       }
+      // onAuthStateChange will trigger refreshUser and set the user state
       return { user: data.user, error: null };
     },
 

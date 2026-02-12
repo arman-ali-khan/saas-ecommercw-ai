@@ -55,7 +55,7 @@ export default function AdminLoginPage() {
   // If user is already logged in as the correct admin, redirect them away from login.
   useEffect(() => {
     if (!authLoading && loggedInUser?.domain === username) {
-      router.replace(`/admin`);
+      router.replace(`/${username}/admin`);
     } else if (!authLoading && loggedInUser && loggedInUser.domain !== username) {
       // If logged in as a *different* admin, redirect to their correct dashboard
       toast({
@@ -71,15 +71,14 @@ export default function AdminLoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    // use `storeLogin` from `useAuth` which just calls `signInWithPassword`
-    const { error } = await storeLogin(values.email, values.password);
+    const { error } = await storeLogin(values.email, values.password, username);
     setIsSubmitting(false);
 
     if (error) {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: error.message || 'Invalid email or password.',
+        description: error || 'Invalid email or password for this site.',
       });
       return;
     }
