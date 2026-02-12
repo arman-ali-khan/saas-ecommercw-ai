@@ -15,17 +15,14 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import {
   ArrowRight,
   CheckCircle,
-  Package,
-  Sparkles,
-  Store,
-  Users,
 } from 'lucide-react';
 import SaasHeader from '@/components/saas-header';
 import SaasFooter from '@/components/saas-footer';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { type Plan } from '@/types';
+import { type Plan, type SaasFeature } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import DynamicIcon from '@/components/dynamic-icon';
 
 export default function SaasLandingPage() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'saas-hero');
@@ -33,15 +30,24 @@ export default function SaasLandingPage() {
     (img) => img.id === 'saas-avatar-1'
   );
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
+  const [features, setFeatures] = useState<SaasFeature[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPlans = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
-      const { data: plans } = await supabase
+      
+      const plansPromise = supabase
         .from('plans')
         .select('*')
         .order('price', { ascending: true });
+
+      const featuresPromise = supabase
+        .from('saas_features')
+        .select('*')
+        .order('name', { ascending: true });
+
+      const [{ data: plans }, { data: featuresData }] = await Promise.all([plansPromise, featuresPromise]);
 
       if (plans) {
         const tiers = plans.map((plan: Plan) => ({
@@ -61,37 +67,15 @@ export default function SaasLandingPage() {
         }));
         setPricingTiers(tiers);
       }
+
+      if (featuresData) {
+        setFeatures(featuresData as SaasFeature[]);
+      }
+
       setIsLoading(false);
     };
-    fetchPlans();
+    fetchData();
   }, []);
-
-  const features = [
-    {
-      icon: Store,
-      title: 'আপনার নিজস্ব ব্র্যান্ডেড স্টোর',
-      description:
-        'মাত্র কয়েক ক্লিকে আপনার নিজস্ব কাস্টমাইজযোগ্য এবং ব্যক্তিগতকৃত ই-কমার্স স্টোর তৈরি করুন।',
-    },
-    {
-      icon: Package,
-      title: 'সহজ পণ্য ব্যবস্থাপনা',
-      description:
-        'আমাদের স্বজ্ঞাত ইন্টারফেসের মাধ্যমে সহজেই আপনার পণ্য যোগ করুন, সম্পাদনা করুন এবং সংগঠিত করুন।',
-    },
-    {
-      icon: Sparkles,
-      title: 'এআই-চালিত সরঞ্জাম',
-      description:
-        'পণ্যের বিবরণ এবং বিপণন বার্তা তৈরি করতে কৃত্রিম বুদ্ধিমত্তার শক্তি ব্যবহার করুন।',
-    },
-    {
-      icon: Users,
-      title: 'ব্যক্তিগতকৃত গ্রাহক পৃষ্ঠা',
-      description:
-        'আপনার গ্রাহকদের জন্য অনন্য পৃষ্ঠা তৈরি করুন, যা তাদের একটি বিশেষ অভিজ্ঞতা প্রদান করবে।',
-    },
-  ];
 
   return (
     <>
@@ -147,21 +131,36 @@ export default function SaasLandingPage() {
               </p>
             </div>
             <div className="mt-12 grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {features.map((feature, index) => (
-                <Card key={index} className="text-center">
-                  <CardHeader className="items-center">
-                    <div className="bg-primary/10 p-4 rounded-full">
-                      <feature.icon className="w-8 h-8 text-primary" />
-                    </div>
-                    <CardTitle className="mt-4">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+              {isLoading ? (
+                [...Array(4)].map((_, index) => (
+                  <Card key={index}>
+                    <CardHeader className="items-center text-center">
+                      <Skeleton className="h-20 w-20 rounded-full" />
+                      <Skeleton className="h-6 w-3/4 mt-4" />
+                    </CardHeader>
+                    <CardContent className="text-center">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-5/6 mt-2" />
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                features.map((feature) => (
+                  <Card key={feature.id} className="text-center">
+                    <CardHeader className="items-center">
+                      <div className="bg-primary/10 p-4 rounded-full">
+                        <DynamicIcon name={feature.icon} className="w-8 h-8 text-primary" />
+                      </div>
+                      <CardTitle className="mt-4">{feature.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">
+                        {feature.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </section>
 
