@@ -85,7 +85,6 @@ export default function ManageProductPage() {
   const { user, loading: authLoading } = useAuth();
 
   const productId = params.productId as string;
-  const username = params.username as string;
   const isNew = productId === 'new';
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -137,7 +136,7 @@ export default function ManageProductPage() {
         description:
           'Product not found or you do not have permission to edit it.',
       });
-      router.push(`/${username}/admin/products`);
+      router.push(`/admin/products`);
       return;
     }
 
@@ -160,7 +159,7 @@ export default function ManageProductPage() {
 
     form.reset(sanitizedData);
     setIsLoading(false);
-  }, [productId, isNew, user, router, toast, form, username]);
+  }, [productId, isNew, user, router, toast, form]);
 
   const fetchCategories = useCallback(async () => {
     if (!user) return;
@@ -251,7 +250,7 @@ export default function ManageProductPage() {
       });
     } else {
       toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
-      router.push(`/${username}/admin/products`);
+      router.push(`/admin/products`);
       router.refresh();
       // No need to reset lock on success, component will unmount
     }
@@ -298,7 +297,7 @@ export default function ManageProductPage() {
   return (
     <div>
       <Button variant="ghost" asChild className="mb-4 -ml-4">
-        <Link href={`/${username}/admin/products`}>
+        <Link href={`/admin/products`}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Products
         </Link>

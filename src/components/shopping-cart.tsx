@@ -21,7 +21,6 @@ import {
   Minus,
 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
-import { usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 
@@ -41,11 +40,7 @@ export default function ShoppingCart() {
   const cartTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   
-  const pathname = usePathname();
-  const segments = pathname.split('/').filter(Boolean);
-  const KNOWN_ROOT_PATHS = ['admin', 'login', 'register', 'profile'];
-  const username = segments.length > 0 && !KNOWN_ROOT_PATHS.includes(segments[0]) ? segments[0] : null;
-  const checkoutUrl = username ? `/${username}/checkout` : '/checkout'; // Fallback, though should always have username here.
+  const checkoutUrl = `/checkout`;
 
   const handleRemoveFromCart = (productId: string) => {
     removeFromCart(productId);
@@ -165,7 +160,7 @@ export default function ShoppingCart() {
             </p>
             <SheetClose asChild>
               <Button asChild className="mt-6">
-                <Link href={username ? `/${username}/products` : '/products'}>কেনাকাটা শুরু করুন</Link>
+                <Link href={'/products'}>কেনাকাটা শুরু করুন</Link>
               </Button>
             </SheetClose>
           </div>

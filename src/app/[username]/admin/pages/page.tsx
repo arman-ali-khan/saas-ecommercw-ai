@@ -47,8 +47,6 @@ import { MoreHorizontal, Plus, Loader2, Edit, Trash2, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function PagesAdminPage() {
-  const params = useParams();
-  const username = params.username as string;
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [pages, setPages] = useState<Page[]>([]);
@@ -120,7 +118,7 @@ export default function PagesAdminPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href={`/${username}/admin/pages/new`}>
+          <Link href={`/admin/pages/new`}>
             <Plus className="mr-2 h-4 w-4" /> Add New Page
           </Link>
         </Button>
@@ -132,7 +130,7 @@ export default function PagesAdminPage() {
             <div className="text-center py-16">
               <p className="text-muted-foreground">You have no pages yet.</p>
               <Button asChild className="mt-4">
-                <Link href={`/${username}/admin/pages/new`}>
+                <Link href={`/admin/pages/new`}>
                   <Plus className="mr-2 h-4 w-4" /> Create Your First Page
                 </Link>
               </Button>
@@ -155,7 +153,7 @@ export default function PagesAdminPage() {
                     {pages.map((page) => (
                       <TableRow key={page.id}>
                         <TableCell className="font-medium">{page.title}</TableCell>
-                        <TableCell className="font-mono text-xs">/{page.slug}</TableCell>
+                        <TableCell className="font-mono text-xs">/pages/{page.slug}</TableCell>
                         <TableCell>
                           <Badge variant={page.is_published ? 'default' : 'outline'}>
                             {page.is_published ? 'Published' : 'Draft'}
@@ -170,10 +168,10 @@ export default function PagesAdminPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem asChild>
-                                <Link href={`/${username}/pages/${page.slug}`} target="_blank"><Eye className="mr-2 h-4 w-4" /> View</Link>
+                                <Link href={`/pages/${page.slug}`} target="_blank"><Eye className="mr-2 h-4 w-4" /> View</Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link href={`/${username}/admin/pages/${page.id}`}><Edit className="mr-2 h-4 w-4" /> Edit</Link>
+                                <Link href={`/admin/pages/${page.id}`}><Edit className="mr-2 h-4 w-4" /> Edit</Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={() => setPageToDelete(page)}>
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -200,10 +198,10 @@ export default function PagesAdminPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
-                                <Link href={`/${username}/pages/${page.slug}`} target="_blank"><Eye className="mr-2 h-4 w-4" /> View</Link>
+                                <Link href={`/pages/${page.slug}`} target="_blank"><Eye className="mr-2 h-4 w-4" /> View</Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                                <Link href={`/${username}/admin/pages/${page.id}`}><Edit className="mr-2 h-4 w-4" /> Edit</Link>
+                                <Link href={`/admin/pages/${page.id}`}><Edit className="mr-2 h-4 w-4" /> Edit</Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => setPageToDelete(page)}>
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -211,7 +209,7 @@ export default function PagesAdminPage() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      <CardDescription className="font-mono text-xs">/{page.slug}</CardDescription>
+                      <CardDescription className="font-mono text-xs">/pages/{page.slug}</CardDescription>
                     </CardHeader>
                     <CardContent className="flex justify-between items-center">
                         <Badge variant={page.is_published ? 'default' : 'outline'}>

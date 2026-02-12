@@ -19,9 +19,7 @@ import { useCart } from '@/stores/cart';
 
 function SuccessPageContent() {
   const router = useRouter();
-  const params = useParams();
   const searchParams = useSearchParams();
-  const username = params.username as string;
   const orderId = searchParams.get('order_id');
 
   const { setLastOrder } = useCart();
@@ -31,7 +29,7 @@ function SuccessPageContent() {
   useEffect(() => {
     if (!orderId) {
       // If there's no order_id, we can't show anything. Redirect home.
-      router.replace(`/${username}`);
+      router.replace(`/`);
       return;
     }
 
@@ -46,7 +44,7 @@ function SuccessPageContent() {
       if (error || !data) {
         // Can't find the order, maybe a bad link.
         console.error('Error fetching order on success page:', error);
-        router.replace(`/${username}`);
+        router.replace(`/`);
       } else {
         setOrder(data);
         setLastOrder(data);
@@ -61,7 +59,7 @@ function SuccessPageContent() {
     return () => {
       setLastOrder(null);
     };
-  }, [orderId, router, username, setLastOrder]);
+  }, [orderId, router, setLastOrder]);
 
   if (isLoading || !order) {
     return (
@@ -148,7 +146,7 @@ function SuccessPageContent() {
             </address>
           </div>
           <Button asChild className="w-full mt-6">
-            <Link href={`/${username}/products`}>কেনাকাটা চালিয়ে যান</Link>
+            <Link href={`/products`}>কেনাকাটা চালিয়ে যান</Link>
           </Button>
         </CardContent>
       </Card>

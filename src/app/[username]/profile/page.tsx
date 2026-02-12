@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, ShoppingBag, DollarSign, Star, MapPin, Settings as SettingsIcon } from 'lucide-react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useEffect, useState, useMemo } from 'react';
@@ -33,8 +33,6 @@ const StatCard = ({ title, value, icon: Icon, isLoading }: { title: string, valu
 export default function ProfilePage() {
   const { customer: user, customerLogout, _hasHydrated } = useCustomerAuth();
   const router = useRouter();
-  const params = useParams();
-  const username = params.username as string;
   const { toast } = useToast();
   
   const [orders, setOrders] = useState<Order[]>([]);
@@ -68,7 +66,7 @@ export default function ProfilePage() {
   const logout = () => {
     customerLogout();
     toast({ title: 'লগ আউট', description: "আপনি সফলভাবে লগ আউট হয়েছেন।" });
-    router.push(`/${username}/login`);
+    router.push(`/login`);
   }
 
   if (!user) {
@@ -76,10 +74,10 @@ export default function ProfilePage() {
   }
   
   const quickLinks = [
-    { href: `/${username}/profile/orders`, label: 'আমার অর্ডার', description: 'আপনার অর্ডারের ইতিহাস এবং স্ট্যাটাস দেখুন।', icon: ShoppingBag },
-    { href: `/${username}/profile/reviews`, label: 'আমার রিভিউ', description: 'আপনার দেওয়া সকল রিভিউ দেখুন।', icon: Star },
-    { href: `/${username}/profile/addresses`, label: 'আমার ঠিকানা', description: 'আপনার সংরক্ষিত ঠিকানা পরিচালনা করুন।', icon: MapPin },
-    { href: `/${username}/profile/settings`, label: 'সেটিংস', description: 'আপনার অ্যাকাউন্ট সেটিংস পরিচালনা করুন।', icon: SettingsIcon },
+    { href: `/profile/orders`, label: 'আমার অর্ডার', description: 'আপনার অর্ডারের ইতিহাস এবং স্ট্যাটাস দেখুন।', icon: ShoppingBag },
+    { href: `/profile/reviews`, label: 'আমার রিভিউ', description: 'আপনার দেওয়া সকল রিভিউ দেখুন।', icon: Star },
+    { href: `/profile/addresses`, label: 'আমার ঠিকানা', description: 'আপনার সংরক্ষিত ঠিকানা পরিচালনা করুন।', icon: MapPin },
+    { href: `/profile/settings`, label: 'সেটিংস', description: 'আপনার অ্যাকাউন্ট সেটিংস পরিচালনা করুন।', icon: SettingsIcon },
   ];
 
   return (

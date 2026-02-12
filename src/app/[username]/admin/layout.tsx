@@ -22,16 +22,16 @@ export default function AdminLayout({
   // If we are not on the login page, and auth is still loading or the user is not the correct admin,
   // we redirect to the login page.
   useEffect(() => {
-    if (!loading && pathname !== `/${username}/admin/login`) {
+    if (!loading && pathname !== `/admin/login`) {
         if (!user || user.domain !== username) {
-            router.replace(`/${username}/admin/login`);
+            router.replace(`/admin/login`);
         }
     }
   }, [user, loading, username, router, pathname]);
 
   // On non-login pages, show a full-screen loader while we check auth.
   // This prevents content flashing before the redirect can happen.
-  if (pathname !== `/${username}/admin/login` && (loading || !user || user.domain !== username)) {
+  if (pathname !== `/admin/login` && (loading || !user || user.domain !== username)) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -41,7 +41,7 @@ export default function AdminLayout({
   
   // On the login page itself, we just render the page component,
   // which will handle its own logic (e.g., redirecting if already logged in).
-  if (pathname === `/${username}/admin/login`) {
+  if (pathname === `/admin/login`) {
     return <>{children}</>;
   }
   
@@ -51,7 +51,7 @@ export default function AdminLayout({
   return (
     <div className="fixed inset-0 bg-background z-50">
       <div className="grid w-full h-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <AdminSidebar username={username} />
+        <AdminSidebar />
         <main className="overflow-auto p-4 lg:p-6 pb-20 md:pb-6">
           {isPending && (
              <Alert variant="destructive" className="mb-6">
@@ -67,7 +67,7 @@ export default function AdminLayout({
           </fieldset>
         </main>
       </div>
-      <AdminBottomNav username={username} />
+      <AdminBottomNav />
     </div>
   );
 }

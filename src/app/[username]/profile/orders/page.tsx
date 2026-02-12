@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { format } from 'date-fns';
@@ -33,8 +33,6 @@ import { Eye, XCircle, Loader2 } from 'lucide-react';
 export default function OrdersPage() {
     const { customer, _hasHydrated } = useCustomerAuth();
     const { toast } = useToast();
-    const params = useParams();
-    const username = params.username as string;
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -157,7 +155,7 @@ export default function OrdersPage() {
                                     <TableCell>{order.total.toFixed(2)} BDT</TableCell>
                                     <TableCell className="text-right space-x-2">
                                         <Button variant="outline" size="sm" asChild>
-                                            <Link href={`/${username}/profile/orders/${order.id}`}>
+                                            <Link href={`/profile/orders/${order.id}`}>
                                                 <Eye className="mr-2 h-4 w-4" />
                                                 বিস্তারিত
                                             </Link>
@@ -189,7 +187,7 @@ export default function OrdersPage() {
                             </CardContent>
                             <CardFooter className="flex justify-end gap-2">
                                  <Button variant="outline" size="sm" asChild>
-                                    <Link href={`/${username}/profile/orders/${order.id}`}>
+                                    <Link href={`/profile/orders/${order.id}`}>
                                         <Eye className="mr-2 h-4 w-4" />
                                         বিস্তারিত
                                     </Link>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Menu, User, LogOut, LayoutDashboard, Bell } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useParams } from 'next/navigation';
 
 import { Button } from './ui/button';
 import ShoppingCart from './shopping-cart';
@@ -38,13 +38,8 @@ import { bn } from 'date-fns/locale';
 import DynamicIcon from './dynamic-icon';
 import Image from 'next/image';
 
-function CustomerNotificationBell({
-  customer,
-  domain,
-}: {
-  customer: any;
-  domain: string | null;
-}) {
+function CustomerNotificationBell() {
+  const { customer } = useCustomerAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -172,7 +167,7 @@ function CustomerNotificationBell({
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link
-            href={`/${domain}/profile/notifications`}
+            href={`/profile/notifications`}
             className="justify-center cursor-pointer"
           >
             View all notifications
@@ -186,6 +181,7 @@ function CustomerNotificationBell({
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
+  const params = useParams();
   const { toast } = useToast();
 
   const {
@@ -207,6 +203,22 @@ export default function Header() {
     logoImageUrl: string | null;
   }>({ name: 'বাংলা ন্যাচারালস', description: '', logoType: 'icon', logoIcon: 'Leaf', logoImageUrl: null });
   const [isSiteInfoLoading, setIsSiteInfoLoading] = useState(true);
+  const [isStorePage, setIsStorePage] = useState(false);
+  const [domain, setDomain] = useState<string | null>(null);
+
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    const rootDomain = 'schoolbd.top';
+    const currentSubdomain = hostname.replace(`.${rootDomain}`, '');
+    const onStorePage = hostname !== rootDomain && hostname !== `www.${rootDomain}`;
+    
+    setIsStorePage(onStorePage);
+    if (onStorePage) {
+        setDomain(currentSubdomain);
+    } else {
+        setDomain(null);
+    }
+  }, [pathname]);
 
   // Create a unified user object for easier handling in the UI
   const currentUser = siteOwner
@@ -223,29 +235,12 @@ export default function Header() {
           name: customer.full_name,
           email: customer.email,
           isSaaSAdmin: false,
-          domain: null,
+          domain: null, // Customers don't have a domain in this context
         }
       : null;
 
   const isLoading = siteOwnerLoading || !customerHasHydrated;
-
-  const segments = pathname.split('/').filter(Boolean);
-  const KNOWN_ROOT_PATHS = [
-    'admin',
-    'login',
-    'register',
-    'profile',
-    'get-started',
-    'dashboard',
-  ];
-  const domain =
-    segments.length > 0 && !KNOWN_ROOT_PATHS.includes(segments[0])
-      ? segments[0]
-      : siteOwner
-        ? siteOwner.domain
-        : null;
-  const basePath = domain ? `/${domain}` : '';
-
+  
   useEffect(() => {
     async function fetchInfo() {
       setIsSiteInfoLoading(true);
@@ -304,10 +299,10 @@ export default function Header() {
   }, [domain]);
 
   const navLinks = [
-    { href: basePath || '/', label: 'হোম' },
-    { href: `${basePath}/products`, label: 'পণ্য' },
-    { href: `${basePath}/track-order`, label: 'ট্র্যাক অর্ডার' },
-    { href: `${basePath}/about`, label: 'আমাদের সম্পর্কে' },
+    { href: '/', label: 'হোম' },
+    { href: `/products`, label: 'পণ্য' },
+    { href: `/track-order`, label: 'ট্র্যাক অর্ডার' },
+    { href: `/about`, label: 'আমাদের সম্পর্কে' },
   ];
 
   if (currentUser?.isSaaSAdmin) {
@@ -322,7 +317,7 @@ export default function Header() {
     } else if (currentUser?.type === 'customer') {
       customerLogout();
       toast({ title: 'Logged Out' });
-      router.push(domain ? `/${domain}/login` : '/login');
+      router.push('/login');
     }
   };
 
@@ -336,9 +331,9 @@ export default function Header() {
     className?: string;
   }) => {
     const isActive =
-      href === (basePath || '/')
-        ? pathname === href
-        : pathname.startsWith(href) && href.length > (basePath || '/').length;
+      href === '/'
+        ? pathname === '/'
+        : pathname.startsWith(href) && href.length > 1;
     return (
       <Link
         href={href}
@@ -360,7 +355,7 @@ export default function Header() {
       <div className="border-t pt-6 mt-6 space-y-4">
         <SheetClose asChild>
           <Link
-            href={domain ? `/${domain}/login` : '/login'}
+            href={'/login'}
             className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground"
           >
             লগ ইন
@@ -368,7 +363,7 @@ export default function Header() {
         </SheetClose>
         <SheetClose asChild>
           <Button asChild className="w-full">
-            <Link href={domain ? `/${domain}/register` : '/get-started'}>
+            <Link href={isStorePage ? `/register` : '/get-started'}>
               সাইন আপ
             </Link>
           </Button>
@@ -387,7 +382,7 @@ export default function Header() {
         </div>
       </div>
     ) : (
-      <Link href={basePath || '/'} className="flex items-center gap-3">
+      <Link href="/" className="flex items-center gap-3">
         <div className={`${siteInfo.logoType === 'image' ? '':'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
           {siteInfo.logoType === 'image' && siteInfo.logoImageUrl ? (
             <div className="relative h-8 w-8">
@@ -456,7 +451,7 @@ export default function Header() {
         <div className="flex items-center gap-2">
           <ShoppingCart />
           {customer && (
-            <CustomerNotificationBell customer={customer} domain={domain} />
+            <CustomerNotificationBell />
           )}
           {isLoading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
@@ -487,13 +482,7 @@ export default function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link
-                    href={
-                      currentUser.type === 'admin'
-                        ? `/${currentUser.domain}/profile`
-                        : `/${domain}/profile`
-                    }
-                  >
+                  <Link href={`/profile`}>
                     <User className="mr-2 h-4 w-4" />
                     <span>প্রোফাইল</span>
                   </Link>
@@ -508,7 +497,7 @@ export default function Header() {
                 ) : (
                   currentUser.domain && (
                     <DropdownMenuItem asChild>
-                      <Link href={`/${currentUser.domain}/admin`}>
+                      <Link href={`/admin`}>
                         <LayoutDashboard className="mr-2 h-4 w-4" />
                         <span>ড্যাশবোর্ড</span>
                       </Link>
@@ -524,13 +513,13 @@ export default function Header() {
             </DropdownMenu>
           ) : (
             <div className="hidden md:flex items-center gap-2">
-              {domain ? (
+              {isStorePage ? (
                 <>
                   <Button variant="ghost" asChild>
-                    <Link href={`/${domain}/login`}>লগ ইন</Link>
+                    <Link href={`/login`}>লগ ইন</Link>
                   </Button>
                   <Button asChild>
-                    <Link href={`/${domain}/register`}>সাইন আপ করুন</Link>
+                    <Link href={`/register`}>সাইন আপ করুন</Link>
                   </Button>
                 </>
               ) : (

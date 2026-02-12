@@ -52,7 +52,6 @@ type Order = {
 
 export default function OrdersAdminPage() {
     const params = useParams();
-    const username = params.username as string;
     const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
@@ -171,7 +170,7 @@ export default function OrdersAdminPage() {
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
                                                         <DropdownMenuItem asChild>
-                                                          <Link href={`/${username}/admin/orders/${order.id}`}>
+                                                          <Link href={`/admin/orders/${order.id}`}>
                                                             <Eye className="mr-2 h-4 w-4" />
                                                             অর্ডার দেখুন
                                                           </Link>
@@ -204,7 +203,7 @@ export default function OrdersAdminPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem asChild>
-                                                        <Link href={`/${username}/admin/orders/${order.id}`}>
+                                                        <Link href={`/admin/orders/${order.id}`}>
                                                             <Eye className="mr-2 h-4 w-4" />
                                                             অর্ডার দেখুন
                                                         </Link>

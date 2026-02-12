@@ -145,7 +145,7 @@ export default async function UserPage({
       title: 'প্রকৃতির আসল স্বাদ',
       description:
         'বাংলাদেশের হৃদয় থেকে আসা সেরা প্রাকৃতিক পণ্য আবিষ্কার করুন। বিশুদ্ধ, খাঁটি, এবং আপনার দোরগোড়ায় পৌঁছে দেওয়া হয়।',
-      link: `/${params.username}/products`,
+      link: `/products`,
       linkText: 'সব পণ্য দেখুন',
     },
     {
@@ -154,7 +154,7 @@ export default async function UserPage({
       title: 'বন্য, অপরিশোধিত সুন্দরবনের মধু',
       description:
         'বিশ্বের বৃহত্তম ম্যানগ্রোভ বন থেকে মধুর এক অনন্য অভিজ্ঞতা অর্জন করুন।',
-      link: `/${params.username}/products/sundarban-honey`,
+      link: `/products/sundarban-honey`,
       linkText: 'মধু আবিষ্কার করুন',
     },
     {
@@ -163,7 +163,7 @@ export default async function UserPage({
       title: 'প্রিমিয়াম মরিয়ম খেজুর',
       description:
         'সমৃদ্ধ, চিবানো এবং ক্যারামেলের মতো। যেকোনো অনুষ্ঠানের জন্য একটি স্বাস্থ্যকর এবং সুস্বাদু ট্রিট।',
-      link: `/${params.username}/products/dates-mariam`,
+      link: `/products/dates-mariam`,
       linkText: 'খেজুর অন্বেষণ করুন',
     },
   ];
@@ -193,7 +193,6 @@ export default async function UserPage({
                     <ProductCard
                       key={product.id}
                       product={product}
-                      username={params.username}
                     />
                   ))}
                 </div>
@@ -237,7 +236,7 @@ export default async function UserPage({
                         variant="secondary"
                         className="mt-6 w-fit"
                       >
-                        <Link href={`/${params.username}/about`}>
+                        <Link href={`/about`}>
                           আরও জানুন <ArrowRight className="ml-2" />
                         </Link>
                       </Button>
@@ -273,7 +272,7 @@ export default async function UserPage({
                         variant="secondary"
                         className="mt-6 w-fit"
                       >
-                        <Link href={`/${params.username}/about`}>
+                        <Link href={`/about`}>
                           আরও জানুন <ArrowRight className="ml-2" />
                         </Link>
                       </Button>
@@ -309,7 +308,7 @@ export default async function UserPage({
                         variant="secondary"
                         className="mt-6 w-fit"
                       >
-                        <Link href={`/${params.username}/about`}>
+                        <Link href={`/about`}>
                           আরও জানুন <ArrowRight className="ml-2" />
                         </Link>
                       </Button>
@@ -354,7 +353,7 @@ export default async function UserPage({
                               variant="secondary"
                               className="mt-6 w-fit"
                             >
-                              <Link href={`/${params.username}/about`}>
+                              <Link href={`/about`}>
                                 আরও জানুন <ArrowRight className="ml-2" />
                               </Link>
                             </Button>
@@ -393,7 +392,7 @@ export default async function UserPage({
                               variant="secondary"
                               className="mt-6 w-fit"
                             >
-                              <Link href={`/${params.username}/about`}>
+                              <Link href={`/about`}>
                                 আরও জানুন <ArrowRight className="ml-2" />
                               </Link>
                             </Button>
@@ -431,7 +430,7 @@ export default async function UserPage({
                               variant="secondary"
                               className="mt-6 w-fit"
                             >
-                              <Link href={`/${params.username}/about`}>
+                              <Link href={`/about`}>
                                 আরও জানুন <ArrowRight className="ml-2" />
                               </Link>
                             </Button>
@@ -460,7 +459,7 @@ export default async function UserPage({
                       {section.title}
                     </h2>
                     <Button asChild variant="ghost">
-                      <Link href={`/${params.username}/products`}>
+                      <Link href={`/products`}>
                         সব দেখুন <ArrowRight className="ml-2" />
                       </Link>
                     </Button>
@@ -470,7 +469,6 @@ export default async function UserPage({
                       <ProductCard
                         key={product.id}
                         product={product}
-                        username={params.username}
                       />
                     ))}
                   </div>

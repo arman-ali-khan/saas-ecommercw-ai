@@ -40,6 +40,12 @@ export default function AdminLoginPage() {
   const username = params.username as string;
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hostname, setHostname] = useState('');
+
+  useEffect(() => {
+    // This runs on the client, so window is available.
+    setHostname(window.location.hostname);
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,16 +55,19 @@ export default function AdminLoginPage() {
   // If user is already logged in as the correct admin, redirect them away from login.
   useEffect(() => {
     if (!authLoading && loggedInUser?.domain === username) {
-      router.replace(`/${username}/admin`);
+      router.replace(`/admin`);
     } else if (!authLoading && loggedInUser && loggedInUser.domain !== username) {
       // If logged in as a *different* admin, redirect to their correct dashboard
       toast({
         title: 'Redirecting...',
         description: `You are logged in as an admin for '${loggedInUser.domain}'. Redirecting you now.`,
       });
-      router.replace(`/${loggedInUser.domain}/admin`);
+      if (hostname) {
+        const rootDomain = hostname.split('.').slice(-2).join('.');
+        window.location.href = `${window.location.protocol}//${loggedInUser.domain}.${rootDomain}/admin`;
+      }
     }
-  }, [authLoading, loggedInUser, username, router, toast]);
+  }, [authLoading, loggedInUser, username, router, toast, hostname]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -85,7 +94,7 @@ export default function AdminLoginPage() {
   }
 
   // Show a full-screen loader while we are verifying if a user is already logged in or needs redirecting.
-  if (authLoading || loggedInUser) {
+  if (authLoading || (loggedInUser && hostname === '')) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -136,7 +145,7 @@ export default function AdminLoginPage() {
             </form>
           </Form>
           <div className="mt-6 text-center text-sm">
-            <Link href={`/${username}`} className="font-medium text-primary hover:underline">
+            <Link href="/" className="font-medium text-primary hover:underline">
               ← Back to Store
             </Link>
           </div>

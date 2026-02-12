@@ -38,6 +38,12 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [hostname, setHostname] = useState('');
+
+  useEffect(() => {
+    // This runs on the client, so window is available.
+    setHostname(window.location.host);
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,15 +60,19 @@ export default function LoginPage() {
       if (user.isSaaSAdmin) {
         toast({ title: 'Admin login successful' });
         router.push('/dashboard');
-      } else if (user.domain && user.role==='admin') {
+      } else if (user.domain) {
         toast({
           title: 'লগইন সফল',
           description: `আবারও স্বাগতম, ${user.email}!`,
         });
-        router.push(`/${user.domain}/admin`);
+        // Redirect to the user's subdomain
+        if (hostname) {
+          const rootDomain = hostname.split('.').slice(-2).join('.');
+          window.location.href = `${window.location.protocol}//${user.domain}.${rootDomain}/admin`;
+        }
       }
     }
-  }, [user, loading, router, toast]);
+  }, [user, loading, router, toast, hostname]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -81,7 +91,7 @@ export default function LoginPage() {
   }
 
   // Show a loader if auth state is loading or if we are already logged in and waiting for redirect
-  if (loading || user) {
+  if (loading || (user && hostname === '')) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

@@ -25,7 +25,7 @@ import { usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 
-export default function FixedCartButton({ username }: { username: string }) {
+export default function FixedCartButton() {
   const {
     cartItems,
     updateQuantity,
@@ -53,7 +53,7 @@ export default function FixedCartButton({ username }: { username: string }) {
     return null;
   }
   
-  const checkoutUrl = `/${username}/checkout`;
+  const checkoutUrl = `/checkout`;
 
   return (
     <Sheet>
@@ -172,7 +172,7 @@ export default function FixedCartButton({ username }: { username: string }) {
             </p>
             <SheetClose asChild>
               <Button asChild className="mt-6">
-                <Link href={`/${username}/products`}>কেনাকাটা শুরু করুন</Link>
+                <Link href={`/products`}>কেনাকাটা শুরু করুন</Link>
               </Button>
             </SheetClose>
           </div>

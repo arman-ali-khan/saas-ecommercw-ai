@@ -13,7 +13,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -25,10 +25,9 @@ import { Label } from './ui/label';
 
 interface ProductCardProps {
   product: Product;
-  username: string;
 }
 
-export default function ProductCard({ product, username }: ProductCardProps) {
+export default function ProductCard({ product }: ProductCardProps) {
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
 
@@ -40,7 +39,7 @@ export default function ProductCard({ product, username }: ProductCardProps) {
     });
   };
 
-  const productUrl = `/${username}/products/${product.id}`;
+  const productUrl = `/products/${product.id}`;
 
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
@@ -85,12 +84,14 @@ const shippingFormSchema = z.object({
   notes: z.string().optional(),
 });
 
-export function ProductShowcaseBlock({ product_ids, title, username }: { product_ids: string[], title?: string, username: string }) {
+export function ProductShowcaseBlock({ product_ids, title }: { product_ids: string[], title?: string }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [quantities, setQuantities] = useState<{[key: string]: number}>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const params = useParams();
+  const username = params.username as string;
   const { toast } = useToast();
   const [siteId, setSiteId] = useState<string | null>(null);
 
@@ -180,7 +181,6 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
       total: total,
       payment_method: paymentMethod,
       transaction_id: paymentMethod === 'mobile_banking' ? transactionId : null,
-      status: 'processing',
       domain: username,
     };
 
@@ -188,7 +188,7 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
       const response = await fetch('/api/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData) });
       const newOrder = await response.json();
       if (!response.ok) throw new Error(newOrder.error || 'Failed to create order');
-      router.push(`/${username}/checkout/success?order_id=${newOrder.id}`);
+      router.push(`/checkout/success?order_id=${newOrder.id}`);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Order failed', description: error.message });
       setIsSubmitting(false);

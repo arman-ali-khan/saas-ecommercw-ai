@@ -96,7 +96,7 @@ export default function CustomerRegisterPage() {
           'আপনার নিবন্ধন নিশ্চিত করতে দয়া করে আপনার ইমেল পরীক্ষা করুন।',
         duration: 10000,
       });
-      router.push(`/${username}/login`);
+      router.push(`/login`);
     } else {
       toast({
         variant: 'destructive',
@@ -172,7 +172,7 @@ export default function CustomerRegisterPage() {
           <div className="mt-6 text-center text-sm">
             ইতিমধ্যে একটি অ্যাকাউন্ট আছে?{' '}
             <Link
-              href={`/${username}/login`}
+              href={`/login`}
               className="font-medium text-primary hover:underline"
             >
               সাইন ইন

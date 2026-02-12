@@ -72,9 +72,9 @@ export default function CustomerLoginPage() {
   useEffect(() => {
     if (user) {
       if (user.role === 'customer') {
-        router.push(`/${domain}/profile`);
+        router.push(`/profile`);
       } else if (user.domain === domain) {
-        router.push(`/${domain}/admin`);
+        router.push(`/admin`);
       }
     }
   }, [user, router, domain]);
@@ -101,7 +101,7 @@ export default function CustomerLoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">লগ ইন</CardTitle>
-          <Link href={`/${domain}/admin/login`} className="font-medium text-primary hover:underline">
+          <Link href={`/admin/login`} className="font-medium text-primary hover:underline">
               Admin
             </Link>
           <CardDescription>আপনার অ্যাকাউন্টে চালিয়ে যেতে সাইন ইন করুন।</CardDescription>
@@ -144,7 +144,7 @@ export default function CustomerLoginPage() {
           </Form>
           <div className="mt-6 text-center text-sm">
             অ্যাকাউন্ট নেই?{' '}
-            <Link href={`/${domain}/register`} className="font-medium text-primary hover:underline">
+            <Link href={`/register`} className="font-medium text-primary hover:underline">
               সাইন আপ
             </Link>
           </div>

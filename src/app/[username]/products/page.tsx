@@ -344,7 +344,6 @@ export default function ProductsPage() {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  username={username}
                 />
               ))}
             </div>

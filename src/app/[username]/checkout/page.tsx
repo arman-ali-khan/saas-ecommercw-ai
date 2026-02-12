@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { ShippingZone } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
 const checkoutSchema = z
   .object({
@@ -79,6 +80,8 @@ export default function CheckoutPage() {
       notes: '',
     },
   });
+
+  const { control, register } = form;
 
   const paymentMethod = form.watch('paymentMethod');
   const selectedShippingZoneId = form.watch('shippingZoneId');
@@ -150,9 +153,9 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (isHydrated && cartCount === 0 && !isSubmitting && !window.location.search.includes('order_id')) {
-      router.push(`/${username}`);
+      router.push(`/`);
     }
-  }, [isHydrated, cartCount, router, username, isSubmitting]);
+  }, [isHydrated, cartCount, router, isSubmitting]);
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     if (!siteId) {
@@ -206,7 +209,7 @@ export default function CheckoutPage() {
       }
 
       clearCart();
-      router.push(`/${username}/checkout/success?order_id=${newOrder.id}`);
+      router.push(`/checkout/success?order_id=${newOrder.id}`);
 
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'অর্ডার স্থাপন ব্যর্থ হয়েছে', description: error.message || 'একটি অপ্রত্যাশিত সমস্যা হয়েছে।' });
@@ -316,26 +319,25 @@ export default function CheckoutPage() {
               render={({ field }) => (
                 <FormItem className="space-y-3">
                   <FormLabel>শিপিং পদ্ধতি</FormLabel>
-                  {isLoadingShipping ? (
+                   {isLoadingShipping ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                           {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
                       </div>
-                  ) : (
-                    <FormControl>
+                    ) : (
                       <RadioGroup
                         onValueChange={field.onChange}
                         value={field.value}
                         className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"
                       >
                         {shippingZones.map((zone) => (
-                          <FormItem key={zone.id}>
-                            <FormControl>
-                                <RadioGroupItem value={zone.id.toString()} id={`shipping-${zone.id}`} className="sr-only peer" />
-                            </FormControl>
-                            <Label
+                           <Label
+                              key={zone.id}
                               htmlFor={`shipping-${zone.id}`}
-                              className="flex items-center gap-4 rounded-md border-2 border-muted bg-popover p-4 cursor-pointer transition-colors peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                              className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer transition-colors", 
+                                field.value === zone.id.toString() ? "border-primary bg-primary/10" : "border-muted bg-popover"
+                              )}
                             >
+                              <RadioGroupItem value={zone.id.toString()} id={`shipping-${zone.id}`} className="sr-only" />
                               <Truck className="h-6 w-6 text-muted-foreground" />
                               <div className="flex-grow">
                                 <p className="font-medium">{zone.name}</p>
@@ -344,11 +346,9 @@ export default function CheckoutPage() {
                                 </p>
                               </div>
                             </Label>
-                          </FormItem>
                         ))}
                       </RadioGroup>
-                    </FormControl>
-                  )}
+                    )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -358,41 +358,27 @@ export default function CheckoutPage() {
             
             <div className="pt-4">
               <h2 className="text-2xl font-headline font-bold mb-4">পেমেন্ট</h2>
-                <div className="space-y-3">
-                    <Label>পেমেন্ট পদ্ধতি</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label
-                            htmlFor="cod"
-                            className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 cursor-pointer transition-colors has-[:checked]:border-primary"
-                        >
-                            <input
-                                type="radio"
-                                id="cod"
-                                value="cod"
-                                {...form.register("paymentMethod")}
-                                className="sr-only"
-                            />
-                            <p className="text-lg font-medium">ক্যাশ অন ডেলিভারি</p>
-                        </label>
-                        <label
-                            htmlFor="mobile_banking"
-                            className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 cursor-pointer transition-colors has-[:checked]:border-primary"
-                        >
-                            <input
-                                type="radio"
-                                id="mobile_banking"
-                                value="mobile_banking"
-                                {...form.register("paymentMethod")}
-                                className="sr-only"
-                            />
-                            <p className="text-lg font-medium">মোবাইল ব্যাংকিং</p>
-                        </label>
+                <Controller
+                  name="paymentMethod"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="space-y-3">
+                        <Label>পেমেন্ট পদ্ধতি</Label>
+                        <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Label htmlFor="cod" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer transition-colors", field.value === 'cod' ? "border-primary bg-primary/10" : "border-muted bg-popover")}>
+                                <RadioGroupItem value="cod" id="cod" className="sr-only" />
+                                <p className="text-lg font-medium">ক্যাশ অন ডেলিভারি</p>
+                            </Label>
+                            <Label htmlFor="mobile_banking" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer transition-colors", field.value === 'mobile_banking' ? "border-primary bg-primary/10" : "border-muted bg-popover")}>
+                                <RadioGroupItem value="mobile_banking" id="mobile_banking" className="sr-only" />
+                                <p className="text-lg font-medium">মোবাইল ব্যাংকিং</p>
+                            </Label>
+                        </RadioGroup>
+                        {form.formState.errors.paymentMethod && <p className="text-sm font-medium text-destructive pt-2">{`${form.formState.errors.paymentMethod.message}`}</p>}
                     </div>
-                    {form.formState.errors.paymentMethod && (
-                        <p className="text-sm font-medium text-destructive pt-2">{`${form.formState.errors.paymentMethod.message}`}</p>
-                    )}
-                </div>
-
+                  )}
+                />
+                
               {paymentMethod === 'mobile_banking' && (
                 <Card className="mt-6">
                   <CardHeader> <CardTitle>মোবাইল ব্যাংকিং নির্দেশনা</CardTitle> </CardHeader>
@@ -401,17 +387,17 @@ export default function CheckoutPage() {
                     <>
                       <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg"> <ol className="list-decimal list-inside space-y-2"> <li> আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ ({acceptedMethods}) খুলুন। </li> <li>"পেমেন্ট" অপশন নির্বাচন করুন।</li> <li> মার্চেন্ট নম্বর হিসেবে <strong>{paymentSettings?.mobile_banking_number || '01...'}</strong> দিন। </li> <li> টাকার পরিমাণ হিসেবে <strong> {cartTotal.toFixed(2)} {cartItems[0]?.currency} </strong> লিখুন। </li> <li> পেমেন্ট সম্পন্ন করুন এবং প্রাপ্ত ট্রানজেকশন আইডিটি কপি করুন। </li> <li> নিচের বক্সে ট্রানজেকশন আইডিটি পেস্ট করুন। </li> </ol> </div>
                       <div className="space-y-2">
-                        <Label htmlFor="transactionId">ট্রানজেকশন আইডি</Label>
-                        <Input
-                          id="transactionId"
-                          placeholder="e.g., 8N7F6G5H4J"
-                          {...form.register("transactionId")}
-                        />
-                        {form.formState.errors.transactionId && (
-                          <p className="text-sm font-medium text-destructive">
-                            {`${form.formState.errors.transactionId.message}`}
-                          </p>
-                        )}
+                          <Label htmlFor="transactionId">ট্রানজেকশন আইডি</Label>
+                          <Input
+                              id="transactionId"
+                              placeholder="e.g., 8N7F6G5H4J"
+                              {...register("transactionId")}
+                          />
+                          {form.formState.errors.transactionId && (
+                              <p className="text-sm font-medium text-destructive">
+                              {`${form.formState.errors.transactionId.message}`}
+                              </p>
+                          )}
                       </div>
                     </>
                   )}

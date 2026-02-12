@@ -50,8 +50,6 @@ import { cn } from '@/lib/utils';
 import { useParams } from 'next/navigation';
 
 export default function ProductsAdminPage() {
-  const params = useParams();
-  const username = params.username as string;
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
@@ -115,7 +113,7 @@ export default function ProductsAdminPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href={`/${username}/admin/products/new`}>
+          <Link href={`/admin/products/new`}>
             <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
           </Link>
         </Button>
@@ -126,7 +124,7 @@ export default function ProductsAdminPage() {
           <CardContent className="text-center py-16">
             <p className="text-muted-foreground">আপনার কোনো পণ্য নেই।</p>
             <Button asChild className="mt-4">
-              <Link href={`/${username}/admin/products/new`}>
+              <Link href={`/admin/products/new`}>
                 <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
               </Link>
             </Button>
@@ -189,7 +187,7 @@ export default function ProductsAdminPage() {
                             <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
                             <DropdownMenuItem asChild>
                               <Link
-                                href={`/${username}/products/${product.id}`}
+                                href={`/products/${product.id}`}
                                 target="_blank"
                               >
                                 <Eye className="mr-2 h-4 w-4" /> View
@@ -197,7 +195,7 @@ export default function ProductsAdminPage() {
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <Link
-                                href={`/${username}/admin/products/${product.id}`}
+                                href={`/admin/products/${product.id}`}
                               >
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                               </Link>
@@ -260,7 +258,7 @@ export default function ProductsAdminPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
                           <Link
-                            href={`/${username}/products/${product.id}`}
+                            href={`/products/${product.id}`}
                             target="_blank"
                           >
                             <Eye className="mr-2 h-4 w-4" /> View
@@ -268,7 +266,7 @@ export default function ProductsAdminPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link
-                            href={`/${username}/admin/products/${product.id}`}
+                            href={`/admin/products/${product.id}`}
                           >
                             <Edit className="mr-2 h-4 w-4" /> Edit
                           </Link>

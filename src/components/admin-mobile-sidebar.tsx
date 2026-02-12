@@ -32,7 +32,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
 
-export default function AdminMobileSidebar({ username }: { username: string }) {
+export default function AdminMobileSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
@@ -130,7 +130,7 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
         title: 'Logged Out',
         description: 'You have been successfully logged out.',
       });
-      router.push(`/${username}/admin/login`);
+      router.push(`/admin/login`);
     } catch (error) {
       console.error('Logout failed:', error);
       toast({
@@ -142,22 +142,22 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
   };
 
   const adminNavLinks = [
-    { href: `/${username}`, label: 'View Store', icon: Home },
-    { href: `/${username}/admin`, label: 'Dashboard', icon: LayoutDashboard },
-    { href: `/${username}/admin/notifications`, label: 'Notifications', icon: Bell, count: unreadNotificationsCount },
-    { href: `/${username}/admin/products`, label: 'Products', icon: Package },
-    { href: `/${username}/admin/categories`, label: 'Categories', icon: Tags },
-    { href: `/${username}/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
-    { href: `/${username}/admin/customers`, label: 'Customers', icon: Users },
-    { href: `/${username}/admin/shipping`, label: 'Shipping', icon: Truck },
-    { href: `/${username}/admin/featured-products`, label: 'Featured Products', icon: Star },
-    { href: `/${username}/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
-    { href: `/${username}/admin/uncompleted`, label: 'Uncompleted', icon: FileClock },
-    { href: `/${username}/admin/payments`, label: 'Payments', icon: CreditCard },
-    { href: `/${username}/admin/pages`, label: 'Page Manager', icon: FileText },
-    { href: `/${username}/admin/reviews`, label: 'Reviews', icon: MessageSquare },
-    { href: `/${username}/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
-    { href: `/${username}/admin/settings`, label: 'Settings', icon: Settings },
+    { href: `/`, label: 'View Store', icon: Home },
+    { href: `/admin`, label: 'Dashboard', icon: LayoutDashboard },
+    { href: `/admin/notifications`, label: 'Notifications', icon: Bell, count: unreadNotificationsCount },
+    { href: `/admin/products`, label: 'Products', icon: Package },
+    { href: `/admin/categories`, label: 'Categories', icon: Tags },
+    { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
+    { href: `/admin/customers`, label: 'Customers', icon: Users },
+    { href: `/admin/shipping`, label: 'Shipping', icon: Truck },
+    { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
+    { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
+    { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock },
+    { href: `/admin/payments`, label: 'Payments', icon: CreditCard },
+    { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
+    { href: `/admin/reviews`, label: 'Reviews', icon: MessageSquare },
+    { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
+    { href: `/admin/settings`, label: 'Settings', icon: Settings },
   ];
 
   const NavLink = ({
@@ -171,7 +171,7 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
     icon: React.ElementType;
     count?: number;
   }) => {
-    const isBasePage = href === `/${username}` || href === `/${username}/admin`;
+    const isBasePage = href === `/` || href === `/admin`;
     const isActive = isBasePage ? pathname === href : pathname.startsWith(href);
     return (
         <SheetClose asChild>
@@ -196,7 +196,7 @@ export default function AdminMobileSidebar({ username }: { username: string }) {
     <div className="flex h-full max-h-screen flex-col gap-2 text-sidebar-foreground bg-sidebar">
         <div className="flex h-20 items-center border-b border-sidebar-border px-6">
           <SheetClose asChild>
-            <Link href={`/${username}/admin`}>
+            <Link href={`/admin`}>
                 <Logo />
             </Link>
           </SheetClose>

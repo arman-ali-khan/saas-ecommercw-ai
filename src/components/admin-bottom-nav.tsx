@@ -26,7 +26,7 @@ import { useAuth } from '@/stores/auth';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
-export default function AdminBottomNav({ username }: { username: string }) {
+export default function AdminBottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
@@ -113,25 +113,25 @@ export default function AdminBottomNav({ username }: { username: string }) {
 
   const navLinks = [
     {
-      href: `/${username}/admin/orders`,
+      href: `/admin/orders`,
       label: 'Orders',
       icon: ShoppingBag,
       count: processingOrdersCount,
     },
     {
-      href: `/${username}/admin/notifications`,
+      href: `/admin/notifications`,
       label: 'Notifications',
       icon: Bell,
       count: unreadNotificationsCount,
     },
     {
-      href: `/${username}/admin/live-questions`,
+      href: `/admin/live-questions`,
       label: 'Chat',
       icon: MessageSquare,
       count: unreadChatCount,
     },
     {
-      href: `/${username}/admin`,
+      href: `/admin`,
       label: 'Dashboard',
       icon: LayoutDashboard,
     },
@@ -155,7 +155,7 @@ export default function AdminBottomNav({ username }: { username: string }) {
               <SheetTitle>Admin Menu</SheetTitle>
               <SheetDescription>Main navigation for the admin dashboard.</SheetDescription>
             </SheetHeader>
-            <AdminMobileSidebar username={username} />
+            <AdminMobileSidebar />
           </SheetContent>
         </Sheet>
 

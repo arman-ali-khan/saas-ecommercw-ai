@@ -11,8 +11,6 @@ export default function ProfileLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const params = useParams();
-  const username = params.username as string;
   const { customer: user, _hasHydrated } = useCustomerAuth();
   const router = useRouter();
 
@@ -23,10 +21,10 @@ export default function ProfileLayout({
 
     // If no user is logged in after hydration, redirect to the domain-specific login page
     if (!user) {
-      router.push(`/${username}/login`);
+      router.push(`/login`);
       return;
     }
-  }, [user, _hasHydrated, username, router]);
+  }, [user, _hasHydrated, router]);
 
   const shouldShowSkeleton = !_hasHydrated;
 

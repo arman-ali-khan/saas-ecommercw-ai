@@ -31,7 +31,6 @@ export default function CustomerOrderDetailsPage() {
     const { customer, _hasHydrated } = useCustomerAuth();
 
     const orderId = params.orderId as string;
-    const username = params.username as string;
 
     const [order, setOrder] = useState<Order | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -48,12 +47,12 @@ export default function CustomerOrderDetailsPage() {
 
         if (error || !data) {
             toast({ variant: 'destructive', title: 'Error', description: 'Order not found or you do not have permission to view it.' });
-            router.push(`/${username}/profile/orders`);
+            router.push(`/profile/orders`);
             return;
         }
         setOrder(data as Order);
         setIsLoading(false);
-    }, [orderId, customer, router, toast, username]);
+    }, [orderId, customer, router, toast]);
 
 
     useEffect(() => {
@@ -131,7 +130,7 @@ export default function CustomerOrderDetailsPage() {
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                     <Button variant="ghost" asChild className="-ml-4">
-                        <Link href={`/${username}/profile/orders`}>
+                        <Link href={`/profile/orders`}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         অর্ডারে ফিরে যান
                         </Link>

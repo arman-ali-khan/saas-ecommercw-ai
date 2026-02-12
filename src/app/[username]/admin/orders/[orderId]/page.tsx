@@ -30,7 +30,6 @@ export default function OrderDetailsPage() {
     const { user, loading: authLoading } = useAuth();
 
     const orderId = params.orderId as string;
-    const username = params.username as string;
 
     const [order, setOrder] = useState<Order | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -62,12 +61,12 @@ export default function OrderDetailsPage() {
 
         if (error || !data) {
             toast({ variant: 'destructive', title: 'Error', description: 'Order not found.' });
-            router.push(`/${username}/admin/orders`);
+            router.push(`/admin/orders`);
             return;
         }
         setOrder(data as Order);
         setIsLoading(false);
-    }, [orderId, user, router, toast, username]);
+    }, [orderId, user, router, toast]);
 
 
     useEffect(() => {
@@ -113,7 +112,7 @@ export default function OrderDetailsPage() {
                         site_id: updatedOrder.site_id,
                         order_id: updatedOrder.id,
                         message: notificationMessage,
-                        link: `/${username}/profile/orders`
+                        link: `/profile/orders`
                     });
 
                 if (notificationError) {
@@ -179,7 +178,7 @@ export default function OrderDetailsPage() {
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                     <Button variant="ghost" asChild className="-ml-4">
-                        <Link href={`/${username}/admin/orders`}>
+                        <Link href={`/admin/orders`}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Orders
                         </Link>

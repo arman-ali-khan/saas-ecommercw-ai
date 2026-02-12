@@ -143,7 +143,6 @@ export default function ManagePage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const pageId = params.pageId as string;
-  const username = params.username as string;
   const isNew = pageId === 'new';
 
   const [isLoading, setIsLoading] = useState(!isNew);
@@ -341,7 +340,7 @@ export default function ManagePage() {
         const { data, error } = await supabase.from('pages').select('*').eq('id', pageId).eq('site_id', user.id).single();
         if (error || !data) {
             toast({ variant: 'destructive', title: 'Error', description: 'Page not found.' });
-            router.push(`/${username}/admin/pages`);
+            router.push(`/admin/pages`);
             return;
         }
         const pageData = data as Page;
@@ -362,7 +361,7 @@ export default function ManagePage() {
     
     setIsLoading(false);
 
-  }, [pageId, isNew, user, router, toast, form, username]);
+  }, [pageId, isNew, user, router, toast, form]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -394,7 +393,7 @@ export default function ManagePage() {
     } else {
       toast({ title: `Page ${isNew ? 'created' : 'updated'} successfully!` });
       startTransition(() => {
-        router.push(`/${username}/admin/pages`);
+        router.push(`/admin/pages`);
         router.refresh();
       });
     }
@@ -412,7 +411,7 @@ export default function ManagePage() {
 
   return (
     <div>
-      <Button variant="ghost" asChild className="mb-4 -ml-4"><Link href={`/${username}/admin/pages`}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Pages</Link></Button>
+      <Button variant="ghost" asChild className="mb-4 -ml-4"><Link href={`/admin/pages`}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Pages</Link></Button>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="grid gap-8">
@@ -448,4 +447,3 @@ export default function ManagePage() {
     </div>
   );
 }
-

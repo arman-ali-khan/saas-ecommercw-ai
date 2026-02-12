@@ -38,7 +38,7 @@ export async function POST(request: Request) {
           site_id: newOrder.site_id,
           order_id: newOrder.id,
           message: notificationMessage,
-          link: `/${domain}/admin/orders/${newOrder.id}`,
+          link: `/admin/orders/${newOrder.id}`,
         });
 
       if (notificationError) {

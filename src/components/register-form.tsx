@@ -153,7 +153,10 @@ export default function RegisterForm() {
           'আপনার নিবন্ধন নিশ্চিত করতে দয়া করে আপনার ইমেল পরীক্ষা করুন।',
         duration: 10000,
       });
-      router.push('/login');
+      // Redirect to the new store's login page
+      const protocol = window.location.protocol;
+      const rootDomain = 'schoolbd.top';
+      window.location.href = `${protocol}//${domain}.${rootDomain}/admin/login`;
     } else {
       toast({
         variant: 'destructive',
