@@ -55,7 +55,7 @@ export default function UsersAdminPage() {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const { toast } = useToast();
-    const [baseDomain, setBaseDomain] = useState('banglanaturals.site');
+    const [baseDomain, setBaseDomain] = useState('schoolbd.top');
     const [currentPage, setCurrentPage] = useState(1);
 
     const fetchUsersAndSettings = useCallback(async () => {
