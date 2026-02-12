@@ -1,6 +1,10 @@
+'use client';
+
 import Link from 'next/link';
 import { Facebook, Twitter } from 'lucide-react';
 import Logo from './logo';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase/client';
 
 const TikTokIcon = () => (
   <svg
@@ -23,6 +27,31 @@ const TikTokIcon = () => (
 );
 
 export default function SaasFooter() {
+  const [socials, setSocials] = useState({
+    facebook: '',
+    twitter: '',
+    tiktok: '',
+  });
+
+  useEffect(() => {
+    const fetchSocials = async () => {
+      const { data } = await supabase
+        .from('saas_settings')
+        .select('social_facebook, social_twitter, social_tiktok')
+        .eq('id', 1)
+        .single();
+      
+      if (data) {
+        setSocials({
+          facebook: data.social_facebook || '',
+          twitter: data.social_twitter || '',
+          tiktok: data.social_tiktok || '',
+        });
+      }
+    };
+    fetchSocials();
+  }, []);
+  
   return (
     <footer className="bg-secondary text-secondary-foreground">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -99,29 +128,43 @@ export default function SaasFooter() {
             <h3 className="font-headline font-semibold mb-4">
               আমাদের অনুসরণ করুন
             </h3>
-            <div className="flex space-x-4">
-              <Link
-                href="#"
-                aria-label="Facebook"
-                className="text-secondary-foreground/80 hover:text-primary transition-colors"
-              >
-                <Facebook />
-              </Link>
-              <Link
-                href="#"
-                aria-label="Twitter"
-                className="text-secondary-foreground/80 hover:text-primary transition-colors"
-              >
-                <Twitter />
-              </Link>
-              <Link
-                href="#"
-                aria-label="TikTok"
-                className="text-secondary-foreground/80 hover:text-primary transition-colors"
-              >
-                <TikTokIcon />
-              </Link>
-            </div>
+            {(socials.facebook || socials.twitter || socials.tiktok) && (
+              <div className="flex space-x-4">
+                {socials.facebook && (
+                  <Link
+                    href={socials.facebook}
+                    aria-label="Facebook"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
+                  >
+                    <Facebook />
+                  </Link>
+                )}
+                {socials.twitter && (
+                  <Link
+                    href={socials.twitter}
+                    aria-label="Twitter"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
+                  >
+                    <Twitter />
+                  </Link>
+                )}
+                {socials.tiktok && (
+                  <Link
+                    href={socials.tiktok}
+                    aria-label="TikTok"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
+                  >
+                    <TikTokIcon />
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className="mt-8 border-t border-border pt-8 text-center text-sm text-secondary-foreground/60">
