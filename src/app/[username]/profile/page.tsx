@@ -75,7 +75,7 @@ export default function ProfilePage() {
   
   const quickLinks = [
     { href: `/profile/orders`, label: 'আমার অর্ডার', description: 'আপনার অর্ডারের ইতিহাস এবং স্ট্যাটাস দেখুন।', icon: ShoppingBag },
-    { href: `/profile/reviews`, label: 'আমার রিভিউ', description: 'আপনার দেওয়া সকল রিভিউ দেখুন।', icon: Star },
+    // { href: `/profile/reviews`, label: 'আমার রিভিউ', description: 'আপনার দেওয়া সকল রিভিউ দেখুন।', icon: Star },
     { href: `/profile/addresses`, label: 'আমার ঠিকানা', description: 'আপনার সংরক্ষিত ঠিকানা পরিচালনা করুন।', icon: MapPin },
     { href: `/profile/settings`, label: 'সেটিংস', description: 'আপনার অ্যাকাউন্ট সেটিংস পরিচালনা করুন।', icon: SettingsIcon },
   ];
