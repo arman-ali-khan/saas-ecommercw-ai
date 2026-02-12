@@ -17,11 +17,13 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const username = params.username as string | undefined;
 
   // 1. Check for pages that provide their own full layout.
-  if (pathname === '/' || pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
+  // The root path '/' and any admin paths should not get the standard layout.
+  if (pathname === '/' || pathname.includes('/admin') || pathname.startsWith('/dashboard')) {
     return <>{children}</>;
   }
 
   // 2. Check for public store pages (identified by having a username param).
+  // These get the store header/footer and chat/cart buttons.
   if (username) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -38,6 +40,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   }
   
   // 3. For all other SaaS pages like /login, /register, etc., that need a container.
+  // These get the SaaS header/footer.
   return (
     <div className="flex flex-col min-h-screen">
         <SaasHeader />
