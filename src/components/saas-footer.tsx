@@ -1,10 +1,10 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Facebook, Twitter } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import DynamicIcon from './dynamic-icon';
 import Image from 'next/image';
 import { Skeleton } from './ui/skeleton';
 
@@ -39,9 +39,7 @@ export default function SaasFooter() {
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
     description: string | null;
-    logoType: 'icon' | 'image';
-    logoIcon: string;
-    logoImageUrl: string | null;
+    logoUrl: string | null;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -50,7 +48,7 @@ export default function SaasFooter() {
         setIsLoading(true);
         const { data } = await supabase
             .from('saas_settings')
-            .select('platform_name, platform_description, social_facebook, social_twitter, social_tiktok, logo_type, logo_icon, logo_image_url')
+            .select('platform_name, platform_description, social_facebook, social_twitter, social_tiktok, logo_url')
             .eq('id', 1)
             .single();
         
@@ -63,9 +61,7 @@ export default function SaasFooter() {
             setSiteInfo({
               name: data.platform_name || 'Your SaaS',
               description: data.platform_description || 'Your platform description.',
-              logoType: data.logo_type || 'icon',
-              logoIcon: data.logo_icon || 'Sparkles',
-              logoImageUrl: data.logo_image_url || null,
+              logoUrl: data.logo_url || null,
             });
         }
         setIsLoading(false);
@@ -77,7 +73,7 @@ export default function SaasFooter() {
     if (isLoading || !siteInfo) {
       return (
         <div className="flex items-center gap-3 mb-4">
-          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-10 w-10" />
           <Skeleton className="h-6 w-32" />
         </div>
       );
@@ -85,15 +81,15 @@ export default function SaasFooter() {
 
     return (
        <Link href="/" className="mb-4 flex items-center gap-3">
-        <div className={`${siteInfo.logoType === 'image' ? '' : 'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
-          {siteInfo.logoType === 'image' && siteInfo.logoImageUrl ? (
-            <div className="relative h-8 w-8">
-              <Image src={siteInfo.logoImageUrl} alt={siteInfo.name} fill className="object-contain rounded-sm" />
+        {siteInfo.logoUrl ? (
+             <div className="relative h-10 w-10">
+              <Image src={siteInfo.logoUrl} alt={siteInfo.name} fill className="object-contain" />
             </div>
-          ) : (
-            <DynamicIcon name={siteInfo.logoIcon} className="h-6 w-6 text-primary-foreground" />
-          )}
-        </div>
+        ) : (
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center font-bold text-lg">
+                {siteInfo.name.charAt(0)}
+            </div>
+        )}
         <span className="text-xl font-bold font-headline">{siteInfo.name}</span>
       </Link>
     );

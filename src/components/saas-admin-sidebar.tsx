@@ -24,7 +24,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
-import DynamicIcon from './dynamic-icon';
 import Image from 'next/image';
 
 interface SaasAdminSidebarProps {
@@ -40,9 +39,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const [pendingSubscriptionsCount, setPendingSubscriptionsCount] = useState(0);
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
-    logoType: 'icon' | 'image';
-    logoIcon: string;
-    logoImageUrl: string | null;
+    logoUrl: string | null;
   } | null>(null);
   const [isInfoLoading, setIsInfoLoading] = useState(true);
   
@@ -87,23 +84,19 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
       setIsInfoLoading(true);
       const { data } = await supabase
         .from('saas_settings')
-        .select('platform_name, logo_type, logo_icon, logo_image_url')
+        .select('platform_name, logo_url')
         .eq('id', 1)
         .single();
       
       if (data) {
         setSiteInfo({
           name: data.platform_name || 'SaaS Admin',
-          logoType: data.logo_type || 'icon',
-          logoIcon: data.logo_icon || 'Sparkles',
-          logoImageUrl: data.logo_image_url || null,
+          logoUrl: data.logo_url || null,
         });
       } else {
          setSiteInfo({
           name: 'SaaS Admin',
-          logoType: 'icon',
-          logoIcon: 'Sparkles',
-          logoImageUrl: null,
+          logoUrl: null,
         })
       }
       setIsInfoLoading(false);
@@ -168,7 +161,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     if (isInfoLoading || !siteInfo) {
       return (
         <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-10 w-10" />
           <Skeleton className="h-6 w-32" />
         </div>
       );
@@ -176,15 +169,15 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
 
     return (
       <Link href="/dashboard" className="flex items-center gap-3">
-        <div className={`${siteInfo.logoType === 'image' ? '' : 'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
-          {siteInfo.logoType === 'image' && siteInfo.logoImageUrl ? (
-            <div className="relative h-8 w-8">
-              <Image src={siteInfo.logoImageUrl} alt={siteInfo.name} fill className="object-contain rounded-sm" />
-            </div>
-          ) : (
-            <DynamicIcon name={siteInfo.logoIcon} className="h-6 w-6 text-primary-foreground" />
-          )}
-        </div>
+        {siteInfo.logoUrl ? (
+          <div className="relative h-10 w-10">
+            <Image src={siteInfo.logoUrl} alt={siteInfo.name} fill className="object-contain" />
+          </div>
+        ) : (
+          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center font-bold text-lg">
+            {siteInfo.name.charAt(0)}
+          </div>
+        )}
         <span className="text-xl font-bold font-headline">{siteInfo.name}</span>
       </Link>
     );

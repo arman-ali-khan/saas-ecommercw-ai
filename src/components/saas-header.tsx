@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -18,7 +19,6 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
 import { Skeleton } from './ui/skeleton';
 import { supabase } from '@/lib/supabase/client';
-import DynamicIcon from './dynamic-icon';
 import Image from 'next/image';
 
 const navLinks = [
@@ -33,9 +33,7 @@ export default function SaasHeader() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
-    logoType: 'icon' | 'image';
-    logoIcon: string;
-    logoImageUrl: string | null;
+    logoUrl: string | null;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,23 +44,19 @@ export default function SaasHeader() {
       setIsLoading(true);
       const { data } = await supabase
         .from('saas_settings')
-        .select('platform_name, logo_type, logo_icon, logo_image_url')
+        .select('platform_name, logo_url')
         .eq('id', 1)
         .single();
       
       if (data) {
         setSiteInfo({
           name: data.platform_name || 'Your SaaS',
-          logoType: data.logo_type || 'icon',
-          logoIcon: data.logo_icon || 'Sparkles',
-          logoImageUrl: data.logo_image_url || null,
+          logoUrl: data.logo_url || null,
         });
       } else {
         setSiteInfo({
           name: 'Your SaaS',
-          logoType: 'icon',
-          logoIcon: 'Sparkles',
-          logoImageUrl: null,
+          logoUrl: null,
         })
       }
       setIsLoading(false);
@@ -96,7 +90,7 @@ export default function SaasHeader() {
     if (isLoading || !siteInfo) {
       return (
         <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-10 w-10" />
           <Skeleton className="h-6 w-32" />
         </div>
       );
@@ -104,15 +98,15 @@ export default function SaasHeader() {
 
     return (
       <Link href="/" className="flex items-center gap-3">
-        <div className={`${siteInfo.logoType === 'image' ? '' : 'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
-          {siteInfo.logoType === 'image' && siteInfo.logoImageUrl ? (
-            <div className="relative h-8 w-8">
-              <Image src={siteInfo.logoImageUrl} alt={siteInfo.name} fill className="object-contain rounded-sm" />
+        {siteInfo.logoUrl ? (
+            <div className="relative h-10 w-10">
+              <Image src={siteInfo.logoUrl} alt={siteInfo.name} fill className="object-contain" />
             </div>
-          ) : (
-            <DynamicIcon name={siteInfo.logoIcon} className="h-6 w-6 text-primary-foreground" />
-          )}
-        </div>
+        ) : (
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center font-bold text-lg">
+                {siteInfo.name.charAt(0)}
+            </div>
+        )}
         <span className="text-xl font-bold font-headline">{siteInfo.name}</span>
       </Link>
     );
