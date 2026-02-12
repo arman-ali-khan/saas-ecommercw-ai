@@ -18,6 +18,7 @@ export interface Product {
   story: string;
   categories: string[];
   is_featured: boolean;
+  stock?: number;
   created_at: string;
 }
 

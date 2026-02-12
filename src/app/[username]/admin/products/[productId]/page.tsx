@@ -59,6 +59,10 @@ const productFormSchema = z.object({
     (a) => parseFloat(z.string().parse(a)),
     z.number().positive('Price must be a positive number.')
   ),
+  stock: z.preprocess(
+    (a) => parseInt(z.string().parse(a), 10),
+    z.number().min(0, "Stock can't be negative.").default(0)
+  ),
   currency: z.string().default('BDT'),
   description: z.string().optional(),
   long_description: z.string().optional(),
@@ -103,6 +107,7 @@ export default function ManageProductPage() {
       id: '',
       name: '',
       price: 0,
+      stock: 0,
       currency: 'BDT',
       description: '',
       long_description: '',
@@ -145,6 +150,7 @@ export default function ManageProductPage() {
 
     const sanitizedData = {
       ...productData,
+      stock: productData.stock || 0,
       description: productData.description || '',
       long_description: productData.long_description || '',
       categories: productData.categories || [],
@@ -351,7 +357,7 @@ export default function ManageProductPage() {
                   </FormItem>
                 )}
               />
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
                 <FormField
                   control={form.control}
                   name="price"
@@ -360,6 +366,19 @@ export default function ManageProductPage() {
                       <FormLabel>Price</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="stock"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Stock Quantity</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="1" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -620,5 +639,3 @@ export default function ManageProductPage() {
     </div>
   );
 }
-
-    
