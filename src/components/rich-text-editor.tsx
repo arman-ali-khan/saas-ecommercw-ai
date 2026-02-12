@@ -92,9 +92,26 @@ interface RichTextEditorProps {
 }
 
 export default function RichTextEditor({ value, onChange, isEditable = true }: RichTextEditorProps) {
+  
+  let content: any = value;
+  try {
+    // Ensure value is a non-empty string before trying to parse
+    if (value && typeof value === 'string') {
+      const parsed = JSON.parse(value);
+      // Make sure the parsed content is a valid Tiptap object
+      if (typeof parsed === 'object' && parsed !== null && parsed.type === 'doc') {
+        content = parsed;
+      }
+    }
+  } catch (error) {
+    // Not a valid JSON string, treat it as plain text content.
+    // This allows backward compatibility with old data.
+    content = value;
+  }
+  
   const editor = useEditor({
     extensions: [StarterKit],
-    content: value,
+    content: content,
     editable: isEditable,
     onUpdate: ({ editor }) => {
       onChange(JSON.stringify(editor.getJSON()));
