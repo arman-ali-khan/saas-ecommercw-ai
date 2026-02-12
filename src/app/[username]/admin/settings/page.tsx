@@ -188,7 +188,9 @@ export default function SettingsAdminPage() {
             });
 
             setIsLoading(false);
-        }
+        };
+        fetchSettings();
+    }
   }, [user, form, seoForm, paymentForm, brandingForm, appearanceForm, toast]);
 
   async function onGeneralSubmit(values: z.infer<typeof settingsSchema>) {
@@ -749,3 +751,5 @@ export default function SettingsAdminPage() {
     </Card>
   );
 }
+
+    
