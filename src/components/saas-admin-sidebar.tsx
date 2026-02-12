@@ -13,6 +13,7 @@ import {
   Settings,
   Bell,
   Sparkles,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -83,6 +84,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: pendingSubscriptionsCount },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
+    { href: `/dashboard/pages`, label: 'Pages', icon: FileText },
     { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell, count: unreadCount },
     { href: `/dashboard/settings`, label: 'Settings', icon: Settings },
     { href: `/`, label: 'View Landing Page', icon: Building },
