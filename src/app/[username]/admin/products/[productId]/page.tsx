@@ -96,6 +96,8 @@ export default function ManageProductPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [slugStatus, setSlugStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'invalid'>('empty');
+  const [debouncedSlug, setDebouncedSlug] = useState('');
 
   const isSubscriptionPending =
     user?.subscription_status === 'pending' ||
@@ -118,6 +120,56 @@ export default function ManageProductPage() {
       images: [],
     },
   });
+
+  const slugValue = form.watch('id');
+
+  useEffect(() => {
+    if (!isNew) return;
+    const handler = setTimeout(() => {
+      setDebouncedSlug(slugValue);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [slugValue, isNew]);
+
+  useEffect(() => {
+    if (!isNew || !debouncedSlug) {
+      setSlugStatus('empty');
+      return;
+    }
+
+    const checkSlugAvailability = async () => {
+      const slugValidation = productFormSchema.shape.id.safeParse(debouncedSlug);
+      if (!slugValidation.success) {
+        setSlugStatus('invalid');
+        return;
+      }
+
+      setSlugStatus('checking');
+
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('id')
+          .eq('id', debouncedSlug)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          setSlugStatus('unavailable');
+        } else if (data) {
+          setSlugStatus('unavailable');
+        } else {
+          setSlugStatus('available');
+        }
+      } catch (err) {
+        setSlugStatus('unavailable');
+      }
+    };
+
+    checkSlugAvailability();
+  }, [debouncedSlug, isNew]);
 
   const { fields, append, remove, move } = useFieldArray({
     control: form.control,
@@ -215,6 +267,15 @@ export default function ManageProductPage() {
       toast({ variant: 'destructive', title: 'Authentication error' });
       return;
     }
+    
+    if (isNew && slugStatus !== 'available') {
+        toast({
+            variant: 'destructive',
+            title: 'Invalid Slug',
+            description: 'Please choose a unique, available slug for your product.'
+        });
+        return;
+    }
 
     setIsSubmitting(true);
     
@@ -292,6 +353,10 @@ export default function ManageProductPage() {
       </Card>
     );
   }
+  
+  const isButtonDisabled = isNew 
+    ? isSubmitting || isSubscriptionPending || slugStatus !== 'available'
+    : isSubmitting || isSubscriptionPending;
 
   return (
     <div>
@@ -330,6 +395,14 @@ export default function ManageProductPage() {
                       A unique, URL-friendly identifier. Cannot be changed after
                       creation.
                     </FormDescription>
+                    {isNew && (
+                        <div className="min-h-[20px] pt-1">
+                            {slugStatus === 'checking' && <p className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking availability...</p>}
+                            {slugStatus === 'unavailable' && <p className="text-sm text-destructive">This slug is already taken.</p>}
+                            {slugStatus === 'invalid' && <p className="text-sm text-destructive">Slug must be 3+ characters and can only contain lowercase letters, numbers, and hyphens.</p>}
+                            {slugStatus === 'available' && <p className="text-sm text-green-500">This slug is available!</p>}
+                        </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -618,7 +691,7 @@ export default function ManageProductPage() {
                 </CardFooter>
               </Card>
               
-              <Button type="submit" disabled={isSubmitting || isSubscriptionPending}>
+              <Button type="submit" disabled={isButtonDisabled}>
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
