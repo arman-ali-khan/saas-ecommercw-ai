@@ -6,6 +6,9 @@ import SiteLayout from '@/components/site-layout';
 import AuthProvider from '@/components/auth-provider';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+// Force dynamic rendering to ensure the latest settings (like favicon) are always used.
+export const dynamic = 'force-dynamic';
  
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = cookies();
