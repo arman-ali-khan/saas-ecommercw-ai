@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -152,7 +153,8 @@ export default function SaasSettingsPage() {
     try {
       const { error } = await supabase
         .from('saas_settings')
-        .update({
+        .upsert({
+            id: 1,
             platform_name: values.platformName,
             platform_description: values.platformDescription,
             logo_url: values.logo_url,
@@ -160,8 +162,7 @@ export default function SaasSettingsPage() {
             social_facebook: values.social_facebook,
             social_twitter: values.social_twitter,
             social_tiktok: values.social_tiktok,
-        })
-        .eq('id', 1);
+        });
 
       if (error) {
         toast({ variant: 'destructive', title: 'Error Saving General Settings', description: `Failed to save settings. Please check database permissions. Error: ${error.message}` });
@@ -181,12 +182,12 @@ export default function SaasSettingsPage() {
     try {
         const { error } = await supabase
             .from('saas_settings')
-            .update({
+            .upsert({
+                id: 1,
                 seo_title: values.seoTitle,
                 seo_description: values.seoDescription,
                 seo_keywords: values.seoKeywords,
-            })
-            .eq('id', 1);
+            });
 
         if (error) {
             toast({ variant: 'destructive', title: 'Error Saving SEO Settings', description: `Failed to save settings. Please check database permissions. Error: ${error.message}` });
@@ -207,12 +208,12 @@ export default function SaasSettingsPage() {
     try {
         const { error } = await supabase
             .from('saas_settings')
-            .update({
+            .upsert({
+                id: 1,
                 mobile_banking_enabled: values.mobileBankingEnabled,
                 mobile_banking_number: values.mobileBankingNumber,
                 accepted_banking_methods: values.acceptedBankingMethods,
-            })
-            .eq('id', 1);
+            });
 
         if (error) {
             toast({
