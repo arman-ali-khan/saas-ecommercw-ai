@@ -23,6 +23,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
+import { Skeleton } from './ui/skeleton';
+import DynamicIcon from './dynamic-icon';
+import Image from 'next/image';
 
 interface SaasAdminSidebarProps {
     isMobile?: boolean;
@@ -35,6 +38,13 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const { toast } = useToast();
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingSubscriptionsCount, setPendingSubscriptionsCount] = useState(0);
+  const [siteInfo, setSiteInfo] = useState<{
+    name: string;
+    logoType: 'icon' | 'image';
+    logoIcon: string;
+    logoImageUrl: string | null;
+  } | null>(null);
+  const [isInfoLoading, setIsInfoLoading] = useState(true);
   
   if (!user || !user.isSaaSAdmin) {
     return null; // Or a loading skeleton
@@ -71,6 +81,35 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
       supabase.removeChannel(channel);
     };
   }, [user]);
+  
+  useEffect(() => {
+    const fetchInfo = async () => {
+      setIsInfoLoading(true);
+      const { data } = await supabase
+        .from('saas_settings')
+        .select('platform_name, logo_type, logo_icon, logo_image_url')
+        .eq('id', 1)
+        .single();
+      
+      if (data) {
+        setSiteInfo({
+          name: data.platform_name || 'SaaS Admin',
+          logoType: data.logo_type || 'icon',
+          logoIcon: data.logo_icon || 'Sparkles',
+          logoImageUrl: data.logo_image_url || null,
+        });
+      } else {
+         setSiteInfo({
+          name: 'SaaS Admin',
+          logoType: 'icon',
+          logoIcon: 'Sparkles',
+          logoImageUrl: null,
+        })
+      }
+      setIsInfoLoading(false);
+    };
+    fetchInfo();
+  }, []);
 
   const logout = async () => {
     await logoutAction();
@@ -125,13 +164,37 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     return linkComponent;
   };
   
+  const HeaderLogo = () => {
+    if (isInfoLoading || !siteInfo) {
+      return (
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-6 w-32" />
+        </div>
+      );
+    }
+
+    return (
+      <Link href="/dashboard" className="flex items-center gap-3">
+        <div className={`${siteInfo.logoType === 'image' ? '' : 'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
+          {siteInfo.logoType === 'image' && siteInfo.logoImageUrl ? (
+            <div className="relative h-8 w-8">
+              <Image src={siteInfo.logoImageUrl} alt={siteInfo.name} fill className="object-contain rounded-sm" />
+            </div>
+          ) : (
+            <DynamicIcon name={siteInfo.logoIcon} className="h-6 w-6 text-primary-foreground" />
+          )}
+        </div>
+        <span className="text-xl font-bold font-headline">{siteInfo.name}</span>
+      </Link>
+    );
+  };
+  
   const SidebarContent = () => (
     <div className="flex h-full max-h-screen flex-col gap-2 text-sidebar-foreground bg-sidebar">
       {!isMobile && (
         <div className="flex h-20 items-center border-b border-sidebar-border px-6">
-          <Link href={`/dashboard`}>
-            <span className="text-xl font-bold font-headline">SaaS Admin</span>
-          </Link>
+          <HeaderLogo />
         </div>
       )}
       <div className="flex-1 overflow-auto py-2">
