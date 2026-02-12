@@ -68,7 +68,7 @@ export async function generateMetadata({
     title,
     description,
     keywords,
-    icons: faviconUrl ? { icon: faviconUrl } : null,
+    icons: faviconUrl ? [{ rel: 'icon', url: faviconUrl }] : null,
     openGraph: {
         title: title,
         description: description,

@@ -50,7 +50,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: title,
     description: description,
     keywords: settings.seo_keywords || '',
-    icons: settings.favicon_url ? { icon: settings.favicon_url } : null,
+    icons: settings.favicon_url ? [{ rel: 'icon', url: settings.favicon_url }] : null,
   }
 }
 
