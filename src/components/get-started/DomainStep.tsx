@@ -19,6 +19,7 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
     const [domain, setDomain] = useState(formData.domain);
     const [availabilityStatus, setAvailabilityStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short' | 'reserved'>('empty');
     const [debouncedDomain, setDebouncedDomain] = useState(domain);
+    const [isNavigating, setIsNavigating] = useState(false);
 
     useEffect(() => {
         // When the component loads, if there's already a domain in formData,
@@ -84,6 +85,7 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
 
 
     const handleNext = () => {
+        setIsNavigating(true);
         updateFormData({ domain });
         onNext();
     }
@@ -138,7 +140,8 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
                         <StatusMessage />
                     </div>
                 </div>
-                <Button onClick={handleNext} className="w-full" disabled={isNextDisabled}>
+                <Button onClick={handleNext} className="w-full" disabled={isNextDisabled || isNavigating}>
+                    {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     পরবর্তী ধাপ
                 </Button>
             </CardContent>

@@ -13,6 +13,7 @@ import { type Plan } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 interface PaymentStepProps {
     plan?: Plan;
@@ -43,6 +44,7 @@ type SaasSettings = {
 export default function PaymentStep({ plan, formData, updateFormData, onNext }: PaymentStepProps) {
     const [settings, setSettings] = useState<SaasSettings | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isNavigating, setIsNavigating] = useState(false);
 
     const form = useForm<z.infer<typeof paymentSchema>>({
         resolver: zodResolver(paymentSchema),
@@ -77,7 +79,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext }: 
 
 
     function onSubmit(values: z.infer<typeof paymentSchema>) {
-        console.log("Payment details submitted:", values);
+        setIsNavigating(true);
         updateFormData({
             paymentMethod: values.paymentMethod,
             transactionId: values.transactionId,
@@ -169,7 +171,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext }: 
                              </div>
                         )}
 
-                        <Button type="submit" className="w-full" disabled={!form.formState.isValid}>
+                        <Button type="submit" className="w-full" disabled={!form.formState.isValid || isNavigating}>
+                            {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             পেমেন্ট সম্পূর্ণ করুন
                         </Button>
                     </form>

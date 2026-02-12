@@ -9,10 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 import type { FormData } from '@/components/get-started/GetStartedFlow';
 import { useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { type Plan } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -32,6 +32,7 @@ export default function SubscriptionStep({
   onNext,
 }: SubscriptionStepProps) {
   const searchParams = useSearchParams();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     const planFromQuery = searchParams.get('plan');
@@ -42,6 +43,11 @@ export default function SubscriptionStep({
 
   const handleSelectPlan = (planId: string) => {
     updateFormData({ plan: planId });
+  };
+
+  const handleNext = () => {
+    setIsNavigating(true);
+    onNext();
   };
 
   if (isLoading) {
@@ -115,7 +121,8 @@ export default function SubscriptionStep({
         ))}
       </div>
       <div className="mt-12 text-center">
-        <Button size="lg" onClick={onNext} disabled={!formData.plan}>
+        <Button size="lg" onClick={handleNext} disabled={!formData.plan || isNavigating}>
+          {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           পরবর্তী ধাপ
         </Button>
       </div>

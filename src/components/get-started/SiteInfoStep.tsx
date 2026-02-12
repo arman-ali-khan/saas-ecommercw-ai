@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { FormData } from "@/app/get-started/page";
 import { useState } from "react";
+import { Loader2 } from 'lucide-react';
 
 interface SiteInfoStepProps {
     formData: FormData;
@@ -16,8 +17,10 @@ interface SiteInfoStepProps {
 export default function SiteInfoStep({ formData, updateFormData, onNext }: SiteInfoStepProps) {
     const [siteName, setSiteName] = useState(formData.siteName);
     const [siteDescription, setSiteDescription] = useState(formData.siteDescription);
+    const [isNavigating, setIsNavigating] = useState(false);
 
     const handleNext = () => {
+        setIsNavigating(true);
         updateFormData({ siteName, siteDescription });
         onNext();
     }
@@ -47,7 +50,8 @@ export default function SiteInfoStep({ formData, updateFormData, onNext }: SiteI
                         onChange={(e) => setSiteDescription(e.target.value)}
                     />
                 </div>
-                <Button onClick={handleNext} className="w-full" disabled={!siteName || !siteDescription}>
+                <Button onClick={handleNext} className="w-full" disabled={!siteName || !siteDescription || isNavigating}>
+                    {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     সেটআপ সম্পূর্ণ করুন
                 </Button>
             </CardContent>
