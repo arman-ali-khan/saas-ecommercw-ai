@@ -69,6 +69,7 @@ const brandingSchema = z.object({
     logo_icon: z.string().default('Leaf'),
     logo_image_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
     favicon_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
+    social_share_image_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
 });
 
 const appearanceSchema = z.object({
@@ -130,7 +131,7 @@ export default function SettingsAdminPage() {
 
   const brandingForm = useForm<z.infer<typeof brandingSchema>>({
     resolver: zodResolver(brandingSchema),
-    defaultValues: { logo_type: 'icon', logo_icon: 'Leaf', logo_image_url: '', favicon_url: '' },
+    defaultValues: { logo_type: 'icon', logo_icon: 'Leaf', logo_image_url: '', favicon_url: '', social_share_image_url: '' },
   });
 
   const appearanceForm = useForm<z.infer<typeof appearanceSchema>>({
@@ -174,6 +175,7 @@ export default function SettingsAdminPage() {
                 logo_icon: data?.logo_icon || 'Leaf',
                 logo_image_url: data?.logo_image_url || '',
                 favicon_url: data?.favicon_url || '',
+                social_share_image_url: data?.social_share_image_url || '',
             });
 
             appearanceForm.reset({
@@ -257,6 +259,7 @@ export default function SettingsAdminPage() {
         logo_icon: values.logo_icon,
         logo_image_url: values.logo_image_url,
         favicon_url: values.favicon_url,
+        social_share_image_url: values.social_share_image_url,
     });
     setIsSubmitting(false);
     if (error) {
@@ -296,11 +299,20 @@ export default function SettingsAdminPage() {
       toast({ title: 'Favicon Uploaded', description: 'Click "Save" to apply the changes.' });
     }
   };
+  
+  const handleSocialShareImageUpload = (result: any) => {
+    if (result.event === 'success') {
+      const secureUrl = result.info.secure_url;
+      brandingForm.setValue('social_share_image_url', secureUrl, { shouldValidate: true });
+      toast({ title: 'Image Uploaded', description: 'Click "Save" to apply the changes.' });
+    }
+  };
 
   const logoType = brandingForm.watch('logo_type');
   const logoImageUrl = brandingForm.watch('logo_image_url');
   const logoIcon = brandingForm.watch('logo_icon');
   const faviconUrl = brandingForm.watch('favicon_url');
+  const socialShareImageUrl = brandingForm.watch('social_share_image_url');
 
   const isLogoUrlValid = useMemo(() => {
     if (!logoImageUrl) return false;
@@ -321,6 +333,16 @@ export default function SettingsAdminPage() {
       return false;
     }
   }, [faviconUrl]);
+
+  const isSocialShareUrlValid = useMemo(() => {
+    if (!socialShareImageUrl) return false;
+    try {
+        new URL(socialShareImageUrl);
+        return true;
+    } catch {
+        return false;
+    }
+  }, [socialShareImageUrl]);
 
   if (isLoading) {
     return (
@@ -500,6 +522,32 @@ export default function SettingsAdminPage() {
                                         <ImageUploader onUpload={handleFaviconUpload} label='Upload Favicon' />
                                         <FormDescription>
                                             Upload a favicon (.ico, .png, .svg). Recommended size: 32x32px.
+                                        </FormDescription>
+                                    </div>
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={brandingForm.control}
+                            name="social_share_image_url"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Social Share Image</FormLabel>
+                                <div className="flex items-start gap-4">
+                                    <div className="relative h-24 w-48 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                                        {isSocialShareUrlValid ? (
+                                            <Image src={socialShareImageUrl!} alt="Social Share Preview" fill className="object-contain p-1" />
+                                        ) : <p className='text-xs text-muted-foreground'>Preview</p>}
+                                    </div>
+                                    <div className='flex-grow space-y-2'>
+                                        <FormControl>
+                                            <Input placeholder="https://example.com/social.png" {...field} />
+                                        </FormControl>
+                                        <ImageUploader onUpload={handleSocialShareImageUpload} label='Upload Social Image' />
+                                        <FormDescription>
+                                            The image shown when sharing links. Recommended: 1200x630px.
                                         </FormDescription>
                                     </div>
                                 </div>

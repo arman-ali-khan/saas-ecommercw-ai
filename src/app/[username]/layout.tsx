@@ -53,7 +53,7 @@ export async function generateMetadata({
   // Fetch the specific SEO settings for this site
   const { data: settings } = await supabase
     .from('store_settings')
-    .select('seo_title, seo_description, seo_keywords, favicon_url')
+    .select('seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url')
     .eq('site_id', profile.id)
     .single();
 
@@ -62,12 +62,25 @@ export async function generateMetadata({
   const description = settings?.seo_description || profile.site_description || 'An e-commerce store.';
   const keywords = settings?.seo_keywords || '';
   const faviconUrl = settings?.favicon_url;
+  const socialShareImageUrl = settings?.social_share_image_url;
 
   return {
     title,
     description,
     keywords,
     icons: faviconUrl ? { icon: faviconUrl } : null,
+    openGraph: {
+        title: title,
+        description: description,
+        images: socialShareImageUrl ? [
+            {
+                url: socialShareImageUrl,
+                width: 1200,
+                height: 630,
+                alt: title,
+            }
+        ] : undefined,
+    }
   };
 }
 
@@ -143,3 +156,5 @@ export default async function UsernameLayout({
     </>
   );
 }
+
+    
