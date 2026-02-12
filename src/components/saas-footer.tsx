@@ -41,7 +41,7 @@ export default function SaasFooter() {
               <ul className="space-y-2">
                 <li>
                   <Link
-                    href="#features"
+                    href="/#features"
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
                     বৈশিষ্ট্য
@@ -49,7 +49,7 @@ export default function SaasFooter() {
                 </li>
                 <li>
                   <Link
-                    href="#pricing"
+                    href="/#pricing"
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
                     মূল্য
@@ -70,7 +70,7 @@ export default function SaasFooter() {
               <ul className="space-y-2">
                 <li>
                   <Link
-                    href="#"
+                    href="/about"
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
                     আমাদের সম্পর্কে
