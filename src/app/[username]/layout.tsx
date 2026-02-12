@@ -73,10 +73,73 @@ export async function generateMetadata({
 
 // The default export now just passes its children through.
 // The actual layout is now handled by src/components/site-layout.tsx
-export default function UsernameLayout({
+export default async function UsernameLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: { username: string };
 }) {
-  return <>{children}</>;
+  const cookieStore = cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('domain', params.username)
+    .single();
+
+  let themeStyles = '';
+
+  if (profile) {
+    const { data: settings } = await supabase
+      .from('store_settings')
+      .select(
+        'theme_primary, theme_background, theme_accent, theme_card, theme_foreground, theme_secondary, font_primary, font_secondary'
+      )
+      .eq('site_id', profile.id)
+      .single();
+
+    if (settings) {
+      const styleVars = [
+        settings.theme_background && `--background: ${settings.theme_background};`,
+        settings.theme_foreground && `--foreground: ${settings.theme_foreground};`,
+        settings.theme_primary && `--primary: ${settings.theme_primary};`,
+        settings.theme_secondary && `--secondary: ${settings.theme_secondary};`,
+        settings.theme_accent && `--accent: ${settings.theme_accent};`,
+        settings.theme_card && `--card: ${settings.theme_card};`,
+        settings.theme_foreground && `--card-foreground: ${settings.theme_foreground};`,
+        settings.theme_card && `--popover: ${settings.theme_card};`,
+        settings.theme_foreground && `--popover-foreground: ${settings.theme_foreground};`,
+        settings.theme_secondary && `--muted: ${settings.theme_secondary};`,
+        settings.theme_foreground && `--muted-foreground: ${settings.theme_foreground};`,
+        settings.theme_primary && `--ring: ${settings.theme_primary};`,
+        settings.font_primary && `--font-body: '${settings.font_primary}';`,
+        settings.font_secondary && `--font-headline: '${settings.font_secondary}';`,
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+      if (styleVars) {
+        themeStyles = `:root { ${styleVars} }`;
+      }
+    }
+  }
+
+  return (
+    <>
+      {themeStyles && <style>{themeStyles}</style>}
+      {children}
+    </>
+  );
 }

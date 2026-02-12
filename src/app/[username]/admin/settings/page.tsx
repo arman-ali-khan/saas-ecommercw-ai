@@ -36,6 +36,9 @@ import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
 import Image from 'next/image';
 import DynamicIcon from '@/components/dynamic-icon';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Palette } from 'lucide-react';
 
 const availableBankingMethods = [
   { id: 'bkash', label: 'বিকাশ' },
@@ -68,6 +71,42 @@ const brandingSchema = z.object({
     favicon_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
 });
 
+const appearanceSchema = z.object({
+  theme_background: z.string().optional(),
+  theme_foreground: z.string().optional(),
+  theme_primary: z.string().optional(),
+  theme_secondary: z.string().optional(),
+  theme_accent: z.string().optional(),
+  theme_card: z.string().optional(),
+  font_primary: z.string().optional(),
+  font_secondary: z.string().optional(),
+});
+
+const fontOptions = {
+    primary: ['Hind Siliguri', 'Noto Sans Bengali', 'Lato', 'Roboto', 'Open Sans'],
+    secondary: ['Orbitron', 'Montserrat', 'Lato', 'Roboto'],
+};
+
+const themeColorPalette = {
+    'Background': 'hsl(var(--background))', 'Foreground': 'hsl(var(--foreground))', 'Card': 'hsl(var(--card))',
+    'Popover': 'hsl(var(--popover))', 'Primary': 'hsl(var(--primary))', 'Secondary': 'hsl(var(--secondary))',
+    'Muted': 'hsl(var(--muted))', 'Accent': 'hsl(var(--accent))', 'Destructive': 'hsl(var(--destructive))',
+};
+
+const defaultColorPalette = [
+    { name: 'Slate', color: '222.2 84% 4.9%' }, { name: 'Gray', color: '220 8.9% 46.1%' },
+    { name: 'Zinc', color: '221.2 83.2% 53.3%' }, { name: 'Stone', color: '25 5.3% 44.7%' },
+    { name: 'Red', color: '0 72.2% 50.6%' }, { name: 'Orange', color: '24.6 95% 53.1%' },
+    { name: 'Amber', color: '47.9 95.8% 53.1%' }, { name: 'Yellow', color: '60 95.8% 53.1%' },
+    { name: 'Lime', color: '84.2 95.8% 53.1%' }, { name: 'Green', color: '142.1 76.2% 36.3%' },
+    { name: 'Emerald', color: '158.4 76.2% 36.3%' }, { name: 'Teal', color: '166.2 76.2% 36.3%' },
+    { name: 'Cyan', color: '190.2 95.8% 53.1%' }, { name: 'Sky', color: '205.9 95.8% 53.1%' },
+    { name: 'Blue', color: '221.2 83.2% 53.3%' }, { name: 'Indigo', color: '243.1 95.8% 53.1%' },
+    { name: 'Violet', color: '262.1 83.3% 57.8%' }, { name: 'Purple', color: '272.1 83.3% 57.8%' },
+    { name: 'Fuchsia', color: '282.1 83.3% 57.8%' }, { name: 'Pink', color: '314.1 83.3% 57.8%' },
+    { name: 'Rose', color: '346.8 95.8% 53.1%' },
+];
+
 export default function SettingsAdminPage() {
   const { toast } = useToast();
   const { user, refreshUser } = useAuth();
@@ -93,6 +132,11 @@ export default function SettingsAdminPage() {
     resolver: zodResolver(brandingSchema),
     defaultValues: { logo_type: 'icon', logo_icon: 'Leaf', logo_image_url: '', favicon_url: '' },
   });
+
+  const appearanceForm = useForm<z.infer<typeof appearanceSchema>>({
+    resolver: zodResolver(appearanceSchema),
+    defaultValues: {},
+  });
   
   useEffect(() => {
     if (user) {
@@ -108,7 +152,6 @@ export default function SettingsAdminPage() {
                 toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
             }
 
-            // Always reset with profile data, then override with store_settings if they exist.
             form.reset({
                 siteName: user.siteName || '',
                 siteDescription: user.siteDescription || '',
@@ -133,11 +176,20 @@ export default function SettingsAdminPage() {
                 favicon_url: data?.favicon_url || '',
             });
 
+            appearanceForm.reset({
+                theme_background: data?.theme_background || '',
+                theme_foreground: data?.theme_foreground || '',
+                theme_primary: data?.theme_primary || '',
+                theme_secondary: data?.theme_secondary || '',
+                theme_accent: data?.theme_accent || '',
+                theme_card: data?.theme_card || '',
+                font_primary: data?.font_primary || 'Hind Siliguri',
+                font_secondary: data?.font_secondary || 'Orbitron',
+            });
+
             setIsLoading(false);
         }
-        fetchSettings();
-    }
-  }, [user, form, seoForm, paymentForm, brandingForm, toast]);
+  }, [user, form, seoForm, paymentForm, brandingForm, appearanceForm, toast]);
 
   async function onGeneralSubmit(values: z.infer<typeof settingsSchema>) {
     if (!user) return;
@@ -156,7 +208,7 @@ export default function SettingsAdminPage() {
         toast({ variant: 'destructive', title: 'Error updating site info', description: profileError.message });
     } else {
         toast({ title: 'General settings saved!' });
-        await refreshUser(); // Refresh user data in the auth store
+        await refreshUser();
     }
   }
 
@@ -209,6 +261,21 @@ export default function SettingsAdminPage() {
         toast({ variant: 'destructive', title: 'Error saving branding settings', description: error.message });
     } else {
         toast({ title: 'Branding settings saved!' });
+    }
+  }
+  
+  async function onAppearanceSubmit(values: z.infer<typeof appearanceSchema>) {
+    if (!user) return;
+    setIsSubmitting(true);
+    const { error } = await supabase.from('store_settings').upsert({
+        site_id: user.id,
+        ...values
+    });
+    setIsSubmitting(false);
+    if (error) {
+        toast({ variant: 'destructive', title: 'Error saving appearance settings', description: error.message });
+    } else {
+        toast({ title: 'Appearance settings saved!' });
     }
   }
 
@@ -279,9 +346,10 @@ export default function SettingsAdminPage() {
       </CardHeader>
       <CardContent>
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">সাধারণ</TabsTrigger>
               <TabsTrigger value="branding">ব্র্যান্ডিং</TabsTrigger>
+              <TabsTrigger value="appearance">সাজসজ্জা</TabsTrigger>
               <TabsTrigger value="seo">এসইও</TabsTrigger>
               <TabsTrigger value="payments">পেমেন্ট</TabsTrigger>
             </TabsList>
@@ -441,6 +509,72 @@ export default function SettingsAdminPage() {
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 ব্র্যান্ডিং সেটিংস সংরক্ষণ করুন
+                            </Button>
+                        </div>
+                    </form>
+                </Form>
+            </TabsContent>
+             <TabsContent value="appearance" className="mt-6">
+                 <Form {...appearanceForm}>
+                    <form onSubmit={appearanceForm.handleSubmit(onAppearanceSubmit)} className="space-y-8">
+                         <Card>
+                            <CardHeader><CardTitle>Theme Colors</CardTitle><CardDescription>Customize the main colors of your storefront. Use HSL values without the 'hsl()' wrapper (e.g., '224 71% 4%').</CardDescription></CardHeader>
+                            <CardContent className="grid sm:grid-cols-2 gap-6">
+                                {(['background', 'foreground', 'primary', 'secondary', 'accent', 'card'] as const).map(color => (
+                                    <FormField
+                                        key={color}
+                                        control={appearanceForm.control}
+                                        name={`theme_${color}`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="capitalize">{color}</FormLabel>
+                                                <div className="flex items-center gap-2">
+                                                    <FormControl><Input placeholder='e.g., 224 71% 4%' {...field} /></FormControl>
+                                                    <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon"><Palette className="h-4 w-4" /><span className="sr-only">Open color picker</span></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Standard Palette</DropdownMenuLabel><DropdownMenuSeparator /><div className="p-2 grid grid-cols-4 gap-2">{defaultColorPalette.map(({name, color: c}) => (<button type="button" key={name} title={name} className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring" style={{ backgroundColor: `hsl(${c})` }} onClick={() => appearanceForm.setValue(`theme_${color}`, c)}/>))}</div></DropdownMenuContent></DropdownMenu>
+                                                </div>
+                                            </FormItem>
+                                        )}
+                                    />
+                                ))}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader><CardTitle>Fonts</CardTitle><CardDescription>Choose the primary and headline fonts for your site.</CardDescription></CardHeader>
+                            <CardContent className="grid sm:grid-cols-2 gap-6">
+                                <FormField
+                                    control={appearanceForm.control}
+                                    name="font_primary"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Primary Font (Body)</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Select a font" /></SelectTrigger></FormControl>
+                                            <SelectContent>{fontOptions.primary.map(font => <SelectItem key={font} value={font} style={{fontFamily: font}}>{font}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={appearanceForm.control}
+                                    name="font_secondary"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Secondary Font (Headlines)</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Select a font" /></SelectTrigger></FormControl>
+                                            <SelectContent>{fontOptions.secondary.map(font => <SelectItem key={font} value={font} style={{fontFamily: font}}>{font}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </FormItem>
+                                    )}
+                                />
+                            </CardContent>
+                        </Card>
+                        
+                        <div className="pt-4">
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Appearance Settings সংরক্ষণ করুন
                             </Button>
                         </div>
                     </form>

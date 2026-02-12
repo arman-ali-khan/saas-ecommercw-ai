@@ -37,6 +37,9 @@
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 27%;
     --sidebar-ring: 207 90% 61%;
+
+    --font-body: 'Hind Siliguri';
+    --font-headline: 'Orbitron';
   }
 
   .dark {
@@ -81,6 +84,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body), sans-serif;
   }
 }
 
