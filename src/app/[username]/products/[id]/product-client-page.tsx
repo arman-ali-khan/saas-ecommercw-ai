@@ -137,15 +137,12 @@ export default function ProductClientPage({ product }: { product: Product }) {
           <CarouselContent>
             {images.map((image, index) => (
               <CarouselItem key={index}>
-                <div className="relative w-full h-[50vh] rounded-lg overflow-hidden shadow-lg">
+                <div className="w-full h-[50vh] rounded-lg overflow-hidden shadow-lg relative">
                   <Image
                     src={image.imageUrl}
                     alt={`${product.name} image ${index + 1}`}
-                    data-ai-hint={image.imageHint}
                     fill
                     className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    priority={index === 0}
                   />
                 </div>
               </CarouselItem>
