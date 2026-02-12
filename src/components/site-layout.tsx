@@ -17,37 +17,12 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const params = useParams();
   const username = params.username as string | undefined;
 
-  // SaaS main page (no username param)
-  if (!username && pathname === '/') {
-    return (
-        <>
-            <SaasHeader />
-            <main>{children}</main>
-            <SaasFooter />
-        </>
-    );
-  }
-  
-  // SaaS auth pages (no username param)
-  const saasAuthPaths = ['/login', '/register', '/get-started'];
-  if (!username && saasAuthPaths.some(p => pathname.startsWith(p))) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <SaasHeader />
-        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </main>
-        <SaasFooter />
-      </div>
-    );
-  }
-
-  // Admin and SaaS dashboard pages have their own full-page layouts
+  // 1. Check for admin/dashboard pages first, as they have priority and no layout.
   if (pathname.includes('/admin') || pathname.startsWith('/dashboard')) {
     return <>{children}</>;
   }
 
-  // If we have a username param, it's a public store page.
+  // 2. Check for public store pages (identified by having a username param).
   if (username) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -57,18 +32,32 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <Footer />
-        <FixedCartButton username={username} />
+        <FixedCartButton />
         <FloatingChatButton />
       </div>
     );
   }
 
-  // Fallback for any other case on the root domain
+  // 3. Handle all other root-domain pages (SaaS landing, auth, etc.)
+  // We can assume if `username` is not present, it's a SaaS page.
+  if (pathname === '/') {
+     return (
+        <>
+            <SaasHeader />
+            <main>{children}</main>
+            <SaasFooter />
+        </>
+    );
+  }
+
+  // For other SaaS pages like /login, /register, etc., that need a container.
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
         <SaasHeader />
-        <main>{children}</main>
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </main>
         <SaasFooter />
-    </>
+    </div>
   );
 }
