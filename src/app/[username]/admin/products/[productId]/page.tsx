@@ -29,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Star } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, Calendar as CalendarIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -53,6 +53,11 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import RichTextEditor from '@/components/rich-text-editor';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 
 const productFormSchema = z.object({
   id: z
@@ -74,7 +79,7 @@ const productFormSchema = z.object({
   currency: z.string().default('BDT'),
   description: z.string().optional(),
   long_description: z.string().optional(),
-  categories: z.array(z.string()).default([]), // This is used for tags
+  categories: z.array(z.string()).default([]),
   origin: z.string().optional(),
   story: z.string().optional(),
   is_featured: z.boolean().default(false),
@@ -91,6 +96,39 @@ const productFormSchema = z.object({
       })
     )
     .min(1, 'At least one image is required.'),
+  has_flash_deal: z.boolean().default(false),
+  flash_deal_price: z.preprocess(
+    (a) => (String(a) === '' || a === null ? undefined : parseFloat(String(a))),
+    z.number().positive('Discount price must be a positive number.').optional()
+  ),
+  flash_deal_range: z.object({
+    from: z.date().optional(),
+    to: z.date().optional(),
+  }).optional(),
+}).superRefine((data, ctx) => {
+    if (data.has_flash_deal) {
+        if (!data.flash_deal_price || data.flash_deal_price <= 0) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Discount price is required and must be positive.",
+            path: ['flash_deal_price'],
+        });
+        }
+        if (!data.flash_deal_range?.from || !data.flash_deal_range?.to) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "A start and end date for the deal are required.",
+            path: ['flash_deal_range'],
+        });
+        }
+        if (data.flash_deal_price && data.price && data.flash_deal_price >= data.price) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Discount price must be less than the regular price.",
+                path: ['flash_deal_price'],
+            });
+        }
+    }
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -104,7 +142,6 @@ export default function ManageProductPage() {
   const productId = params.productId as string;
   const isNew = productId === 'new';
 
-  const [product, setProduct] = useState<Product | null>(null);
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -125,7 +162,7 @@ export default function ManageProductPage() {
       currency: 'BDT',
       description: '',
       long_description: '',
-      categories: [], // tags
+      categories: [],
       origin: '',
       story: '',
       is_featured: false,
@@ -135,6 +172,9 @@ export default function ManageProductPage() {
       size: '',
       weight: '',
       color: '',
+      has_flash_deal: false,
+      flash_deal_price: undefined,
+      flash_deal_range: { from: undefined, to: undefined },
     },
   });
 
@@ -187,7 +227,7 @@ export default function ManageProductPage() {
     };
 
     checkSlugAvailability();
-  }, [debouncedSlug, isNew, user]);
+  }, [debouncedSlug, isNew, user, productFormSchema]);
 
   const { fields, append, remove, move } = useFieldArray({
     control: form.control,
@@ -197,14 +237,23 @@ export default function ManageProductPage() {
   const fetchProduct = useCallback(async () => {
     if (isNew || !user) return;
     
-    const { data, error } = await supabase
+    const productPromise = supabase
       .from('products')
       .select('*')
-      .eq('id', productId)
+      .match({ id: productId, site_id: user.id })
+      .single();
+    
+    const flashDealPromise = supabase
+      .from('flash_deals')
+      .select('*')
+      .eq('product_id', productId)
       .eq('site_id', user.id)
       .single();
 
-    if (error || !data) {
+    const [{ data: productData, error }, { data: flashDealData }] = await Promise.all([productPromise, flashDealPromise]);
+
+
+    if (error || !productData) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -214,10 +263,7 @@ export default function ManageProductPage() {
       router.push(`/admin/products`);
       return;
     }
-
-    const productData = data as Product;
-    setProduct(productData);
-
+    
     const sanitizedData = {
       ...productData,
       stock: productData.stock || 0,
@@ -227,7 +273,7 @@ export default function ManageProductPage() {
       origin: productData.origin || '',
       story: productData.story || '',
       is_featured: productData.is_featured || false,
-      images: (productData.images || []).map((img) => ({
+      images: (productData.images || []).map((img: any) => ({
         imageUrl: img.imageUrl || '',
         imageHint: img.imageHint || '',
       })),
@@ -236,6 +282,12 @@ export default function ManageProductPage() {
       size: productData.size || '',
       weight: productData.weight || '',
       color: productData.color || '',
+      has_flash_deal: !!flashDealData,
+      flash_deal_price: flashDealData?.discount_price,
+      flash_deal_range: flashDealData ? {
+        from: new Date(flashDealData.start_date),
+        to: new Date(flashDealData.end_date)
+      } : undefined,
     };
 
     form.reset(sanitizedData);
@@ -300,41 +352,87 @@ export default function ManageProductPage() {
 
     setIsSubmitting(true);
     
-    const finalValues = {
-      ...values,
-      images: values.images.filter((img) => img.imageUrl),
+    const { has_flash_deal, flash_deal_price, flash_deal_range, ...productValues } = values;
+
+    const finalProductValues = {
+      ...productValues,
+      images: productValues.images.filter((img) => img.imageUrl),
     };
 
-    let error;
+    let productError;
 
     if (isNew) {
-      const payload = { ...finalValues, site_id: user.id };
+      const payload = { ...finalProductValues, site_id: user.id };
       const { error: insertError } = await supabase
         .from('products')
         .insert(payload);
-      error = insertError;
+      productError = insertError;
     } else {
-      // Exclude 'id' from the update payload as it's the primary key
-      const { id, ...updateData } = finalValues;
+      const { id, ...updateData } = finalProductValues;
       const { error: updateError } = await supabase
         .from('products')
         .update(updateData)
-        .eq('id', productId);
-      error = updateError;
+        .match({ id: productId, site_id: user.id });
+      productError = updateError;
     }
 
-    if (error) {
+    if (productError) {
       setIsSubmitting(false);
       toast({
         variant: 'destructive',
         title: `Failed to ${isNew ? 'create' : 'update'} product`,
-        description: error.message,
+        description: productError.message,
       });
-    } else {
-      toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
-      router.push(`/admin/products`);
-      router.refresh();
+      return;
     }
+    
+    let flashDealError;
+    try {
+        const { data: existingDeal } = await supabase
+            .from('flash_deals')
+            .select('id')
+            .eq('product_id', values.id)
+            .eq('site_id', user.id)
+            .maybeSingle();
+
+        if (has_flash_deal) {
+            const flashDealPayload = {
+                site_id: user.id,
+                product_id: values.id,
+                discount_price: flash_deal_price!,
+                start_date: flash_deal_range!.from!.toISOString(),
+                end_date: flash_deal_range!.to!.toISOString(),
+                is_active: true,
+            };
+            if (existingDeal) {
+                const { error } = await supabase.from('flash_deals').update(flashDealPayload).eq('id', existingDeal.id);
+                flashDealError = error;
+            } else {
+                const { error } = await supabase.from('flash_deals').insert(flashDealPayload);
+                flashDealError = error;
+            }
+        } else if (existingDeal) {
+            const { error } = await supabase.from('flash_deals').delete().eq('id', existingDeal.id);
+            flashDealError = error;
+        }
+
+    } catch (e: any) {
+        flashDealError = e;
+    }
+
+    if (flashDealError) {
+        setIsSubmitting(false);
+        toast({
+            variant: 'destructive',
+            title: `Failed to update flash deal`,
+            description: flashDealError.message,
+        });
+        return;
+    }
+
+    toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
+    router.push(`/admin/products`);
+    router.refresh();
   };
 
   const handleSetFeatured = (fromIndex: number) => {
@@ -387,256 +485,351 @@ export default function ManageProductPage() {
           Back to Products
         </Link>
       </Button>
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {isNew ? 'Add New Product' : `Edit: ${product?.name}`}
-          </CardTitle>
-          <CardDescription>
-            Fill in the details for your product below.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <FormField
-                control={form.control}
-                name="id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Product ID / Slug</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="e.g., himsagar-mango-1kg"
-                        disabled={!isNew}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      A unique, URL-friendly identifier. Cannot be changed after
-                      creation.
-                    </FormDescription>
-                    {isNew && (
-                        <div className="min-h-[20px] pt-1">
-                            {slugStatus === 'checking' && <p className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking availability...</p>}
-                            {slugStatus === 'unavailable' && <p className="text-sm text-destructive">This slug is already taken.</p>}
-                            {slugStatus === 'invalid' && <p className="text-sm text-destructive">Slug must be 3+ characters and can only contain lowercase letters, numbers, and hyphens.</p>}
-                            {slugStatus === 'available' && <p className="text-sm text-green-500">This slug is available!</p>}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <Card>
+                <CardHeader>
+                <CardTitle>
+                    {isNew ? 'Add New Product' : `Edit: ${form.getValues('name')}`}
+                </CardTitle>
+                <CardDescription>
+                    Fill in the details for your product below.
+                </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                    <FormField
+                        control={form.control}
+                        name="id"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Product ID / Slug</FormLabel>
+                            <FormControl>
+                            <Input
+                                {...field}
+                                placeholder="e.g., himsagar-mango-1kg"
+                                disabled={!isNew}
+                            />
+                            </FormControl>
+                            <FormDescription>
+                            A unique, URL-friendly identifier. Cannot be changed after
+                            creation.
+                            </FormDescription>
+                            {isNew && (
+                                <div className="min-h-[20px] pt-1">
+                                    {slugStatus === 'checking' && <p className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking availability...</p>}
+                                    {slugStatus === 'unavailable' && <p className="text-sm text-destructive">This slug is already taken.</p>}
+                                    {slugStatus === 'invalid' && <p className="text-sm text-destructive">Slug must be 3+ characters and can only contain lowercase letters, numbers, and hyphens.</p>}
+                                    {slugStatus === 'available' && <p className="text-sm text-green-500">This slug is available!</p>}
+                                </div>
+                            )}
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Product Name</FormLabel>
+                            <FormControl>
+                            <Input
+                                {...field}
+                                placeholder="e.g., হিমসাগর আম (১ কেজি)"
+                            />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Price</FormLabel>
+                            <FormControl>
+                                <Input type="number" step="0.01" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="stock"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Stock Quantity</FormLabel>
+                            <FormControl>
+                                <Input type="number" step="1" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="unit"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Unit</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a unit" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {(groupedAttributes.unit || []).map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <FormField control={form.control} name="brand" render={({ field }) => ( <FormItem><FormLabel>Brand</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a brand" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.brand || []).map(brand => <SelectItem key={brand} value={brand}>{brand}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="color" render={({ field }) => ( <FormItem><FormLabel>Color</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a color" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.color || []).map(color => <SelectItem key={color} value={color}>{color}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="size" render={({ field }) => ( <FormItem><FormLabel>Size</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a size" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.size || []).map(size => <SelectItem key={size} value={size}>{size}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <FormField control={form.control} name="weight" render={({ field }) => ( <FormItem><FormLabel>Weight</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a weight" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.weight || []).map(weight => <SelectItem key={weight} value={weight}>{weight}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                        <FormField
+                        control={form.control}
+                        name="categories" // Represents 'tags'
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Tags</FormLabel>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between">
+                                    <span>{field.value?.length > 0 ? `${field.value.length} selected` : 'Select tags'}</span>
+                                    <ChevronDown className="h-4 w-4 opacity-50" />
+                                </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                <DropdownMenuLabel>Available Tags</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {(groupedAttributes.tag || []).length > 0 ? (
+                                    (groupedAttributes.tag || []).map((tag) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={tag}
+                                        checked={field.value?.includes(tag)}
+                                        onCheckedChange={(checked) => {
+                                        const currentValue = field.value || [];
+                                        return checked
+                                            ? field.onChange([...currentValue, tag])
+                                            : field.onChange(currentValue?.filter((value) => value !== tag));
+                                        }}
+                                        onSelect={(event) => event.preventDefault()}
+                                    >
+                                        {tag}
+                                    </DropdownMenuCheckboxItem>
+                                    ))
+                                ) : (
+                                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                                    No tags found. Go to the Attribute Manager to add some.
+                                    </div>
+                                )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
+
+                    <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Short Description</FormLabel>
+                            <FormControl>
+                            <Textarea
+                                {...field}
+                                rows={2}
+                                placeholder="A brief, catchy description for product cards."
+                            />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="long_description"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Long Description</FormLabel>
+                            <FormControl>
+                            <RichTextEditor value={field.value || ''} onChange={field.onChange} />
+                            </FormControl>
+                            <FormDescription>
+                            Use the rich text editor for detailed product information.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <FormField
+                        control={form.control}
+                        name="origin"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Origin</FormLabel>
+                            <FormControl>
+                                <Input
+                                {...field}
+                                placeholder="e.g., রাজশাহী, বাংলাদেশ"
+                                />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="story"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Story</FormLabel>
+                            <FormControl>
+                                <Input
+                                {...field}
+                                placeholder="A short story about the product."
+                                />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Flash Deal</CardTitle>
+                    <CardDescription>
+                        Create a limited-time discount for this product.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <FormField
+                        control={form.control}
+                        name="has_flash_deal"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                    <FormLabel className="text-base">Enable Flash Deal</FormLabel>
+                                    <FormDescription>
+                                        Turn this on to set a special discounted price for a limited time.
+                                    </FormDescription>
+                                </div>
+                                <FormControl>
+                                    <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                    {form.watch('has_flash_deal') && (
+                        <div className="grid md:grid-cols-2 gap-6 pt-4 border-t">
+                            <FormField
+                                control={form.control}
+                                name="flash_deal_price"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Discount Price</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" step="0.01" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="flash_deal_range"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Deal Duration</FormLabel>
+                                    <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}>
+                                            {field.value?.from ? (
+                                            field.value.to ? (
+                                                <>{format(field.value.from, "LLL dd, y")} - {format(field.value.to, "LLL dd, y")}</>
+                                            ) : (
+                                                format(field.value.from, "LLL dd, y")
+                                            )
+                                            ) : (
+                                            <span>Pick a date range</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            initialFocus
+                                            mode="range"
+                                            defaultMonth={field.value?.from}
+                                            selected={field.value as DateRange}
+                                            onSelect={field.onChange}
+                                            numberOfMonths={2}
+                                        />
+                                    </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
                         </div>
                     )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Product Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="e.g., হিমসাগর আম (১ কেজি)"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid md:grid-cols-3 gap-6">
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                  control={form.control}
-                  name="stock"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Stock Quantity</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a unit" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                           {(groupedAttributes.unit || []).map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-               <div className="grid md:grid-cols-3 gap-6">
-                <FormField control={form.control} name="brand" render={({ field }) => ( <FormItem><FormLabel>Brand</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a brand" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.brand || []).map(brand => <SelectItem key={brand} value={brand}>{brand}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="color" render={({ field }) => ( <FormItem><FormLabel>Color</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a color" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.color || []).map(color => <SelectItem key={color} value={color}>{color}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="size" render={({ field }) => ( <FormItem><FormLabel>Size</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a size" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.size || []).map(size => <SelectItem key={size} value={size}>{size}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="weight" render={({ field }) => ( <FormItem><FormLabel>Weight</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a weight" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.weight || []).map(weight => <SelectItem key={weight} value={weight}>{weight}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                 <FormField
-                  control={form.control}
-                  name="categories" // Represents 'tags'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tags</FormLabel>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" className="w-full justify-between">
-                            <span>{field.value?.length > 0 ? `${field.value.length} selected` : 'Select tags'}</span>
-                            <ChevronDown className="h-4 w-4 opacity-50" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                          <DropdownMenuLabel>Available Tags</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {(groupedAttributes.tag || []).length > 0 ? (
-                            (groupedAttributes.tag || []).map((tag) => (
-                              <DropdownMenuCheckboxItem
-                                key={tag}
-                                checked={field.value?.includes(tag)}
-                                onCheckedChange={(checked) => {
-                                  const currentValue = field.value || [];
-                                  return checked
-                                    ? field.onChange([...currentValue, tag])
-                                    : field.onChange(currentValue?.filter((value) => value !== tag));
-                                }}
-                                onSelect={(event) => event.preventDefault()}
-                              >
-                                {tag}
-                              </DropdownMenuCheckboxItem>
-                            ))
-                          ) : (
-                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                              No tags found. Go to the Attribute Manager to add some.
+                </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>Publishing</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <FormField
+                        control={form.control}
+                        name="is_featured"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                                Featured Product
+                            </FormLabel>
+                            <FormDescription>
+                                Display this product on the homepage's featured section.
+                            </FormDescription>
                             </div>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Short Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        rows={2}
-                        placeholder="A brief, catchy description for product cards."
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="long_description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Long Description</FormLabel>
-                    <FormControl>
-                       <RichTextEditor value={field.value || ''} onChange={field.onChange} />
-                    </FormControl>
-                    <FormDescription>
-                       Use the rich text editor for detailed product information.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="origin"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Origin</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="e.g., রাজশাহী, বাংলাদেশ"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="story"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Story</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="A short story about the product."
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="is_featured"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">
-                        Featured Product
-                      </FormLabel>
-                      <FormDescription>
-                        Display this product on the homepage's featured section.
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+                            <FormControl>
+                            <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                            </FormControl>
+                        </FormItem>
+                        )}
+                    />
+                </CardContent>
+            </Card>
 
               <Card>
                 <CardHeader>
@@ -733,8 +926,6 @@ export default function ManageProductPage() {
               </Button>
             </form>
           </Form>
-        </CardContent>
-      </Card>
     </div>
   );
 }
