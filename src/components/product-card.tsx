@@ -127,31 +127,47 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
   useEffect(() => {
     const fetchSiteAndProducts = async () => {
       setIsLoading(true);
+
+      const { data: profileData } = await supabase.from('profiles').select('id').eq('domain', username).single();
+      if (!profileData) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not find site.' });
+        setIsLoading(false);
+        return;
+      }
+      const siteId = profileData.id;
+      setSiteId(siteId);
+
       if (product_ids && product_ids.length > 0) {
-        const { data: productsData, error } = await supabase.from('products').select('*').in('id', product_ids);
-        if (error) { toast({ variant: 'destructive', title: 'Error fetching products' }) } 
-        else {
-          setProducts(productsData as Product[]);
-          setQuantities((productsData as Product[]).reduce((acc, p) => ({ ...acc, [p.id]: 1 }), {}));
+        const { data: productsData, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('site_id', siteId)
+            .in('id', product_ids);
+            
+        if (error) { 
+            toast({ variant: 'destructive', title: 'Error fetching products for showcase' });
+        } else {
+          const productMap = new Map(productsData.map(p => [p.id, p]));
+          const orderedProducts = product_ids.map(id => productMap.get(id)).filter(Boolean) as Product[];
+          setProducts(orderedProducts);
+          setQuantities(orderedProducts.reduce((acc, p) => ({ ...acc, [p.id]: 1 }), {}));
         }
       }
       
-      const { data: profileData } = await supabase.from('profiles').select('id').eq('domain', username).single();
-      if(profileData) {
-        const siteId = profileData.id;
-        setSiteId(siteId);
-        const { data: zonesData } = await supabase.from('shipping_zones').select('*').eq('site_id', siteId).eq('is_enabled', true).order('price');
-        if (zonesData) {
-          setShippingZones(zonesData);
-          if (zonesData.length > 0) {
-            form.setValue('shippingZoneId', zonesData[0].id.toString());
-          }
+      const { data: zonesData } = await supabase.from('shipping_zones').select('*').eq('site_id', siteId).eq('is_enabled', true).order('price');
+      if (zonesData) {
+        setShippingZones(zonesData);
+        if (zonesData.length > 0) {
+          form.setValue('shippingZoneId', zonesData[0].id.toString());
         }
       }
 
       setIsLoading(false);
     };
-    fetchSiteAndProducts();
+
+    if (username) {
+        fetchSiteAndProducts();
+    }
   }, [product_ids, username, toast, form]);
 
   const selectedShippingZoneId = form.watch('shippingZoneId');

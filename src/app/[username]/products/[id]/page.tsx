@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { getProductById } from '@/lib/products';
 import ProductClientPage from './product-client-page';
@@ -8,7 +9,7 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const product = await getProductById(params.id);
+  const product = await getProductById(params.id, params.username);
 
   if (!product) {
     return {
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const product = await getProductById(params.id);
+  const product = await getProductById(params.id, params.username);
 
   if (!product) {
     notFound();

@@ -1,3 +1,4 @@
+
 import type { Product } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 
@@ -57,15 +58,30 @@ export const getProductsBySiteId = async (siteId: string): Promise<Product[]> =>
     return products as Product[];
 }
 
-export const getProductById = async (id: string): Promise<Product | null> => {
+export const getProductById = async (id: string, domain: string): Promise<Product | null> => {
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('domain', domain)
+        .single();
+        
+    if (!profile) {
+        console.error(`Error fetching profile for domain: ${domain}`);
+        return null;
+    }
+
     const { data: product, error } = await supabase
         .from('products')
         .select('*')
         .eq('id', id)
+        .eq('site_id', profile.id)
         .single();
     
     if (error) {
-        console.error("Error fetching product:", error);
+        // It's okay if no row is found, but log other errors.
+        if (error.code !== 'PGRST116') {
+             console.error("Error fetching product:", error);
+        }
         return null;
     }
     
