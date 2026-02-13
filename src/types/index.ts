@@ -24,6 +24,9 @@ export interface Product {
   size?: string | null;
   weight?: string | null;
   color?: string | null;
+  has_flash_deal?: boolean;
+  flash_deal_price?: number;
+  flash_deal_range?: { from?: Date; to?: Date };
 }
 
 export interface CartItem extends Product {
@@ -82,7 +85,7 @@ export interface User {
   subscriptionPlan: string | null;
   role: string | null;
   isSaaSAdmin: boolean;
-  subscription_status: 'active' | 'pending' | 'inactive' | 'canceled' | null;
+  subscription_status: 'active' | 'pending' | 'pending_verification' | 'inactive' | 'canceled' | null;
 }
 
 export interface Plan {
@@ -246,6 +249,7 @@ export interface StoreFeature {
   icon: string;
   order: number;
   created_at: string;
+  image_url?: string | null;
 }
 
 export interface SaaSReview {

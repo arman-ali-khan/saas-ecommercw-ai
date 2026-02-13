@@ -293,16 +293,23 @@ export default async function UserPage({
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                     {storeFeatures.map((feature) => (
-                      <Card key={feature.id} className="overflow-hidden flex flex-col items-center text-center">
-                        <CardContent className="p-6 flex flex-col flex-grow items-center">
-                          <div className="bg-primary/10 p-4 rounded-full mb-4">
-                            <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
-                          </div>
+                      <Card key={feature.id} className="overflow-hidden flex flex-col text-center">
+                        {feature.image_url && (
                           <CardHeader className="p-0">
-                            <CardTitle className="font-headline text-2xl">
-                              {feature.title}
-                            </CardTitle>
+                            <div className="relative aspect-video w-full">
+                              <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
+                            </div>
                           </CardHeader>
+                        )}
+                        <CardContent className="p-6 flex flex-col flex-grow items-center">
+                          {!feature.image_url && (
+                            <div className="bg-primary/10 p-4 rounded-full mb-4">
+                              <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
+                            </div>
+                          )}
+                          <CardTitle className="font-headline text-2xl mt-4">
+                            {feature.title}
+                          </CardTitle>
                           <p className="text-muted-foreground mt-4 flex-grow">
                             {feature.description}
                           </p>

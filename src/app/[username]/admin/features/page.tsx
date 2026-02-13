@@ -9,11 +9,13 @@ import { useAuth } from '@/stores/auth';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { StoreFeature } from '@/types';
+import Image from 'next/image';
+import Link from 'next/link';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,11 +23,13 @@ import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, Sparkles
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
+import ImageUploader from '@/components/image-uploader';
 
 const featureSchema = z.object({
     title: z.string().min(1, 'Title is required.'),
     description: z.string().optional(),
     icon: z.string().min(1, 'An icon is required.'),
+    image_url: z.string().url().optional().or(z.literal('')),
 });
 
 type FeatureFormData = z.infer<typeof featureSchema>;
@@ -42,7 +46,7 @@ export default function FeaturesAdminPage() {
 
     const form = useForm<FeatureFormData>({
         resolver: zodResolver(featureSchema),
-        defaultValues: { title: '', description: '', icon: 'Sparkles' },
+        defaultValues: { title: '', description: '', icon: 'Sparkles', image_url: '' },
     });
 
     const fetchFeatures = useCallback(async () => {
@@ -73,9 +77,14 @@ export default function FeaturesAdminPage() {
     useEffect(() => {
         if (isFormOpen) {
             if (selectedFeature) {
-                form.reset({ title: selectedFeature.title, description: selectedFeature.description || '', icon: selectedFeature.icon || 'Sparkles' });
+                form.reset({ 
+                    title: selectedFeature.title, 
+                    description: selectedFeature.description || '', 
+                    icon: selectedFeature.icon || 'Sparkles',
+                    image_url: selectedFeature.image_url || ''
+                });
             } else {
-                form.reset({ title: '', description: '', icon: 'Sparkles' });
+                form.reset({ title: '', description: '', icon: 'Sparkles', image_url: '' });
             }
         }
     }, [isFormOpen, selectedFeature, form]);
@@ -130,7 +139,7 @@ export default function FeaturesAdminPage() {
             toast({ title: 'Error Deleting Feature', variant: 'destructive', description: error.message });
         } else {
             toast({ title: 'Feature Deleted' });
-            await fetchFeatures(); // This will also re-order remaining items if needed on the backend
+            await fetchFeatures();
         }
         
         setIsSubmitting(false);
@@ -151,12 +160,12 @@ export default function FeaturesAdminPage() {
             order: idx
         }));
         
-        setIsLoading(true); // Use main loader to prevent interaction while reordering
+        setIsLoading(true);
         const { error } = await supabase.from('store_features').upsert(updates);
         if (error) {
             toast({ variant: 'destructive', title: 'Failed to reorder features', description: error.message });
         }
-        await fetchFeatures(); // Refreshes state and turns off loader
+        await fetchFeatures();
     };
     
     if (isLoading) {
@@ -168,7 +177,7 @@ export default function FeaturesAdminPage() {
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-bold">Store Features</h1>
-                    <p className="text-muted-foreground">Manage features for the "Why We Are Different" section.</p>
+                    <p className="text-muted-foreground">Manage features for the "Why We Are Different" section. You can edit the section title in the <Link href="/admin/section-manager" className="text-primary underline">Section Manager</Link>.</p>
                 </div>
                 <Button onClick={() => openForm(null)}><Plus className="mr-2 h-4 w-4" /> Add Feature</Button>
             </div>
@@ -186,8 +195,14 @@ export default function FeaturesAdminPage() {
                             {features.map((feature, index) => (
                                 <div key={feature.id} className="flex items-center p-4 gap-4">
                                     <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />
-                                    <div className="bg-muted p-3 rounded-lg">
-                                        <DynamicIcon name={feature.icon} className="h-6 w-6 text-foreground" />
+                                    <div className="relative h-16 w-16 rounded-md overflow-hidden shrink-0 bg-muted">
+                                        {feature.image_url ? (
+                                            <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center">
+                                                <DynamicIcon name={feature.icon} className="h-8 w-8 text-muted-foreground" />
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex-grow">
                                         <h3 className="font-semibold">{feature.title}</h3>
@@ -218,7 +233,22 @@ export default function FeaturesAdminPage() {
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
                             <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., সরাসরি কৃষক থেকে" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short description of the feature." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="image_url" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Feature Image (Optional)</FormLabel>
+                                    <div className="flex items-start gap-4">
+                                        <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
+                                            {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
+                                        </div>
+                                        <div className="space-y-2 flex-grow">
+                                            <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
+                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} />
+                                        </div>
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>Fallback Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormDescription>This icon will be shown if no image is uploaded.</FormDescription><FormMessage /></FormItem>)} />
                             <DialogFooter>
                                 <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
