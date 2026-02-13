@@ -175,7 +175,7 @@ export default async function UserPage({
             return (
               <section key={section.id} className="grid lg:grid-cols-[260px_1fr] gap-8 items-start">
                   {categories.length > 0 && (
-                      <div className="hidden lg:block sticky top-24">
+                      <div className="hidden sm:block sticky top-24">
                           <Card>
                               <CardHeader>
                                   <CardTitle>Categories</CardTitle>
