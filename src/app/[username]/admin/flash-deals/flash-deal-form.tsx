@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -8,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import type { Product, FlashDeal } from '@/types';
 import { format, addDays } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
+import Image from 'next/image';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -64,6 +64,9 @@ export default function FlashDealForm({ isNew, initialData, products, deals, onS
         },
     });
 
+    const selectedProductId = form.watch('product_id');
+    const selectedProduct = products.find(p => p.id === selectedProductId);
+
     return (
         <div>
             <Button variant="ghost" asChild className="mb-4 -ml-4">
@@ -82,10 +85,49 @@ export default function FlashDealForm({ isNew, initialData, products, deals, onS
                             <FormField control={form.control} name="product_id" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Product</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!isNew}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Select a product" /></SelectTrigger></FormControl>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={!isNew}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                            {selectedProduct ? (
+                                                <div className="flex items-center gap-3 text-left">
+                                                    <div className="relative h-6 w-6 shrink-0">
+                                                        <Image 
+                                                            src={selectedProduct.images?.[0]?.imageUrl || 'https://placehold.co/40x40'} 
+                                                            alt={selectedProduct.name} 
+                                                            fill 
+                                                            className="object-cover rounded-sm"
+                                                        />
+                                                    </div>
+                                                    <span className="truncate">{selectedProduct.name}</span>
+                                                </div>
+                                            ) : (
+                                                <SelectValue placeholder="Select a product" />
+                                            )}
+                                            </SelectTrigger>
+                                        </FormControl>
                                         <SelectContent>
-                                            {products.map(p => <SelectItem key={p.id} value={p.id} disabled={!isNew && deals.some(d => d.product_id === p.id && d.id !== initialData?.id)}>{p.name}</SelectItem>)}
+                                            {products.map(p => 
+                                            <SelectItem 
+                                                key={p.id} 
+                                                value={p.id} 
+                                                disabled={!isNew && deals.some(d => d.product_id === p.id && d.id !== initialData?.id)}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative h-10 w-10 shrink-0">
+                                                        <Image 
+                                                            src={p.images?.[0]?.imageUrl || 'https://placehold.co/40x40'} 
+                                                            alt={p.name} 
+                                                            fill 
+                                                            className="object-cover rounded-sm"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-grow">
+                                                        <p className="font-medium">{p.name}</p>
+                                                        <p className="text-xs text-muted-foreground">{p.price.toFixed(2)} BDT</p>
+                                                    </div>
+                                                </div>
+                                            </SelectItem>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
