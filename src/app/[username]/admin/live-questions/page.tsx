@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Send, ArrowLeft, Loader2, User } from 'lucide-react';
+import { MessageSquare, Send, ArrowLeft, Loader2, User, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LiveChatMessage } from '@/types';
 
@@ -32,38 +32,37 @@ export default function LiveQuestionsAdminPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  
+  const fetchAndGroupMessages = useCallback(async (isInitialLoad: boolean) => {
+    if (!user) return;
+    if (isInitialLoad) setIsLoading(true);
+    
+    const { data, error } = await supabase
+      .from('live_chat_messages')
+      .select('*')
+      .eq('site_id', user.id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error("Error fetching messages:", error);
+    } else {
+      const grouped = new Map<string, LiveChatMessage[]>();
+      for (const message of data) {
+        const conversation = grouped.get(message.conversation_id) || [];
+        conversation.push(message);
+        grouped.set(message.conversation_id, conversation);
+      }
+      setMessagesByConversation(grouped);
+    }
+    if (isInitialLoad) setIsLoading(false);
+  }, [user]);
+
 
   // Re-architected data fetching and subscription logic.
   useEffect(() => {
     if (authLoading || !user) {
       return;
     }
-
-    const fetchAndGroupMessages = async (isInitialLoad: boolean) => {
-      if (isInitialLoad) {
-        setIsLoading(true);
-      }
-      const { data, error } = await supabase
-        .from('live_chat_messages')
-        .select('*')
-        .eq('site_id', user.id)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error("Error fetching messages:", error);
-      } else {
-        const grouped = new Map<string, LiveChatMessage[]>();
-        for (const message of data) {
-          const conversation = grouped.get(message.conversation_id) || [];
-          conversation.push(message);
-          grouped.set(message.conversation_id, conversation);
-        }
-        setMessagesByConversation(grouped);
-      }
-      if (isInitialLoad) {
-        setIsLoading(false);
-      }
-    };
     
     // Perform initial fetch
     fetchAndGroupMessages(true);
@@ -79,10 +78,20 @@ export default function LiveQuestionsAdminPage() {
           table: 'live_chat_messages',
           filter: `site_id=eq.${user.id}`,
         },
-        () => {
-          // On new message, simply re-fetch all data.
-          // This is the most robust way to ensure consistency.
-          fetchAndGroupMessages(false);
+        (payload) => {
+            const newMessage = payload.new as LiveChatMessage;
+            setMessagesByConversation(prevMap => {
+                const newMap = new Map(prevMap);
+                const conversation = newMap.get(newMessage.conversation_id) || [];
+                
+                if (conversation.some(msg => msg.id === newMessage.id)) {
+                    return prevMap;
+                }
+                
+                const updatedConversation = [...conversation, newMessage];
+                newMap.set(newMessage.conversation_id, updatedConversation);
+                return newMap;
+            });
         }
       )
       .subscribe();
@@ -90,7 +99,7 @@ export default function LiveQuestionsAdminPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [authLoading, user]);
+  }, [authLoading, user, fetchAndGroupMessages]);
 
 
   // Scroll to bottom when a conversation is selected or a new message arrives
@@ -295,6 +304,11 @@ export default function LiveQuestionsAdminPage() {
                 <div>
                     <p className="font-semibold">{conversationSummaries.find(c => c.id === selectedConversationId)?.customerName}</p>
                 </div>
+                <div className="flex-grow" />
+                <Button variant="ghost" size="icon" onClick={() => fetchAndGroupMessages(false)} className="text-muted-foreground">
+                    <RefreshCw className="h-5 w-5" />
+                    <span className="sr-only">Refresh messages</span>
+                </Button>
                 </div>
                 <ScrollArea className="flex-grow h-20 p-4" viewportRef={scrollViewportRef}>
                 <div className="space-y-4">
@@ -325,6 +339,11 @@ export default function LiveQuestionsAdminPage() {
                         </div>
                     ))}
                 </div>
+                 {selectedConversationMessages.length > 0 && (
+                    <p className="text-xs text-muted-foreground text-center mt-4">
+                        নতুন বার্তা দেখতে পাচ্ছেন না? রিফ্রেশ বোতামে ক্লিক করুন।
+                    </p>
+                )}
                 </ScrollArea>
                 
                 <div className="p-2 border-t bg-background">
