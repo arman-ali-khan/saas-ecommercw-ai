@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, User, LogOut, LayoutDashboard, Bell } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Bell, Search, ArrowLeft } from 'lucide-react';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 
 import { Button } from './ui/button';
@@ -37,6 +37,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import DynamicIcon from './dynamic-icon';
 import Image from 'next/image';
+import { useSearchStore } from '@/stores/useSearchStore';
+import { Input } from './ui/input';
 
 function CustomerNotificationBell() {
   const { customer } = useCustomerAuth();
@@ -183,6 +185,8 @@ export default function Header() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
+  const { isSearchOpen, setSearchOpen } = useSearchStore();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const {
     user: siteOwner,
@@ -206,7 +210,6 @@ export default function Header() {
   
   const domain = params.username as string;
 
-  // Create a unified user object for easier handling in the UI
   const currentUser = siteOwner
     ? {
         type: 'admin',
@@ -221,7 +224,7 @@ export default function Header() {
           name: customer.full_name,
           email: customer.email,
           isSaaSAdmin: false,
-          domain: null, // Customers don't have a domain in this context
+          domain: null,
         }
       : null;
 
@@ -281,6 +284,15 @@ export default function Header() {
       router.push('/login');
     }
   };
+
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+        router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+        setSearchOpen(false);
+        setSearchQuery('');
+    }
+  }
 
   const NavLink = ({
     href,
@@ -361,6 +373,30 @@ export default function Header() {
         </div>
       </Link>
     );
+    
+  if (isSearchOpen) {
+    return (
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto flex h-20 items-center px-4 sm:px-6 lg:px-8 gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setSearchOpen(false)}>
+                <ArrowLeft />
+            </Button>
+            <form onSubmit={handleSearchSubmit} className="flex-grow">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                        placeholder="Search for products..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        autoFocus
+                        className="w-full h-10 pl-10"
+                    />
+                </div>
+            </form>
+        </div>
+    </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -410,9 +446,13 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <ShoppingCart />
+          <div className="hidden md:flex">
+            <ShoppingCart />
+          </div>
           {customer && (
-            <CustomerNotificationBell />
+            <div className="hidden md:flex">
+              <CustomerNotificationBell />
+            </div>
           )}
           {isLoading ? (
             <Skeleton className="h-10 w-10 rounded-full" />

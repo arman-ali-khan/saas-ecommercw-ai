@@ -25,13 +25,14 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 const PRODUCTS_PER_PAGE = 8;
 
 export default function ProductsPage() {
   const params = useParams();
   const username = params.username as string;
+  const searchParams = useSearchParams();
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -58,6 +59,17 @@ export default function ProductsPage() {
       fetchProducts();
     }
   }, [username]);
+
+  useEffect(() => {
+    const query = searchParams.get('search');
+    const category = searchParams.get('category');
+    if (query) {
+        setSearchQuery(query);
+    }
+    if (category) {
+        setSelectedCategories([category]);
+    }
+  }, [searchParams]);
 
   const allCategories = useMemo(
     () => [...new Set(allProducts.flatMap((p) => p.categories || []))],
