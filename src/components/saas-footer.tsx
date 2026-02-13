@@ -148,12 +148,12 @@ export default function SaasFooter() {
                     আমাদের সম্পর্কে
                   </Link>
                 </li>
-                <li>
+                 <li>
                   <Link
-                    href="#"
+                    href="/leave-a-review"
                     className="text-secondary-foreground/80 hover:text-primary transition-colors"
                   >
-                    যোগাযোগ
+                    রিভিউ দিন
                   </Link>
                 </li>
                  <li>

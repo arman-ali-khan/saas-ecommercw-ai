@@ -13,6 +13,7 @@ import {
   CreditCard,
   ArrowRight,
   Clock,
+  Star,
 } from 'lucide-react';
 import {
   Table,
@@ -36,7 +37,7 @@ export default function SaasAdminDashboard() {
   const [stats, setStats] = useState({
     totalRevenue: 0,
     activeSubscriptions: 0,
-    totalUsers: 0,
+    pendingReviews: 0,
     pendingSubscriptions: 0,
   });
   const [pendingPayments, setPendingPayments] = useState<SubscriptionPaymentWithDetails[]>([]);
@@ -56,15 +57,20 @@ export default function SaasAdminDashboard() {
           .eq('is_read', false)
           .order('created_at', { ascending: false })
           .limit(5);
+        const pendingReviewsPromise = supabase
+            .from('saas_reviews')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_approved', false);
 
         const [
-          { data: profilesData, count: totalUsers, error: profilesError },
+          { data: profilesData, error: profilesError },
           { data: paymentsData, error: paymentsError },
           { data: notificationsData, error: notificationsError },
-        ] = await Promise.all([profilesPromise, paymentsPromise, notificationsPromise]);
+          { count: pendingReviewsCount, error: reviewsError },
+        ] = await Promise.all([profilesPromise, paymentsPromise, notificationsPromise, pendingReviewsPromise]);
 
-        if (profilesError || paymentsError || notificationsError) {
-          console.error("Dashboard fetch error:", profilesError || paymentsError || notificationsError);
+        if (profilesError || paymentsError || notificationsError || reviewsError) {
+          console.error("Dashboard fetch error:", profilesError || paymentsError || notificationsError || reviewsError);
           setIsLoading(false);
           return;
         }
@@ -77,7 +83,7 @@ export default function SaasAdminDashboard() {
         setStats({
           totalRevenue,
           activeSubscriptions,
-          totalUsers: totalUsers || 0,
+          pendingReviews: pendingReviewsCount || 0,
           pendingSubscriptions: pendingSubscriptionsCount,
         });
 
@@ -161,15 +167,15 @@ export default function SaasAdminDashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+            <div className="text-2xl font-bold">+{stats.pendingReviews}</div>
             <p className="text-xs text-muted-foreground">
-              Total registered site owners
+              Require approval
             </p>
           </CardContent>
         </Card>

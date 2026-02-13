@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -11,7 +12,13 @@ import {
   CardDescription,
   CardFooter,
 } from '@/components/ui/card';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 import {
   ArrowRight,
   CheckCircle,
@@ -20,17 +27,16 @@ import SaasHeader from '@/components/saas-header';
 import SaasFooter from '@/components/saas-footer';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { type Plan, type SaasFeature } from '@/types';
+import { type Plan, type SaasFeature, type SaaSReview } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import DynamicIcon from '@/components/dynamic-icon';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Star } from 'lucide-react';
 
 export default function SaasLandingPage() {
-  const heroImage = PlaceHolderImages.find((img) => img.id === 'saas-hero');
-  const avatarImage = PlaceHolderImages.find(
-    (img) => img.id === 'saas-avatar-1'
-  );
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
   const [features, setFeatures] = useState<SaasFeature[]>([]);
+  const [reviews, setReviews] = useState<SaaSReview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -47,7 +53,17 @@ export default function SaasLandingPage() {
         .select('*')
         .order('name', { ascending: true });
 
-      const [{ data: plans }, { data: featuresData }] = await Promise.all([plansPromise, featuresPromise]);
+      const reviewsPromise = supabase
+        .from('saas_reviews')
+        .select('*')
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false });
+
+      const [
+          { data: plans }, 
+          { data: featuresData }, 
+          { data: reviewsData }
+      ] = await Promise.all([plansPromise, featuresPromise, reviewsPromise]);
 
       if (plans) {
         const tiers = plans.map((plan: Plan) => ({
@@ -70,6 +86,10 @@ export default function SaasLandingPage() {
 
       if (featuresData) {
         setFeatures(featuresData as SaasFeature[]);
+      }
+
+      if (reviewsData) {
+        setReviews(reviewsData as SaaSReview[]);
       }
 
       setIsLoading(false);
@@ -103,19 +123,17 @@ export default function SaasLandingPage() {
               </Button>
             </div>
             <div className="mt-12 -mx-4 sm:-mx-6 lg:-mx-8">
-              {heroImage && (
                 <div className="relative h-[50vh] w-full shadow-2xl shadow-primary/20 rounded-lg overflow-hidden">
                   <Image
-                    src={heroImage.imageUrl}
-                    alt={heroImage.description}
-                    data-ai-hint={heroImage.imageHint}
+                    src="https://images.unsplash.com/photo-1628882139032-a1314387532f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxlY29tbWVyY2UlMjB3ZWJzaXRlJTIwaGVybyUyMGltYWdlfGVufDB8fHx8MTc3MTA0MzgwNnww&ixlib=rb-4.1.0&q=80&w=1080"
+                    alt="SaaS Platform Showcase"
+                    data-ai-hint="ecommerce website"
                     fill
                     className="object-cover"
                     priority
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent"></div>
                 </div>
-              )}
             </div>
           </section>
 
@@ -235,24 +253,49 @@ export default function SaasLandingPage() {
             id="testimonial"
             className="bg-secondary/30 rounded-xl py-16 px-8"
           >
-            <div className="max-w-3xl mx-auto text-center">
-              {avatarImage && (
-                <Image
-                  src={avatarImage.imageUrl}
-                  alt={avatarImage.description}
-                  data-ai-hint={avatarImage.imageHint}
-                  width={80}
-                  height={80}
-                  className="mx-auto rounded-full mb-4"
-                />
-              )}
-              <blockquote className="text-xl md:text-2xl font-light text-foreground">
-                "এই প্ল্যাটফর্মটি আমাদের ব্যবসাকে পুরোপুরি বদলে
-                দিয়েছে। এটি ব্যবহার করা সহজ, এবং এআই সরঞ্জামগুলি আমাদের অনেক
-                সময় বাঁচিয়েছে। অত্যন্ত সুপারিশযোগ্য!"
-              </blockquote>
-              <p className="mt-6 font-semibold text-primary">— একজন সুখী গ্রাহক</p>
-            </div>
+            {isLoading ? <Skeleton className="h-48 w-full max-w-3xl mx-auto" /> : (
+                reviews.length > 0 ? (
+                <Carousel
+                    opts={{ align: 'start', loop: true }}
+                    className="w-full max-w-3xl mx-auto"
+                >
+                    <CarouselContent>
+                    {reviews.map((review) => (
+                        <CarouselItem key={review.id}>
+                        <div className="text-center">
+                            <Avatar className="w-20 h-20 mx-auto mb-4">
+                                <AvatarFallback>{review.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex justify-center gap-1 mb-2">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star key={i} className={i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30"} />
+                                ))}
+                            </div>
+                            <blockquote className="text-xl md:text-2xl font-light text-foreground">
+                            "{review.review_text}"
+                            </blockquote>
+                            <p className="mt-6 font-semibold text-primary">— {review.name} <span className="text-muted-foreground font-normal">{review.company && `, ${review.company}`}</span></p>
+                        </div>
+                        </CarouselItem>
+                    ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2" />
+                    <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2" />
+                </Carousel>
+                ) : (
+                <div className="max-w-3xl mx-auto text-center">
+                    <Avatar className="w-20 h-20 mx-auto mb-4">
+                        <AvatarFallback>স</AvatarFallback>
+                    </Avatar>
+                    <blockquote className="text-xl md:text-2xl font-light text-foreground">
+                    "এই প্ল্যাটফর্মটি আমাদের ব্যবসাকে পুরোপুরি বদলে
+                    দিয়েছে। এটি ব্যবহার করা সহজ, এবং এআই সরঞ্জামগুলি আমাদের অনেক
+                    সময় বাঁচিয়েছে। অত্যন্ত সুপারিশযোগ্য!"
+                    </blockquote>
+                    <p className="mt-6 font-semibold text-primary">— একজন সুখী গ্রাহক</p>
+                </div>
+                )
+            )}
           </section>
 
           {/* Final CTA */}

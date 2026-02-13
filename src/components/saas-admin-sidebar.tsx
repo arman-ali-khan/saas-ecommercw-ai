@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -13,7 +14,8 @@ import {
   Bell,
   Sparkles,
   FileText,
-  Store, // Changed Icon
+  Store,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -38,6 +40,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingSubscriptionsCount, setPendingSubscriptionsCount] = useState(0);
   const [pendingSeoRequestsCount, setPendingSeoRequestsCount] = useState(0);
+  const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
     logoUrl: string | null;
@@ -72,6 +75,13 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
       setPendingSeoRequestsCount(seoCount || 0);
+
+      // Fetch pending reviews count
+      const { count: reviewCount } = await supabase
+        .from('saas_reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_approved', false);
+      setPendingReviewsCount(reviewCount || 0);
     };
 
     fetchCounts();
@@ -81,6 +91,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, fetchCounts)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'subscription_payments' }, fetchCounts)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'seo_requests' }, fetchCounts)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'saas_reviews' }, fetchCounts)
       .subscribe();
 
     return () => {
@@ -121,11 +132,12 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
 
   const adminNavLinks = [
     { href: `/dashboard`, label: 'Dashboard', icon: Home },
-    { href: `/dashboard/users`, label: 'Stores', icon: Store }, // Changed label and icon
+    { href: `/dashboard/users`, label: 'Stores', icon: Store },
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: pendingSubscriptionsCount },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
     { href: `/dashboard/pages`, label: 'Pages', icon: FileText },
+    { href: `/dashboard/reviews`, label: 'Reviews', icon: Star, count: pendingReviewsCount },
     { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell, count: unreadCount },
     { href: `/dashboard/seo-requests`, label: 'SEO Requests', icon: Sparkles, count: pendingSeoRequestsCount },
     { href: `/dashboard/settings`, label: 'Settings', icon: Settings },

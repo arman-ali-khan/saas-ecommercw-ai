@@ -247,4 +247,15 @@ export interface StoreFeature {
   order: number;
   created_at: string;
 }
+
+export interface SaaSReview {
+  id: string;
+  created_at: string;
+  name: string;
+  company?: string;
+  review_text: string;
+  rating: number;
+  is_approved: boolean;
+  avatar_url?: string;
+}
     
