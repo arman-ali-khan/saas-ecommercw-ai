@@ -98,7 +98,7 @@ const productFormSchema = z.object({
     .min(1, 'At least one image is required.'),
   has_flash_deal: z.boolean().default(false),
   flash_deal_price: z.preprocess(
-    (a) => (String(a) === '' || a === null ? undefined : parseFloat(String(a))),
+    (val) => (val === '' || val == null ? undefined : parseFloat(String(val))),
     z.number().positive('Discount price must be a positive number.').optional()
   ),
   flash_deal_range: z.object({
@@ -956,3 +956,4 @@ export default function ManageProductPage() {
     </div>
   );
 }
+
