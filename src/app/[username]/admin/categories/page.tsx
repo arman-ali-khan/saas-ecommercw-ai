@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -56,11 +57,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Edit, Trash2, Loader2, MoreHorizontal } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import IconPicker from '@/components/icon-picker';
+import DynamicIcon from '@/components/dynamic-icon';
 
 
 const categorySchema = z.object({
     name: z.string().min(1, 'Category name is required.'),
     description: z.string().optional(),
+    icon: z.string().min(1, 'An icon is required.'),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -77,7 +81,7 @@ export default function CategoriesAdminPage() {
 
     const form = useForm<CategoryFormData>({
         resolver: zodResolver(categorySchema),
-        defaultValues: { name: '', description: '' },
+        defaultValues: { name: '', description: '', icon: 'Package' },
     });
 
     const fetchCategories = useCallback(async () => {
@@ -107,9 +111,9 @@ export default function CategoriesAdminPage() {
     useEffect(() => {
         if (isFormOpen) {
             if (selectedCategory) {
-                form.reset({ name: selectedCategory.name, description: selectedCategory.description || '' });
+                form.reset({ name: selectedCategory.name, description: selectedCategory.description || '', icon: selectedCategory.icon || 'Package' });
             } else {
-                form.reset({ name: '', description: '' });
+                form.reset({ name: '', description: '', icon: 'Package' });
             }
         }
     }, [isFormOpen, selectedCategory, form]);
@@ -211,6 +215,7 @@ export default function CategoriesAdminPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead className="w-[50px]">Icon</TableHead>
                                             <TableHead>Name</TableHead>
                                             <TableHead>Description</TableHead>
                                             <TableHead className="text-right">Actions</TableHead>
@@ -219,6 +224,9 @@ export default function CategoriesAdminPage() {
                                     <TableBody>
                                         {categories.map((category) => (
                                             <TableRow key={category.id}>
+                                                <TableCell>
+                                                    <DynamicIcon name={category.icon || 'Package'} className="h-5 w-5 text-muted-foreground" />
+                                                </TableCell>
                                                 <TableCell className="font-medium">{category.name}</TableCell>
                                                 <TableCell className="text-muted-foreground">{category.description}</TableCell>
                                                 <TableCell className="text-right">
@@ -241,7 +249,10 @@ export default function CategoriesAdminPage() {
                                     <Card key={category.id}>
                                         <CardHeader>
                                             <div className="flex justify-between items-start">
-                                                <CardTitle>{category.name}</CardTitle>
+                                                <div className="flex items-center gap-3">
+                                                    <DynamicIcon name={category.icon || 'Package'} className="h-6 w-6 text-muted-foreground" />
+                                                    <CardTitle>{category.name}</CardTitle>
+                                                </div>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
@@ -273,7 +284,7 @@ export default function CategoriesAdminPage() {
             </Card>
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
                         <DialogTitle>{selectedCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
                         <DialogDescription>
@@ -300,6 +311,17 @@ export default function CategoriesAdminPage() {
                                 <FormItem>
                                     <FormLabel>Description (Optional)</FormLabel>
                                     <FormControl><Textarea placeholder="A short description of the category." {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="icon"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Icon</FormLabel>
+                                    <FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )}

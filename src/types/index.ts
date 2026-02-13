@@ -84,6 +84,7 @@ export interface Category {
   name: string;
   description: string | null;
   created_at: string;
+  icon: string;
 }
 
 export interface ShippingZone {

@@ -1,4 +1,5 @@
 
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,9 @@ import {
 import { getProductsByDomain, checkDomainExists } from '@/lib/products';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Section, CarouselSlide } from '@/types';
+import type { Section, Category } from '@/types';
+import DynamicIcon from '@/components/dynamic-icon';
+import { cn } from '@/lib/utils';
 
 // Force dynamic rendering to ensure the latest section settings are always used.
 export const dynamic = 'force-dynamic';
@@ -91,7 +94,14 @@ export default async function UserPage({
     .eq('site_id', profile.id)
     .eq('is_enabled', true)
     .order('order', { ascending: true });
+    
+  const { data: categoriesData } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('site_id', profile.id)
+    .order('name', { ascending: true });
 
+  const categories = (categoriesData as Category[]) || [];
   const allProducts = await getProductsByDomain(username);
   const featuredProducts = allProducts.filter((p) => p.is_featured);
 
@@ -161,10 +171,42 @@ export default async function UserPage({
 
         switch (section.id) {
           case 'hero':
-            if(heroSlides.length === 0) return null;
+            if (heroSlides.length === 0 && categories.length === 0) return null;
             return (
-              <section key={section.id} className="-mx-4 sm:-mx-6 lg:-mx-8">
-                <HeroCarousel slides={heroSlides} />
+              <section key={section.id} className="grid lg:grid-cols-[260px_1fr] gap-8 items-start">
+                  {categories.length > 0 && (
+                      <div className="hidden lg:block sticky top-24">
+                          <Card>
+                              <CardHeader>
+                                  <CardTitle>Categories</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                  <nav className="flex flex-col gap-1">
+                                      {categories.map((cat) => (
+                                          <Link key={cat.id} href={`/products?category=${encodeURIComponent(cat.name)}`} passHref>
+                                              <Button variant="ghost" className="w-full justify-start gap-3">
+                                                  <DynamicIcon name={cat.icon || 'Package'} className="h-5 w-5 text-muted-foreground" />
+                                                  <span className="truncate">{cat.name}</span>
+                                              </Button>
+                                          </Link>
+                                      ))}
+                                  </nav>
+                              </CardContent>
+                          </Card>
+                      </div>
+                  )}
+                  <div className={cn(
+                      "w-full rounded-lg overflow-hidden",
+                      categories.length === 0 && "lg:col-span-2"
+                  )}>
+                      {heroSlides.length > 0 ? (
+                          <HeroCarousel slides={heroSlides} />
+                      ) : (
+                          <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                              <p className="text-muted-foreground">Welcome to the store!</p>
+                          </div>
+                      )}
+                  </div>
               </section>
             );
 
