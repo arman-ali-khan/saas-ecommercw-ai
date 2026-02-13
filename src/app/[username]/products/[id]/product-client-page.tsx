@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
@@ -93,6 +94,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
         const { data, error } = await supabase
             .from('products')
             .select('*')
+            .eq('site_id', product.site_id)
             .overlaps('categories', product.categories)
             .neq('id', product.id)
             .limit(4);
@@ -107,7 +109,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
     fetchFlashDeal();
     fetchRelatedProducts();
-  }, [product.id, product.categories]);
+  }, [product.id, product.categories, product.site_id]);
 
   const onThumbClick = useCallback(
     (index: number) => {
