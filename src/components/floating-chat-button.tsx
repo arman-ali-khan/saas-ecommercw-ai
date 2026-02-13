@@ -313,7 +313,7 @@ export default function FloatingChatButton() {
     }
     await markAgentMessagesAsRead();
   };
-
+ 
   return (
     <>
       <div className="fixed bottom-28 right-6 z-50">
