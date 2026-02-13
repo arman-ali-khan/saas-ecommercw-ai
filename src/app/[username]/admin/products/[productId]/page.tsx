@@ -146,8 +146,7 @@ export default function ManageProductPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slugStatus, setSlugStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'invalid'>('empty');
-  const [debouncedSlug, setDebouncedSlug] = useState('');
-
+  
   const isSubscriptionPending =
     user?.subscription_status === 'pending' ||
     user?.subscription_status === 'pending_verification';
@@ -178,56 +177,84 @@ export default function ManageProductPage() {
     },
   });
 
-  const slugValue = form.watch('id');
-
+  const nameValue = form.watch('name');
+  
+  // This useEffect will automatically generate a unique slug from the product name for new products.
   useEffect(() => {
-    if (!isNew) return;
-    const handler = setTimeout(() => {
-      setDebouncedSlug(slugValue);
-    }, 500);
+    if (!isNew || !user) return; // Only run for new products, and if user is loaded
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [slugValue, isNew]);
-
-  useEffect(() => {
-    if (!isNew || !debouncedSlug || !user) {
-      setSlugStatus('empty');
-      return;
-    }
-
-    const checkSlugAvailability = async () => {
-      const slugValidation = productFormSchema.shape.id.safeParse(debouncedSlug);
-      if (!slugValidation.success) {
-        setSlugStatus('invalid');
+    const generateAndCheckSlug = async (name: string) => {
+      if (!name) {
+        setSlugStatus('empty');
+        form.setValue('id', '');
         return;
       }
 
+      const baseSlug = name
+        .toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/[^a-z0-9\s-]/g, '') // remove special chars
+        .replace(/\s+/g, '-') // replace spaces with hyphens
+        .replace(/-+/g, '-') // remove consecutive hyphens
+        .trim()
+        .slice(0, 50); // Truncate long names
+      
+      if (baseSlug.length < 2) {
+        setSlugStatus('empty');
+        return;
+      }
+      
       setSlugStatus('checking');
 
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('id')
-          .eq('site_id', user.id)
-          .eq('id', debouncedSlug)
-          .single();
+      let finalSlug = '';
+      let isUnique = false;
+      let attempt = 0;
 
-        if (error && error.code !== 'PGRST116') {
-          setSlugStatus('unavailable');
-        } else if (data) {
-          setSlugStatus('unavailable');
-        } else {
-          setSlugStatus('available');
+      while (!isUnique && attempt < 10) {
+        const randomNumber = Math.floor(100 + Math.random() * 900); // 3-digit random number
+        const candidateSlug = `${randomNumber}-${baseSlug}`;
+
+        try {
+            const { data, error } = await supabase
+                .from('products')
+                .select('id')
+                .eq('site_id', user.id)
+                .eq('id', candidateSlug)
+                .maybeSingle();
+
+            if (!data) { // If no record is found, the slug is unique
+                isUnique = true;
+                finalSlug = candidateSlug;
+            } else {
+                attempt++;
+            }
+        } catch (err) {
+            // Stop on database error
+            break;
         }
-      } catch (err) {
-        setSlugStatus('unavailable');
+      }
+
+      if (finalSlug) {
+        form.setValue('id', finalSlug, { shouldValidate: true });
+        setSlugStatus('available');
+      } else {
+        form.setValue('id', '', { shouldValidate: true });
+        setSlugStatus('unavailable'); // Indicates we couldn't find a unique slug
+        toast({
+          variant: 'destructive',
+          title: 'Could not generate unique slug',
+          description: 'Please try a slightly different product name.',
+        })
       }
     };
 
-    checkSlugAvailability();
-  }, [debouncedSlug, isNew, user, productFormSchema]);
+    const handler = setTimeout(() => {
+      generateAndCheckSlug(nameValue);
+    }, 750); // Debounce for 750ms
+
+    return () => clearTimeout(handler);
+  }, [nameValue, isNew, user, form, toast]);
+
 
   const { fields, append, remove, move } = useFieldArray({
     control: form.control,
@@ -499,35 +526,6 @@ export default function ManageProductPage() {
                 <CardContent className="space-y-8">
                     <FormField
                         control={form.control}
-                        name="id"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Product ID / Slug</FormLabel>
-                            <FormControl>
-                            <Input
-                                {...field}
-                                placeholder="e.g., himsagar-mango-1kg"
-                                disabled={!isNew}
-                            />
-                            </FormControl>
-                            <FormDescription>
-                            A unique, URL-friendly identifier. Cannot be changed after
-                            creation.
-                            </FormDescription>
-                            {isNew && (
-                                <div className="min-h-[20px] pt-1">
-                                    {slugStatus === 'checking' && <p className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking availability...</p>}
-                                    {slugStatus === 'unavailable' && <p className="text-sm text-destructive">This slug is already taken.</p>}
-                                    {slugStatus === 'invalid' && <p className="text-sm text-destructive">Slug must be 3+ characters and can only contain lowercase letters, numbers, and hyphens.</p>}
-                                    {slugStatus === 'available' && <p className="text-sm text-green-500">This slug is available!</p>}
-                                </div>
-                            )}
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
                         name="name"
                         render={({ field }) => (
                         <FormItem>
@@ -538,6 +536,34 @@ export default function ManageProductPage() {
                                 placeholder="e.g., হিমসাগর আম (১ কেজি)"
                             />
                             </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="id"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Product ID / Slug</FormLabel>
+                            <FormControl>
+                            <Input
+                                {...field}
+                                placeholder="e.g., 123-himsagar-mango"
+                                disabled={isNew}
+                            />
+                            </FormControl>
+                            <FormDescription>
+                                A unique, URL-friendly identifier automatically generated from your product name.
+                            </FormDescription>
+                            {isNew && (
+                                <div className="min-h-[20px] pt-1">
+                                    {slugStatus === 'checking' && <p className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking availability...</p>}
+                                    {slugStatus === 'unavailable' && <p className="text-sm text-destructive">Could not generate a unique slug. Try a different name.</p>}
+                                    {slugStatus === 'invalid' && <p className="text-sm text-destructive">Slug must be 3+ characters and can only contain lowercase letters, numbers, and hyphens.</p>}
+                                    {slugStatus === 'available' && <p className="text-sm text-green-500">This slug is available!</p>}
+                                </div>
+                            )}
                             <FormMessage />
                         </FormItem>
                         )}
