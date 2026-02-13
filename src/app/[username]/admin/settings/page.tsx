@@ -89,25 +89,111 @@ const fontOptions = {
     secondary: ['Orbitron', 'Montserrat', 'Lato', 'Roboto'],
 };
 
-const themeColorPalette = {
-    'Background': 'hsl(var(--background))', 'Foreground': 'hsl(var(--foreground))', 'Card': 'hsl(var(--card))',
-    'Popover': 'hsl(var(--popover))', 'Primary': 'hsl(var(--primary))', 'Secondary': 'hsl(var(--secondary))',
-    'Muted': 'hsl(var(--muted))', 'Accent': 'hsl(var(--accent))', 'Destructive': 'hsl(var(--destructive))',
+const colorPalettes = [
+  {
+    name: 'Oceanic Deep',
+    colors: ['#EDEDCE', '#629FAD', '#296374', '#0C2C55'],
+    mapping: {
+      background: '60 44% 87%', foreground: '214 75% 19%', card: '60 44% 87%',
+      primary: '196 48% 30%', secondary: '193 31% 53%', accent: '193 31% 53%',
+    },
+  },
+  {
+    name: 'Aqua Fresh',
+    colors: ['#F4F4F4', '#00B7B5', '#018790', '#005461'],
+    mapping: {
+      background: '0 0% 96%', foreground: '190 100% 19%', card: '0 0% 96%',
+      primary: '183 98% 28%', secondary: '179 100% 36%', accent: '179 100% 36%',
+    },
+  },
+  {
+    name: 'Royal Amethyst (Dark)',
+    colors: ['#4B164C', '#DD88CF', '#F8E7F6', '#F5F5F5'],
+    mapping: {
+      background: '299 55% 20%', foreground: '0 0% 96%', card: '299 55% 20%',
+      primary: '317 56% 70%', secondary: '310 56% 95%', accent: '317 56% 70%',
+    },
+  },
+  {
+    name: 'Lavender Mist',
+    colors: ['#D6F4ED', '#87BAC3', '#53629E', '#473472'],
+    mapping: {
+      background: '165 59% 90%', foreground: '256 38% 32%', card: '165 59% 90%',
+      primary: '228 32% 47%', secondary: '190 28% 64%', accent: '190 28% 64%',
+    },
+  },
+  {
+    name: 'Spring Meadow',
+    colors: ['#EBFFD8', '#C4E1E6', '#A4CCD9', '#8DBCC7'],
+    mapping: {
+      background: '90 100% 92%', foreground: '222.2 84% 4.9%', card: '90 100% 92%',
+      primary: '192 32% 70%', secondary: '199 38% 78%', accent: '190 41% 84%',
+    },
+  },
+  {
+    name: 'Sunset Grove',
+    colors: ['#FFFFFF', '#FFD150', '#FF9760', '#F26076', '#458B73'],
+    mapping: {
+      background: '0 0% 100%', foreground: '159 34% 40%', card: '0 0% 100%',
+      primary: '352 86% 66%', secondary: '22 100% 69%', accent: '44 100% 66%',
+    },
+  },
+  {
+    name: 'Majestic Twilight (Dark)',
+    colors: ['#0E2148', '#483AA0', '#7965C1', '#E3D095'],
+    mapping: {
+      background: '220 71% 17%', foreground: '47 57% 74%', card: '220 71% 17%',
+      primary: '253 43% 58%', secondary: '247 48% 52%', accent: '247 48% 52%',
+    },
+  },
+  {
+    name: 'Minimalist Stone',
+    colors: ['#EEEEEE', '#DDDDDD', '#F79B72', '#2A4759'],
+    mapping: {
+      background: '0 0% 93%', foreground: '205 35% 26%', card: '0 0% 87%',
+      primary: '20 90% 71%', secondary: '205 35% 26%', accent: '20 90% 71%',
+    },
+  },
+  {
+    name: 'Neon Sunset (Dark)',
+    colors: ['#3D365C', '#7C4585', '#C95792', '#F8B55F'],
+    mapping: {
+      background: '250 28% 29%', foreground: '37 92% 67%', card: '250 28% 29%',
+      primary: '329 55% 57%', secondary: '291 32% 40%', accent: '291 32% 40%',
+    },
+  },
+];
+
+
+const ColorPaletteSelector = ({ onSelectPalette }: { onSelectPalette: (mapping: any) => void }) => {
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-start text-left">
+                    <Palette className="mr-2 h-4 w-4 shrink-0" />
+                    <span className="flex-grow">Select a Color Palette</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                <DropdownMenuLabel>Pre-defined Palettes</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {colorPalettes.map((palette) => (
+                    <DropdownMenuItem key={palette.name} onSelect={() => onSelectPalette(palette.mapping)} className="cursor-pointer">
+                        <div className="flex items-center justify-between w-full">
+                            <span>{palette.name}</span>
+                            <div className="flex items-center gap-1">
+                                {palette.colors.map((color) => (
+                                    <div key={color} className="h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
+                                ))}
+                            </div>
+                        </div>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
 };
 
-const defaultColorPalette = [
-    { name: 'Slate', color: '222.2 84% 4.9%' }, { name: 'Gray', color: '220 8.9% 46.1%' },
-    { name: 'Zinc', color: '221.2 83.2% 53.3%' }, { name: 'Stone', color: '25 5.3% 44.7%' },
-    { name: 'Red', color: '0 72.2% 50.6%' }, { name: 'Orange', color: '24.6 95% 53.1%' },
-    { name: 'Amber', color: '47.9 95.8% 53.1%' }, { name: 'Yellow', color: '60 95.8% 53.1%' },
-    { name: 'Lime', color: '84.2 95.8% 53.1%' }, { name: 'Green', color: '142.1 76.2% 36.3%' },
-    { name: 'Emerald', color: '158.4 76.2% 36.3%' }, { name: 'Teal', color: '166.2 76.2% 36.3%' },
-    { name: 'Cyan', color: '190.2 95.8% 53.1%' }, { name: 'Sky', color: '205.9 95.8% 53.1%' },
-    { name: 'Blue', color: '221.2 83.2% 53.3%' }, { name: 'Indigo', color: '243.1 95.8% 53.1%' },
-    { name: 'Violet', color: '262.1 83.3% 57.8%' }, { name: 'Purple', color: '272.1 83.3% 57.8%' },
-    { name: 'Fuchsia', color: '282.1 83.3% 57.8%' }, { name: 'Pink', color: '314.1 83.3% 57.8%' },
-    { name: 'Rose', color: '346.8 95.8% 53.1%' },
-];
 
 export default function SettingsAdminPage() {
   const { toast } = useToast();
@@ -316,7 +402,6 @@ export default function SettingsAdminPage() {
     if (!user) return;
     setIsSubmitting(true);
     
-    // Get product count
     const { count, error: countError } = await supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
@@ -343,11 +428,17 @@ export default function SettingsAdminPage() {
         toast({ variant: 'destructive', title: 'Error creating request', description: error.message });
     } else {
         toast({ title: 'SEO request submitted!', description: 'You will be notified when the review is complete.' });
-        // Refetch request status
         const { data } = await supabase.from('seo_requests').select('*').eq('site_id', user.id).order('created_at', { ascending: false }).limit(1).single();
         if (data) setSeoRequest(data as SeoRequest);
     }
   }
+
+    const handleSelectPalette = (mapping: any) => {
+        Object.keys(mapping).forEach(key => {
+            (appearanceForm.setValue as any)(`theme_${key}`, mapping[key]);
+        });
+        toast({ title: 'Palette applied!', description: 'Click "Save" to make the changes permanent.' });
+    };
 
 
   const handleLogoUpload = (result: any) => {
@@ -634,6 +725,15 @@ export default function SettingsAdminPage() {
                  <Form {...appearanceForm}>
                     <form onSubmit={appearanceForm.handleSubmit(onAppearanceSubmit)} className="space-y-8">
                          <Card>
+                            <CardHeader>
+                                <CardTitle>Color Palette</CardTitle>
+                                <CardDescription>Quickly set a color scheme for your store. This will override the individual color fields below.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ColorPaletteSelector onSelectPalette={handleSelectPalette} />
+                            </CardContent>
+                        </Card>
+                         <Card>
                             <CardHeader><CardTitle>Theme Colors</CardTitle><CardDescription>Customize the main colors of your storefront. Use HSL values without the 'hsl()' wrapper (e.g., '224 71% 4%').</CardDescription></CardHeader>
                             <CardContent className="grid sm:grid-cols-2 gap-6">
                                 {(['background', 'foreground', 'primary', 'secondary', 'accent', 'card'] as const).map(color => (
@@ -646,7 +746,6 @@ export default function SettingsAdminPage() {
                                                 <FormLabel className="capitalize">{color}</FormLabel>
                                                 <div className="flex items-center gap-2">
                                                     <FormControl><Input placeholder='e.g., 224 71% 4%' {...field} /></FormControl>
-                                                    <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon"><Palette className="h-4 w-4" /><span className="sr-only">Open color picker</span></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Standard Palette</DropdownMenuLabel><DropdownMenuSeparator /><div className="p-2 grid grid-cols-4 gap-2">{defaultColorPalette.map(({name, color: c}) => (<button type="button" key={name} title={name} className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring" style={{ backgroundColor: `hsl(${c})` }} onClick={() => appearanceForm.setValue(`theme_${color}`, c)}/>))}</div></DropdownMenuContent></DropdownMenu>
                                                 </div>
                                             </FormItem>
                                         )}
@@ -929,6 +1028,8 @@ export default function SettingsAdminPage() {
     </Card>
   );
 }
+
+    
 
     
 
