@@ -135,7 +135,7 @@ export default function ManageProductPage() {
   }, [slugValue, isNew]);
 
   useEffect(() => {
-    if (!isNew || !debouncedSlug) {
+    if (!isNew || !debouncedSlug || !user) {
       setSlugStatus('empty');
       return;
     }
@@ -153,6 +153,7 @@ export default function ManageProductPage() {
         const { data, error } = await supabase
           .from('products')
           .select('id')
+          .eq('site_id', user.id)
           .eq('id', debouncedSlug)
           .single();
 
@@ -169,7 +170,7 @@ export default function ManageProductPage() {
     };
 
     checkSlugAvailability();
-  }, [debouncedSlug, isNew]);
+  }, [debouncedSlug, isNew, user]);
 
   const { fields, append, remove, move } = useFieldArray({
     control: form.control,
