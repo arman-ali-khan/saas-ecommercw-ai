@@ -21,6 +21,7 @@ import {
   Bell,
   Truck,
   GalleryHorizontal,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -45,6 +46,7 @@ export default function AdminMobileSidebar() {
     logo_type?: 'icon' | 'image';
     logo_icon?: string;
     logo_image_url?: string;
+    language?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function AdminMobileSidebar() {
       // Fetch site settings
       const { data: settingsData } = await supabase
         .from('store_settings')
-        .select('logo_type, logo_icon, logo_image_url')
+        .select('logo_type, logo_icon, logo_image_url, language')
         .eq('site_id', user.id)
         .single();
       if (settingsData) {
@@ -150,6 +152,17 @@ export default function AdminMobileSidebar() {
     }
   };
 
+  const handleLanguageToggle = async () => {
+    const newLang = siteSettings?.language === 'bn' ? 'en' : 'bn';
+    const { error } = await supabase.from('store_settings').update({ language: newLang }).eq('site_id', user.id);
+    if (error) {
+        toast({ title: "Failed to switch language", variant: "destructive" });
+    } else {
+        toast({ title: `Language switched to ${newLang === 'en' ? 'English' : 'Bengali'}` });
+        window.location.reload();
+    }
+  };
+
   const adminNavLinks = [
     { href: `/`, label: 'View Store', icon: Home },
     { href: `/admin`, label: 'Dashboard', icon: LayoutDashboard },
@@ -173,6 +186,7 @@ export default function AdminMobileSidebar() {
   const logoType = siteSettings?.logo_type || 'icon';
   const logoIcon = siteSettings?.logo_icon || 'Leaf';
   const logoImageUrl = siteSettings?.logo_image_url;
+  const language = siteSettings?.language || 'bn';
 
   const NavLink = ({
     href,
@@ -231,7 +245,11 @@ export default function AdminMobileSidebar() {
             ))}
           </nav>
         </div>
-        <div className="mt-auto p-4 border-t border-sidebar-border">
+        <div className="mt-auto p-4 border-t border-sidebar-border space-y-2">
+           <Button onClick={handleLanguageToggle} variant="ghost" className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+             <Globe className="mr-2 h-4 w-4" />
+             Switch to {language === 'bn' ? 'English' : 'Bengali'}
+          </Button>
           <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
             <LogOut className="mr-2 h-4 w-4" />
             Logout

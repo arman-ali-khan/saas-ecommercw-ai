@@ -74,9 +74,9 @@ export default function CustomersAdminPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>গ্রাহক ব্যবস্থাপনা</CardTitle>
+          <CardTitle>কাস্টমার ম্যানেজমেন্ট</CardTitle>
           <CardDescription>
-            আপনার দোকানে যারা নিবন্ধন করেছেন তাদের দেখুন।
+            আপনার স্টোরে রেজিস্টার্ড কাস্টমারদের দেখুন।
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-16">
@@ -90,16 +90,16 @@ export default function CustomersAdminPage() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>গ্রাহক ব্যবস্থাপনা</CardTitle>
+          <CardTitle>কাস্টমার ম্যানেজমেন্ট</CardTitle>
           <CardDescription>
-            আপনার দোকানের সমস্ত নিবন্ধিত গ্রাহকদের একটি তালিকা। মোট {customers.length} জন গ্রাহক।
+            আপনার স্টোরের সব রেজিস্টার্ড কাস্টমারদের লিস্ট। মোট {customers.length} জন কাস্টমার।
           </CardDescription>
         </CardHeader>
         <CardContent>
           {customers.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-muted-foreground">
-                কোনো নিবন্ধিত গ্রাহক পাওয়া যায়নি।
+                কোনো রেজিস্টার্ড কাস্টমার পাওয়া যায়নি।
               </p>
             </div>
           ) : (
@@ -109,10 +109,10 @@ export default function CustomersAdminPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>গ্রাহক</TableHead>
+                      <TableHead>কাস্টমার</TableHead>
                       <TableHead>ইমেল</TableHead>
-                      <TableHead>নিবন্ধন তারিখ</TableHead>
-                      <TableHead className="text-right">কার্যকলাপ</TableHead>
+                      <TableHead>রেজিস্ট্রেশন ডেট</TableHead>
+                      <TableHead className="text-right">অ্যাকশনস</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -183,7 +183,7 @@ export default function CustomersAdminPage() {
                     </CardHeader>
                     <CardContent>
                        <p className="text-sm text-muted-foreground">
-                        নিবন্ধন করেছেন: {format(new Date(customer.created_at), 'PP')}
+                        রেজিস্টার্ড: {format(new Date(customer.created_at), 'PP')}
                        </p>
                     </CardContent>
                   </Card>

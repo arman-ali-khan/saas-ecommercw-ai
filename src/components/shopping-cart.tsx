@@ -45,7 +45,7 @@ export default function ShoppingCart() {
   const handleRemoveFromCart = (productId: string) => {
     removeFromCart(productId);
     toast({
-      title: 'ব্যাগ থেকে সরানো হয়েছে',
+      title: 'Bag থেকে সরানো হয়েছে',
       variant: 'destructive',
     });
   }
@@ -138,14 +138,14 @@ export default function ShoppingCart() {
             <SheetFooter className="mt-auto">
               <div className="w-full space-y-4">
                 <div className="flex justify-between font-bold text-lg">
-                  <span>উপমোট</span>
+                  <span>সাব-টোটাল</span>
                   <span>
                     {cartTotal.toFixed(2)} {cartItems[0]?.currency}
                   </span>
                 </div>
                 <SheetClose asChild>
                   <Button asChild className="w-full" size="lg">
-                    <Link href={checkoutUrl}>চেকআউটে এগিয়ে যান</Link>
+                    <Link href={checkoutUrl}>চেকআউটে যান</Link>
                   </Button>
                 </SheetClose>
               </div>
@@ -156,7 +156,7 @@ export default function ShoppingCart() {
             <ShoppingBagIcon className="w-24 h-24 text-muted-foreground/50 mb-4" />
             <h3 className="font-semibold text-xl">আপনার ব্যাগ খালি</h3>
             <p className="text-muted-foreground mt-2">
-              মনে হচ্ছে আপনি এখনো কিছু যোগ করেননি।
+              মনে হচ্ছে আপনি এখনো কিছু অ্যাড করেননি।
             </p>
             <SheetClose asChild>
               <Button asChild className="mt-6">

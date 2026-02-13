@@ -85,11 +85,11 @@ export default function SaasLandingPage() {
           {/* Hero Section */}
           <section className="text-center pt-16">
             <h1 className="text-4xl md:text-6xl font-headline font-bold">
-              আপনার নিজস্ব ই-কমার্স সাম্রাজ্য তৈরি করুন
+              আপনার নিজের ই-কমার্স প্ল্যাটফর্ম তৈরি করুন
             </h1>
             <p className="mt-6 max-w-3xl mx-auto text-lg md:text-xl text-muted-foreground">
-              বাংলা ন্যাচারালস স্যাস প্ল্যাটফর্ম আপনাকে একটি শক্তিশালী,
-              ব্যক্তিগতকৃত এবং এআই-চালিত অনলাইন স্টোর চালু করার ক্ষমতা দেয়।
+              আমাদের প্ল্যাটফর্ম আপনাকে একটি শক্তিশালী,
+              পার্সোনালাইজড এবং এআই-চালিত অনলাইন স্টোর চালু করার ক্ষমতা দেয়।
               আজই আপনার ব্র্যান্ড তৈরি শুরু করুন।
             </p>
             <div className="mt-8 flex justify-center gap-4">
@@ -99,7 +99,7 @@ export default function SaasLandingPage() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
-                <Link href="#pricing">মূল্য দেখুন</Link>
+                <Link href="#pricing">প্রাইসিং দেখুন</Link>
               </Button>
             </div>
             <div className="mt-12 -mx-4 sm:-mx-6 lg:-mx-8">
@@ -126,8 +126,8 @@ export default function SaasLandingPage() {
                 আপনার সাফল্যের জন্য নির্মিত
               </h2>
               <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-                আপনার অনলাইন ব্যবসাকে পরবর্তী স্তরে নিয়ে যাওয়ার জন্য প্রয়োজনীয়
-                সমস্ত সরঞ্জাম।
+                আপনার অনলাইন ব্যবসাকে পরবর্তী লেভেলে নিয়ে যাওয়ার জন্য প্রয়োজনীয়
+                সমস্ত টুলস।
               </p>
             </div>
             <div className="mt-12 grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -168,10 +168,10 @@ export default function SaasLandingPage() {
           <section id="pricing">
             <div className="text-center">
               <h2 className="text-3xl md:text-4xl font-headline font-bold">
-                আপনার জন্য সঠিক পরিকল্পনা
+                আপনার জন্য সঠিক প্ল্যান
               </h2>
               <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-                সহজ এবং স্বচ্ছ মূল্য নির্ধারণ। যেকোনো সময় বাতিল করুন।
+                সহজ এবং স্বচ্ছ প্রাইসিং। যেকোনো সময় বাতিল করুন।
               </p>
             </div>
             <div className="mt-12 grid md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
@@ -247,7 +247,7 @@ export default function SaasLandingPage() {
                 />
               )}
               <blockquote className="text-xl md:text-2xl font-light text-foreground">
-                "বাংলা ন্যাচারালস প্ল্যাটফর্ম আমাদের ব্যবসাকে পুরোপুরি বদলে
+                "এই প্ল্যাটফর্মটি আমাদের ব্যবসাকে পুরোপুরি বদলে
                 দিয়েছে। এটি ব্যবহার করা সহজ, এবং এআই সরঞ্জামগুলি আমাদের অনেক
                 সময় বাঁচিয়েছে। অত্যন্ত সুপারিশযোগ্য!"
               </blockquote>
@@ -261,7 +261,7 @@ export default function SaasLandingPage() {
               আজই আপনার অনলাইন স্টোর তৈরি করতে প্রস্তুত?
             </h2>
             <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-              হাজার হাজার উদ্যোক্তার সাথে যোগ দিন যারা বাংলা ন্যাচারালস-কে তাদের
+              হাজার হাজার উদ্যোক্তার সাথে যোগ দিন যারা এই প্ল্যাটফর্মকে তাদের
               ব্র্যান্ড তৈরি এবং ব্যবসা বাড়াতে বিশ্বাস করে।
             </p>
             <div className="mt-8">

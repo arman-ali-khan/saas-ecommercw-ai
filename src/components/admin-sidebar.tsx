@@ -21,6 +21,7 @@ import {
   Bell,
   Truck,
   GalleryHorizontal,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -45,6 +46,7 @@ export default function AdminSidebar() {
     logo_type?: 'icon' | 'image';
     logo_icon?: string;
     logo_image_url?: string;
+    language?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function AdminSidebar() {
       // Fetch site settings
       const { data: settingsData } = await supabase
         .from('store_settings')
-        .select('logo_type, logo_icon, logo_image_url')
+        .select('logo_type, logo_icon, logo_image_url, language')
         .eq('site_id', user.id)
         .single();
       if (settingsData) {
@@ -145,6 +147,17 @@ export default function AdminSidebar() {
       });
     }
   };
+
+  const handleLanguageToggle = async () => {
+    const newLang = siteSettings?.language === 'bn' ? 'en' : 'bn';
+    const { error } = await supabase.from('store_settings').update({ language: newLang }).eq('site_id', user.id);
+    if (error) {
+        toast({ title: "Failed to switch language", variant: "destructive" });
+    } else {
+        toast({ title: `Language switched to ${newLang === 'en' ? 'English' : 'Bengali'}` });
+        window.location.reload();
+    }
+  };
   
   if (loading || !user) {
     // You can return a loading skeleton here
@@ -165,6 +178,7 @@ export default function AdminSidebar() {
   const logoType = siteSettings?.logo_type || 'icon';
   const logoIcon = siteSettings?.logo_icon || 'Leaf';
   const logoImageUrl = siteSettings?.logo_image_url;
+  const language = siteSettings?.language || 'bn';
 
   const adminNavLinks = [
     { href: `/`, label: 'View Store', icon: Home },
@@ -241,8 +255,12 @@ export default function AdminSidebar() {
           </nav>
         </div>
         <div className="mt-auto p-4 border-t border-sidebar-border">
-          <div className='space-y-4'>
-              <div className="flex items-center gap-3">
+          <div className='space-y-2'>
+              <Button onClick={handleLanguageToggle} variant="outline" className="w-full justify-start">
+                 <Globe className="mr-2 h-4 w-4" />
+                 Switch to {language === 'bn' ? 'English' : 'Bengali'}
+              </Button>
+              <div className="flex items-center gap-3 pt-2">
                   <Avatar className="h-9 w-9">
                       <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
                   </Avatar>

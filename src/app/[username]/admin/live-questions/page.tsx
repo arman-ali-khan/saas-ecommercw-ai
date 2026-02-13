@@ -152,7 +152,7 @@ export default function LiveQuestionsAdminPage() {
 
   const formatTimestamp = (date: Date) => {
     if (isToday(date)) return format(date, 'p', { locale: bn });
-    if (isYesterday(date)) return 'গতকাল';
+    if (isYesterday(date)) return 'Yesterday';
     return format(date, 'PP', { locale: bn });
   };
   
@@ -205,8 +205,8 @@ export default function LiveQuestionsAdminPage() {
             )}
         >
             <div className="p-4 border-b">
-            <CardTitle>কথোপকথন</CardTitle>
-            <CardDescription>সরাসরি গ্রাহকদের উত্তর দিন</CardDescription>
+            <CardTitle>কনভারসেশন</CardTitle>
+            <CardDescription>কাস্টমারদের সরাসরি রিপ্লাই দিন</CardDescription>
             </div>
             {isLoading ? (
                 <div className="flex-1 flex items-center justify-center">
@@ -247,7 +247,7 @@ export default function LiveQuestionsAdminPage() {
                         ))
                     ) : (
                         <div className="text-center py-16 text-muted-foreground">
-                            <p>কোনো কথোপকথন নেই।</p>
+                            <p>কোনো কনভারসেশন নেই।</p>
                         </div>
                     )}
                     </div>
@@ -314,7 +314,7 @@ export default function LiveQuestionsAdminPage() {
                     <div className="flex items-end gap-2">
                         <div className="relative flex-grow">
                             <Textarea
-                            placeholder="আপনার উত্তর লিখুন..."
+                            placeholder="আপনার রিপ্লাই লিখুন..."
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             onKeyPress={(e) => {
@@ -343,8 +343,8 @@ export default function LiveQuestionsAdminPage() {
             ) : (
             <div className="hidden md:flex flex-grow flex-col items-center justify-center text-center text-muted-foreground">
                 <MessageSquare className="h-16 w-16 mb-4" />
-                <h3 className="text-xl font-semibold">কথোপকথন নির্বাচন করুন</h3>
-                <p>একটি কথোপকথন নির্বাচন করে বার্তা দেখা শুরু করুন।</p>
+                <h3 className="text-xl font-semibold">কনভারসেশন সিলেক্ট করুন</h3>
+                <p>একটি কনভারসেশন সিলেক্ট করে মেসেজ দেখা শুরু করুন।</p>
             </div>
             )}
         </div>
