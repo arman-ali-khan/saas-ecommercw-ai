@@ -83,11 +83,11 @@ const productFormSchema = z.object({
   origin: z.string().optional(),
   story: z.string().optional(),
   is_featured: z.boolean().default(false),
-  brand: z.string().optional(),
-  unit: z.string().optional(),
-  size: z.string().optional(),
-  weight: z.string().optional(),
-  color: z.string().optional(),
+  brand: z.string().nullable().optional(),
+  unit: z.string().nullable().optional(),
+  size: z.string().nullable().optional(),
+  weight: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
   images: z
     .array(
       z.object({
@@ -166,11 +166,11 @@ export default function ManageProductPage() {
       story: '',
       is_featured: false,
       images: [],
-      brand: '',
-      unit: '',
-      size: '',
-      weight: '',
-      color: '',
+      brand: null,
+      unit: null,
+      size: null,
+      weight: null,
+      color: null,
       has_flash_deal: false,
       flash_deal_price: undefined,
       flash_deal_range: { from: undefined, to: undefined },
@@ -304,11 +304,11 @@ export default function ManageProductPage() {
         imageUrl: img.imageUrl || '',
         imageHint: img.imageHint || '',
       })),
-      brand: productData.brand || '',
-      unit: productData.unit || '',
-      size: productData.size || '',
-      weight: productData.weight || '',
-      color: productData.color || '',
+      brand: productData.brand || null,
+      unit: productData.unit || null,
+      size: productData.size || null,
+      weight: productData.weight || null,
+      color: productData.color || null,
       has_flash_deal: !!flashDealData,
       flash_deal_price: flashDealData?.discount_price,
       flash_deal_range: flashDealData ? {
@@ -601,14 +601,15 @@ export default function ManageProductPage() {
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Unit</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                             <Select onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} value={field.value || ''}>
                                 <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a unit" />
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                {(groupedAttributes.unit || []).map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
+                                    <SelectItem value="__none__">None</SelectItem>
+                                    {(groupedAttributes.unit || []).map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             <FormMessage />
@@ -618,13 +619,13 @@ export default function ManageProductPage() {
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-6">
-                        <FormField control={form.control} name="brand" render={({ field }) => ( <FormItem><FormLabel>Brand</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a brand" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.brand || []).map(brand => <SelectItem key={brand} value={brand}>{brand}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="color" render={({ field }) => ( <FormItem><FormLabel>Color</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a color" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.color || []).map(color => <SelectItem key={color} value={color}>{color}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="size" render={({ field }) => ( <FormItem><FormLabel>Size</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a size" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.size || []).map(size => <SelectItem key={size} value={size}>{size}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="brand" render={({ field }) => ( <FormItem><FormLabel>Brand</FormLabel><Select onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a brand" /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">None</SelectItem>{(groupedAttributes.brand || []).map(brand => <SelectItem key={brand} value={brand}>{brand}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="color" render={({ field }) => ( <FormItem><FormLabel>Color</FormLabel><Select onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a color" /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">None</SelectItem>{(groupedAttributes.color || []).map(color => <SelectItem key={color} value={color}>{color}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="size" render={({ field }) => ( <FormItem><FormLabel>Size</FormLabel><Select onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a size" /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">None</SelectItem>{(groupedAttributes.size || []).map(size => <SelectItem key={size} value={size}>{size}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
-                        <FormField control={form.control} name="weight" render={({ field }) => ( <FormItem><FormLabel>Weight</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a weight" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.weight || []).map(weight => <SelectItem key={weight} value={weight}>{weight}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="weight" render={({ field }) => ( <FormItem><FormLabel>Weight</FormLabel><Select onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a weight" /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">None</SelectItem>{(groupedAttributes.weight || []).map(weight => <SelectItem key={weight} value={weight}>{weight}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                         <FormField
                         control={form.control}
                         name="categories" // Represents 'tags'
