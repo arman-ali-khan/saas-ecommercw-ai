@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
@@ -30,6 +29,8 @@ import RichTextRenderer from '@/components/saas-page-renderer';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import Countdown from '@/components/countdown';
+import ProductCard from '@/components/product-card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const TikTokIcon = () => (
   <svg
@@ -63,6 +64,9 @@ export default function ProductClientPage({ product }: { product: Product }) {
   const [shareUrl, setShareUrl] = useState('');
   const [flashDeal, setFlashDeal] = useState<FlashDeal | null>(null);
 
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [isLoadingRelated, setIsLoadingRelated] = useState(true);
+
   useEffect(() => {
     setShareUrl(window.location.href);
 
@@ -78,8 +82,32 @@ export default function ProductClientPage({ product }: { product: Product }) {
             setFlashDeal(data as FlashDeal);
         }
     }
+    
+    const fetchRelatedProducts = async () => {
+        if (!product.categories || product.categories.length === 0) {
+            setIsLoadingRelated(false);
+            return;
+        }
+
+        setIsLoadingRelated(true);
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .overlaps('categories', product.categories)
+            .neq('id', product.id)
+            .limit(4);
+
+        if (error) {
+            console.error("Error fetching related products:", error);
+        } else {
+            setRelatedProducts(data as Product[]);
+        }
+        setIsLoadingRelated(false);
+    }
+
     fetchFlashDeal();
-  }, [product.id]);
+    fetchRelatedProducts();
+  }, [product.id, product.categories]);
 
   const onThumbClick = useCallback(
     (index: number) => {
@@ -139,189 +167,216 @@ export default function ProductClientPage({ product }: { product: Product }) {
   const displayPrice = flashDeal ? flashDeal.discount_price : product.price;
 
   return (
-    <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-      <div className="space-y-4">
-        <Carousel className="w-full" setApi={setMainApi}>
-          <CarouselContent>
-            {images.map((image, index) => (
-              <CarouselItem key={index}>
-                <div className="w-full h-[50vh] rounded-lg overflow-hidden shadow-lg relative">
-                  <Image
-                    src={image.imageUrl}
-                    alt={`${product.name} image ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                  {flashDeal && <Badge variant="destructive" className="absolute top-4 left-4 text-base">SALE</Badge>}
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          {images.length > 1 && (
-            <>
-              <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
-              <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
-            </>
-          )}
-        </Carousel>
+    <div>
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+            <div className="space-y-4">
+                <Carousel className="w-full" setApi={setMainApi}>
+                <CarouselContent>
+                    {images.map((image, index) => (
+                    <CarouselItem key={index}>
+                        <div className="w-full h-[50vh] rounded-lg overflow-hidden shadow-lg relative">
+                        <Image
+                            src={image.imageUrl}
+                            alt={`${product.name} image ${index + 1}`}
+                            fill
+                            className="object-cover"
+                        />
+                        {flashDeal && <Badge variant="destructive" className="absolute top-4 left-4 text-base">SALE</Badge>}
+                        </div>
+                    </CarouselItem>
+                    ))}
+                </CarouselContent>
+                {images.length > 1 && (
+                    <>
+                    <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
+                    <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
+                    </>
+                )}
+                </Carousel>
 
-        {images.length > 1 && (
-          <Carousel
-            setApi={setThumbApi}
-            opts={{
-              align: 'start',
-              containScroll: 'keepSnaps',
-              dragFree: true,
-            }}
-            className="w-full"
-          >
-            <CarouselContent className="-ml-2">
-              {images.map((image, index) => (
-                <CarouselItem
-                  key={index}
-                  onClick={() => onThumbClick(index)}
-                  className="pl-2 basis-1/4 cursor-pointer"
+                {images.length > 1 && (
+                <Carousel
+                    setApi={setThumbApi}
+                    opts={{
+                    align: 'start',
+                    containScroll: 'keepSnaps',
+                    dragFree: true,
+                    }}
+                    className="w-full"
                 >
-                  <div
-                    className={cn(
-                      'relative aspect-square w-full rounded-md overflow-hidden ring-offset-background transition-all',
-                      selectedSnap === index
-                        ? 'ring-2 ring-primary ring-offset-2'
-                        : 'opacity-60 hover:opacity-100'
-                    )}
-                  >
-                    <Image
-                      src={image.imageUrl}
-                      alt={`Thumbnail ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-          </Carousel>
-        )}
-      </div>
-
-      <div className="flex flex-col">
-        <h1 className="text-4xl font-headline font-bold">{product.name}</h1>
-        {flashDeal && (
-            <div className='mt-4 space-y-2'>
-                <p className="text-lg font-semibold text-muted-foreground line-through">
-                    {product.price.toFixed(2)} {product.currency}
-                </p>
-                <div className="text-sm">
-                  <Countdown endDate={flashDeal.end_date} />
-                </div>
+                    <CarouselContent className="-ml-2">
+                    {images.map((image, index) => (
+                        <CarouselItem
+                        key={index}
+                        onClick={() => onThumbClick(index)}
+                        className="pl-2 basis-1/4 cursor-pointer"
+                        >
+                        <div
+                            className={cn(
+                            'relative aspect-square w-full rounded-md overflow-hidden ring-offset-background transition-all',
+                            selectedSnap === index
+                                ? 'ring-2 ring-primary ring-offset-2'
+                                : 'opacity-60 hover:opacity-100'
+                            )}
+                        >
+                            <Image
+                            src={image.imageUrl}
+                            alt={`Thumbnail ${index + 1}`}
+                            fill
+                            className="object-cover"
+                            />
+                        </div>
+                        </CarouselItem>
+                    ))}
+                    </CarouselContent>
+                </Carousel>
+                )}
             </div>
-        )}
-        <p className="text-2xl font-semibold text-primary mt-1">
-          {displayPrice.toFixed(2)} {product.currency}
-        </p>
 
-        <p className="text-lg text-muted-foreground mt-4">
-          {product.description}
-        </p>
+            <div className="flex flex-col">
+                <h1 className="text-4xl font-headline font-bold">{product.name}</h1>
+                {flashDeal && (
+                    <div className='mt-4 space-y-2'>
+                        <p className="text-lg font-semibold text-muted-foreground line-through">
+                            {product.price.toFixed(2)} {product.currency}
+                        </p>
+                        <div className="text-sm">
+                        <Countdown endDate={flashDeal.end_date} />
+                        </div>
+                    </div>
+                )}
+                <p className="text-2xl font-semibold text-primary mt-1">
+                {displayPrice.toFixed(2)} {product.currency}
+                </p>
 
-        <Separator className="my-6" />
+                <p className="text-lg text-muted-foreground mt-4">
+                {product.description}
+                </p>
 
-        <div className="space-y-4">
-          <p>
-            <span className="font-semibold">উৎপত্তি:</span> {product.origin}
-          </p>
-          <p>
-            <span className="font-semibold">আমাদের গল্প:</span> {product.story}
-          </p>
+                <Separator className="my-6" />
+
+                <div className="space-y-4">
+                <p>
+                    <span className="font-semibold">উৎপত্তি:</span> {product.origin}
+                </p>
+                <p>
+                    <span className="font-semibold">আমাদের গল্প:</span> {product.story}
+                </p>
+                </div>
+
+                <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                <div className="flex items-center gap-2">
+                    <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    >
+                    <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) =>
+                        setQuantity(Math.max(1, parseInt(e.target.value) || 1))
+                    }
+                    className="w-16 text-center"
+                    min="1"
+                    />
+                    <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setQuantity(quantity + 1)}
+                    >
+                    <Plus className="h-4 w-4" />
+                    </Button>
+                </div>
+                <Button size="lg" onClick={handleAddToCart} className="flex-grow">
+                    <ShoppingBag className="mr-2 h-5 w-5" /> ব্যাগে যোগ করুন
+                </Button>
+                </div>
+
+                <div className="mt-8">
+                <h3 className="font-semibold mb-2">এই পণ্যটি শেয়ার করুন:</h3>
+                <div className="flex gap-2">
+                    <Button asChild variant="outline" size="icon" disabled={!shareUrl}>
+                    <a
+                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                        shareUrl
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="ফেসবুকে শেয়ার করুন"
+                    >
+                        <Facebook className="h-5 w-5" />
+                    </a>
+                    </Button>
+                    <Button asChild variant="outline" size="icon" disabled={!shareUrl}>
+                    <a
+                        href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
+                        shareUrl
+                        )}&text=${encodeURIComponent(shareText)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="টুইটারে শেয়ার করুন"
+                    >
+                        <Twitter className="h-5 w-5" />
+                    </a>
+                    </Button>
+                    <Button variant="outline" size="icon" disabled>
+                    <TikTokIcon />
+                    </Button>
+                    <Button
+                    variant="outline"
+                    onClick={() => setIsAiModalOpen(true)}
+                    className="px-3"
+                    >
+                    <Wand2 className="h-5 w-5 mr-2" />
+                    এআই শেয়ার
+                    </Button>
+                </div>
+                </div>
+                
+                {longDescContent && (
+                <div className="mt-8 pt-8 border-t">
+                    <h3 className="text-2xl font-headline font-bold mb-4">পণ্যের বিবরণ</h3>
+                    <RichTextRenderer content={longDescContent} />
+                </div>
+                )}
+
+            </div>
         </div>
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            <Input
-              type="number"
-              value={quantity}
-              onChange={(e) =>
-                setQuantity(Math.max(1, parseInt(e.target.value) || 1))
-              }
-              className="w-16 text-center"
-              min="1"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setQuantity(quantity + 1)}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button size="lg" onClick={handleAddToCart} className="flex-grow">
-            <ShoppingBag className="mr-2 h-5 w-5" /> ব্যাগে যোগ করুন
-          </Button>
-        </div>
-
-        <div className="mt-8">
-          <h3 className="font-semibold mb-2">এই পণ্যটি শেয়ার করুন:</h3>
-          <div className="flex gap-2">
-            <Button asChild variant="outline" size="icon" disabled={!shareUrl}>
-              <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                  shareUrl
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="ফেসবুকে শেয়ার করুন"
-              >
-                <Facebook className="h-5 w-5" />
-              </a>
-            </Button>
-            <Button asChild variant="outline" size="icon" disabled={!shareUrl}>
-              <a
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
-                  shareUrl
-                )}&text=${encodeURIComponent(shareText)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="টুইটারে শেয়ার করুন"
-              >
-                <Twitter className="h-5 w-5" />
-              </a>
-            </Button>
-            <Button variant="outline" size="icon" disabled>
-              <TikTokIcon />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsAiModalOpen(true)}
-              className="px-3"
-            >
-              <Wand2 className="h-5 w-5 mr-2" />
-              এআই শেয়ার
-            </Button>
-          </div>
+        <div className="mt-16">
+            <h2 className="text-3xl font-headline font-bold mb-8">Related Products</h2>
+            {isLoadingRelated ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="space-y-2">
+                            <Skeleton className="h-56 w-full" />
+                            <Skeleton className="h-6 w-3/4" />
+                            <Skeleton className="h-4 w-1/2" />
+                            <Skeleton className="h-10 w-full" />
+                        </div>
+                    ))}
+                </div>
+            ) : relatedProducts.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    {relatedProducts.map((p) => (
+                        <ProductCard key={p.id} product={p} />
+                    ))}
+                </div>
+            ) : (
+                <p className="text-muted-foreground">No related products found.</p>
+            )}
         </div>
         
-        {longDescContent && (
-          <div className="mt-8 pt-8 border-t">
-            <h3 className="text-2xl font-headline font-bold mb-4">পণ্যের বিবরণ</h3>
-            <RichTextRenderer content={longDescContent} />
-          </div>
+        {product && (
+            <AiShareTool
+            product={product}
+            open={isAiModalOpen}
+            onOpenChange={setIsAiModalOpen}
+            />
         )}
-
-      </div>
-      {product && (
-        <AiShareTool
-          product={product}
-          open={isAiModalOpen}
-          onOpenChange={setIsAiModalOpen}
-        />
-      )}
     </div>
   );
 }
