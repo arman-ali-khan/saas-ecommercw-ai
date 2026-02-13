@@ -32,7 +32,7 @@ export default async function AllFlashDealsPage({ params }: Props) {
 
   const { data: flashDeals, error } = await supabase
     .from('flash_deals')
-    .select('*, products(*, images(imageUrl))')
+    .select('*, products!inner(*)')
     .eq('site_id', site.id)
     .eq('is_active', true)
     .gt('end_date', new Date().toISOString())
