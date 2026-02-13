@@ -1,28 +1,11 @@
 
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ProductShowcaseBlock } from '@/components/product-card';
-
-const SimpleMarkdown = ({ text }: { text: string }) => {
-  if (!text) return null;
-
-  const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i}>{part.slice(2, -2)}</strong>;
-        }
-        if (part.startsWith('*') && part.endsWith('*')) {
-          return <em key={i}>{part.slice(1, -1)}</em>;
-        }
-        return part;
-      })}
-    </>
-  );
-};
+import RichTextRenderer from '@/components/saas-page-renderer';
 
 const alignmentClasses = {
     left: 'text-left',
@@ -42,7 +25,25 @@ export function PageBlock({ block, username }: { block: any, username: string })
       const Tag = block.level === 1 ? 'h1' : block.level === 2 ? 'h2' : 'h3';
       return <Tag className={cn("text-3xl font-bold my-4", alignClass)}>{block.text}</Tag>;
     case 'paragraph':
-      return <p className={cn("my-4 text-lg text-muted-foreground whitespace-pre-wrap", alignClass)}><SimpleMarkdown text={block.text} /></p>;
+      let content;
+      try {
+        const parsed = JSON.parse(block.text);
+        // Basic check to see if it's a Tiptap object
+        if (typeof parsed === 'object' && parsed !== null && parsed.type === 'doc') {
+            content = parsed;
+        } else {
+            // It's valid JSON but not a Tiptap doc, wrap it
+            throw new Error("Not a Tiptap doc");
+        }
+      } catch (e) {
+        // Not a valid JSON string, treat as plain text
+        content = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: block.text || '' }] }] };
+      }
+      return (
+        <div className={cn("my-4 text-lg prose dark:prose-invert max-w-full", alignClass)}>
+            <RichTextRenderer content={content} />
+        </div>
+      );
     case 'image':
       return (
         <div className="relative my-6 aspect-video overflow-hidden rounded-lg">
@@ -71,6 +72,19 @@ export function PageBlock({ block, username }: { block: any, username: string })
           </div>
         );
     case 'coloredBox':
+        const SimpleMarkdown = ({ text }: { text: string }) => {
+            if (!text) return null;
+            const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+            return (
+                <>
+                {parts.map((part, i) => {
+                    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>;
+                    if (part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>;
+                    return part;
+                })}
+                </>
+            );
+        };
         return (
             <div className="my-4 p-6 rounded-lg" style={{ backgroundColor: block.color || '#172554' }}>
                 <p className="text-lg text-primary-foreground whitespace-pre-wrap"><SimpleMarkdown text={block.text} /></p>

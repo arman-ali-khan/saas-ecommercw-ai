@@ -28,6 +28,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import RichTextEditor from '@/components/rich-text-editor';
 
 const generateSlug = (title: string) => {
   return title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
@@ -258,8 +259,15 @@ export default function ManagePage() {
                               )}
                               {(field as any).type === 'paragraph' && (
                                   <>
-                                      <FormField control={control} name={`${currentFieldName}.text`} render={({ field: f }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...f} rows={4} /></FormControl><FormDescription>Use **bold** for bold and *italic* for italic text.</FormDescription><FormMessage /></FormItem>)} />
-                                      <FormField control={control} name={`${currentFieldName}.align`} render={({ field: f }) => (<FormItem><FormLabel>Alignment</FormLabel><Select onValueChange={f.onChange} defaultValue={f.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="left"><AlignLeft className="inline-block mr-2 h-4 w-4"/>Left</SelectItem><SelectItem value="center"><AlignCenter className="inline-block mr-2 h-4 w-4"/>Center</SelectItem><SelectItem value="right"><AlignRight className="inline-block mr-2 h-4 w-4"/>Right</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                      <FormField control={control} name={`${currentFieldName}.text`} render={({ field: f }) => (
+                                          <FormItem>
+                                              <FormLabel>Text</FormLabel>
+                                              <FormControl>
+                                                  <RichTextEditor value={f.value || ''} onChange={f.onChange} />
+                                              </FormControl>
+                                              <FormMessage />
+                                          </FormItem>
+                                      )} />
                                   </>
                               )}
                               {(field as any).type === 'image' && (
