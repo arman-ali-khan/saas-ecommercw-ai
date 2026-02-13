@@ -98,14 +98,12 @@ const shippingFormSchema = z.object({
   notes: z.string().optional(),
 });
 
-export function ProductShowcaseBlock({ product_ids, title }: { product_ids: string[], title?: string }) {
+export function ProductShowcaseBlock({ product_ids, title, username }: { product_ids: string[], title?: string, username: string }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [quantities, setQuantities] = useState<{[key: string]: number}>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const params = useParams();
-  const username = params.username as string;
   const { toast } = useToast();
   const [siteId, setSiteId] = useState<string | null>(null);
 
@@ -202,7 +200,7 @@ export function ProductShowcaseBlock({ product_ids, title }: { product_ids: stri
       const response = await fetch('/api/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData) });
       const newOrder = await response.json();
       if (!response.ok) throw new Error(newOrder.error || 'Failed to create order');
-      router.push(`/checkout/success?order_id=${newOrder.id}`);
+      router.push(`/${username}/checkout/success?order_id=${newOrder.id}`);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Order failed', description: error.message });
       setIsSubmitting(false);

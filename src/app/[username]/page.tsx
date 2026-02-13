@@ -526,7 +526,7 @@ export default async function UserPage({
                       {section.title}
                     </h2>
                     <Button asChild variant="ghost">
-                      <Link href={`/products`}>
+                      <Link href={`/products?category=${encodeURIComponent(section.category)}`}>
                         সব দেখুন <ArrowRight className="ml-2" />
                       </Link>
                     </Button>
