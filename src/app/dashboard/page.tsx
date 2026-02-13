@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -29,6 +30,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { SubscriptionPaymentWithDetails } from '@/types';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export default function SaasAdminDashboard() {
   const [stats, setStats] = useState({
@@ -256,39 +258,43 @@ export default function SaasAdminDashboard() {
                   </Link>
               </Button>
           </CardHeader>
-          <CardContent>
-             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Message</TableHead>
-                  <TableHead>Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                 {isLoading ? (
-                    [...Array(3)].map((_, i) => (
-                        <TableRow key={i}>
-                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                        </TableRow>
-                    ))
-                ) : unreadNotifications.length > 0 ? (
-                    unreadNotifications.map((notif) => (
-                    <TableRow key={notif.id}>
-                        <TableCell className="font-medium">{notif.profiles?.full_name || 'N/A'}</TableCell>
-                        <TableCell className="text-muted-foreground truncate max-w-xs">{notif.message}</TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{format(new Date(notif.created_at), 'PP')}</TableCell>
-                    </TableRow>
-                    ))
-                 ) : (
-                    <TableRow>
-                        <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">No unread notifications.</TableCell>
-                    </TableRow>
-                )}
-              </TableBody>
-            </Table>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border">
+              {isLoading ? (
+                [...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4">
+                    <Skeleton className="h-9 w-9 rounded-full" />
+                    <div className="flex-1 space-y-1">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                ))
+              ) : unreadNotifications.length > 0 ? (
+                unreadNotifications.map((notif) => (
+                  <div key={notif.id} className="flex items-start gap-4 p-4">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback>{notif.profiles?.full_name?.charAt(0) || 'S'}</AvatarFallback>
+                    </Avatar>
+                    <div className="grid gap-1 flex-1">
+                      <p className="text-sm font-medium leading-none">
+                          To: {notif.profiles?.full_name || 'System'}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate max-w-xs">
+                        {notif.message}
+                      </p>
+                    </div>
+                    <div className="ml-auto text-xs text-muted-foreground">
+                      {format(new Date(notif.created_at), 'PP')}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-muted-foreground">
+                  No unread notifications.
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
