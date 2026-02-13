@@ -6,6 +6,7 @@ import SiteLayout from '@/components/site-layout';
 import AuthProvider from '@/components/auth-provider';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import NextTopLoader from 'nextjs-toploader';
 
 // Force dynamic rendering to ensure the latest settings (like favicon) are always used.
 export const dynamic = 'force-dynamic';
@@ -74,6 +75,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
+        <NextTopLoader color="hsl(var(--primary))" showSpinner={false} />
         <AuthProvider>
           <SiteLayout>{children}</SiteLayout>
         </AuthProvider>
