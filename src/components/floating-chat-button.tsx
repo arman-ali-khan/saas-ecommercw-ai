@@ -32,6 +32,7 @@ export default function FloatingChatButton() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [senderName, setSenderName] = useState('অতিথি');
   const [isLoading, setIsLoading] = useState(true);
+  const [siteName, setSiteName] = useState('Your Store'); // Added state for site name
 
   const lastMessageRef = useRef<HTMLDivElement>(null);
 
@@ -48,12 +49,13 @@ export default function FloatingChatButton() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, site_name') // Fetch site_name
         .eq('domain', domain)
         .single();
       
       if (data) {
         setSiteId(data.id);
+        setSiteName(data.site_name || 'Your Store'); // Set the site name
         let convId = localStorage.getItem(`chat_conversation_id_${domain}`);
         if (!convId) {
           convId = uuidv4();
@@ -105,9 +107,9 @@ export default function FloatingChatButton() {
             id: -1, // Dummy ID for initial message
             conversation_id: conversationId,
             site_id: siteId,
-            sender_name: 'বাংলা ন্যাচারালস',
+            sender_name: siteName, // Use dynamic site name
             sender_type: 'agent',
-            content: 'নমস্কার! আজ আমরা আপনাকে কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।',
+            content: `নমস্কার! আজ আমরা আপনাকে ${siteName}-এ কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।`,
             created_at: new Date().toISOString(),
           }]);
         }
@@ -115,7 +117,7 @@ export default function FloatingChatButton() {
       };
       fetchMessages();
     }
-  }, [conversationId, siteId]);
+  }, [conversationId, siteId, siteName]); // Added siteName dependency
 
   // 4. Subscribe to real-time messages
   useEffect(() => {
@@ -217,7 +219,7 @@ export default function FloatingChatButton() {
         >
           <div className="flex flex-col h-[50vh] max-h-[450px]">
             <div className="p-4 bg-primary text-primary-foreground">
-              <h4 className="font-bold text-lg">বাংলা ন্যাচারালস-এর সাথে চ্যাট করুন</h4>
+              <h4 className="font-bold text-lg">{siteName}-এর সাথে চ্যাট করুন</h4>
               <p className="text-sm text-primary-foreground/90">
                 আমরা সাধারণত কয়েক মিনিটের মধ্যে উত্তর দিই।
               </p>
