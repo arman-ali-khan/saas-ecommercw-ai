@@ -235,7 +235,7 @@ export default function FloatingChatButton() {
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
                     )}
-                  >
+                  > 
                     {chat.content}
                   </div>
                 </div>
