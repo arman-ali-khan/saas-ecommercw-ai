@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -14,6 +13,7 @@ import {
   Bell,
   Sparkles,
   FileText,
+  Store, // Changed Icon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -121,7 +121,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
 
   const adminNavLinks = [
     { href: `/dashboard`, label: 'Dashboard', icon: Home },
-    { href: `/dashboard/users`, label: 'Users', icon: Users },
+    { href: `/dashboard/users`, label: 'Stores', icon: Store }, // Changed label and icon
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: pendingSubscriptionsCount },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
@@ -232,5 +232,3 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     </div>
   );
 }
-
-    

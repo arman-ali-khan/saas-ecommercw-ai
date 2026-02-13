@@ -134,12 +134,12 @@ export default function EditUserPage() {
             <Button variant="ghost" asChild className="mb-4 -ml-4">
                 <Link href="/dashboard/users">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Users
+                    Back to Stores
                 </Link>
             </Button>
             <Card>
                 <CardHeader>
-                    <CardTitle>Edit User: {user.full_name}</CardTitle>
+                    <CardTitle>Edit Store: {user.site_name}</CardTitle>
                     <CardDescription>Update the profile and site details for @{user.username}.</CardDescription>
                 </CardHeader>
                 <CardContent>
