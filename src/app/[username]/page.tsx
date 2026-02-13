@@ -173,7 +173,7 @@ export default async function UserPage({
           case 'hero':
             if (heroSlides.length === 0 && categories.length === 0) return null;
             return (
-              <section key={section.id} className="grid lg:grid-cols-[260px_1fr] gap-8 items-start">
+              <section key={section.id} className="grid sm:grid-cols-[260px_1fr] gap-8 items-start">
                   {categories.length > 0 && (
                       <div className="hidden sm:block sticky top-24">
                           <Card>
