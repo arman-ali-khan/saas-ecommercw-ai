@@ -26,6 +26,7 @@ import {
   Flame,
   ClipboardList,
   ChevronDown,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -163,6 +164,7 @@ export default function AdminMobileSidebar() {
   };
 
   const handleLanguageToggle = async () => {
+    if(!user) return;
     const newLang = siteSettings?.language === 'bn' ? 'en' : 'bn';
     const { error } = await supabase.from('store_settings').update({ language: newLang }).eq('site_id', user.id);
     if (error) {
@@ -194,6 +196,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
+    { href: `/admin/features`, label: 'Store Features', icon: Sparkles },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },

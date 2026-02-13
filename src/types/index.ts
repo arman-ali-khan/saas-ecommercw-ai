@@ -237,4 +237,14 @@ export interface ProductAttribute {
   value: string;
   created_at: string;
 }
+
+export interface StoreFeature {
+  id: string;
+  site_id: string;
+  title: string;
+  description: string | null;
+  icon: string;
+  order: number;
+  created_at: string;
+}
     

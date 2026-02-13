@@ -17,7 +17,7 @@ import {
 import { getProductsByDomain, checkDomainExists } from '@/lib/products';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Section, Category, FlashDeal } from '@/types';
+import type { Section, Category, FlashDeal, StoreFeature } from '@/types';
 import DynamicIcon from '@/components/dynamic-icon';
 import { cn } from '@/lib/utils';
 
@@ -110,6 +110,13 @@ export default async function UserPage({
     .eq('is_active', true)
     .gt('end_date', new Date().toISOString());
 
+  const { data: storeFeaturesData } = await supabase
+    .from('store_features')
+    .select('*')
+    .eq('site_id', profile.id)
+    .order('order', { ascending: true });
+
+  const storeFeatures = (storeFeaturesData as StoreFeature[]) || [];
   const categories = (categoriesData as Category[]) || [];
   const featuredProducts = allProducts.filter((p) => p.is_featured);
   const flashDeals = (flashDealsData as FlashDeal[]) || [];
@@ -278,6 +285,35 @@ export default async function UserPage({
             );
 
           case 'why-us':
+            if (storeFeatures.length > 0) {
+              return (
+                <section key={section.id}>
+                  <h2 className="text-3xl font-headline font-bold text-center mb-8">
+                    {section.title}
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    {storeFeatures.map((feature) => (
+                      <Card key={feature.id} className="overflow-hidden flex flex-col items-center text-center">
+                        <CardContent className="p-6 flex flex-col flex-grow items-center">
+                          <div className="bg-primary/10 p-4 rounded-full mb-4">
+                            <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
+                          </div>
+                          <CardHeader className="p-0">
+                            <CardTitle className="font-headline text-2xl">
+                              {feature.title}
+                            </CardTitle>
+                          </CardHeader>
+                          <p className="text-muted-foreground mt-4 flex-grow">
+                            {feature.description}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </section>
+              );
+            }
+            // Fallback to original hardcoded content
             return (
               <section key={section.id}>
                 <h2 className="text-3xl font-headline font-bold text-center mb-8">
