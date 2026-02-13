@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -33,7 +33,7 @@ import { Loader2, ArrowLeft, Trash2, ChevronDown, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
-import type { Product, Category } from '@/types';
+import type { Product, ProductAttribute } from '@/types';
 import ImageUploader from '@/components/image-uploader';
 import {
   DropdownMenu,
@@ -43,6 +43,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import RichTextEditor from '@/components/rich-text-editor';
@@ -67,10 +74,15 @@ const productFormSchema = z.object({
   currency: z.string().default('BDT'),
   description: z.string().optional(),
   long_description: z.string().optional(),
-  categories: z.array(z.string()).default([]),
+  categories: z.array(z.string()).default([]), // This is used for tags
   origin: z.string().optional(),
   story: z.string().optional(),
   is_featured: z.boolean().default(false),
+  brand: z.string().optional(),
+  unit: z.string().optional(),
+  size: z.string().optional(),
+  weight: z.string().optional(),
+  color: z.string().optional(),
   images: z
     .array(
       z.object({
@@ -93,7 +105,7 @@ export default function ManageProductPage() {
   const isNew = productId === 'new';
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slugStatus, setSlugStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'invalid'>('empty');
@@ -113,11 +125,16 @@ export default function ManageProductPage() {
       currency: 'BDT',
       description: '',
       long_description: '',
-      categories: [],
+      categories: [], // tags
       origin: '',
       story: '',
       is_featured: false,
       images: [],
+      brand: '',
+      unit: '',
+      size: '',
+      weight: '',
+      color: '',
     },
   });
 
@@ -214,30 +231,33 @@ export default function ManageProductPage() {
         imageUrl: img.imageUrl || '',
         imageHint: img.imageHint || '',
       })),
+      brand: productData.brand || '',
+      unit: productData.unit || '',
+      size: productData.size || '',
+      weight: productData.weight || '',
+      color: productData.color || '',
     };
 
     form.reset(sanitizedData);
     setIsLoading(false);
   }, [productId, isNew, user, router, toast, form]);
-
-  const fetchCategories = useCallback(async () => {
+  
+  const fetchAttributes = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from('categories')
-      .select('id, name')
-      .eq('site_id', user.id)
-      .order('name', { ascending: true });
-
-    if (data) {
-      setCategories(data as Category[]);
-    } else if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Could not fetch categories',
-        description: error.message,
-      });
+    const { data, error } = await supabase.from('product_attributes').select('*').eq('site_id', user.id);
+    if(error) {
+        toast({ title: 'Error fetching attributes', variant: 'destructive', description: error.message });
+    } else if (data) {
+        setAttributes(data);
     }
   }, [user, toast]);
+
+  const groupedAttributes = useMemo(() => {
+    return attributes.reduce((acc, attr) => {
+        (acc[attr.type] = acc[attr.type] || []).push(attr.value);
+        return acc;
+    }, {} as Record<string, string[]>);
+  }, [attributes]);
   
   useEffect(() => {
     if (!authLoading) {
@@ -248,10 +268,10 @@ export default function ManageProductPage() {
       }
       
       if (user) {
-          fetchCategories();
+        fetchAttributes();
       }
     }
-  }, [authLoading, user, isNew, fetchProduct, fetchCategories]);
+  }, [authLoading, user, isNew, fetchProduct, fetchAttributes]);
 
 
   const onSubmit = async (values: ProductFormData) => {
@@ -453,56 +473,69 @@ export default function ManageProductPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="categories"
+                  name="unit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Categories</FormLabel>
+                      <FormLabel>Unit</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a unit" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                           {(groupedAttributes.unit || []).map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+               <div className="grid md:grid-cols-3 gap-6">
+                <FormField control={form.control} name="brand" render={({ field }) => ( <FormItem><FormLabel>Brand</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a brand" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.brand || []).map(brand => <SelectItem key={brand} value={brand}>{brand}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="color" render={({ field }) => ( <FormItem><FormLabel>Color</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a color" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.color || []).map(color => <SelectItem key={color} value={color}>{color}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="size" render={({ field }) => ( <FormItem><FormLabel>Size</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a size" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.size || []).map(size => <SelectItem key={size} value={size}>{size}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <FormField control={form.control} name="weight" render={({ field }) => ( <FormItem><FormLabel>Weight</FormLabel><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a weight" /></SelectTrigger></FormControl><SelectContent>{(groupedAttributes.weight || []).map(weight => <SelectItem key={weight} value={weight}>{weight}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                 <FormField
+                  control={form.control}
+                  name="categories" // Represents 'tags'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tags</FormLabel>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-between"
-                          >
-                            <span>
-                              {field.value?.length > 0
-                                ? `${field.value.length} selected`
-                                : 'Select categories'}
-                            </span>
+                          <Button variant="outline" className="w-full justify-between">
+                            <span>{field.value?.length > 0 ? `${field.value.length} selected` : 'Select tags'}</span>
                             <ChevronDown className="h-4 w-4 opacity-50" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                          <DropdownMenuLabel>
-                            Available Categories
-                          </DropdownMenuLabel>
+                          <DropdownMenuLabel>Available Tags</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          {categories.length > 0 ? (
-                            categories.map((category) => (
+                          {(groupedAttributes.tag || []).length > 0 ? (
+                            (groupedAttributes.tag || []).map((tag) => (
                               <DropdownMenuCheckboxItem
-                                key={category.id}
-                                checked={field.value?.includes(category.name)}
+                                key={tag}
+                                checked={field.value?.includes(tag)}
                                 onCheckedChange={(checked) => {
                                   const currentValue = field.value || [];
                                   return checked
-                                    ? field.onChange([
-                                        ...currentValue,
-                                        category.name,
-                                      ])
-                                    : field.onChange(
-                                        currentValue?.filter(
-                                          (value) => value !== category.name
-                                        )
-                                      );
+                                    ? field.onChange([...currentValue, tag])
+                                    : field.onChange(currentValue?.filter((value) => value !== tag));
                                 }}
-                                onSelect={(event) => event.preventDefault()} // Keep menu open
+                                onSelect={(event) => event.preventDefault()}
                               >
-                                {category.name}
+                                {tag}
                               </DropdownMenuCheckboxItem>
                             ))
                           ) : (
                             <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                              No categories found. Go to the Category Manager
-                              to add some.
+                              No tags found. Go to the Attribute Manager to add some.
                             </div>
                           )}
                         </DropdownMenuContent>

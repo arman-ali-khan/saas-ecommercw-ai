@@ -19,6 +19,11 @@ export interface Product {
   is_featured: boolean;
   stock?: number;
   created_at: string;
+  brand?: string | null;
+  unit?: string | null;
+  size?: string | null;
+  weight?: string | null;
+  color?: string | null;
 }
 
 export interface CartItem extends Product {
