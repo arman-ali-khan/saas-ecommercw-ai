@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -171,17 +172,23 @@ export default function LiveQuestionsAdminPage() {
         is_read: true,
     };
     
-    // Optimistic update
+    // Optimistic update: Add new message AND mark customer messages as read.
     setMessagesByConversation(prevMap => {
         const newMap = new Map(prevMap);
         const conversation = newMap.get(selectedConversationId) || [];
-        newMap.set(selectedConversationId, [...conversation, optimisticMessage]);
+        
+        const updatedConversationWithRead = conversation.map(msg => 
+            msg.sender_type === 'customer' && !msg.is_read ? { ...msg, is_read: true } : msg
+        );
+
+        newMap.set(selectedConversationId, [...updatedConversationWithRead, optimisticMessage]);
         return newMap;
     });
 
     setNewMessage('');
 
-    const { error } = await supabase.from('live_chat_messages').insert({
+    // DB Operations in parallel
+    const insertPromise = supabase.from('live_chat_messages').insert({
         conversation_id: selectedConversationId,
         site_id: user.id,
         sender_id: user.id,
@@ -190,8 +197,18 @@ export default function LiveQuestionsAdminPage() {
         content: newMessage.trim(),
     });
 
-    if (error) {
-        console.error("Failed to send message:", error);
+    const readPromise = supabase
+        .from('live_chat_messages')
+        .update({ is_read: true })
+        .eq('conversation_id', selectedConversationId)
+        .eq('sender_type', 'customer')
+        .eq('is_read', false);
+
+    const [{ error: insertError }] = await Promise.all([insertPromise, readPromise]);
+
+
+    if (insertError) {
+        console.error("Failed to send message:", insertError);
         // Here you could implement logic to show a "failed" state on the message
     }
   };
