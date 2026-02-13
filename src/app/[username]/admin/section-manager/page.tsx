@@ -68,14 +68,14 @@ export default function SectionManagerPage() {
     
     setProducts(fetchedProducts);
 
+    let currentSections: Section[] = [];
     if (settingsData && settingsData.homepage_sections) {
-        // @ts-ignore
-        setSections(settingsData.homepage_sections);
+        currentSections = (settingsData.homepage_sections as Section[]) || [];
     } else {
         const categories = [
           ...new Set(fetchedProducts.flatMap((p) => p.categories || [])),
         ];
-        const initialSections: Section[] = [
+        currentSections = [
           {
             id: 'hero',
             title: 'Hero Carousel',
@@ -108,9 +108,26 @@ export default function SectionManagerPage() {
             category: cat,
           })),
         ];
-        setSections(initialSections);
+    }
+    
+    // Ensure 'flash_deals' section exists for users with older saved settings
+    if (!currentSections.some(s => s.id === 'flash_deals')) {
+        const heroIndex = currentSections.findIndex(s => s.id === 'hero');
+        const flashDealSection: Section = {
+            id: 'flash_deals',
+            title: 'Flash Deals',
+            enabled: true,
+            isCategorySection: false,
+        };
+        if (heroIndex !== -1) {
+            currentSections.splice(heroIndex + 1, 0, flashDealSection);
+        } else {
+            currentSections.unshift(flashDealSection);
+        }
     }
 
+
+    setSections(currentSections);
     setIsLoading(false);
   }, [user, toast]);
 
