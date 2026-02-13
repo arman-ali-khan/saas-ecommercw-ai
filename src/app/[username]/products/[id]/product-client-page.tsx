@@ -21,7 +21,6 @@ import {
   Plus,
   Minus,
   Wand2,
-  Clock,
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
@@ -30,6 +29,7 @@ import { cn } from '@/lib/utils';
 import RichTextRenderer from '@/components/saas-page-renderer';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import Countdown from '@/components/countdown';
 
 const TikTokIcon = () => (
   <svg
@@ -49,41 +49,6 @@ const TikTokIcon = () => (
     <path d="M13.5 4.5v4"></path>
   </svg>
 );
-
-const Countdown = ({ endDate }: { endDate: string }) => {
-    const [timeLeft, setTimeLeft] = useState({
-      days: 0,
-      hours: 0,
-      minutes: 0,
-      seconds: 0,
-    });
-  
-    useEffect(() => {
-      const calculateTimeLeft = () => {
-        const difference = new Date(endDate).getTime() - new Date().getTime();
-        if (difference > 0) {
-          setTimeLeft({
-            days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-            hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-            minutes: Math.floor((difference / 1000 / 60) % 60),
-            seconds: Math.floor((difference / 1000) % 60),
-          });
-        }
-      };
-  
-      const timer = setInterval(calculateTimeLeft, 1000);
-      calculateTimeLeft();
-  
-      return () => clearInterval(timer);
-    }, [endDate]);
-  
-    return (
-      <div className="flex items-center gap-2 text-sm text-destructive">
-          <Clock className="h-4 w-4" />
-          <span>অফার শেষ হচ্ছে: {timeLeft.days} দিন {timeLeft.hours} ঘন্টা {timeLeft.minutes} মিনিট {timeLeft.seconds} সেকেন্ড</span>
-      </div>
-    );
-};
 
 export default function ProductClientPage({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
@@ -246,7 +211,9 @@ export default function ProductClientPage({ product }: { product: Product }) {
                 <p className="text-lg font-semibold text-muted-foreground line-through">
                     {product.price.toFixed(2)} {product.currency}
                 </p>
-                <Countdown endDate={flashDeal.end_date} />
+                <div className="text-sm">
+                  <Countdown endDate={flashDeal.end_date} />
+                </div>
             </div>
         )}
         <p className="text-2xl font-semibold text-primary mt-1">

@@ -23,6 +23,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
+import Countdown from './countdown';
 
 interface ProductCardProps {
   product: Product;
@@ -66,6 +67,11 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
         <CardContent className="p-4 flex-grow">
           <h3 className="text-xl font-headline font-semibold">{product.name}</h3>
           <p className="text-muted-foreground mt-1">{product.description}</p>
+          {flashDeal && (
+            <div className="mt-2">
+              <Countdown endDate={flashDeal.end_date} />
+            </div>
+          )}
         </CardContent>
       </Link>
       <CardFooter className="p-4 mt-auto flex justify-between items-center">
