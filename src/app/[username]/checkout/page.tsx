@@ -12,7 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
@@ -23,6 +23,8 @@ import type { ShippingZone } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
+import { v4 as uuidv4 } from 'uuid';
+
 
 const checkoutSchema = z
   .object({
@@ -66,6 +68,7 @@ export default function CheckoutPage() {
   const [isLoadingPaymentSettings, setIsLoadingPaymentSettings] = useState(true);
   const [shippingZones, setShippingZones] = useState<ShippingZone[]>([]);
   const [isLoadingShipping, setIsLoadingShipping] = useState(true);
+  const [uncompletedOrderId, setUncompletedOrderId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -82,6 +85,71 @@ export default function CheckoutPage() {
   });
 
   const { control, register } = form;
+  const phoneValue = form.watch('phone');
+
+  useEffect(() => {
+    let cartSessionId = localStorage.getItem(`cart_session_id_${username}`);
+    if (!cartSessionId) {
+        cartSessionId = uuidv4();
+        localStorage.setItem(`cart_session_id_${username}`, cartSessionId);
+    }
+    setUncompletedOrderId(cartSessionId);
+  }, [username]);
+
+  const onInvalidSubmit = (errors: any) => {
+    console.log(errors)
+  }
+
+  const debouncedSaveUncompletedOrder = useCallback(async () => {
+    if (!uncompletedOrderId || !siteId || !phoneValue || phoneValue.length < 10) {
+      return;
+    }
+    
+    const currentFormValues = form.getValues();
+
+    const uncompletedOrderData = {
+        id: uncompletedOrderId,
+        site_id: siteId,
+        customer_id: customer?.id || null,
+        customer_info: {
+            name: currentFormValues.name,
+            email: currentFormValues.email,
+            address: currentFormValues.address,
+            city: currentFormValues.city,
+            phone: currentFormValues.phone,
+            notes: currentFormValues.notes,
+        },
+        cart_items: cartItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          imageUrl: item.images[0]?.imageUrl
+        })),
+        cart_total: cartSubtotal,
+        status: 'shipping-info-entered'
+    };
+
+    const { error } = await supabase
+        .from('uncompleted_orders')
+        .upsert(uncompletedOrderData, { onConflict: 'id' });
+    
+    if (error) {
+        console.error("Failed to save uncompleted order:", error);
+    }
+  }, [uncompletedOrderId, siteId, phoneValue, form, customer, cartItems, cartSubtotal]);
+
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      debouncedSaveUncompletedOrder();
+    }, 2000); 
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [phoneValue, debouncedSaveUncompletedOrder]);
+
 
   const paymentMethod = form.watch('paymentMethod');
   const selectedShippingZoneId = form.watch('shippingZoneId');
@@ -198,6 +266,7 @@ export default function CheckoutPage() {
       payment_method: values.paymentMethod,
       transaction_id: values.transactionId || null,
       status: 'processing',
+      uncompletedOrderId: uncompletedOrderId,
       domain: username,
     };
 
@@ -215,6 +284,7 @@ export default function CheckoutPage() {
       }
 
       clearCart();
+      localStorage.removeItem(`cart_session_id_${username}`);
       router.push(`/checkout/success?order_id=${newOrder.id}`);
 
     } catch (error: any) {
@@ -304,7 +374,7 @@ export default function CheckoutPage() {
 
       <div className="md:order-1">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-6">
             <h1 className="text-3xl font-headline font-bold">যোগাযোগ ও শিপিং</h1>
             
             <div className="grid md:grid-cols-2 gap-4">

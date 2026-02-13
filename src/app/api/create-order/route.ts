@@ -1,10 +1,11 @@
+
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
     const orderData = await request.json();
-    const { domain, ...dbOrderData } = orderData;
+    const { domain, uncompletedOrderId, ...dbOrderData } = orderData;
 
     // Basic validation
     if (!dbOrderData || !dbOrderData.site_id || !dbOrderData.cart_items) {
@@ -25,6 +26,17 @@ export async function POST(request: Request) {
     if (orderError) {
       console.error('Create Order API Error:', orderError);
       return NextResponse.json({ error: `Database Error: ${orderError.message}` }, { status: 500 });
+    }
+    
+    if (uncompletedOrderId) {
+        const { error: deleteError } = await supabaseAdmin
+            .from('uncompleted_orders')
+            .delete()
+            .eq('id', uncompletedOrderId);
+        
+        if (deleteError) {
+            console.error('Failed to delete uncompleted order:', deleteError);
+        }
     }
 
     // --- Create notification for admin ---
