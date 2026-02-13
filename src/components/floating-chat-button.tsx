@@ -109,7 +109,7 @@ export default function FloatingChatButton() {
             site_id: siteId,
             sender_name: siteName, // Use dynamic site name
             sender_type: 'agent',
-            content: `নমস্কার! আজ আমরা আপনাকে ${siteName}-এ কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।`,
+            content: `আসসালামু আলাইকুম! আজ আমরা আপনাকে ${siteName}-এ কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।`,
             created_at: new Date().toISOString(),
           }]);
         }
@@ -220,7 +220,7 @@ export default function FloatingChatButton() {
           <div className="flex flex-col h-[50vh] max-h-[450px]">
             <div className="p-4 bg-primary text-primary-foreground">
               <h4 className="font-bold text-lg">{siteName}-এর সাথে চ্যাট করুন</h4>
-              <p className="text-sm text-primary-foreground/90">
+              <p className="text-xs sm:text-sm text-primary-foreground/90">
                 আমরা সাধারণত কয়েক মিনিটের মধ্যে উত্তর দিই।
               </p>
             </div>
@@ -245,7 +245,7 @@ export default function FloatingChatButton() {
                             )}
                             <div
                             className={cn(
-                                'max-w-[75%] rounded-lg px-3 py-2 text-sm shadow-sm break-words',
+                                'max-w-[75%] rounded-lg px-3 py-2 text-xs sm:text-sm shadow-sm break-words',
                                 chat.sender_type === 'customer'
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted'
