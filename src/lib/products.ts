@@ -59,6 +59,8 @@ export const getProductsBySiteId = async (siteId: string): Promise<Product[]> =>
 }
 
 export const getProductById = async (id: string, domain: string): Promise<Product | null> => {
+    const decodedId = decodeURIComponent(id);
+    
     const { data: profile } = await supabase
         .from('profiles')
         .select('id')
@@ -73,7 +75,7 @@ export const getProductById = async (id: string, domain: string): Promise<Produc
     const { data: product, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', id)
+        .eq('id', decodedId)
         .eq('site_id', profile.id)
         .single();
     
