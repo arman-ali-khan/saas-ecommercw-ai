@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -14,6 +13,135 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from './ui/skeleton';
+
+const ChatSkeleton = () => (
+    <div className="p-4 space-y-4">
+        <div className="flex items-end gap-2 justify-start">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-16 w-3/4" />
+        </div>
+        <div className="flex items-end gap-2 justify-end">
+             <Skeleton className="h-10 w-1/2" />
+        </div>
+        <div className="flex items-end gap-2 justify-start">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-10 w-2/3" />
+        </div>
+    </div>
+);
+
+const ChatWindow = ({
+  isOpen,
+  setIsOpen,
+  siteName,
+  isLoading,
+  chatMessages,
+  lastMessageRef,
+  message,
+  setMessage,
+  handleSendMessage,
+}: {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  siteName: string;
+  isLoading: boolean;
+  chatMessages: LiveChatMessage[];
+  lastMessageRef: React.RefObject<HTMLDivElement>;
+  message: string;
+  setMessage: (message: string) => void;
+  handleSendMessage: () => void;
+}) => {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <>
+      {/* Mobile-only overlay */}
+      <div className="fixed inset-0 bg-black/50 z-40 sm:hidden" onClick={() => setIsOpen(false)} />
+
+      {/* Chat Window Container */}
+      <div
+        className={cn(
+          "fixed z-50 flex flex-col bg-background shadow-2xl overflow-hidden",
+          "inset-0 rounded-none", // Mobile: fullscreen
+          "sm:inset-auto sm:w-96 sm:h-auto sm:max-h-[70vh] sm:bottom-24 sm:right-6 sm:rounded-lg" // Desktop: popover-like
+        )}
+      >
+        <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
+          <h4 className="font-bold text-lg">{siteName}-এর সাথে চ্যাট করুন</h4>
+          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground" onClick={() => setIsOpen(false)}>
+            <X className="h-6 w-6" />
+          </Button>
+        </div>
+        <ScrollArea className="flex-grow bg-background">
+          {isLoading ? (
+            <ChatSkeleton />
+          ) : (
+            <div className="p-4 space-y-4">
+              {chatMessages.map((chat, index) => (
+                <div
+                  key={chat.id ? `db-${chat.id}` : `optimistic-${index}`}
+                  ref={index === chatMessages.length - 1 ? lastMessageRef : null}
+                  className={cn(
+                    'flex items-end gap-2',
+                    chat.sender_type === 'customer' ? 'justify-end' : 'justify-start'
+                  )}
+                >
+                  {chat.sender_type === 'agent' && (
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary-foreground border">
+                        <Leaf className="h-5 w-5 text-accent" />
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div
+                    className={cn(
+                      'max-w-[75%] rounded-lg px-3 py-2 text-xs sm:text-sm shadow-sm break-words',
+                      chat.sender_type === 'customer'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted'
+                    )}
+                  > 
+                    {chat.content}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+        <div className="p-2 border-t bg-background">
+          <div className="flex items-center gap-2">
+            <Input
+              id="chat-message"
+              placeholder="আপনার বার্তা টাইপ করুন..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              className="flex-grow"
+              disabled={isLoading}
+            />
+            <Button
+              onClick={handleSendMessage}
+              size="icon"
+              className="shrink-0"
+              aria-label="বার্তা পাঠান"
+              disabled={isLoading || !message.trim()}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
 
 export default function FloatingChatButton() {
   const pathname = usePathname();
@@ -176,104 +304,6 @@ export default function FloatingChatButton() {
     }
   };
 
-  const ChatSkeleton = () => (
-    <div className="p-4 space-y-4">
-        <div className="flex items-end gap-2 justify-start">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <Skeleton className="h-16 w-3/4" />
-        </div>
-        <div className="flex items-end gap-2 justify-end">
-             <Skeleton className="h-10 w-1/2" />
-        </div>
-        <div className="flex items-end gap-2 justify-start">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <Skeleton className="h-10 w-2/3" />
-        </div>
-    </div>
-  );
-
-  const ChatWindow = () => (
-    <>
-      {/* Mobile-only overlay */}
-      <div className="fixed inset-0 bg-black/50 z-40 sm:hidden" onClick={() => setIsOpen(false)} />
-
-      {/* Chat Window Container */}
-      <div className={cn(
-        "fixed z-50 flex flex-col bg-background shadow-2xl overflow-hidden",
-        "inset-0 rounded-none", // Mobile: fullscreen
-        "sm:w-96 sm:h-auto sm:max-h-[70vh] sm:bottom-24 sm:right-6 sm:rounded-lg sm:inset-auto" // Desktop: popover-like
-      )}>
-        <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
-          <h4 className="font-bold text-lg">{siteName}-এর সাথে চ্যাট করুন</h4>
-          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground" onClick={() => setIsOpen(false)}>
-            <X className="h-6 w-6" />
-          </Button>
-        </div>
-        <ScrollArea className="flex-grow bg-background">
-          {isLoading ? <ChatSkeleton /> : (
-            <div className="p-4 space-y-4">
-              {chatMessages.map((chat, index) => (
-                <div
-                  key={chat.id ? `db-${chat.id}` : `optimistic-${index}`}
-                  ref={index === chatMessages.length - 1 ? lastMessageRef : null}
-                  className={cn(
-                    'flex items-end gap-2',
-                    chat.sender_type === 'customer' ? 'justify-end' : 'justify-start'
-                  )}
-                >
-                  {chat.sender_type === 'agent' && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary-foreground border">
-                        <Leaf className="h-5 w-5 text-accent" />
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div
-                    className={cn(
-                      'max-w-[75%] rounded-lg px-3 py-2 text-xs sm:text-sm shadow-sm break-words',
-                      chat.sender_type === 'customer'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    )}
-                  > 
-                    {chat.content}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-        <div className="p-2 border-t bg-background">
-          <div className="flex items-center gap-2">
-            <Input
-              id="chat-message"
-              placeholder="আপনার বার্তা টাইপ করুন..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              className="flex-grow"
-              disabled={isLoading}
-            />
-            <Button
-              onClick={handleSendMessage}
-              size="icon"
-              className="shrink-0"
-              aria-label="বার্তা পাঠান"
-              disabled={isLoading || !message.trim()}
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
   return (
     <>
       <div className="fixed bottom-6 right-6 z-50">
@@ -282,7 +312,17 @@ export default function FloatingChatButton() {
           <span className="sr-only">চ্যাট খুলুন</span>
         </Button>
       </div>
-      {isOpen && <ChatWindow />}
+      <ChatWindow
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
+        siteName={siteName}
+        isLoading={isLoading}
+        chatMessages={chatMessages}
+        lastMessageRef={lastMessageRef}
+        message={message}
+        setMessage={setMessage}
+        handleSendMessage={handleSendMessage}
+      />
     </>
   );
 }
