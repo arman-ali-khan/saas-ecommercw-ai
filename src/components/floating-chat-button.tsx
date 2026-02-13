@@ -201,7 +201,7 @@ export default function FloatingChatButton() {
       <div className={cn(
         "fixed z-50 flex flex-col bg-background shadow-2xl overflow-hidden",
         "inset-0 rounded-none", // Mobile: fullscreen
-        "sm:w-96 sm:h-auto sm:max-h-[70vh] sm:bottom-48 sm:right-6 sm:rounded-lg sm:inset-auto" // Desktop: popover-like
+        "sm:w-96 sm:h-auto sm:max-h-[70vh] sm:bottom-24 sm:right-6 sm:rounded-lg sm:inset-auto" // Desktop: popover-like
       )}>
         <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
           <h4 className="font-bold text-lg">{siteName}-এর সাথে চ্যাট করুন</h4>
@@ -276,7 +276,7 @@ export default function FloatingChatButton() {
 
   return (
     <>
-      <div className="fixed bottom-28 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-50">
         <Button size="icon" className="rounded-full w-14 h-14 shadow-lg" onClick={() => setIsOpen(!isOpen)}>
           {isOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
           <span className="sr-only">চ্যাট খুলুন</span>
