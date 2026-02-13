@@ -62,7 +62,7 @@ export default function CheckoutPage() {
   const [siteId, setSiteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { customer, _hasHydrated: customerHasHydrated } = useCustomerAuth();
-  const [paymentSettings, setPaymentSettings] = useState<{mobile_banking_number: string | null, accepted_banking_methods: string[] | null} | null>(null);
+  const [paymentSettings, setPaymentSettings] = useState<{mobile_banking_enabled?: boolean, mobile_banking_number: string | null, accepted_banking_methods: string[] | null} | null>(null);
   const [isLoadingPaymentSettings, setIsLoadingPaymentSettings] = useState(true);
   const [shippingZones, setShippingZones] = useState<ShippingZone[]>([]);
   const [isLoadingShipping, setIsLoadingShipping] = useState(true);
@@ -114,12 +114,18 @@ export default function CheckoutPage() {
       setIsLoadingPaymentSettings(true);
       setIsLoadingShipping(true);
       
-      const paymentPromise = supabase.from('store_settings').select('mobile_banking_number, accepted_banking_methods').eq('site_id', siteId).maybeSingle();
+      const paymentPromise = supabase.from('store_settings').select('mobile_banking_enabled, mobile_banking_number, accepted_banking_methods').eq('site_id', siteId).maybeSingle();
       const shippingPromise = supabase.from('shipping_zones').select('*').eq('site_id', siteId).eq('is_enabled', true).order('price', { ascending: true });
       
       const [paymentResult, shippingResult] = await Promise.all([paymentPromise, shippingPromise]);
 
-      if (paymentResult.data) setPaymentSettings(paymentResult.data);
+      if (paymentResult.data) {
+        setPaymentSettings(paymentResult.data);
+        if (!paymentResult.data.mobile_banking_enabled && form.getValues('paymentMethod') === 'mobile_banking') {
+          form.setValue('paymentMethod', 'cod');
+        }
+      }
+
       if (shippingResult.data) {
         setShippingZones(shippingResult.data);
         if(shippingResult.data.length > 0) {
@@ -369,10 +375,12 @@ export default function CheckoutPage() {
                                 <RadioGroupItem value="cod" id="cod" className="sr-only" />
                                 <p className="text-lg font-medium">ক্যাশ অন ডেলিভারি</p>
                             </Label>
-                            <Label htmlFor="mobile_banking" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer transition-colors", field.value === 'mobile_banking' ? "border-primary bg-primary/10" : "border-muted bg-popover")}>
-                                <RadioGroupItem value="mobile_banking" id="mobile_banking" className="sr-only" />
-                                <p className="text-lg font-medium">মোবাইল ব্যাংকিং</p>
-                            </Label>
+                            {paymentSettings?.mobile_banking_enabled && (
+                              <Label htmlFor="mobile_banking" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer transition-colors", field.value === 'mobile_banking' ? "border-primary bg-primary/10" : "border-muted bg-popover")}>
+                                  <RadioGroupItem value="mobile_banking" id="mobile_banking" className="sr-only" />
+                                  <p className="text-lg font-medium">মোবাইল ব্যাংকিং</p>
+                              </Label>
+                            )}
                         </RadioGroup>
                         {form.formState.errors.paymentMethod && <p className="text-sm font-medium text-destructive pt-2">{`${form.formState.errors.paymentMethod.message}`}</p>}
                     </div>
