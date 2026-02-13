@@ -105,7 +105,7 @@ export default async function UserPage({
 
   const { data: flashDealsData } = await supabase
     .from('flash_deals')
-    .select('*, products!inner(*, images(imageUrl))')
+    .select('*, products!inner(*)')
     .eq('site_id', profile.id)
     .eq('is_active', true)
     .gt('end_date', new Date().toISOString());

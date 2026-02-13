@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -265,6 +266,7 @@ export default function Header() {
   const navLinks = [
     { href: '/', label: 'হোম' },
     { href: `/products`, label: 'পণ্য' },
+    { href: `/flash-deals`, label: 'Flash Deals' },
     { href: `/track-order`, label: 'ট্র্যাক অর্ডার' },
     { href: `/about`, label: 'আমাদের সম্পর্কে' },
   ];
@@ -424,7 +426,7 @@ export default function Header() {
               <nav className="flex flex-col gap-6">
                 {navLinks.map((link) => (
                   <SheetClose asChild key={link.href}>
-                    <NavLink {...link} />
+                    <NavLink {...link} className="text-lg" />
                   </SheetClose>
                 ))}
               </nav>
