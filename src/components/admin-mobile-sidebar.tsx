@@ -25,6 +25,7 @@ import {
   Globe,
   Flame,
   ClipboardList,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -36,6 +37,12 @@ import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
 import DynamicIcon from './dynamic-icon';
 import Image from 'next/image';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+
 
 export default function AdminMobileSidebar() {
   const pathname = usePathname();
@@ -165,13 +172,21 @@ export default function AdminMobileSidebar() {
         window.location.reload();
     }
   };
+  
+  const attributeTypes = [
+    { type: 'brand', label: 'Brands' },
+    { type: 'unit', label: 'Units' },
+    { type: 'size', label: 'Sizes' },
+    { type: 'tag', label: 'Tags' },
+    { type: 'weight', label: 'Weights' },
+    { type: 'color', label: 'Colors' },
+  ];
 
   const adminNavLinks = [
     { href: `/`, label: 'View Store', icon: Home },
     { href: `/admin`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/admin/notifications`, label: 'Notifications', icon: Bell, count: unreadNotificationsCount },
     { href: `/admin/products`, label: 'Products', icon: Package },
-    { href: `/admin/attributes`, label: 'Attributes', icon: ClipboardList },
     { href: `/admin/categories`, label: 'Categories', icon: Tags },
     { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
     { href: `/admin/customers`, label: 'Customers', icon: Users },
@@ -181,9 +196,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock },
-    { href: `/admin/payments`, label: 'Payments', icon: CreditCard },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
-    { href: `/admin/reviews`, label: 'Reviews', icon: MessageSquare },
     { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
     { href: `/admin/settings`, label: 'Settings', icon: Settings },
   ];
@@ -244,10 +257,34 @@ export default function AdminMobileSidebar() {
           </SheetClose>
         </div>
         <div className="flex-1 overflow-auto py-2">
-          <nav className="grid items-start px-4 text-sm font-medium">
+          <nav className="grid items-start px-4 text-sm font-medium gap-1">
             {adminNavLinks.map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
+            <Collapsible>
+              <CollapsibleTrigger className={cn(
+                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
+                pathname.startsWith('/admin/attributes') && 'bg-sidebar-primary text-sidebar-primary-foreground'
+              )}>
+                <div className="flex items-center gap-3">
+                  <ClipboardList className="h-4 w-4" />
+                  Attributes
+                </div>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-7 space-y-1 py-1">
+                {attributeTypes.map(attr => (
+                  <SheetClose asChild key={attr.type}>
+                    <Link
+                      href="/admin/attributes"
+                      className="block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    >
+                      {attr.label}
+                    </Link>
+                  </SheetClose>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
           </nav>
         </div>
         <div className="mt-auto p-4 border-t border-sidebar-border space-y-2">
