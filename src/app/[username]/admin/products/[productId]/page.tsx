@@ -64,8 +64,8 @@ const productFormSchema = z.object({
     .string()
     .min(3, 'ID/Slug must be at least 3 characters.')
     .regex(
-      /^[a-z0-9-]+$/,
-      'ID/Slug can only contain lowercase letters, numbers, and hyphens.'
+      /^[a-z0-9\u0980-\u09FF-]+$/,
+      'Slug can only contain lowercase letters, numbers, hyphens, and Bengali characters.'
     ),
   name: z.string().min(1, 'Name is required.'),
   price: z.preprocess(
@@ -193,7 +193,7 @@ export default function ManageProductPage() {
       const baseSlug = name
         .toLowerCase()
         .replace(/&/g, 'and')
-        .replace(/[^a-z0-9\s-]/g, '') // remove special chars
+        .replace(/[^a-z0-9\u0980-\u09FF\s-]/g, '') // Allow Bengali characters
         .replace(/\s+/g, '-') // replace spaces with hyphens
         .replace(/-+/g, '-') // remove consecutive hyphens
         .trim()
