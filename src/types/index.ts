@@ -1,5 +1,4 @@
 
-
 export interface ProductImage {
   imageUrl: string;
   imageHint: string;
@@ -226,4 +225,11 @@ export interface SeoRequest {
     site_name: string;
 }
 
+export interface ProductAttribute {
+  id: string;
+  site_id: string;
+  type: 'brand' | 'unit' | 'size' | 'tag' | 'weight' | 'color';
+  value: string;
+  created_at: string;
+}
     

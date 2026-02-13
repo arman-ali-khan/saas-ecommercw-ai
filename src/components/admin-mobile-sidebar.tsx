@@ -24,6 +24,7 @@ import {
   GalleryHorizontal,
   Globe,
   Flame,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -170,6 +171,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/admin/notifications`, label: 'Notifications', icon: Bell, count: unreadNotificationsCount },
     { href: `/admin/products`, label: 'Products', icon: Package },
+    { href: `/admin/attributes`, label: 'Attributes', icon: ClipboardList },
     { href: `/admin/categories`, label: 'Categories', icon: Tags },
     { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
     { href: `/admin/customers`, label: 'Customers', icon: Users },
