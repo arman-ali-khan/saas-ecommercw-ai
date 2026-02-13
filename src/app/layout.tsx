@@ -6,6 +6,10 @@ import SiteLayout from '@/components/site-layout';
 import AuthProvider from '@/components/auth-provider';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+<<<<<<< HEAD
+=======
+import CustomTopLoader from '@/components/custom-top-loader';
+>>>>>>> 2f69cf2fa7fcd62c85e1b2e488b6f9f2bfb2d4e8
 
 // Force dynamic rendering to ensure the latest settings (like favicon) are always used.
 export const dynamic = 'force-dynamic';
@@ -74,6 +78,10 @@ export default async function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
+<<<<<<< HEAD
+=======
+        <CustomTopLoader />
+>>>>>>> 2f69cf2fa7fcd62c85e1b2e488b6f9f2bfb2d4e8
         <AuthProvider>
           <SiteLayout>{children}</SiteLayout>
         </AuthProvider>
