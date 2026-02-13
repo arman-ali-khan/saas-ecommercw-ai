@@ -17,7 +17,7 @@ import {
 import { getProductsByDomain, checkDomainExists } from '@/lib/products';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Section, Category } from '@/types';
+import type { Section, Category, FlashDeal } from '@/types';
 import DynamicIcon from '@/components/dynamic-icon';
 import { cn } from '@/lib/utils';
 
@@ -81,6 +81,8 @@ export default async function UserPage({
       </div>
     );
   }
+  
+  const allProducts = await getProductsByDomain(username);
 
   const { data: settingsData } = await supabase
     .from('store_settings')
@@ -101,10 +103,17 @@ export default async function UserPage({
     .eq('site_id', profile.id)
     .order('name', { ascending: true });
 
-  const categories = (categoriesData as Category[]) || [];
-  const allProducts = await getProductsByDomain(username);
-  const featuredProducts = allProducts.filter((p) => p.is_featured);
+  const { data: flashDealsData } = await supabase
+    .from('flash_deals')
+    .select('*, products!inner(*, images(imageUrl))')
+    .eq('site_id', profile.id)
+    .eq('is_active', true)
+    .gt('end_date', new Date().toISOString());
 
+  const categories = (categoriesData as Category[]) || [];
+  const featuredProducts = allProducts.filter((p) => p.is_featured);
+  const flashDeals = (flashDealsData as FlashDeal[]) || [];
+  
   // Determine which sections to render based on database settings.
   const sectionsToRender: Section[] = (() => {
     const dbSections = settingsData?.homepage_sections;
@@ -122,6 +131,12 @@ export default async function UserPage({
       {
         id: 'hero',
         title: 'Hero Carousel',
+        enabled: true,
+        isCategorySection: false,
+      },
+      {
+        id: 'flash_deals',
+        title: 'Flash Deals',
         enabled: true,
         isCategorySection: false,
       },
@@ -210,6 +225,40 @@ export default async function UserPage({
               </section>
             );
 
+          case 'flash_deals':
+            if (flashDeals.length === 0) return null;
+            return (
+              <section key={section.id}>
+                <div className="flex justify-between items-center mb-8">
+                    <h2 className="text-3xl font-headline font-bold">
+                        {section.title}
+                    </h2>
+                    <Button asChild variant="ghost">
+                      <Link href={`/flash-deals`}>
+                        সব দেখুন <ArrowRight className="ml-2" />
+                      </Link>
+                    </Button>
+                  </div>
+                <Carousel
+                    opts={{ align: 'start', slidesToScroll: 1, containScroll: 'trimSnaps' }}
+                    className="w-full"
+                  >
+                    <CarouselContent className="-ml-4">
+                      {flashDeals.map((deal) => (
+                        <CarouselItem key={deal.id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                          <ProductCard
+                            product={deal.products}
+                            flashDeal={deal}
+                          />
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 hidden md:flex" />
+                    <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 hidden md:flex" />
+                  </Carousel>
+              </section>
+            );
+
           case 'featured':
             if (featuredProducts.length === 0) return null;
             return (
@@ -289,7 +338,8 @@ export default async function UserPage({
                       <CardContent className="p-0 mt-4 flex-grow">
                         <p className="text-muted-foreground">
                           আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য
-                          নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।
+                          নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা
+                          করি।
                         </p>
                       </CardContent>
                       <Button
@@ -322,8 +372,8 @@ export default async function UserPage({
                       </CardHeader>
                       <CardContent className="p-0 mt-4 flex-grow">
                         <p className="text-muted-foreground">
-                          প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি
-                          কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।
+                          প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়।
+                          আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।
                         </p>
                       </CardContent>
                       <Button

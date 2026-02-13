@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import type { Product, ShippingZone } from '@/types';
+import type { Product, ShippingZone, FlashDeal } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { ShoppingBag, Loader2, Minus, Plus, Truck } from 'lucide-react';
@@ -22,17 +22,22 @@ import { Separator } from '@/components/ui/separator';
 import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from './ui/label';
+import { Badge } from './ui/badge';
 
 interface ProductCardProps {
   product: Product;
+  flashDeal?: FlashDeal;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, flashDeal }: ProductCardProps) {
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
 
   const handleAddToCart = () => {
-    addToCart(product, 1);
+    const productWithDealPrice = flashDeal
+      ? { ...product, price: flashDeal.discount_price }
+      : product;
+    addToCart(productWithDealPrice, 1);
     toast({
       title: 'ব্যাগে যোগ করা হয়েছে',
       description: `1 x ${product.name} আপনার ব্যাগে যোগ করা হয়েছে।`,
@@ -40,10 +45,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   const productUrl = `/products/${product.id}`;
+  const displayPrice = flashDeal ? flashDeal.discount_price : product.price;
 
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-      <Link href={productUrl} className="block">
+      <Link href={productUrl} className="block relative">
         <CardHeader className="p-0">
           <div className="relative w-full h-[250px]">
             <Image
@@ -55,6 +61,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           </div>
+          {flashDeal && <Badge className="absolute top-2 left-2" variant="destructive">Sale</Badge>}
         </CardHeader>
         <CardContent className="p-4 flex-grow">
           <h3 className="text-xl font-headline font-semibold">{product.name}</h3>
@@ -62,9 +69,16 @@ export default function ProductCard({ product }: ProductCardProps) {
         </CardContent>
       </Link>
       <CardFooter className="p-4 mt-auto flex justify-between items-center">
-        <p className="text-lg font-bold text-primary">
-          {product.price.toFixed(2)} {product.currency}
-        </p>
+        <div className="flex flex-col">
+            {flashDeal && (
+                <p className="text-sm font-bold text-muted-foreground line-through">
+                    {product.price.toFixed(2)} {product.currency}
+                </p>
+            )}
+            <p className="text-lg font-bold text-primary">
+                {displayPrice.toFixed(2)} {product.currency}
+            </p>
+        </div>
         <Button onClick={handleAddToCart}>
           <ShoppingBag className="w-4 h-4 mr-2" />
           ব্যাগে যোগ করুন

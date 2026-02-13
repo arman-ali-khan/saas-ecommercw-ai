@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -22,6 +23,7 @@ import {
   Truck,
   GalleryHorizontal,
   Globe,
+  Flame,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -173,6 +175,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/customers`, label: 'Customers', icon: Users },
     { href: `/admin/shipping`, label: 'Shipping', icon: Truck },
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
+    { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock },

@@ -21,12 +21,15 @@ import {
   Plus,
   Minus,
   Wand2,
+  Clock,
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
-import type { Product } from '@/types';
+import type { Product, FlashDeal } from '@/types';
 import { cn } from '@/lib/utils';
 import RichTextRenderer from '@/components/saas-page-renderer';
+import { supabase } from '@/lib/supabase/client';
+import { Badge } from '@/components/ui/badge';
 
 const TikTokIcon = () => (
   <svg
@@ -47,6 +50,41 @@ const TikTokIcon = () => (
   </svg>
 );
 
+const Countdown = ({ endDate }: { endDate: string }) => {
+    const [timeLeft, setTimeLeft] = useState({
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    });
+  
+    useEffect(() => {
+      const calculateTimeLeft = () => {
+        const difference = new Date(endDate).getTime() - new Date().getTime();
+        if (difference > 0) {
+          setTimeLeft({
+            days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+            hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+            minutes: Math.floor((difference / 1000 / 60) % 60),
+            seconds: Math.floor((difference / 1000) % 60),
+          });
+        }
+      };
+  
+      const timer = setInterval(calculateTimeLeft, 1000);
+      calculateTimeLeft();
+  
+      return () => clearInterval(timer);
+    }, [endDate]);
+  
+    return (
+      <div className="flex items-center gap-2 text-sm text-destructive">
+          <Clock className="h-4 w-4" />
+          <span>অফার শেষ হচ্ছে: {timeLeft.days} দিন {timeLeft.hours} ঘন্টা {timeLeft.minutes} মিনিট {timeLeft.seconds} সেকেন্ড</span>
+      </div>
+    );
+};
+
 export default function ProductClientPage({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -58,12 +96,25 @@ export default function ProductClientPage({ product }: { product: Product }) {
   const [selectedSnap, setSelectedSnap] = useState(0);
 
   const [shareUrl, setShareUrl] = useState('');
+  const [flashDeal, setFlashDeal] = useState<FlashDeal | null>(null);
 
   useEffect(() => {
-    // This effect runs only on the client side, after hydration is complete.
-    // It safely accesses `window.location.href`.
     setShareUrl(window.location.href);
-  }, []);
+
+    const fetchFlashDeal = async () => {
+        const { data } = await supabase
+            .from('flash_deals')
+            .select('*')
+            .eq('product_id', product.id)
+            .eq('is_active', true)
+            .gt('end_date', new Date().toISOString())
+            .single();
+        if (data) {
+            setFlashDeal(data as FlashDeal);
+        }
+    }
+    fetchFlashDeal();
+  }, [product.id]);
 
   const onThumbClick = useCallback(
     (index: number) => {
@@ -98,29 +149,20 @@ export default function ProductClientPage({ product }: { product: Product }) {
   let longDescContent: any = null;
   if (product.long_description) {
     try {
-      // It's a JSON string from Tiptap, so parse it.
       longDescContent = JSON.parse(product.long_description);
     } catch (e) {
-      // It's just plain text, create a simple Tiptap structure.
       longDescContent = {
         type: 'doc',
-        content: [
-          {
-            type: 'paragraph',
-            content: [
-              {
-                type: 'text',
-                text: product.long_description,
-              },
-            ],
-          },
-        ],
+        content: [ { type: 'paragraph', content: [ { type: 'text', text: product.long_description, },], },],
       };
     }
   }
 
   const handleAddToCart = () => {
-    addToCart(product, quantity);
+    const productWithDealPrice = flashDeal
+      ? { ...product, price: flashDeal.discount_price }
+      : product;
+    addToCart(productWithDealPrice, quantity);
     toast({
       title: 'ব্যাগে যোগ করা হয়েছে',
       description: `${quantity} x ${product.name} আপনার ব্যাগে যোগ করা হয়েছে।`,
@@ -129,6 +171,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
   const shareText = `বাংলা ন্যাচারালস থেকে ${product.name} দেখুন!`;
   const images = product.images || [];
+  const displayPrice = flashDeal ? flashDeal.discount_price : product.price;
 
   return (
     <div className="grid md:grid-cols-2 gap-8 md:gap-12">
@@ -144,6 +187,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     fill
                     className="object-cover"
                   />
+                  {flashDeal && <Badge variant="destructive" className="absolute top-4 left-4 text-base">SALE</Badge>}
                 </div>
               </CarouselItem>
             ))}
@@ -197,9 +241,18 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
       <div className="flex flex-col">
         <h1 className="text-4xl font-headline font-bold">{product.name}</h1>
-        <p className="text-2xl font-semibold text-primary mt-2">
-          {product.price.toFixed(2)} {product.currency}
+        {flashDeal && (
+            <div className='mt-4 space-y-2'>
+                <p className="text-lg font-semibold text-muted-foreground line-through">
+                    {product.price.toFixed(2)} {product.currency}
+                </p>
+                <Countdown endDate={flashDeal.end_date} />
+            </div>
+        )}
+        <p className="text-2xl font-semibold text-primary mt-1">
+          {displayPrice.toFixed(2)} {product.currency}
         </p>
+
         <p className="text-lg text-muted-foreground mt-4">
           {product.description}
         </p>

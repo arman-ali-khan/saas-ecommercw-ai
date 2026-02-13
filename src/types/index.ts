@@ -26,6 +26,18 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+export interface FlashDeal {
+  id: string;
+  site_id: string;
+  product_id: string;
+  discount_price: number;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  created_at: string;
+  products: Product; // For joining data
+}
+
 export interface Order {
   id: string;
   order_number: string;

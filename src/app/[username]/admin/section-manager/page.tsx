@@ -83,6 +83,12 @@ export default function SectionManagerPage() {
             isCategorySection: false,
           },
           {
+            id: 'flash_deals',
+            title: 'Flash Deals',
+            enabled: true,
+            isCategorySection: false,
+          },
+          {
             id: 'featured',
             title: 'Featured Products',
             enabled: true,
