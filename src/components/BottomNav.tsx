@@ -24,7 +24,6 @@ import { ScrollArea } from './ui/scroll-area';
 import { Input } from './ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
-import { motion } from 'framer-motion';
 
 function CategoryDrawer() {
   const params = useParams();
@@ -163,96 +162,55 @@ export default function BottomNav() {
   const { setSearchOpen } = useSearchStore();
   const { cartItems } = useCart();
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
-  const [activeTab, setActiveTab] = useState('home');
 
   const navLinks = [
     { id: 'menu', label: 'Menu', icon: Menu, isSheet: true, sheetContent: 'category' },
     { id: 'search', label: 'Search', icon: Search, action: () => setSearchOpen(true) },
     { id: 'home', href: '/', label: 'Home', icon: Home },
-    { id: 'profile', href: customer ? '/profile' : '/login', label: 'Profile', icon: User },
     { id: 'cart', label: 'Cart', icon: ShoppingBagIcon, isSheet: true, sheetContent: 'cart' },
+    { id: 'profile', href: customer ? '/profile' : '/login', label: 'Profile', icon: User },
   ];
-
-  useEffect(() => {
-    const activeLink = navLinks.find(link => link.href && pathname === link.href);
-    if (activeLink) {
-        setActiveTab(activeLink.id);
-    } else {
-        setActiveTab('home'); // Default to home
-    }
-  }, [pathname]);
 
   if (pathname.includes('/admin')) {
       return null;
   }
   
-  const NavItemContent = ({ link, isActive }: { link: (typeof navLinks)[0], isActive: boolean }) => (
-    <div className={cn(
-        "relative z-20 flex h-full w-full flex-col items-center justify-center text-muted-foreground transition-all duration-300 outline-none",
-        isActive && "-translate-y-6 text-primary"
-    )}>
-        <div className="relative">
-            <link.icon className="h-6 w-6" />
-            {link.label === 'Cart' && cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
-                    {cartCount}
-                </span>
-            )}
-        </div>
-        <span className={cn(
-            "absolute bottom-[-18px] text-[10px] font-bold uppercase opacity-0 transition-all",
-            isActive && "opacity-100 bottom-1"
-        )}>
-            {link.label}
-        </span>
-    </div>
-  );
-
   return (
-    <div className="fixed bottom-0 left-0 right-0 flex justify-center pb-0 z-50 pointer-events-none md:hidden bg-blue-300">
-      <div className="pointer-events-auto relative h-[80px] w-[95%] max-w-sm overflow-hidden rounded-2xl shadow-2xl">
-        <div className="absolute inset-0 bg-card" />
-        <div className="relative flex h-[80px] items-end justify-around">
-          {navLinks.map((tab) => (
-            <div key={tab.id} className="relative flex-1 h-full pt-4">
-                {activeTab === tab.id && (
-                  <motion.div
-                    layoutId="bubble"
-                    className="absolute z-10 bottom-[25px] left-0 -translate-x-1/2 h-[60px] w-[60px] rounded-full border-[6px] border-background bg-background"
-                    transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
-                  >
-                    <div className="absolute -left-[19px] top-[28px] h-5 w-5 bg-card">
-                        <div className="h-full w-full rounded-tr-[100%] bg-background" />
-                    </div>
-                    <div className="absolute -right-[19px] top-[28px] h-5 w-5 bg-card">
-                        <div className="h-full w-full rounded-tl-[100%] bg-background" />
-                    </div>
-                  </motion.div>
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40">
+      <div className="flex justify-around h-16">
+        {navLinks.map((link) => {
+          const isActive = pathname === link.href;
+
+          const content = (
+            <div className="flex items-center justify-center h-full w-full">
+              <div className="relative">
+                <link.icon className={cn("h-6 w-6", isActive ? "text-primary" : "text-muted-foreground")} />
+                {link.label === 'Cart' && cartCount > 0 && (
+                  <span className="absolute -top-1 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    {cartCount}
+                  </span>
                 )}
-
-                {(() => {
-                    const isActive = activeTab === tab.id;
-                    const content = <NavItemContent link={tab} isActive={isActive} />;
-                    const className = "h-full w-full focus:outline-none";
-
-                    if (tab.isSheet) {
-                        return (
-                          <Sheet>
-                              <SheetTrigger className={className} onClick={() => setActiveTab(tab.id)}>{content}</SheetTrigger>
-                              <SheetContent side="left" className="flex flex-col">
-                                  {tab.sheetContent === 'category' ? <CategoryDrawer /> : <CartDrawerContent />}
-                              </SheetContent>
-                          </Sheet>
-                        );
-                    } else if (tab.action) {
-                        return <button className={className} onClick={() => { tab.action(); setActiveTab(tab.id); }}>{content}</button>;
-                    } else {
-                        return <Link href={tab.href!} className={className}>{content}</Link>;
-                    }
-                })()}
+              </div>
             </div>
-          ))}
-        </div>
+          );
+          
+          if (link.isSheet) {
+            return (
+              <Sheet key={link.id}>
+                  <SheetTrigger className="flex-1 p-2 focus:outline-none">
+                    {content}
+                  </SheetTrigger>
+                  <SheetContent side="left" className="flex flex-col">
+                      {link.sheetContent === 'category' ? <CategoryDrawer /> : <CartDrawerContent />}
+                  </SheetContent>
+              </Sheet>
+            );
+          } else if (link.action) {
+            return <button key={link.id} className="flex-1 p-2 focus:outline-none" onClick={link.action}>{content}</button>;
+          } else {
+            return <Link key={link.id} href={link.href!} className="flex-1 p-2 focus:outline-none">{content}</Link>;
+          }
+        })}
       </div>
     </div>
   );
