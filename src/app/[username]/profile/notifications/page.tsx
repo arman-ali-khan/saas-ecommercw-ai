@@ -77,7 +77,7 @@ export default function CustomerNotificationsPage() {
         }
       )
       .subscribe();
-
+ fsd
     return () => {
       supabase.removeChannel(channel);
     };
