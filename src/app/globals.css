@@ -6,9 +6,9 @@
   :root {
     --background: 224 71% 4%;
     --foreground: 210 40% 98%;
-    --card: 224 71% 4%;
+    --card: 224 71% 6%;
     --card-foreground: 210 40% 98%;
-    --popover: 224 71% 4%;
+    --popover: 224 71% 6%;
     --popover-foreground: 210 40% 98%;
     --primary: 207 90% 61%;
     --primary-foreground: 224 71% 4%;
@@ -45,9 +45,9 @@
   .dark {
     --background: 224 71% 4%;
     --foreground: 210 40% 98%;
-    --card: 224 71% 4%;
+    --card: 224 71% 6%;
     --card-foreground: 210 40% 98%;
-    --popover: 224 71% 4%;
+    --popover: 224 71% 6%;
     --popover-foreground: 210 40% 98%;
     --primary: 207 90% 61%;
     --primary-foreground: 224 71% 4%;
@@ -120,11 +120,11 @@
   }
   .nav-indicator::before {
       content: '';
-      @apply absolute -left-5 top-[22px] h-5 w-5 rounded-tr-2xl bg-transparent shadow-[4px_-6px_0_1px] shadow-card;
+      @apply absolute -left-5 top-[22px] h-5 w-5 rounded-tr-2xl bg-transparent shadow-[4px_-6px_0_1px] shadow-background;
   }
   .nav-indicator::after {
       content: '';
-      @apply absolute -right-5 top-[22px] h-5 w-5 rounded-tl-2xl bg-transparent shadow-[-4px_-6px_0_1px] shadow-card;
+      @apply absolute -right-5 top-[22px] h-5 w-5 rounded-tl-2xl bg-transparent shadow-[-4px_-6px_0_1px] shadow-background;
   }
 }
 
