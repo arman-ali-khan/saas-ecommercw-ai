@@ -70,7 +70,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
           {flashDeal && (
             <div className="mt-2">
               <Countdown endDate={flashDeal.end_date} />
-            </div>
+            </div> 
           )}
         </CardContent>
       </Link>
