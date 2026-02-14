@@ -20,6 +20,7 @@ import { cookies } from 'next/headers';
 import type { Section, Category, FlashDeal, StoreFeature } from '@/types';
 import DynamicIcon from '@/components/dynamic-icon';
 import { cn } from '@/lib/utils';
+import FlashDealCarousel from '@/components/flash-deal-carousel';
 
 // Force dynamic rendering to ensure the latest section settings are always used.
 export const dynamic = 'force-dynamic';
@@ -246,23 +247,7 @@ export default async function UserPage({
                       </Link>
                     </Button>
                   </div>
-                <Carousel
-                    opts={{ align: 'start', slidesToScroll: 1, containScroll: 'trimSnaps' }}
-                    className="w-full"
-                  >
-                    <CarouselContent className="-ml-4">
-                      {flashDeals.map((deal) => (
-                        <CarouselItem key={deal.id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
-                          <ProductCard
-                            product={deal.products}
-                            flashDeal={deal}
-                          />
-                        </CarouselItem>
-                      ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 hidden md:flex" />
-                    <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 hidden md:flex" />
-                  </Carousel>
+                <FlashDealCarousel deals={flashDeals} />
               </section>
             );
 
