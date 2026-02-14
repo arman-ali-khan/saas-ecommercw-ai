@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -59,13 +60,23 @@ export default function UncompletedOrdersPage() {
         setIsLoading(false);
     }, [user, toast]);
 
+    const markAsViewed = useCallback(async () => {
+        if (!user) return;
+        await supabase
+            .from('uncompleted_orders')
+            .update({ is_viewed: true })
+            .eq('site_id', user.id)
+            .eq('is_viewed', false);
+    }, [user]);
+
     useEffect(() => {
         if (!authLoading && user) {
             fetchUncompletedOrders();
+            markAsViewed();
         } else if (!authLoading && !user) {
             setIsLoading(false);
         }
-    }, [user, authLoading, fetchUncompletedOrders]);
+    }, [user, authLoading, fetchUncompletedOrders, markAsViewed]);
     
     const translateStatus = (status: string): string => {
         switch (status) {

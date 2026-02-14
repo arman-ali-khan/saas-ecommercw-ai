@@ -1,4 +1,5 @@
 
+
 export interface ProductImage {
   imageUrl: string;
   imageHint: string;
@@ -133,6 +134,7 @@ export interface UncompletedOrder {
   cart_total: number;
   status: string;
   created_at: string;
+  is_viewed: boolean;
 }
 
 export interface SubscriptionPayment {

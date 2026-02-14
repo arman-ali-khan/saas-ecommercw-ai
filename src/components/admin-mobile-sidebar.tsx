@@ -53,6 +53,7 @@ export default function AdminMobileSidebar() {
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [unviewedUncompletedCount, setUnviewedUncompletedCount] = useState(0);
   const [siteSettings, setSiteSettings] = useState<{
     logo_type?: 'icon' | 'image';
     logo_icon?: string;
@@ -94,6 +95,13 @@ export default function AdminMobileSidebar() {
           setUnreadChatCount(0);
       }
 
+      const { count: uncompletedCount } = await supabase
+        .from('uncompleted_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', user.id)
+        .eq('is_viewed', false);
+      setUnviewedUncompletedCount(uncompletedCount || 0);
+
       // Fetch site settings
       const { data: settingsData } = await supabase
         .from('store_settings')
@@ -122,6 +130,16 @@ export default function AdminMobileSidebar() {
        .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'live_chat_messages' },
+        fetchAllData
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'uncompleted_orders',
+          filter: `site_id=eq.${user.id}`,
+        },
         fetchAllData
       )
       .on(
@@ -198,7 +216,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/admin/features`, label: 'Store Features', icon: Sparkles },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
-    { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock },
+    { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: unviewedUncompletedCount },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
     { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
     { href: `/admin/settings`, label: 'Settings', icon: Settings },

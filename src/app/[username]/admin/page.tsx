@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -51,6 +52,7 @@ export default function AdminDashboard() {
     totalOrders: 0,
     totalProducts: 0,
     uncompletedOrders: 0,
+    totalUncompletedOrders: 0,
   });
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
@@ -68,12 +70,12 @@ export default function AdminDashboard() {
       // All promises
       const ordersPromise = supabase.from('orders').select('*').eq('site_id', user.id);
       const productsPromise = supabase.from('products').select('*').eq('site_id', user.id);
-      const uncompletedPromise = supabase.from('uncompleted_orders').select('id', { count: 'exact', head: true }).eq('site_id', user.id);
+      const uncompletedPromise = supabase.from('uncompleted_orders').select('*', { count: 'exact' }).eq('site_id', user.id);
 
       const [
         { data: ordersData, error: ordersError },
         { data: productsData, error: productsError },
-        { count: uncompletedCount, error: uncompletedError },
+        { data: uncompletedData, count: totalUncompleted, error: uncompletedError },
       ] = await Promise.all([ordersPromise, productsPromise, uncompletedPromise]);
 
       if (ordersData) {
@@ -112,8 +114,14 @@ export default function AdminDashboard() {
         setStats(prev => ({ ...prev, totalProducts: productsData.length }));
         setLowStockProducts(productsData.filter(p => p.stock !== undefined && p.stock !== null && p.stock < 10).slice(0, 5));
       }
-
-      setStats(prev => ({...prev, uncompletedOrders: uncompletedCount || 0}));
+      
+      if (uncompletedData) {
+        const unviewedCount = uncompletedData.filter((o: any) => !o.is_viewed).length;
+        setStats(prev => ({...prev, uncompletedOrders: unviewedCount, totalUncompletedOrders: totalUncompleted || 0}));
+      } else {
+        setStats(prev => ({...prev, uncompletedOrders: 0, totalUncompletedOrders: 0}));
+      }
+      
       setIsLoading(false);
     };
 
@@ -140,7 +148,7 @@ export default function AdminDashboard() {
         <StatCard title="Total Revenue" value={`BDT ${stats.totalRevenue.toFixed(2)}`} icon={DollarSign} isLoading={isLoading} description="All-time delivered orders" />
         <StatCard title="Total Orders" value={stats.totalOrders} icon={ShoppingBag} isLoading={isLoading} description="Excludes canceled orders" />
         <StatCard title="Total Products" value={stats.totalProducts} icon={Package} isLoading={isLoading} />
-        <StatCard title="Uncompleted Orders" value={stats.uncompletedOrders} icon={FileClock} isLoading={isLoading} description="Carts abandoned at checkout" />
+        <StatCard title="New Uncompleted Orders" value={stats.uncompletedOrders} icon={FileClock} isLoading={isLoading} description={`${stats.totalUncompletedOrders} total abandoned carts`} />
       </div>
 
        <Card>
