@@ -51,7 +51,7 @@ export default function CustomerNotificationsPage() {
     setIsLoading(false);
   }, [customer, toast]);
 
-  console.log('customer',notifications)
+
 
   useEffect(() => {
     if (_hasHydrated && customer) {
@@ -127,7 +127,7 @@ export default function CustomerNotificationsPage() {
       </div>
     );
   }
-
+  console.log('customer',notifications)
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
