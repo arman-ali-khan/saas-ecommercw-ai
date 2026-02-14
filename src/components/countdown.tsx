@@ -44,9 +44,9 @@ const Countdown = ({ endDate }: { endDate: string }) => {
     }
 
     return (
-      <div className="flex items-center gap-2 text-xs text-destructive">
+      <div className="flex absolute right-0 top-0 items-center gap-2 text-xs text-destructive">
           <Clock className="h-4 w-4" />
-          <span>শেষ হচ্ছে: {timeLeft.days} দিন {timeLeft.hours} ঘন্টা {timeLeft.minutes} মিনিট {timeLeft.seconds} সেকেন্ড</span>
+          <span>{timeLeft.days} : {timeLeft.hours} : {timeLeft.minutes} : {timeLeft.seconds}</span>
       </div>
     );
 };

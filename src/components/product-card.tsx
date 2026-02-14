@@ -52,7 +52,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
       <Link href={productUrl} className="block relative">
         <CardHeader className="p-0">
-          <div className="relative w-full h-44 sm:h-[250px]">
+          <div className="relative w-full h-28 sm:h-[250px]">
             <Image
               src={product.images[0].imageUrl}
               alt={product.name}
@@ -75,7 +75,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
         </CardContent>
       </Link>
       <CardFooter className="p-1 sm:p-4 sm:mt-auto flex flex-col sm:flex-row justify-between items-center">
-        <div className="flex flex-col">
+        <div className="flex flex-col w-full justify-start sm:justify-center">
             {flashDeal && (
                 <p className="text-sm font-bold text-muted-foreground line-through">
                     {product.price.toFixed(2)} {product.currency}
