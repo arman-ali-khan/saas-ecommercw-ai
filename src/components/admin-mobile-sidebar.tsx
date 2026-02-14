@@ -55,6 +55,7 @@ export default function AdminMobileSidebar() {
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [unviewedUncompletedCount, setUnviewedUncompletedCount] = useState(0);
+  const [totalCustomersCount, setTotalCustomersCount] = useState(0);
   const [siteSettings, setSiteSettings] = useState<{
     logo_type?: 'icon' | 'image';
     logo_icon?: string;
@@ -103,6 +104,12 @@ export default function AdminMobileSidebar() {
         .eq('is_viewed', false);
       setUnviewedUncompletedCount(uncompletedCount || 0);
 
+      const { count: customerCount } = await supabase
+        .from('customer_profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', user.id);
+      setTotalCustomersCount(customerCount || 0);
+
       // Fetch site settings
       const { data: settingsData } = await supabase
         .from('store_settings')
@@ -139,6 +146,16 @@ export default function AdminMobileSidebar() {
           event: '*',
           schema: 'public',
           table: 'uncompleted_orders',
+          filter: `site_id=eq.${user.id}`,
+        },
+        fetchAllData
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'customer_profiles',
           filter: `site_id=eq.${user.id}`,
         },
         fetchAllData
@@ -200,7 +217,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/notifications`, label: 'Notifications', icon: Bell, count: unreadNotificationsCount },
     { href: `/admin/categories`, label: 'Categories', icon: Tags },
     { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
-    { href: `/admin/customers`, label: 'Customers', icon: Users },
+    { href: `/admin/customers`, label: 'Customers', icon: Users, count: totalCustomersCount, countVariant: 'neutral' as const },
     { href: `/admin/shipping`, label: 'Shipping', icon: Truck },
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
@@ -224,14 +241,17 @@ export default function AdminMobileSidebar() {
     label,
     icon: Icon,
     count,
+    countVariant = 'destructive',
   }: {
     href: string;
     label: string;
     icon: React.ElementType;
     count?: number;
+    countVariant?: 'destructive' | 'neutral';
   }) => {
     const isBasePage = href === `/` || href === `/admin`;
     const isActive = isBasePage ? pathname === href : pathname.startsWith(href);
+    const showCount = count !== undefined && (countVariant === 'neutral' || count > 0);
     return (
         <SheetClose asChild>
             <Link
@@ -243,8 +263,8 @@ export default function AdminMobileSidebar() {
             >
                 <Icon className="h-4 w-4" />
                 {label}
-                {count && count > 0 ? (
-                  <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground">{count}</Badge>
+                {showCount ? (
+                  <Badge className={cn("ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full", countVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 'bg-sidebar-accent text-sidebar-accent-foreground')}>{count}</Badge>
                 ) : null}
             </Link>
       </SheetClose>
@@ -276,7 +296,7 @@ export default function AdminMobileSidebar() {
               <NavLink key={link.href} {...link} />
             ))}
 
-            <Collapsible defaultOpen={pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')}>
+            <Collapsible>
               <CollapsibleTrigger className={cn(
                 'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
                 (pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')) && 'bg-sidebar-primary text-sidebar-primary-foreground'
@@ -300,7 +320,7 @@ export default function AdminMobileSidebar() {
               </CollapsibleContent>
             </Collapsible>
             
-            {adminNavLinks.slice(2).map((link) => (
+            {adminNavLinks.slice(3).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 
