@@ -331,12 +331,12 @@ export default function CheckoutPage() {
                         fill
                         className="object-cover"
                       />
-                      <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                      <span className="absolute -top-0 -right-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                         {item.quantity}
                       </span>
                     </div>
                     <div className="flex-grow">
-                      <p className="font-semibold">{item.name}</p>
+                      <p className="font-semibold">{item.name} ⛌ {item.quantity}</p>
                     </div>
                     <p>
                       {(item.price * item.quantity).toFixed(2)} {item.currency}
@@ -347,19 +347,19 @@ export default function CheckoutPage() {
               <Separator className="my-4" />
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span>উপমোট</span>
+                  <span>Subtotal</span>
                   <span>
                     {cartSubtotal.toFixed(2)} {cartItems[0]?.currency}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>শিপিং</span>
+                  <span>Shipping</span>
                   <span>{shippingCost > 0 ? `${shippingCost.toFixed(2)} ${cartItems[0]?.currency}` : 'নির্বাচন করুন'}</span>
                 </div>
               </div>
               <Separator className="my-4" />
               <div className="flex justify-between font-bold text-lg">
-                <span>মোট</span>
+                <span>Total</span>
                 <span>
                   {cartTotal.toFixed(2)} {cartItems[0]?.currency}
                 </span>
