@@ -765,7 +765,7 @@ export default function SettingsAdminPage() {
                             <FormItem>
                                 <FormLabel>Social Share Image</FormLabel>
                                 <div className="flex items-start gap-4">
-                                    <div className="relative h-24 w-48 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                                    <div className="relative h-24 sm:w-48 w-28 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
                                         {isSocialShareUrlValid ? (
                                             <Image src={socialShareImageUrl!} alt="Social Share Preview" fill className="object-contain p-1" />
                                         ) : <p className='text-xs text-muted-foreground'>Preview</p>}
