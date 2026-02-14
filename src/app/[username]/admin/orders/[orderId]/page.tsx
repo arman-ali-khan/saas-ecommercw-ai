@@ -85,42 +85,28 @@ export default function OrderDetailsPage() {
         if (!order) return;
         setIsActionLoading(true);
         setActionTarget(newStatus);
-        const { data: updatedOrder, error } = await supabase
-            .from('orders')
-            .update({ status: newStatus })
-            .eq('id', order.id)
-            .select()
-            .single();
         
-        setIsActionLoading(false);
-        setActionTarget(null);
+        try {
+            const response = await fetch('/api/update-order-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: order.id, newStatus }),
+            });
 
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error updating status', description: error.message });
-        } else {
-            toast({ title: 'Order status updated!' });
-            setOrder(updatedOrder as Order);
+            const result = await response.json();
 
-            // --- Create notification for customer ---
-            if (updatedOrder.customer_id) {
-                const notificationMessage = `Your order #${updatedOrder.order_number} has been updated to: ${translateStatus(updatedOrder.status)}.`;
-                const { error: notificationError } = await supabase
-                    .from('notifications')
-                    .insert({
-                        recipient_id: updatedOrder.customer_id,
-                        recipient_type: 'customer',
-                        site_id: updatedOrder.site_id,
-                        order_id: updatedOrder.id,
-                        message: notificationMessage,
-                        link: `/profile/orders/${updatedOrder.id}`
-                    });
-
-                if (notificationError) {
-                    console.error("Failed to create notification for customer:", notificationError.message);
-                    // Don't show an error to the admin for this, just log it.
-                }
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to update order status');
             }
-            // --- End notification ---
+            
+            toast({ title: 'Order status updated!' });
+            setOrder(result.order as Order);
+
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error updating status', description: error.message });
+        } finally {
+            setIsActionLoading(false);
+            setActionTarget(null);
         }
     };
 
