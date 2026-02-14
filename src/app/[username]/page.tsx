@@ -364,12 +364,12 @@ export default async function UserPage({
                                     <div className="p-6 flex flex-col flex-grow">
                                         <CardHeader className="p-0">
                                             <feature.icon className="w-10 h-10 text-accent mb-4" />
-                                            <CardTitle className="font-headline text-2xl">
+                                            <CardTitle className="font-headline text-sm sm:text-md md:text-2xl">
                                                 {feature.title}
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="p-0 mt-4 flex-grow">
-                                            <p className="text-muted-foreground">
+                                            <p className="text-muted-foreground text-xs sm:text-sm md:text-md">
                                                 {feature.description}
                                             </p>
                                         </CardContent>
