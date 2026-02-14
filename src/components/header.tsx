@@ -54,6 +54,7 @@ function CustomerNotificationBell() {
       .select('*', { count: 'exact', head: true })
       .eq('recipient_id', customer.id)
       .eq('recipient_type', 'customer')
+      .eq('site_id', customer.site_id)
       .eq('is_read', false);
 
     const recentNotifsPromise = supabase
@@ -61,6 +62,7 @@ function CustomerNotificationBell() {
       .select('*')
       .eq('recipient_id', customer.id)
       .eq('recipient_type', 'customer')
+      .eq('site_id', customer.site_id)
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -89,7 +91,7 @@ function CustomerNotificationBell() {
           event: '*',
           schema: 'public',
           table: 'notifications',
-          filter: `recipient_id=eq.${customer.id}&recipient_type=eq.customer`,
+          filter: `recipient_id=eq.${customer.id}&recipient_type=eq.customer&site_id=eq.${customer.site_id}`,
         },
         () => {
           fetchAndSetNotifications();
@@ -103,7 +105,8 @@ function CustomerNotificationBell() {
   }, [customer, fetchAndSetNotifications]);
 
   const handleMarkAsRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (!customer) return;
+    await supabase.from('notifications').update({ is_read: true }).eq('id', id).eq('recipient_id', customer.id);
     // The real-time listener will trigger a refetch, so no need to manually update state here.
   };
 

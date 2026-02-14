@@ -30,6 +30,7 @@ export default function ProfileSidebar() {
             .select('*', { count: 'exact', head: true })
             .eq('recipient_id', user.id)
             .eq('recipient_type', 'customer')
+            .eq('site_id', user.site_id)
             .eq('is_read', false);
         setUnreadCount(count || 0);
     };
@@ -37,7 +38,7 @@ export default function ProfileSidebar() {
 
     const channel = supabase
         .channel(`profile-sidebar-notifications-${user.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}&recipient_type=eq.customer`}, fetchCount)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}&recipient_type=eq.customer&site_id=eq.${user.site_id}`}, fetchCount)
         .subscribe();
 
     return () => {

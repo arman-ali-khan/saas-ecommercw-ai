@@ -36,6 +36,7 @@ export default function CustomerNotificationsPage() {
       .select('*')
       .eq('recipient_id', customer.id)
       .eq('recipient_type', 'customer')
+      .eq('site_id', customer.site_id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -69,7 +70,7 @@ export default function CustomerNotificationsPage() {
           event: '*',
           schema: 'public',
           table: 'notifications',
-          filter: `recipient_id=eq.${customer.id}&recipient_type=eq.customer`,
+          filter: `recipient_id=eq.${customer.id}&recipient_type=eq.customer&site_id=eq.${customer.site_id}`,
         },
         () => {
             fetchNotifications();
@@ -83,10 +84,12 @@ export default function CustomerNotificationsPage() {
   }, [customer, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId: string) => {
+    if (!customer) return;
     await supabase
       .from('notifications')
       .update({ is_read: true })
-      .eq('id', notificationId);
+      .eq('id', notificationId)
+      .eq('recipient_id', customer.id);
     // The real-time listener will trigger a refetch, no need to manually update state.
   };
 
@@ -96,6 +99,7 @@ export default function CustomerNotificationsPage() {
       .from('notifications')
       .update({ is_read: true })
       .eq('recipient_id', customer.id)
+      .eq('site_id', customer.site_id)
       .eq('is_read', false);
 
     if (error) {
