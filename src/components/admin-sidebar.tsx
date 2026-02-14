@@ -211,20 +211,10 @@ export default function AdminSidebar() {
   const logoImageUrl = siteSettings?.logo_image_url;
   const language = siteSettings?.language || 'bn';
 
-  const attributeTypes = [
-    { type: 'brand', label: 'Brands' },
-    { type: 'unit', label: 'Units' },
-    { type: 'size', label: 'Sizes' },
-    { type: 'tag', label: 'Tags' },
-    { type: 'weight', label: 'Weights' },
-    { type: 'color', label: 'Colors' },
-  ];
-
   const adminNavLinks = [
     { href: `/`, label: 'View Store', icon: Home },
     { href: `/admin`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/admin/notifications`, label: 'Notifications', icon: Bell, count: unreadNotificationsCount },
-    { href: `/admin/products`, label: 'Products', icon: Package },
     { href: `/admin/categories`, label: 'Categories', icon: Tags },
     { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
     { href: `/admin/customers`, label: 'Customers', icon: Users },
@@ -293,27 +283,21 @@ export default function AdminSidebar() {
             {adminNavLinks.map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
-             <Collapsible>
+            <Collapsible open={pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')}>
               <CollapsibleTrigger className={cn(
                 'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
-                pathname.startsWith('/admin/attributes') && 'bg-sidebar-primary text-sidebar-primary-foreground'
+                (pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')) && 'bg-sidebar-primary text-sidebar-primary-foreground'
               )}>
                 <div className="flex items-center gap-3">
-                  <ClipboardList className="h-4 w-4" />
-                  Attributes
+                  <Package className="h-4 w-4" />
+                  Products
                 </div>
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
-                {attributeTypes.map(attr => (
-                  <Link
-                    key={attr.type}
-                    href="/admin/attributes"
-                    className="block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  >
-                    {attr.label}
-                  </Link>
-                ))}
+                <Link href="/admin/products" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/products' && 'text-sidebar-accent-foreground')}>All Products</Link>
+                <Link href="/admin/products/new" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/products/new' && 'text-sidebar-accent-foreground')}>Create Product</Link>
+                <Link href="/admin/attributes" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/attributes' && 'text-sidebar-accent-foreground')}>Attributes</Link>
               </CollapsibleContent>
             </Collapsible>
           </nav>
