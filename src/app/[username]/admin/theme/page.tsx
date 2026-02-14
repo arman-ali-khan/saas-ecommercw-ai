@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { HeaderLink, FooterLinkCategory, FooterLink, SocialLink } from '@/types';
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -240,47 +240,48 @@ export default function ThemePage() {
                     <h1 className="text-2xl font-bold">Theme Manager</h1>
                     <p className="text-muted-foreground">Customize your site's header and footer navigation.</p>
                 </div>
-
-                <Accordion type="multiple" defaultValue={['header']} className="w-full space-y-4">
-                    <AccordionItem value="header" className="border-b-0">
-                        <AccordionTrigger className="flex items-center gap-3 p-4 bg-muted hover:bg-muted/80 rounded-lg data-[state=open]:rounded-b-none">
-                            <span className="font-semibold text-lg">Header Navigation</span>
-                        </AccordionTrigger>
-                        <AccordionContent className="border border-t-0 rounded-b-lg p-0">
-                            <Card className="border-0 shadow-none">
-                                <CardContent className="p-6">
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Label</TableHead><TableHead>URL</TableHead><TableHead className="text-right w-36">Actions</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {headerLinks.map((link, index) => (
-                                                <TableRow key={link.id}>
-                                                    <TableCell>{link.label}</TableCell>
-                                                    <TableCell className="font-mono text-xs">{link.href}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button variant="ghost" size="icon" disabled={index === 0} onClick={() => handleReorder(headerLinks, setHeaderLinks, 'header_links', index, 'up')}><ArrowUp className="h-4 w-4" /></Button>
-                                                        <Button variant="ghost" size="icon" disabled={index === headerLinks.length - 1} onClick={() => handleReorder(headerLinks, setHeaderLinks, 'header_links', index, 'down')}><ArrowDown className="h-4 w-4" /></Button>
-                                                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog('headerLink', link)}><Edit className="h-4 w-4" /></Button>
-                                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteAlertState({ type: 'headerLink', data: link })}><Trash2 className="h-4 w-4" /></Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                    <Button className="mt-4" onClick={() => handleOpenDialog('headerLink')}><Plus className="mr-2 h-4 w-4" /> Add Header Link</Button>
-                                </CardContent>
-                            </Card>
-                        </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="footer" className="border-b-0">
-                        <AccordionTrigger className="flex items-center gap-3 p-4 bg-muted hover:bg-muted/80 rounded-lg data-[state=open]:rounded-b-none">
-                            <span className="font-semibold text-lg">Footer Content</span>
-                        </AccordionTrigger>
-                        <AccordionContent className="border border-t-0 rounded-b-lg p-0">
-                        <Card className="border-0 shadow-none">
-                            <CardContent className="p-6 space-y-8">
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-4">Social Media Links</h3>
+                
+                <Tabs defaultValue="header" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="header">Header</TabsTrigger>
+                        <TabsTrigger value="footer">Footer</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="header" className="mt-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Header Navigation</CardTitle>
+                                <CardDescription>Manage the main navigation links in your site's header.</CardDescription>
+                            </CardHeader>
+                             <CardContent>
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Label</TableHead><TableHead>URL</TableHead><TableHead className="text-right w-36">Actions</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {headerLinks.map((link, index) => (
+                                            <TableRow key={link.id}>
+                                                <TableCell>{link.label}</TableCell>
+                                                <TableCell className="font-mono text-xs">{link.href}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="ghost" size="icon" disabled={index === 0} onClick={() => handleReorder(headerLinks, setHeaderLinks, 'header_links', index, 'up')}><ArrowUp className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" disabled={index === headerLinks.length - 1} onClick={() => handleReorder(headerLinks, setHeaderLinks, 'header_links', index, 'down')}><ArrowDown className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog('headerLink', link)}><Edit className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteAlertState({ type: 'headerLink', data: link })}><Trash2 className="h-4 w-4" /></Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                <Button className="mt-4" onClick={() => handleOpenDialog('headerLink')}><Plus className="mr-2 h-4 w-4" /> Add Header Link</Button>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="footer" className="mt-6">
+                        <div className="space-y-8">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Social Media Links</CardTitle>
+                                    <CardDescription>Manage the social media icons in your site's footer.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
                                     <div className="space-y-2">
                                         {socialLinks.map(link => (
                                             <div key={link.id} className="flex items-center gap-4 p-2 border rounded-md">
@@ -292,9 +293,15 @@ export default function ThemePage() {
                                         ))}
                                     </div>
                                     <Button className="mt-4" variant="outline" onClick={() => handleOpenDialog('socialLink')}><Plus className="mr-2 h-4 w-4" /> Add Social Link</Button>
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-4">Footer Link Columns</h3>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Footer Link Columns</CardTitle>
+                                    <CardDescription>Organize your footer links into categories or columns.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
                                     <div className="grid md:grid-cols-2 gap-6">
                                         {footerCategories.map((cat, catIndex) => (
                                             <Card key={cat.id}>
@@ -327,12 +334,11 @@ export default function ThemePage() {
                                         ))}
                                     </div>
                                     <Button className="mt-4" onClick={() => handleOpenDialog('footerCategory')}><Plus className="mr-2 h-4 w-4" /> Add Footer Column</Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+                </Tabs>
             </div>
             
             <Dialog open={!!dialogState.type} onOpenChange={() => setDialogState({ type: null })}>
@@ -395,5 +401,3 @@ export default function ThemePage() {
         </>
     );
 }
-
-    
