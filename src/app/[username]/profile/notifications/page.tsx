@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -20,34 +19,38 @@ import { Button } from '@/components/ui/button';
 import { Loader2, BellOff } from 'lucide-react';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase/client';
+
 
 export default function CustomerNotificationsPage() {
   const { customer, _hasHydrated } = useCustomerAuth();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
   const fetchNotifications = useCallback(async () => {
     if (!customer) return;
     setIsLoading(true);
-  
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('recipient_id', customer.id)
-      .eq('recipient_type', 'customer')
-      .eq('site_id', customer.site_id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const response = await fetch('/api/get-customer-notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch notifications');
+      }
+      const { notifications: data } = await response.json();
+      setNotifications(data || []);
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error fetching notifications',
         description: error.message,
       });
-    } else if (data) {
-      setNotifications(data as Notification[]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [customer, toast]);
 
 
@@ -86,26 +89,26 @@ export default function CustomerNotificationsPage() {
 
   const handleMarkAsRead = async (notificationId: string) => {
     if (!customer) return;
-    await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', notificationId)
-      .eq('recipient_id', customer.id);
-    // The real-time listener will trigger a refetch, no need to manually update state.
+    setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
+    await fetch('/api/mark-notification-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId, customerId: customer.id }),
+    });
   };
 
   const handleMarkAllAsRead = async () => {
     if(!customer) return;
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('recipient_id', customer.id)
-      .eq('site_id', customer.site_id)
-      .eq('is_read', false);
-    if (error) {
-        toast({ variant: 'destructive', title: 'Error', description: error.message });
+    setNotifications(prev => prev.map(n => ({...n, is_read: true})));
+    const response = await fetch('/api/mark-all-notifications-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id }),
+    });
+    if (!response.ok) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to mark all as read.' });
+        fetchNotifications();
     }
-    // The real-time listener will trigger a refetch.
   }
 
   if (isLoading) {
@@ -125,7 +128,7 @@ export default function CustomerNotificationsPage() {
       </div>
     );
   }
-  console.log('customer',notifications)
+  
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">

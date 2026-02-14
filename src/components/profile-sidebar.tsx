@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
 
@@ -22,20 +22,32 @@ export default function ProfileSidebar() {
   const { customer:user, _hasHydrated } = useCustomerAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const fetchCount = useCallback(async () => {
+    if (!user) return;
+    try {
+      const response = await fetch('/api/get-customer-notification-count', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: user.id, siteId: user.site_id }),
+      });
+      if (response.ok) {
+        const { count } = await response.json();
+        setUnreadCount(count || 0);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notification count:", error);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (_hasHydrated && user) {
+        fetchCount();
+    }
+  }, [user, _hasHydrated, fetchCount]);
+
   useEffect(() => {
     if (!user) return;
-    const fetchCount = async () => {
-        const { count } = await supabase
-            .from('notifications')
-            .select('*', { count: 'exact', head: true })
-            .eq('recipient_id', user.id)
-            .eq('recipient_type', 'customer')
-            .eq('site_id', user.site_id)
-            .eq('is_read', false);
-        setUnreadCount(count || 0);
-    };
-    fetchCount();
-
+    
     const channel = supabase
         .channel(`profile-sidebar-notifications-${user.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}&recipient_type=eq.customer&site_id=eq.${user.site_id}`}, fetchCount)
@@ -44,7 +56,7 @@ export default function ProfileSidebar() {
     return () => {
         supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, fetchCount]);
 
   if (!_hasHydrated || !user) {
     return null;

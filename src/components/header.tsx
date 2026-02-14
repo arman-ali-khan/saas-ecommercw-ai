@@ -49,28 +49,21 @@ function CustomerNotificationBell() {
   const fetchAndSetNotifications = useCallback(async () => {
     if (!customer) return;
 
-    const unreadCountPromise = supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('recipient_id', customer.id)
-      .eq('recipient_type', 'customer')
-      .eq('site_id', customer.site_id)
-      .eq('is_read', false);
-
-    const recentNotifsPromise = supabase
-      .from('notifications')
-      .select('*')
-      .eq('recipient_id', customer.id)
-      .eq('recipient_type', 'customer')
-      .eq('site_id', customer.site_id)
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    const [{ count }, { data: recentData }] = await Promise.all([unreadCountPromise, recentNotifsPromise]);
-    
-    setUnreadCount(count || 0);
-    if(recentData) {
-      setNotifications(recentData);
+    try {
+        const response = await fetch('/api/get-customer-notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id }),
+        });
+        if (response.ok) {
+            const { notifications: data } = await response.json();
+            if (data) {
+                setNotifications(data.slice(0, 5));
+                setUnreadCount(data.filter((n: Notification) => !n.is_read).length);
+            }
+        }
+    } catch (error) {
+        console.error("Failed to fetch notifications for bell:", error);
     }
   }, [customer]);
 
@@ -106,8 +99,14 @@ function CustomerNotificationBell() {
 
   const handleMarkAsRead = async (id: string) => {
     if (!customer) return;
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id).eq('recipient_id', customer.id);
-    // The real-time listener will trigger a refetch, so no need to manually update state here.
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+
+    await fetch('/api/mark-notification-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notificationId: id, customerId: customer.id }),
+    });
   };
 
   return (
