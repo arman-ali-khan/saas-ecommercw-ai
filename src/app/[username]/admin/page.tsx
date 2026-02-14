@@ -6,7 +6,7 @@ import { useAuth } from '@/stores/auth';
 import { supabase } from '@/lib/supabase/client';
 import type { Order, Product } from '@/types';
 import Link from 'next/link';
-import { format, subDays } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, subMonths, isWithinInterval } from 'date-fns';
 import {
   Card,
   CardContent,
@@ -14,6 +14,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -32,6 +39,7 @@ import {
   ArrowRight,
   Eye,
   LineChart,
+  PieChart as PieChartIcon
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -42,6 +50,9 @@ import {
   Tooltip,
   Legend,
   Line,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -56,8 +67,22 @@ export default function AdminDashboard() {
   });
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [revenueChartData, setRevenueChartData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // New states for Order Status Chart
+  const [orderStatusData, setOrderStatusData] = useState<any[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+  const ORDER_STATUSES = {
+      pending: { label: 'Pending', color: 'hsl(var(--chart-1))' },
+      approved: { label: 'Approved', color: 'hsl(var(--chart-2))' },
+      processing: { label: 'Processing', color: 'hsl(var(--chart-3))' },
+      packaging: { label: 'Packaging', color: 'hsl(var(--chart-4))' },
+      'send for delivery': { label: 'Out for Delivery', color: 'hsl(var(--chart-5))' },
+      delivered: { label: 'Delivered', color: 'hsl(var(--primary))' },
+      canceled: { label: 'Canceled', color: 'hsl(var(--destructive))' },
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -67,25 +92,25 @@ export default function AdminDashboard() {
 
       const sevenDaysAgo = subDays(new Date(), 7).toISOString();
 
-      // All promises
-      const ordersPromise = supabase.from('orders').select('*').eq('site_id', user.id);
+      // Fetch all orders once
+      const { data: allOrders, error: ordersError } = await supabase.from('orders').select('*').eq('site_id', user.id);
+      
       const productsPromise = supabase.from('products').select('*').eq('site_id', user.id);
       const uncompletedPromise = supabase.from('uncompleted_orders').select('*', { count: 'exact' }).eq('site_id', user.id);
 
       const [
-        { data: ordersData, error: ordersError },
         { data: productsData, error: productsError },
         { data: uncompletedData, count: totalUncompleted, error: uncompletedError },
-      ] = await Promise.all([ordersPromise, productsPromise, uncompletedPromise]);
+      ] = await Promise.all([productsPromise, uncompletedPromise]);
 
-      if (ordersData) {
-        const totalRevenue = ordersData
+      if (allOrders) {
+        // --- Revenue Chart Data (Last 7 days) ---
+        const totalRevenue = allOrders
           .filter(o => o.status === 'delivered')
           .reduce((acc, o) => acc + o.total, 0);
 
-        const totalOrders = ordersData.filter(o => o.status !== 'canceled').length;
-
-        setPendingOrders(ordersData.filter(o => o.status === 'pending').slice(0, 5));
+        const totalOrders = allOrders.filter(o => o.status !== 'canceled').length;
+        setPendingOrders(allOrders.filter(o => o.status === 'pending').slice(0, 5));
 
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
@@ -94,7 +119,7 @@ export default function AdminDashboard() {
             dailyRevenue[formattedDate] = 0;
         }
 
-        ordersData
+        allOrders
           .filter(o => new Date(o.created_at) >= new Date(sevenDaysAgo) && o.status === 'delivered')
           .forEach(o => {
             const date = format(new Date(o.created_at), 'MMM d');
@@ -103,11 +128,33 @@ export default function AdminDashboard() {
             }
           });
         
-        const chartFormattedData = Object.keys(dailyRevenue)
+        const revenueChartFormattedData = Object.keys(dailyRevenue)
             .map(date => ({ date, Revenue: dailyRevenue[date] }));
             
-        setChartData(chartFormattedData);
+        setRevenueChartData(revenueChartFormattedData);
         setStats(prev => ({ ...prev, totalRevenue, totalOrders }));
+
+        // --- Order Status Chart Data (for selected month) ---
+        const start = startOfMonth(selectedMonth);
+        const end = endOfMonth(selectedMonth);
+        
+        const ordersForMonth = allOrders.filter(o => isWithinInterval(new Date(o.created_at), {start, end}));
+        
+        const statusCounts = ordersForMonth.reduce((acc, order) => {
+            const status = order.status.toLowerCase();
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const chartData = Object.entries(statusCounts)
+          .map(([status, count]) => ({
+              name: ORDER_STATUSES[status as keyof typeof ORDER_STATUSES]?.label || status,
+              value: count,
+              fill: ORDER_STATUSES[status as keyof typeof ORDER_STATUSES]?.color || '#8884d8',
+          }))
+          .filter(item => item.name !== 'Canceled');
+          
+        setOrderStatusData(chartData);
       }
 
       if (productsData) {
@@ -126,8 +173,8 @@ export default function AdminDashboard() {
     };
 
     fetchData();
-  }, [user]);
-  
+  }, [user, selectedMonth]);
+
   const StatCard = ({ title, value, icon: Icon, isLoading, description }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean, description?: string }) => (
     <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -139,7 +186,10 @@ export default function AdminDashboard() {
             {description && <p className="text-xs text-muted-foreground">{description}</p>}
         </CardContent>
     </Card>
-  )
+  );
+  
+  const monthOptions = [...Array(6)].map((_, i) => subMonths(new Date(), i));
+  const totalOrdersForMonth = orderStatusData.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <div className="space-y-6">
@@ -151,14 +201,15 @@ export default function AdminDashboard() {
         <StatCard title="New Uncompleted Orders" value={stats.uncompletedOrders} icon={FileClock} isLoading={isLoading} description={`${stats.totalUncompletedOrders} total abandoned carts`} />
       </div>
 
-       <Card>
+       <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> Revenue (Last 7 Days)</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             {isLoading ? <Skeleton className="h-full w-full" /> : (
               <ResponsiveContainer width="100%" height="100%">
-                  <RechartsLineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  <RechartsLineChart data={revenueChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
@@ -170,6 +221,85 @@ export default function AdminDashboard() {
             )}
           </CardContent>
        </Card>
+       
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" /> Order Status</CardTitle>
+                    <CardDescription>Order distribution for the selected month.</CardDescription>
+                </div>
+                <Select onValueChange={(value) => setSelectedMonth(new Date(value))} defaultValue={format(selectedMonth, 'yyyy-MM-dd')}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select Month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {monthOptions.map(month => (
+                            <SelectItem key={month.toISOString()} value={month.toISOString()}>
+                                {format(month, 'MMMM yyyy')}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </CardHeader>
+            <CardContent className="h-80">
+                {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : orderStatusData.length === 0 ? (
+                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                        No orders this month.
+                    </div>
+                ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Tooltip
+                            contentStyle={{ backgroundColor: 'hsl(var(--background))' }}
+                        />
+                        <Pie
+                            data={orderStatusData}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius="60%"
+                            outerRadius="80%"
+                            paddingAngle={5}
+                            strokeWidth={0}
+                        >
+                            {orderStatusData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                        </Pie>
+                        <Legend
+                          iconSize={10}
+                          layout="vertical"
+                          verticalAlign="middle"
+                          align="right"
+                        />
+                        {totalOrdersForMonth > 0 && (
+                          <text
+                            x="50%"
+                            y="50%"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            className="fill-foreground text-2xl font-bold"
+                          >
+                            {totalOrdersForMonth}
+                          </text>
+                        )}
+                         {totalOrdersForMonth > 0 && (
+                          <text
+                             x="50%"
+                             y="50%"
+                             textAnchor="middle"
+                             dominantBaseline="middle"
+                             dy="20"
+                             className="fill-muted-foreground text-sm"
+                           >
+                            Total Orders
+                          </text>
+                         )}
+                    </PieChart>
+                </ResponsiveContainer>
+                )}
+            </CardContent>
+        </Card>
+       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
