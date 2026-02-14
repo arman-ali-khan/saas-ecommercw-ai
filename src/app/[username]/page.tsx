@@ -20,6 +20,7 @@ import { cookies } from 'next/headers';
 import type { Section, Category, FlashDeal, StoreFeature } from '@/types';
 import DynamicIcon from '@/components/dynamic-icon';
 import { cn } from '@/lib/utils';
+import Autoplay from 'embla-carousel-autoplay';
 
 // Force dynamic rendering to ensure the latest section settings are always used.
 export const dynamic = 'force-dynamic';
@@ -247,6 +248,11 @@ export default async function UserPage({
                     </Button>
                   </div>
                 <Carousel
+                plugins={[
+                  Autoplay({
+                    delay: 2000,
+                  }),
+                ]}
                     opts={{ align: 'start', slidesToScroll: 1, containScroll: 'trimSnaps' }}
                     className="w-full"
                   >
