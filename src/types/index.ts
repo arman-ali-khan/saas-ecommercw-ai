@@ -20,10 +20,10 @@ export interface Product {
   is_featured: boolean;
   stock?: number;
   created_at: string;
-  brand?: string | null;
-  unit?: string | null;
-  size?: string | null;
-  color?: string | null;
+  brand?: string[] | null;
+  unit?: string[] | null;
+  size?: string[] | null;
+  color?: string[] | null;
   has_flash_deal?: boolean;
   flash_deal_price?: number;
   flash_deal_range?: { from?: Date; to?: Date };
@@ -300,6 +300,7 @@ export interface FooterLinkCategory {
   title: string;
   order: number;
   links?: FooterLink[]; // For grouping in UI
+  footer_links: FooterLink[];
 }
 
 export interface SocialLink {

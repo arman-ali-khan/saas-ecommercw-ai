@@ -40,16 +40,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import RichTextEditor from '@/components/rich-text-editor';
@@ -83,10 +74,10 @@ const productFormSchema = z.object({
   origin: z.string().optional(),
   story: z.string().optional(),
   is_featured: z.boolean().default(false),
-  brand: z.string().nullable().optional(),
-  unit: z.string().nullable().optional(),
-  size: z.string().nullable().optional(),
-  color: z.string().nullable().optional(),
+  brand: z.array(z.string()).optional(),
+  unit: z.array(z.string()).optional(),
+  size: z.array(z.string()).optional(),
+  color: z.array(z.string()).optional(),
   images: z
     .array(
       z.object({
@@ -165,10 +156,10 @@ export default function ManageProductPage() {
       story: '',
       is_featured: false,
       images: [],
-      brand: null,
-      unit: null,
-      size: null,
-      color: null,
+      brand: [],
+      unit: [],
+      size: [],
+      color: [],
       has_flash_deal: false,
       flash_deal_price: undefined,
       flash_deal_range: { from: undefined, to: undefined },
@@ -302,10 +293,10 @@ export default function ManageProductPage() {
         imageUrl: img.imageUrl || '',
         imageHint: img.imageHint || '',
       })),
-      brand: productData.brand || null,
-      unit: productData.unit || null,
-      size: productData.size || null,
-      color: productData.color || null,
+      brand: productData.brand || [],
+      unit: productData.unit || [],
+      size: productData.size || [],
+      color: productData.color || [],
       has_flash_deal: !!flashDealData,
       flash_deal_price: flashDealData?.discount_price,
       flash_deal_range: flashDealData ? {
@@ -565,7 +556,7 @@ export default function ManageProductPage() {
                         </FormItem>
                         )}
                     />
-                    <div className="grid md:grid-cols-3 gap-6">
+                    <div className="grid md:grid-cols-2 gap-6">
                         <FormField
                         control={form.control}
                         name="price"
@@ -592,33 +583,13 @@ export default function ManageProductPage() {
                             </FormItem>
                         )}
                         />
-                        <FormField
-                        control={form.control}
-                        name="unit"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Unit</FormLabel>
-                             <Select onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} value={field.value || ''}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a unit" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="__none__">None</SelectItem>
-                                    {(groupedAttributes.unit || []).map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
                     </div>
-
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <FormField control={form.control} name="brand" render={({ field }) => ( <FormItem><FormLabel>Brand</FormLabel><Select onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a brand" /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">None</SelectItem>{(groupedAttributes.brand || []).map(brand => <SelectItem key={brand} value={brand}>{brand}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="color" render={({ field }) => ( <FormItem><FormLabel>Color</FormLabel><Select onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a color" /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">None</SelectItem>{(groupedAttributes.color || []).map(color => <SelectItem key={color} value={color}>{color}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="size" render={({ field }) => ( <FormItem><FormLabel>Size</FormLabel><Select onValueChange={(value) => field.onChange(value === '__none__' ? null : value)} value={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a size" /></SelectTrigger></FormControl><SelectContent><SelectItem value="__none__">None</SelectItem>{(groupedAttributes.size || []).map(size => <SelectItem key={size} value={size}>{size}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                    
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <FormField control={form.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Brands</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select brands"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes.brand || []).map((option) => (<DropdownMenuCheckboxItem key={option} checked={field.value?.includes(option)} onCheckedChange={(checked) => { const currentValues = field.value || []; return checked ? field.onChange([...currentValues, option]) : field.onChange(currentValues.filter((value: string) => value !== option)); }}>{option}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="color" render={({ field }) => (<FormItem><FormLabel>Colors</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select colors"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes.color || []).map((option) => (<DropdownMenuCheckboxItem key={option} checked={field.value?.includes(option)} onCheckedChange={(checked) => { const currentValues = field.value || []; return checked ? field.onChange([...currentValues, option]) : field.onChange(currentValues.filter((value: string) => value !== option)); }}>{option}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="size" render={({ field }) => (<FormItem><FormLabel>Sizes</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select sizes"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes.size || []).map((option) => (<DropdownMenuCheckboxItem key={option} checked={field.value?.includes(option)} onCheckedChange={(checked) => { const currentValues = field.value || []; return checked ? field.onChange([...currentValues, option]) : field.onChange(currentValues.filter((value: string) => value !== option)); }}>{option}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="unit" render={({ field }) => (<FormItem><FormLabel>Units</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select units"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes.unit || []).map((option) => (<DropdownMenuCheckboxItem key={option} checked={field.value?.includes(option)} onCheckedChange={(checked) => { const currentValues = field.value || []; return checked ? field.onChange([...currentValues, option]) : field.onChange(currentValues.filter((value: string) => value !== option)); }}>{option}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>)} />
                     </div>
 
                     <FormField
@@ -906,4 +877,3 @@ export default function ManageProductPage() {
     </div>
   );
 }
-
