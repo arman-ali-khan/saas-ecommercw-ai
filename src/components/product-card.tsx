@@ -64,9 +64,9 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
           </div>
           {flashDeal && <Badge className="absolute top-2 left-2" variant="destructive">Sale</Badge>}
         </CardHeader>
-        <CardContent className="p-4 flex-grow">
+        <CardContent className="p-1 sm:p-4 flex-grow">
           <h3 className="text-lg font-headline font-semibold">{product.name}</h3>
-          <p className="text-muted-foreground mt-1 text-sm">{product.description}</p>
+          <p className="text-muted-foreground mt-1 text-sm truncate">{product.description}</p>
           {flashDeal && (
             <div className="mt-2">
               <Countdown endDate={flashDeal.end_date} />
@@ -74,7 +74,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
           )}
         </CardContent>
       </Link>
-      <CardFooter className="p-4 mt-auto flex justify-between items-center">
+      <CardFooter className="p-1 sm:p-4 sm:mt-auto flex flex-cols sm:flex-row justify-between items-center">
         <div className="flex flex-col">
             {flashDeal && (
                 <p className="text-sm font-bold text-muted-foreground line-through">
