@@ -65,7 +65,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
           {flashDeal && <Badge className="absolute top-2 left-2" variant="destructive">Sale</Badge>}
         </CardHeader>
         <CardContent className="p-1 sm:p-4 flex-grow">
-          <h3 className="text-lg font-headline font-semibold">{product.name}</h3>
+          <h3 className="text-sm sm:text-lg font-headline font-semibold">{product.name}</h3>
           <p className="text-muted-foreground mt-1 text-sm truncate">{product.description}</p>
           {flashDeal && (
             <div className="mt-2">
@@ -81,7 +81,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
                     {product.price.toFixed(2)} {product.currency}
                 </p>
             )}
-            <p className="text-lg font-bold text-primary">
+            <p className="text-sm sm:text-lg font-bold text-primary">
                 {displayPrice.toFixed(2)} {product.currency}
             </p>
         </div>
@@ -239,7 +239,7 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
       <CardContent>
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-4">
-             <h3 className="font-semibold text-lg">আপনার নির্বাচিত পণ্য</h3>
+             <h3 className="font-semibold text-sm sm:text-lg">আপনার নির্বাচিত পণ্য</h3>
              {products.map(p => (
               <div key={p.id} className="flex gap-4 items-center">
                 <Image src={p.images[0].imageUrl} alt={p.name} width={64} height={64} className="rounded-md object-cover aspect-square" />
@@ -262,7 +262,7 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
              </div>
           </div>
           <div>
-            <h3 className="font-semibold text-lg mb-4">শিপিং তথ্য</h3>
+            <h3 className="font-semibold text-sm sm:text-lg mb-4">শিপিং তথ্য</h3>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onShippingSubmit)} className="space-y-4">
                  <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>পুরো নাম</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
