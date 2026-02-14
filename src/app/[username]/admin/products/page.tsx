@@ -28,15 +28,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2 } from 'lucide-react';
 import { getProductsBySiteId } from '@/lib/products';
 import { Badge } from '@/components/ui/badge';
@@ -73,7 +71,7 @@ export default function ProductsAdminPage() {
   }, [user, authLoading, fetchProducts]);
 
   const handleDelete = async () => {
-    if (!productToDelete || !user) return;
+    if (!productToDelete) return;
 
     setIsDeleting(true);
     try {
@@ -290,21 +288,21 @@ export default function ProductsAdminPage() {
           </div>
         </>
       )}
-      <AlertDialog
+      <Dialog
         open={!!productToDelete}
         onOpenChange={(open) => !open && setProductToDelete(null)}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <DialogDescription>
               This will permanently delete the product "{productToDelete?.name}
               ". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProductToDelete(null)}>Cancel</Button>
+            <Button
               onClick={handleDelete}
               disabled={isDeleting}
               className={cn(buttonVariants({ variant: 'destructive' }))}
@@ -313,10 +311,10 @@ export default function ProductsAdminPage() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
