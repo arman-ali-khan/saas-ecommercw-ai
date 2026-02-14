@@ -33,16 +33,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { MoreHorizontal, Plus, Loader2, Edit, Trash2, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -82,16 +72,17 @@ export default function PagesAdminPage() {
   const handleDelete = async () => {
     if (!pageToDelete) return;
     setIsDeleting(true);
-    const { error } = await supabase.from('pages').delete().eq('id', pageToDelete.id);
-    setIsDeleting(false);
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error deleting page', description: error.message });
-    } else {
-      toast({ title: 'Page Deleted' });
-      await fetchPages();
+    try {
+        const { error } = await supabase.from('pages').delete().eq('id', pageToDelete.id);
+        if (error) throw error;
+        toast({ title: 'Page Deleted' });
+        await fetchPages();
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error deleting page', description: error.message });
+    } finally {
+        setIsDeleting(false);
+        setPageToDelete(null);
     }
-    setPageToDelete(null);
   };
   
   if (isLoading) {
@@ -225,27 +216,33 @@ export default function PagesAdminPage() {
         </CardContent>
       </Card>
       
-      <AlertDialog open={!!pageToDelete} onOpenChange={(open) => !open && setPageToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the page "{pageToDelete?.title}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className={cn(buttonVariants({ variant: "destructive" }))}
-            >
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {pageToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0">
+            <div className="w-full max-w-md p-6 bg-background rounded-lg shadow-xl border animate-in zoom-in-95">
+                <div className="text-center sm:text-left">
+                    <h3 className="text-lg font-semibold text-foreground">Are you absolutely sure?</h3>
+                    <div className="mt-2">
+                        <p className="text-sm text-muted-foreground">
+                            This will permanently delete the page "{pageToDelete.title}". This action cannot be undone.
+                        </p>
+                    </div>
+                </div>
+                <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                    <Button variant="outline" onClick={() => setPageToDelete(null)}>
+                    Cancel
+                    </Button>
+                    <Button
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className={cn(buttonVariants({ variant: 'destructive' }))}
+                    >
+                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Delete
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
     </>
   );
 }
