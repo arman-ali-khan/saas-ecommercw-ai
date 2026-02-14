@@ -403,43 +403,46 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="md:hidden">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">মেনু খুলুন</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col">
-              <SheetHeader>
-                <SheetTitle className="sr-only">Main Menu</SheetTitle>
-                <SheetDescription className="sr-only">
-                  Main navigation menu
-                </SheetDescription>
-              </SheetHeader>
-              <SheetClose asChild>
-                <div className="mb-8">
-                  <HeaderLogo />
+        <div className="flex items-center gap-2">
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">মেনু খুলুন</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="flex flex-col">
+                <SheetHeader>
+                  <SheetTitle className="sr-only">Main Menu</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Main navigation menu
+                  </SheetDescription>
+                </SheetHeader>
+                <SheetClose asChild>
+                  <div className="mb-8">
+                    <HeaderLogo />
+                  </div>
+                </SheetClose>
+                <nav className="flex flex-col gap-6">
+                  {navLinks.map((link) => (
+                    <SheetClose asChild key={link.href}>
+                      <NavLink {...link} className="text-lg" />
+                    </SheetClose>
+                  ))}
+                </nav>
+                <div className="mt-auto">
+                  <AuthNavMobile />
                 </div>
-              </SheetClose>
-              <nav className="flex flex-col gap-6">
-                {navLinks.map((link) => (
-                  <SheetClose asChild key={link.href}>
-                    <NavLink {...link} className="text-lg" />
-                  </SheetClose>
-                ))}
-              </nav>
-              <div className="mt-auto">
-                <AuthNavMobile />
-              </div>
-            </SheetContent>
-          </Sheet>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <div>
+            <HeaderLogo />
+          </div>
         </div>
 
-        <div className="hidden md:flex">
-          <HeaderLogo />
-        </div>
 
         <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
@@ -452,7 +455,7 @@ export default function Header() {
             <ShoppingCart />
           </div>
           {customer && (
-            <div className="hidden md:flex">
+            <div>
               <CustomerNotificationBell />
             </div>
           )}
