@@ -39,7 +39,8 @@ import {
   ArrowRight,
   Eye,
   LineChart,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Wallet,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -73,6 +74,7 @@ export default function AdminDashboard() {
   // New states for Order Status Chart
   const [orderStatusData, setOrderStatusData] = useState<any[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [paymentMethodData, setPaymentMethodData] = useState<any[]>([]);
 
   const ORDER_STATUSES = {
       pending: { label: 'Pending', color: 'hsl(var(--chart-1))' },
@@ -82,6 +84,11 @@ export default function AdminDashboard() {
       'send for delivery': { label: 'Out for Delivery', color: 'hsl(var(--chart-5))' },
       delivered: { label: 'Delivered', color: 'hsl(var(--primary))' },
       canceled: { label: 'Canceled', color: 'hsl(var(--destructive))' },
+  };
+
+  const PAYMENT_METHOD_TYPES = {
+    cod: { label: 'Cash on Delivery', color: 'hsl(var(--chart-1))' },
+    mobile_banking: { label: 'Direct Payment', color: 'hsl(var(--chart-2))' },
   };
 
   useEffect(() => {
@@ -155,6 +162,24 @@ export default function AdminDashboard() {
           .filter(item => item.name !== 'Canceled');
           
         setOrderStatusData(chartData);
+
+        // --- Payment Method Chart Data (All Time) ---
+        const paymentMethodSales = allOrders
+          .filter(o => o.status !== 'canceled')
+          .reduce((acc, order) => {
+            const method = order.payment_method; // 'cod' or 'mobile_banking'
+            acc[method] = (acc[method] || 0) + order.total;
+            return acc;
+          }, {} as Record<string, number>);
+        
+        const paymentChartData = Object.entries(paymentMethodSales)
+          .map(([method, total]) => ({
+            name: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.label || method,
+            value: total,
+            fill: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.color || '#8884d8',
+          }));
+        
+        setPaymentMethodData(paymentChartData);
       }
 
       if (productsData) {
@@ -190,6 +215,7 @@ export default function AdminDashboard() {
   
   const monthOptions = [...Array(6)].map((_, i) => subMonths(new Date(), i));
   const totalOrdersForMonth = orderStatusData.reduce((sum, item) => sum + item.value, 0);
+  const totalSales = paymentMethodData.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <div className="space-y-6">
@@ -300,6 +326,71 @@ export default function AdminDashboard() {
             </CardContent>
         </Card>
        </div>
+
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> Total Sales by Payment Method</CardTitle>
+                <CardDescription>All-time sales distribution by payment method (excludes canceled orders).</CardDescription>
+            </CardHeader>
+            <CardContent className="h-80">
+                {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : paymentMethodData.length === 0 ? (
+                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                    No sales data available.
+                </div>
+                ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Tooltip
+                            contentStyle={{ backgroundColor: 'hsl(var(--background))' }}
+                            formatter={(value: number) => `BDT ${value.toFixed(2)}`}
+                        />
+                        <Pie
+                            data={paymentMethodData}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius="60%"
+                            outerRadius="80%"
+                            paddingAngle={5}
+                            strokeWidth={0}
+                        >
+                            {paymentMethodData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                        </Pie>
+                        <Legend
+                            iconSize={10}
+                            layout="vertical"
+                            verticalAlign="middle"
+                            align="right"
+                        />
+                        {totalSales > 0 && (
+                            <text
+                                x="50%"
+                                y="50%"
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                className="fill-foreground text-2xl font-bold"
+                            >
+                                {`৳${(totalSales / 1000).toFixed(0)}k`}
+                            </text>
+                        )}
+                        {totalSales > 0 && (
+                            <text
+                                x="50%"
+                                y="50%"
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                dy="20"
+                                className="fill-muted-foreground text-sm"
+                            >
+                                Total Sales
+                            </text>
+                        )}
+                    </PieChart>
+                </ResponsiveContainer>
+                )}
+            </CardContent>
+        </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
