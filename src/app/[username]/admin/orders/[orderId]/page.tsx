@@ -112,7 +112,7 @@ export default function OrderDetailsPage() {
                         site_id: updatedOrder.site_id,
                         order_id: updatedOrder.id,
                         message: notificationMessage,
-                        link: `/profile/orders`
+                        link: `/profile/orders/${updatedOrder.id}`
                     });
 
                 if (notificationError) {

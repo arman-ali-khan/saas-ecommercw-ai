@@ -39,26 +39,43 @@ export async function POST(request: Request) {
         }
     }
 
-    // --- Create notification for admin ---
     if (newOrder) {
-      const notificationMessage = `New order #${newOrder.order_number} has been placed for a total of ${newOrder.total.toFixed(2)} BDT.`;
-      const { error: notificationError } = await supabaseAdmin
+      // --- Create notification for admin ---
+      const adminNotificationMessage = `New order #${newOrder.order_number} has been placed for a total of ${newOrder.total.toFixed(2)} BDT.`;
+      const { error: adminNotificationError } = await supabaseAdmin
         .from('notifications')
         .insert({
           recipient_id: newOrder.site_id, // The admin's ID is the site_id
           recipient_type: 'admin',
           site_id: newOrder.site_id,
           order_id: newOrder.id,
-          message: notificationMessage,
+          message: adminNotificationMessage,
           link: `/admin/orders/${newOrder.id}`,
         });
 
-      if (notificationError) {
-        // Log the error but don't fail the whole request
-        console.error('Failed to create notification for admin:', notificationError);
+      if (adminNotificationError) {
+        console.error('Failed to create notification for admin:', adminNotificationError);
+      }
+
+      // --- Create notification for customer ---
+      if (newOrder.customer_id) {
+        const customerNotificationMessage = `Your order #${newOrder.order_number} has been successfully placed. We will process it shortly.`;
+        const { error: customerNotificationError } = await supabaseAdmin
+            .from('notifications')
+            .insert({
+                recipient_id: newOrder.customer_id,
+                recipient_type: 'customer',
+                site_id: newOrder.site_id,
+                order_id: newOrder.id,
+                message: customerNotificationMessage,
+                link: `/profile/orders/${newOrder.id}`
+            });
+
+        if (customerNotificationError) {
+            console.error("Failed to create notification for customer on order creation:", customerNotificationError);
+        }
       }
     }
-    // --- End notification ---
 
     return NextResponse.json(newOrder, { status: 200 });
 
