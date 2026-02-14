@@ -33,7 +33,7 @@ import { Skeleton } from './ui/skeleton';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
-import { type Notification } from '@/types';
+import { type Notification, type HeaderLink } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import DynamicIcon from './dynamic-icon';
@@ -208,6 +208,7 @@ export default function Header() {
     logoImageUrl: string | null;
   }>({ name: 'Store', description: '', logoType: 'icon', logoIcon: 'Leaf', logoImageUrl: null });
   const [isSiteInfoLoading, setIsSiteInfoLoading] = useState(true);
+  const [navLinks, setNavLinks] = useState<HeaderLink[]>([]);
   
   const domain = params.username as string;
 
@@ -240,6 +241,7 @@ export default function Header() {
           .select('id, site_name, site_description')
           .eq('domain', domain)
           .single();
+
         if (profileData) {
           const { data: settingsData } = await supabase
             .from('store_settings')
@@ -254,6 +256,24 @@ export default function Header() {
             logoIcon: settingsData?.logo_icon || 'Leaf',
             logoImageUrl: settingsData?.logo_image_url || null
           });
+
+          const { data: headerLinksData } = await supabase
+            .from('header_links')
+            .select('*')
+            .eq('site_id', profileData.id)
+            .order('order');
+          
+          if (headerLinksData && headerLinksData.length > 0) {
+            setNavLinks(headerLinksData);
+          } else {
+            setNavLinks([
+              { id: '1', site_id: '', label: 'হোম', href: '/', order: 0 },
+              { id: '2', site_id: '', label: 'পণ্য', href: `/products`, order: 1 },
+              { id: '3', site_id: '', label: 'Flash Deals', href: `/flash-deals`, order: 2 },
+              { id: '4', site_id: '', label: 'ট্র্যাক অর্ডার', href: `/track-order`, order: 3 },
+              { id: '5', site_id: '', label: 'আমাদের সম্পর্কে', href: `/about`, order: 4 },
+            ]);
+          }
         } else {
           setSiteInfo({ name: domain, description: 'An e-commerce store', logoType: 'icon', logoIcon: 'Leaf', logoImageUrl: null });
         }
@@ -262,18 +282,6 @@ export default function Header() {
     }
     fetchInfo();
   }, [domain]);
-
-  const navLinks = [
-    { href: '/', label: 'হোম' },
-    { href: `/products`, label: 'পণ্য' },
-    { href: `/flash-deals`, label: 'Flash Deals' },
-    { href: `/track-order`, label: 'ট্র্যাক অর্ডার' },
-    { href: `/about`, label: 'আমাদের সম্পর্কে' },
-  ];
-
-  if (currentUser?.isSaaSAdmin) {
-    navLinks.push({ href: '/dashboard', label: 'SaaS Admin' });
-  }
 
   const logout = async () => {
     if (currentUser?.type === 'admin') {
@@ -426,7 +434,7 @@ export default function Header() {
                 </SheetClose>
                 <nav className="flex flex-col gap-6">
                   {navLinks.map((link) => (
-                    <SheetClose asChild key={link.href}>
+                    <SheetClose asChild key={link.id}>
                       <NavLink {...link} className="text-lg" />
                     </SheetClose>
                   ))}
@@ -446,7 +454,7 @@ export default function Header() {
 
         <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <NavLink key={link.href} {...link} />
+            <NavLink key={link.id} {...link} />
           ))}
         </nav>
 

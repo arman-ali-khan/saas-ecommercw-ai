@@ -27,6 +27,7 @@ import {
   ClipboardList,
   ChevronDown,
   Sparkles,
+  Palette,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -233,6 +234,7 @@ export default function AdminSidebar() {
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/admin/features`, label: 'Store Features', icon: Sparkles },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
+    { href: `/admin/theme`, label: 'Theme', icon: Palette },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: unviewedUncompletedCount },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
     { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
@@ -270,7 +272,7 @@ export default function AdminSidebar() {
   };
 
   return (
-    <div className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:block">
+    <div className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:block sticky top-0 h-screen">
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-20 items-center border-b border-sidebar-border px-6">
           <Link href={`/admin`} className="flex items-center gap-3">

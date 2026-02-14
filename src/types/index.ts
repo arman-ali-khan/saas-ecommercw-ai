@@ -277,3 +277,35 @@ export interface Address {
     type: 'home' | 'work' | 'other' | null;
     created_at: string;
 };
+
+export interface HeaderLink {
+  id: string;
+  site_id: string;
+  label: string;
+  href: string;
+  order: number;
+}
+
+export interface FooterLink {
+  id: string;
+  site_id: string;
+  category_id: string;
+  label: string;
+  href: string;
+  order: number;
+}
+
+export interface FooterLinkCategory {
+  id: string;
+  site_id: string;
+  title: string;
+  order: number;
+  links?: FooterLink[]; // For grouping in UI
+}
+
+export interface SocialLink {
+  id: string;
+  site_id: string;
+  platform: 'facebook' | 'twitter' | 'instagram' | 'tiktok' | 'youtube' | 'linkedin';
+  href: string;
+}
