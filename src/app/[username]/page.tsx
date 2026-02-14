@@ -283,7 +283,7 @@ export default async function UserPage({
                           <Card className="overflow-hidden flex flex-col text-center h-full">
                             {feature.image_url && (
                               <CardHeader className="p-0">
-                                <div className="relative aspect-video w-full">
+                                <div className="relative h-28 sm:h-[200px] w-full">
                                   <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
                                 </div>
                               </CardHeader>
