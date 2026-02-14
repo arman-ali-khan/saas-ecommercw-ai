@@ -72,7 +72,7 @@ export default function AdminSidebar() {
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .eq('site_id', user.id)
-        .eq('status', 'processing');
+        .eq('status', 'approved');
       setProcessingOrdersCount(orderCount || 0);
       
       const { count: notifCount } = await supabase
