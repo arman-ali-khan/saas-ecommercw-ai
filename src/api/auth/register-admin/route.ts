@@ -1,13 +1,21 @@
-// src/api/auth/register-admin/route.ts
+
+
+// src/app/api/auth/register-admin/route.ts
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(request: Request) {
+  // Environment variable check
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    console.error("Server Error: Supabase environment variables are not configured.");
+    return NextResponse.json({ error: "Server is not configured correctly. Please contact support." }, { status: 500 });
+  }
+  
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
   const body = await request.json();
   
@@ -20,8 +28,7 @@ export async function POST(request: Request) {
   let userId: string | undefined;
 
   try {
-    // Step 1: Create the auth user. This also triggers the `on_auth_user_created`
-    // function in Supabase, which creates a basic row in the `profiles` table.
+    // Step 1: Create the auth user.
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -34,14 +41,12 @@ export async function POST(request: Request) {
     });
 
     if (authError) {
-      // This handles cases like a user with this email already existing.
       return NextResponse.json({ error: `Authentication error: ${authError.message}` }, { status: 400 });
     }
 
     userId = authData.user.id;
 
-    // Step 2: Update the newly created profile row with the rest of the site info.
-    // We use UPDATE instead of INSERT to avoid a race condition with the database trigger.
+    // Step 2: Update the newly created profile row.
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -52,9 +57,9 @@ export async function POST(request: Request) {
         site_name: siteName,
         site_description: siteDescription,
         subscription_plan: planId,
-        // Set status based on plan
         subscription_status: planId === 'free' ? 'active' : 'pending_verification',
-        role: 'admin'
+        role: 'admin',
+        last_subscription_from: 'get-started'
       })
       .eq('id', userId); 
 
@@ -77,7 +82,6 @@ export async function POST(request: Request) {
       const priceString = String(planData.price || '0');
       const priceNumber = parseFloat(priceString.replace(/[^0-9.]/g, '')) || 0;
 
-      // If a transactionId is not provided (e.g. for manual verification), generate one.
       const finalTransactionId = (transactionId && transactionId.trim()) ? transactionId.trim() : uuidv4();
 
       const { error: paymentError } = await supabaseAdmin
@@ -89,29 +93,25 @@ export async function POST(request: Request) {
           payment_method: paymentMethod || 'manual',
           transaction_id: finalTransactionId,
           status: 'pending_verification',
+          subscription_from: 'get-started',
         });
       
       if (paymentError) {
-        // If payment fails, we need to clean up the created user and return a specific error.
         if (userId) {
             await supabaseAdmin.auth.admin.deleteUser(userId);
         }
         
-        if (paymentError.code === '23505') { // Unique constraint violation
-            return NextResponse.json({ error: 'This payment transaction ID has already been used. Please start the registration process again with a new payment.' }, { status: 409 }); // 409 Conflict
+        if (paymentError.code === '23505' || paymentError.message.includes('subscription_payments_transaction_id_key')) { // Unique constraint violation
+            return NextResponse.json({ error: 'This payment transaction ID has already been used. Please start the registration process again with a new payment.' }, { status: 409 });
         }
         
-        // For other payment errors
         return NextResponse.json({ error: `Could not create payment record: ${paymentError.message}` }, { status: 500 });
       }
     }
 
-    // If we get here, everything was successful.
     return NextResponse.json({ user: authData.user }, { status: 200 });
 
   } catch (err: any) {
-    // Generic catch block. If something failed, and we have a userId,
-    // we must delete the auth user to allow a clean retry.
     if (userId) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
     }

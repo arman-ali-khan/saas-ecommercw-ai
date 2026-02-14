@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -487,12 +488,14 @@ export default function SettingsAdminPage() {
                 payment_method: 'mobile_banking',
                 transaction_id: data.transactionId,
                 status: 'pending_verification',
+                subscription_from: 'dashboard',
             });
 
             if (paymentError) throw paymentError;
 
             const { error: profileError } = await supabase.from('profiles').update({
-                subscription_status: 'pending_verification'
+                subscription_status: 'pending_verification',
+                last_subscription_from: 'dashboard',
             }).eq('id', user.id);
 
             if (profileError) throw profileError;

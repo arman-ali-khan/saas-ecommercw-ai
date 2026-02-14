@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -68,6 +69,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
               subscription_status: adminProfile.subscription_status,
               role: adminProfile.role,
               isSaaSAdmin: adminProfile.role === 'saas_admin',
+              last_subscription_from: adminProfile.last_subscription_from,
             };
             set({ user: appUser });
           } else {
@@ -245,6 +247,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
           subscription_status: data.subscription_status,
           role: data.role,
           isSaaSAdmin: data.role === 'saas_admin',
+          last_subscription_from: data.last_subscription_from,
         };
         
         set({ user: updatedUser });

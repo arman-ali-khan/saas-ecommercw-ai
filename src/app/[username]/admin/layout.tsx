@@ -1,3 +1,4 @@
+
 'use client';
 
 import AdminSidebar from '@/components/admin-sidebar';
@@ -46,7 +47,9 @@ export default function AdminLayout({
   }
   
   // If we've reached this point, the user is authenticated for this admin area.
-  const isPending = user?.subscription_status === 'pending' || user?.subscription_status === 'pending_verification' || user?.subscription_status === 'failed';
+  const isPendingFromRegistration = user?.subscription_status === 'pending_verification' && user?.last_subscription_from === 'get-started';
+  const isFailed = user?.subscription_status === 'failed';
+  const isPending = (user?.subscription_status === 'pending' || isPendingFromRegistration || isFailed);
 
   return (
     <div className="fixed inset-0 bg-background z-50">

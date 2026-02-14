@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -34,7 +35,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Loader2, User, CreditCard, FileText } from 'lucide-react';
+import { Eye, Loader2, User, CreditCard, FileText, Anchor } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const PAYMENTS_PER_PAGE = 10;
@@ -336,6 +337,10 @@ export default function SubscriptionPaymentsPage() {
                         <h4 className="font-semibold flex items-center gap-2"><CreditCard className="h-4 w-4" /> Payment Information</h4>
                         <p><strong>Method:</strong> {formatPaymentMethod(selectedPayment.payment_method)}</p>
                         <p><strong>Transaction ID:</strong> {selectedPayment.transaction_id || 'N/A'}</p>
+                        <p className="flex items-center gap-2">
+                          <strong>Initiated From:</strong>
+                          <span className="capitalize">{selectedPayment.subscription_from || 'get-started'}</span>
+                        </p>
                         <div className="flex items-center gap-2">
                             <strong>Status:</strong>
                             <Badge variant={getStatusBadgeVariant(selectedPayment.status)}>{selectedPayment.status}</Badge>
