@@ -218,7 +218,7 @@ export default function BottomNav() {
                 {activeTab === tab.id && (
                   <motion.div
                     layoutId="bubble"
-                    className="absolute z-10 bottom-[25px] left-1/2 -translate-x-1/2 h-[60px] w-[60px] rounded-full border-[6px] border-background bg-background"
+                    className="absolute z-10 bottom-[25px] left-0 -translate-x-1/2 h-[60px] w-[60px] rounded-full border-[6px] border-background bg-background"
                     transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
                   >
                     <div className="absolute -left-[19px] top-[28px] h-5 w-5 bg-card">
