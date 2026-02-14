@@ -598,7 +598,7 @@ export default function SettingsAdminPage() {
       </CardHeader>
       <CardContent>
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto">
               <TabsTrigger value="general">সাধারণ</TabsTrigger>
               <TabsTrigger value="branding">ব্র্যান্ডিং</TabsTrigger>
               <TabsTrigger value="appearance">সাজসজ্জা</TabsTrigger>
@@ -1203,3 +1203,4 @@ export default function SettingsAdminPage() {
     
 
     
+
