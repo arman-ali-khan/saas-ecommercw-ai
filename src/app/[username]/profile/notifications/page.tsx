@@ -70,7 +70,6 @@ export default function CustomerNotificationsPage() {
           event: '*',
           schema: 'public',
           table: 'notifications',
-          filter: `recipient_id=eq.${customer.id}&recipient_type=eq.customer&site_id=eq.${customer.site_id}`,
         },
         () => {
             fetchNotifications();
