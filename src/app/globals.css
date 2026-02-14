@@ -120,11 +120,11 @@
   }
   .nav-indicator::before {
       content: '';
-      @apply absolute -left-5 top-[22px] h-5 w-5 rounded-tr-2xl bg-transparent shadow-[4px_-6px_0_1px] shadow-card;
+      @apply absolute -left-5 top-[22px] h-5 w-5 rounded-tr-2xl bg-transparent shadow-[4px_-6px_0_1px_hsl(var(--card))];
   }
   .nav-indicator::after {
       content: '';
-      @apply absolute -right-5 top-[22px] h-5 w-5 rounded-tl-2xl bg-transparent shadow-[-4px_-6px_0_1px] shadow-card;
+      @apply absolute -right-5 top-[22px] h-5 w-5 rounded-tl-2xl bg-transparent shadow-[-4px_-6px_0_1px_hsl(var(--card))];
   }
 }
 
