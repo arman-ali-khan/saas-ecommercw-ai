@@ -294,7 +294,7 @@ export default async function UserPage({
                                   <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
                                 </div>
                               )}
-                              <CardTitle className="font-headline text-sm sm:text-lg md:text-2xl mt-4">
+                              <CardTitle className="font-headline text-sm sm:text-lg md:text-2xl mt-4"> 
                                 {feature.title}
                               </CardTitle>
                               <p className="text-muted-foreground text-xs sm:text-sm mt-4 flex-grow">
