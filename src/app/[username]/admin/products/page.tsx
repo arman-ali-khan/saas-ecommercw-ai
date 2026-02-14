@@ -76,23 +76,26 @@ export default function ProductsAdminPage() {
     if (!productToDelete || !user) return;
 
     setIsDeleting(true);
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', productToDelete.id);
-    setIsDeleting(false);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productToDelete.id);
+        
+      if (error) throw error;
 
-    if (error) {
+      toast({ title: 'Product deleted' });
+      await fetchProducts(); // Refetch products
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Failed to delete product',
         description: error.message,
       });
-    } else {
-      toast({ title: 'Product deleted' });
-      await fetchProducts(); // Refetch products
+    } finally {
+      setIsDeleting(false);
+      setProductToDelete(null);
     }
-    setProductToDelete(null);
   };
 
   if (isLoading) {
