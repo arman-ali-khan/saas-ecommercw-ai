@@ -273,7 +273,7 @@ export default async function UserPage({
             if (storeFeatures.length > 0) {
               return (
                 <section key={section.id}>
-                  <h2 className="text-3xl font-headline font-bold text-center mb-8">
+                  <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">
                     {section.title}
                   </h2>
                   <Carousel opts={{ align: 'start' }} className="w-full">
