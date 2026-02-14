@@ -45,7 +45,7 @@ export default function UncompletedOrderDetailsPage() {
 
         if (error || !data) {
             toast({ variant: 'destructive', title: 'Error', description: 'Uncompleted order not found.' });
-            router.push(`/${username}/admin/uncompleted`);
+            router.push(`/admin/uncompleted`);
             return;
         }
         setOrder(data as UncompletedOrder);
@@ -115,7 +115,7 @@ export default function UncompletedOrderDetailsPage() {
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                     <Button variant="ghost" asChild className="-ml-4">
-                        <Link href={`/${username}/admin/uncompleted`}>
+                        <Link href={`/admin/uncompleted`}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Uncompleted Orders
                         </Link>
