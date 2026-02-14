@@ -144,7 +144,7 @@ export default function UncompletedOrdersPage() {
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
                                                     <DropdownMenuItem asChild>
-                                                        <Link href={`/${username}/admin/uncompleted/${order.id}`}>
+                                                        <Link href={`/admin/uncompleted/${order.id}`}>
                                                             <Eye className="mr-2 h-4 w-4" />
                                                             বিস্তারিত দেখুন
                                                         </Link>
