@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -29,7 +30,7 @@ export default function FlashDealCarousel({ deals }: FlashDealCarouselProps) {
     >
       <CarouselContent className="-ml-4">
         {deals.map((deal) => (
-          <CarouselItem key={deal.id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+          <CarouselItem key={deal.id} className="pl-4 basis-1/2">
             <ProductCard
               product={deal.products}
               flashDeal={deal}

@@ -258,7 +258,7 @@ export default async function UserPage({
                 <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">
                   {section.title}
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-2 gap-4 md:gap-8">
                   {featuredProducts.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -279,7 +279,7 @@ export default async function UserPage({
                   <Carousel opts={{ align: 'start' }} className="w-full">
                     <CarouselContent className="-ml-6">
                       {storeFeatures.map((feature) => (
-                        <CarouselItem key={feature.id} className="pl-6 basis-1/2 md:basis-1/3">
+                        <CarouselItem key={feature.id} className="pl-6 basis-1/2">
                           <Card className="overflow-hidden flex flex-col text-center h-full">
                             {feature.image_url && (
                               <CardHeader className="p-0">
@@ -294,10 +294,10 @@ export default async function UserPage({
                                   <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
                                 </div>
                               )}
-                              <CardTitle className="font-headline text-sm sm:text-lg md:text-2xl mt-4"> 
+                              <CardTitle className="font-headline text-base sm:text-lg mt-4"> 
                                 {feature.title}
                               </CardTitle>
-                              <p className="text-muted-foreground text-xs sm:text-sm mt-4 flex-grow">
+                              <p className="text-muted-foreground text-xs mt-4 flex-grow">
                                 {feature.description}
                               </p>
                             </CardContent>
@@ -329,7 +329,7 @@ export default async function UserPage({
                 >
                     <CarouselContent className="-ml-6">
                         {fallbackFeatures.map((feature, index) => (
-                            <CarouselItem key={index} className="pl-6 basis-1/2 md:basis-1/3">
+                            <CarouselItem key={index} className="pl-6 basis-1/2">
                                 <Card className="overflow-hidden flex flex-col h-full">
                                     <div className="relative h-64 w-full">
                                         <Image
@@ -343,12 +343,12 @@ export default async function UserPage({
                                     <div className="p-6 flex flex-col flex-grow">
                                         <CardHeader className="p-0">
                                             <feature.icon className="w-10 h-10 text-accent mb-4" />
-                                            <CardTitle className="font-headline text-sm sm:text-md md:text-2xl">
+                                            <CardTitle className="font-headline text-base sm:text-lg">
                                                 {feature.title}
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="p-0 mt-4 flex-grow">
-                                            <p className="text-muted-foreground text-xs sm:text-sm md:text-md">
+                                            <p className="text-muted-foreground text-xs">
                                                 {feature.description}
                                             </p>
                                         </CardContent>
@@ -376,7 +376,7 @@ export default async function UserPage({
             if (section.isCategorySection && section.category) {
               const categoryProducts = allProducts
                 .filter((p) => p.categories?.includes(section.category!))
-                .slice(0, 3);
+                .slice(0, 4); // Show 4 for a 2x2 grid
               if (categoryProducts.length === 0) return null;
 
               return (
@@ -391,7 +391,7 @@ export default async function UserPage({
                       </Link>
                     </Button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-2 gap-4 md:gap-8">
                     {categoryProducts.map((product) => (
                       <ProductCard
                         key={product.id}

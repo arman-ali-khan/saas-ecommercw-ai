@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -283,7 +284,7 @@ export default function ProductsPage() {
             <Skeleton className="h-10 w-full sm:max-w-xs" />
             <Skeleton className="h-10 w-full sm:w-[180px]" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="space-y-2">
                 <Skeleton className="h-56 w-full" />
@@ -351,7 +352,7 @@ export default function ProductsPage() {
 
         {paginatedProducts.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-2 gap-4 md:gap-8">
               {paginatedProducts.map((product) => (
                 <ProductCard
                   key={product.id}
