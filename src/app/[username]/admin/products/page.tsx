@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -9,7 +8,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,14 +25,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2 } from 'lucide-react';
 import { getProductsBySiteId } from '@/lib/products';
 import { Badge } from '@/components/ui/badge';
@@ -72,10 +62,10 @@ export default function ProductsAdminPage() {
 
   const handleDelete = async () => {
     if (!productToDelete) return;
-
+    
     setIsDeleting(true);
     try {
-      const { error } = await supabase
+        const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', productToDelete.id);
@@ -91,8 +81,8 @@ export default function ProductsAdminPage() {
         description: error.message,
       });
     } finally {
-      setIsDeleting(false);
-      setProductToDelete(null);
+        setIsDeleting(false);
+        setProductToDelete(null);
     }
   };
 
@@ -288,33 +278,33 @@ export default function ProductsAdminPage() {
           </div>
         </>
       )}
-      <Dialog
-        open={!!productToDelete}
-        onOpenChange={(open) => !open && setProductToDelete(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Are you absolutely sure?</DialogTitle>
-            <DialogDescription>
-              This will permanently delete the product "{productToDelete?.name}
-              ". This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setProductToDelete(null)}>Cancel</Button>
-            <Button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className={cn(buttonVariants({ variant: 'destructive' }))}
-            >
-              {isDeleting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0">
+            <div className="w-full max-w-md p-6 bg-background rounded-lg shadow-xl border animate-in zoom-in-95">
+                <div className="text-center sm:text-left">
+                    <h3 className="text-lg font-semibold text-foreground">Are you absolutely sure?</h3>
+                    <div className="mt-2">
+                        <p className="text-sm text-muted-foreground">
+                            This will permanently delete the product "{productToDelete.name}". This action cannot be undone.
+                        </p>
+                    </div>
+                </div>
+                <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                    <Button variant="outline" onClick={() => setProductToDelete(null)}>
+                    Cancel
+                    </Button>
+                    <Button
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className={cn(buttonVariants({ variant: 'destructive' }))}
+                    >
+                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Delete
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
     </>
   );
 }
