@@ -196,7 +196,7 @@ export default async function UserPage({
           case 'hero':
             if (heroSlides.length === 0 && categories.length === 0) return null;
             return (
-              <section key={section.id} className="grid sm:grid-cols-[260px_1fr] gap-8 items-start">
+              <section key={section.id} className="grid sm:grid-cols-[260px_1fr] gap-2 sm:gap-8 items-start">
                   {categories.length > 0 && (
                       <div className="hidden sm:block sticky top-24">
                           <Card>
@@ -258,7 +258,7 @@ export default async function UserPage({
                 <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">
                   {section.title}
                 </h2>
-                <div className="grid grid-cols-2 gap-4 md:gap-8">
+                <div className="grid grid-cols-2 gap-2 md:gap-8">
                   {featuredProducts.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -391,7 +391,7 @@ export default async function UserPage({
                       </Link>
                     </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 md:gap-8">
+                  <div className="grid grid-cols-2 gap-2 md:gap-8">
                     {categoryProducts.map((product) => (
                       <ProductCard
                         key={product.id}
