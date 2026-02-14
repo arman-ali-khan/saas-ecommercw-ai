@@ -54,7 +54,7 @@ export default async function AllFlashDealsPage({ params }: Props) {
       </div>
       
       {deals.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 md:gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-8">
           {deals.map((deal) => (
             <ProductCard
               key={deal.id}

@@ -28,7 +28,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useParams, useSearchParams } from 'next/navigation';
 
-const PRODUCTS_PER_PAGE = 8;
+const PRODUCTS_PER_PAGE = 10;
 
 export default function ProductsPage() {
   const params = useParams();
@@ -352,7 +352,7 @@ export default function ProductsPage() {
 
         {paginatedProducts.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 gap-4 md:gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-8">
               {paginatedProducts.map((product) => (
                 <ProductCard
                   key={product.id}

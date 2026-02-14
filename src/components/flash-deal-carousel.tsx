@@ -30,7 +30,7 @@ export default function FlashDealCarousel({ deals }: FlashDealCarouselProps) {
     >
       <CarouselContent className="-ml-4">
         {deals.map((deal) => (
-          <CarouselItem key={deal.id} className="pl-4 relative basis-1/2">
+          <CarouselItem key={deal.id} className="pl-4 relative basis-1/2 md:basis-1/4 lg:basis-1/5">
             <ProductCard
               product={deal.products}
               flashDeal={deal}
