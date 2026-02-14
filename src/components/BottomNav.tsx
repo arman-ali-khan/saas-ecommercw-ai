@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, User, Menu, Search } from 'lucide-react';
+import { Home, User, Menu, Search, ShoppingBag as ShoppingBagIcon, Trash2, Plus, Minus } from 'lucide-react';
 import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -12,21 +12,19 @@ import {
   SheetClose,
   SheetHeader,
   SheetTitle,
-  SheetFooter
 } from './ui/sheet';
-import { CardHeader, CardTitle } from './ui/card';
 import DynamicIcon from './dynamic-icon';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { Category } from '@/types';
 import { useSearchStore } from '@/stores/useSearchStore';
 import { useCart } from '@/stores/cart';
-import { ShoppingBag as ShoppingBagIcon, Trash2, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
 import { ScrollArea } from './ui/scroll-area';
 import { Input } from './ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
+
 
 function CategoryDrawer() {
   const params = useParams();
@@ -50,7 +48,7 @@ function CategoryDrawer() {
   }, [domain]);
 
   return (
-    <SheetContent side="left" className="w-full max-w-sm">
+    <>
       <SheetHeader>
         <SheetTitle>Categories</SheetTitle>
       </SheetHeader>
@@ -71,7 +69,7 @@ function CategoryDrawer() {
           </nav>
         )}
       </div>
-    </SheetContent>
+    </>
   );
 }
 
@@ -95,7 +93,7 @@ function CartDrawerContent() {
             </SheetHeader>
             {cartItems.length > 0 ? (
                 <>
-                    <ScrollArea className="flex-grow my-4">
+                    <ScrollArea className="flex-grow my-4 -mr-6">
                         <div className="space-y-6 pr-6">
                             {cartItems.map((item) => (
                                 <div key={item.id} className="flex gap-4">
@@ -131,19 +129,17 @@ function CartDrawerContent() {
                             ))}
                         </div>
                     </ScrollArea>
-                    <SheetFooter className="mt-auto">
-                        <div className="w-full space-y-4">
-                            <div className="flex justify-between font-bold text-lg">
-                                <span>সাব-টোটাল</span>
-                                <span>{cartTotal.toFixed(2)} {cartItems[0]?.currency}</span>
-                            </div>
-                            <SheetClose asChild>
-                                <Button asChild className="w-full" size="lg">
-                                    <Link href={`/checkout`}>চেকআউটে যান</Link>
-                                </Button>
-                            </SheetClose>
+                    <div className="w-full space-y-4 pt-4 border-t">
+                        <div className="flex justify-between font-bold text-lg">
+                            <span>সাব-টোটাল</span>
+                            <span>{cartTotal.toFixed(2)} {cartItems[0]?.currency}</span>
                         </div>
-                    </SheetFooter>
+                        <SheetClose asChild>
+                            <Button asChild className="w-full" size="lg">
+                                <Link href={`/checkout`}>চেকআউটে যান</Link>
+                            </Button>
+                        </SheetClose>
+                    </div>
                 </>
             ) : (
                 <div className="flex-grow flex flex-col items-center justify-center text-center">
@@ -167,65 +163,73 @@ export default function BottomNav() {
   const { setSearchOpen } = useSearchStore();
   const { cartItems } = useCart();
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
+  const [activeIndex, setActiveIndex] = useState(2); // Default to Home
+
+  const navLinks = [
+    { href: '#menu', label: 'Menu', icon: Menu, isSheet: true, sheetContent: 'category' },
+    { href: '#search', label: 'Search', icon: Search, action: () => setSearchOpen(true) },
+    { href: '/', label: 'Home', icon: Home },
+    { href: customer ? '/profile' : '/login', label: 'Profile', icon: User },
+    { href: '#cart', label: 'Cart', icon: ShoppingBagIcon, isSheet: true, sheetContent: 'cart' },
+  ];
+  
+  useEffect(() => {
+    const activeLinkIndex = navLinks.findIndex(link => link.href !== '#' && pathname === link.href);
+    setActiveIndex(activeLinkIndex !== -1 ? activeLinkIndex : 2); // default to home if no match
+  }, [pathname]);
 
   if (pathname.includes('/admin')) {
       return null;
   }
+  
+  const NavItem = ({ link, index, isActive }: { link: any, index: number, isActive: boolean }) => {
+    const itemContent = (
+      <div className={cn("bottom-nav-item", isActive && "active")}>
+        <div className="bottom-nav-icon">
+          <link.icon className="h-6 w-6" />
+           {link.label === 'Cart' && cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+                  {cartCount}
+              </span>
+           )}
+        </div>
+        <span className="bottom-nav-label">{link.label}</span>
+      </div>
+    );
+    
+    if (link.isSheet) {
+      return (
+        <Sheet>
+          <SheetTrigger asChild>
+            <button className="flex-1 focus:outline-none">{itemContent}</button>
+          </SheetTrigger>
+          <SheetContent side="left" className="flex flex-col">
+            {link.sheetContent === 'category' ? <CategoryDrawer /> : <CartDrawerContent />}
+          </SheetContent>
+        </Sheet>
+      )
+    }
+
+    if (link.action) {
+      return (
+        <button onClick={link.action} className="flex-1 focus:outline-none">{itemContent}</button>
+      );
+    }
+    
+    return (
+      <Link href={link.href} className="flex-1">{itemContent}</Link>
+    );
+  };
+  
+  const indicatorPosition = `calc(${activeIndex * 20 + 10}% - 30px)`;
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-40 p-1">
-      <div className="grid h-16 grid-cols-5 gap-1">
-
-        {/* Category Drawer */}
-        <Sheet>
-            <SheetTrigger asChild>
-                <Button variant="ghost" className="flex flex-col h-auto items-center justify-center p-1 text-foreground/70 hover:bg-accent hover:text-accent-foreground">
-                    <Menu className="h-6 w-6" />
-                    <span className="text-xs font-normal">Categories</span>
-                </Button>
-            </SheetTrigger>
-            <CategoryDrawer />
-        </Sheet>
-        
-        {/* Search Button */}
-        <Button variant="ghost" className="flex flex-col h-auto items-center justify-center p-1 text-foreground/70 hover:bg-accent hover:text-accent-foreground" onClick={() => setSearchOpen(true)}>
-            <Search className="h-6 w-6" />
-            <span className="text-xs font-normal">Search</span>
-        </Button>
-
-        {/* Home Link */}
-        <Link href="/">
-            <div className={cn('flex flex-col h-full items-center justify-center p-1 rounded-md text-foreground/70 hover:bg-accent hover:text-accent-foreground', pathname === '/' && 'text-primary')}>
-                <Home className="h-6 w-6" />
-                <span className="text-xs font-normal">Home</span>
-            </div>
-        </Link>
-        
-        {/* Profile Link */}
-        <Link href={customer ? '/profile' : '/login'}>
-            <div className={cn('flex flex-col h-full items-center justify-center p-1 rounded-md text-foreground/70 hover:bg-accent hover:text-accent-foreground', pathname.startsWith('/profile') && 'text-primary')}>
-                <User className="h-6 w-6" />
-                <span className="text-xs font-normal">Profile</span>
-            </div>
-        </Link>
-
-        {/* Cart Button */}
-        <Sheet>
-            <SheetTrigger asChild>
-                <Button variant="ghost" className="relative flex flex-col h-auto items-center justify-center p-1 text-foreground/70 hover:bg-accent hover:text-accent-foreground">
-                    <ShoppingBagIcon className="h-6 w-6" />
-                    <span className="text-xs font-normal">Cart</span>
-                    {cartCount > 0 && (
-                        <span className="absolute top-1.5 right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                            {cartCount}
-                        </span>
-                    )}
-                </Button>
-            </SheetTrigger>
-            <SheetContent className="flex flex-col">
-                <CartDrawerContent />
-            </SheetContent>
-        </Sheet>
+    <div className="bottom-nav-container">
+      <div className="bottom-nav-list">
+        <div className="nav-indicator" style={{ transform: `translateX(${indicatorPosition})` }}></div>
+        {navLinks.map((link, index) => (
+          <NavItem key={index} link={link} index={index} isActive={index === activeIndex} />
+        ))}
       </div>
     </div>
   );
