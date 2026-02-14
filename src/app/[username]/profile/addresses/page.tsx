@@ -1,7 +1,7 @@
 'use client';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Home, Briefcase, Trash2, Edit, MoreHorizontal, Loader2, Building } from 'lucide-react';
+import { Plus, Home, Briefcase, Trash2, Edit, MoreHorizontal, Loader2, Building, Phone } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -35,6 +35,7 @@ type Address = {
     site_id: string;
     name: string;
     details: string;
+    phone: string | null;
     type: 'home' | 'work' | 'other' | null;
     created_at: string;
 };
@@ -42,6 +43,7 @@ type Address = {
 const addressSchema = z.object({
   name: z.string().min(2, 'ঠিকানার একটি নাম দিন (যেমন, বাড়ি)।'),
   details: z.string().min(10, 'সম্পূর্ণ ঠিকানা লিখুন।'),
+  phone: z.string().min(10, 'অনুগ্রহ করে একটি বৈধ ফোন নম্বর লিখুন।'),
   type: z.enum(['home', 'work', 'other']).default('other'),
 });
 
@@ -59,7 +61,7 @@ export default function AddressesPage() {
 
     const form = useForm<AddressFormData>({
         resolver: zodResolver(addressSchema),
-        defaultValues: { name: '', details: '', type: 'home' },
+        defaultValues: { name: '', details: '', phone: '', type: 'home' },
     });
 
     const fetchAddresses = useCallback(async () => {
@@ -93,10 +95,11 @@ export default function AddressesPage() {
                 form.reset({
                     name: selectedAddress.name,
                     details: selectedAddress.details,
+                    phone: selectedAddress.phone || '',
                     type: selectedAddress.type || 'other'
                 });
             } else {
-                form.reset({ name: '', details: '', type: 'home' });
+                form.reset({ name: '', details: '', phone: '', type: 'home' });
             }
         }
     }, [isFormOpen, selectedAddress, form]);
@@ -228,6 +231,12 @@ export default function AddressesPage() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-muted-foreground">{address.details}</p>
+                        {address.phone && (
+                            <div className="flex items-center gap-2 mt-2">
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <p className="text-muted-foreground">{address.phone}</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
                 ))}
@@ -258,6 +267,17 @@ export default function AddressesPage() {
                         <FormItem>
                             <FormLabel>ঠিকানার নাম</FormLabel>
                             <FormControl><Input placeholder="e.g., বাড়ির ঠিকানা" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>ফোন নম্বর</FormLabel>
+                            <FormControl><Input placeholder="01..." {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                         )}

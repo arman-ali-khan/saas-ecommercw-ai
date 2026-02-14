@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/stores/cart';
@@ -31,6 +30,7 @@ type Address = {
     site_id: string;
     name: string;
     details: string;
+    phone?: string;
     type: 'home' | 'work' | 'other' | null;
     created_at: string;
 };
@@ -260,7 +260,9 @@ export default function CheckoutPage() {
     form.setValue('name', customer?.full_name || '');
     form.setValue('address', restOfAddress);
     form.setValue('city', city);
-    // Note: Phone is not part of saved address, user still needs to enter it.
+    if (address.phone) {
+        form.setValue('phone', address.phone);
+    }
     
     if (!uncompletedOrderId || !siteId || !customer) return;
 
@@ -273,7 +275,7 @@ export default function CheckoutPage() {
             email: customer.email || '',
             address: restOfAddress,
             city: city,
-            phone: form.getValues('phone'),
+            phone: address.phone || form.getValues('phone'),
         },
         cart_items: cartItems.map(item => ({
           id: item.id,
@@ -587,6 +589,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-
-    
