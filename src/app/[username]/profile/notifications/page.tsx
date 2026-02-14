@@ -30,7 +30,7 @@ export default function CustomerNotificationsPage() {
   const fetchNotifications = useCallback(async () => {
     if (!customer) return;
     setIsLoading(true);
-
+  
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -51,6 +51,8 @@ export default function CustomerNotificationsPage() {
     setIsLoading(false);
   }, [customer, toast]);
 
+  console.log(customer,'customer')
+
   useEffect(() => {
     if (_hasHydrated && customer) {
       fetchNotifications();
@@ -70,6 +72,7 @@ export default function CustomerNotificationsPage() {
           event: '*',
           schema: 'public',
           table: 'notifications',
+          filter: `recipient_id=eq.${customer.id}&recipient_type=eq.customer&site_id=eq.${customer.site_id}`,
         },
         () => {
             fetchNotifications();
