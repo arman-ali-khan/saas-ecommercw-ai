@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -19,7 +18,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, Sparkles } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, Sparkles, MoreHorizontal } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
@@ -191,32 +191,73 @@ export default function FeaturesAdminPage() {
                              <Button className="mt-4" onClick={() => openForm(null)}><Plus className="mr-2 h-4 w-4" /> Add your first feature</Button>
                         </div>
                     ) : (
-                        <div className="divide-y divide-border">
-                            {features.map((feature, index) => (
-                                <div key={feature.id} className="flex items-center p-4 gap-4">
-                                    <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />
-                                    <div className="relative h-16 w-16 rounded-md overflow-hidden shrink-0 bg-muted">
-                                        {feature.image_url ? (
-                                            <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
-                                        ) : (
-                                            <div className="flex h-full w-full items-center justify-center">
-                                                <DynamicIcon name={feature.icon} className="h-8 w-8 text-muted-foreground" />
+                        <>
+                            {/* Desktop View */}
+                            <div className="divide-y divide-border hidden md:block">
+                                {features.map((feature, index) => (
+                                    <div key={feature.id} className="flex items-center p-4 gap-4">
+                                        <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />
+                                        <div className="relative h-16 w-16 rounded-md overflow-hidden shrink-0 bg-muted">
+                                            {feature.image_url ? (
+                                                <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center">
+                                                    <DynamicIcon name={feature.icon} className="h-8 w-8 text-muted-foreground" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-grow">
+                                            <h3 className="font-semibold">{feature.title}</h3>
+                                            <p className="text-sm text-muted-foreground truncate">{feature.description}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" onClick={() => handleMove(index, 'up')} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleMove(index, 'down')} disabled={index === features.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => openForm(feature)}><Edit className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => openDeleteAlert(feature)}><Trash2 className="h-4 w-4" /></Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                             {/* Mobile View */}
+                            <div className="grid gap-4 md:hidden p-4">
+                                {features.map((feature, index) => (
+                                    <Card key={feature.id}>
+                                        <CardHeader>
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative h-12 w-12 rounded-md overflow-hidden shrink-0 bg-muted">
+                                                        {feature.image_url ? (
+                                                            <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center">
+                                                                <DynamicIcon name={feature.icon} className="h-6 w-6 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <CardTitle>{feature.title}</CardTitle>
+                                                </div>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="-mt-2 -mr-2"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => handleMove(index, 'up')} disabled={index === 0}><ArrowUp className="mr-2 h-4 w-4" /> Move Up</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleMove(index, 'down')} disabled={index === features.length - 1}><ArrowDown className="mr-2 h-4 w-4" /> Move Down</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => openForm(feature)}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(feature)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
+                                        </CardHeader>
+                                        {feature.description && (
+                                            <CardContent>
+                                                <p className="text-muted-foreground text-sm">{feature.description}</p>
+                                            </CardContent>
                                         )}
-                                    </div>
-                                    <div className="flex-grow">
-                                        <h3 className="font-semibold">{feature.title}</h3>
-                                        <p className="text-sm text-muted-foreground truncate">{feature.description}</p>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Button variant="ghost" size="icon" onClick={() => handleMove(index, 'up')} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleMove(index, 'down')} disabled={index === features.length - 1}><ArrowDown className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => openForm(feature)}><Edit className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => openDeleteAlert(feature)}><Trash2 className="h-4 w-4" /></Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

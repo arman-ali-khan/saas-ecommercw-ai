@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -18,7 +17,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, GalleryHorizontal } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, GalleryHorizontal, MoreHorizontal } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -193,27 +193,61 @@ export default function CarouselAdminPage() {
                              <Button className="mt-4" onClick={() => openForm(null)}><Plus className="mr-2 h-4 w-4" /> Add your first slide</Button>
                         </div>
                     ) : (
-                        <div className="divide-y divide-border">
-                            {slides.map((slide, index) => (
-                                <div key={slide.id} className="flex items-center p-4 gap-4">
-                                    <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />
-                                    <div className="relative h-16 w-28 rounded-md overflow-hidden shrink-0">
-                                        <Image src={slide.image_url} alt={slide.title} fill className="object-cover" />
+                        <>
+                            {/* Desktop View */}
+                            <div className="divide-y divide-border hidden md:block">
+                                {slides.map((slide, index) => (
+                                    <div key={slide.id} className="flex items-center p-4 gap-4">
+                                        <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />
+                                        <div className="relative h-16 w-28 rounded-md overflow-hidden shrink-0">
+                                            <Image src={slide.image_url} alt={slide.title} fill className="object-cover" />
+                                        </div>
+                                        <div className="flex-grow">
+                                            <h3 className="font-semibold">{slide.title}</h3>
+                                            <p className="text-sm text-muted-foreground truncate">{slide.description}</p>
+                                        </div>
+                                        <Badge variant={slide.is_enabled ? 'default' : 'outline'}>{slide.is_enabled ? 'Enabled' : 'Disabled'}</Badge>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" onClick={() => handleMove(index, 'up')} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleMove(index, 'down')} disabled={index === slides.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => openForm(slide)}><Edit className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => openDeleteAlert(slide)}><Trash2 className="h-4 w-4" /></Button>
+                                        </div>
                                     </div>
-                                    <div className="flex-grow">
-                                        <h3 className="font-semibold">{slide.title}</h3>
-                                        <p className="text-sm text-muted-foreground truncate">{slide.description}</p>
-                                    </div>
-                                    <Badge variant={slide.is_enabled ? 'default' : 'outline'}>{slide.is_enabled ? 'Enabled' : 'Disabled'}</Badge>
-                                    <div className="flex items-center gap-1">
-                                        <Button variant="ghost" size="icon" onClick={() => handleMove(index, 'up')} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleMove(index, 'down')} disabled={index === slides.length - 1}><ArrowDown className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => openForm(slide)}><Edit className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => openDeleteAlert(slide)}><Trash2 className="h-4 w-4" /></Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+
+                            {/* Mobile View */}
+                            <div className="grid gap-4 md:hidden p-4">
+                                {slides.map((slide, index) => (
+                                    <Card key={slide.id}>
+                                        <CardHeader>
+                                            <div className="flex justify-between items-start">
+                                                <div className="relative h-16 w-28 rounded-md overflow-hidden shrink-0">
+                                                    <Image src={slide.image_url} alt={slide.title} fill className="object-cover" />
+                                                </div>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="-mt-2 -mr-2"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => handleMove(index, 'up')} disabled={index === 0}><ArrowUp className="mr-2 h-4 w-4" /> Move Up</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleMove(index, 'down')} disabled={index === slides.length - 1}><ArrowDown className="mr-2 h-4 w-4" /> Move Down</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => openForm(slide)}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(slide)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                            <CardTitle className="pt-4">{slide.title}</CardTitle>
+                                            <Badge variant={slide.is_enabled ? 'default' : 'outline'} className="w-fit">{slide.is_enabled ? 'Enabled' : 'Disabled'}</Badge>
+                                        </CardHeader>
+                                        {slide.description && (
+                                            <CardContent>
+                                                <p className="text-sm text-muted-foreground">{slide.description}</p>
+                                            </CardContent>
+                                        )}
+                                    </Card>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>
