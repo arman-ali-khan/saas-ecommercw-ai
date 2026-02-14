@@ -22,6 +22,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Palette, Copy, Sparkles } from 'lucide-react';
+import { Loader2, Palette, Copy, Sparkles, CheckCircle } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -38,7 +39,8 @@ import Image from 'next/image';
 import DynamicIcon from '@/components/dynamic-icon';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { type SeoRequest } from '@/types';
+import { type SeoRequest, type Plan } from '@/types';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 
 const availableBankingMethods = [
@@ -83,6 +85,12 @@ const appearanceSchema = z.object({
   font_primary: z.string().optional(),
   font_secondary: z.string().optional(),
 });
+
+const subscriptionChangeSchema = z.object({
+  transactionId: z.string().min(5, "A valid transaction ID is required."),
+});
+type SubscriptionChangeFormData = z.infer<typeof subscriptionChangeSchema>;
+
 
 const fontOptions = {
     primary: ['Hind Siliguri', 'Noto Sans Bengali', 'Lato', 'Roboto', 'Open Sans'],
@@ -205,6 +213,11 @@ export default function SettingsAdminPage() {
   const [seoRequest, setSeoRequest] = useState<SeoRequest | null>(null);
   const [isSeoRequestLoading, setIsSeoRequestLoading] = useState(true);
   
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const [isChangePlanDialogOpen, setIsChangePlanDialogOpen] = useState(false);
+  const [planToChange, setPlanToChange] = useState<Plan | null>(null);
+
   const form = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
     defaultValues: { siteName: '', siteDescription: '' },
@@ -230,6 +243,11 @@ export default function SettingsAdminPage() {
     defaultValues: {},
   });
   
+  const subscriptionChangeForm = useForm<SubscriptionChangeFormData>({
+    resolver: zodResolver(subscriptionChangeSchema),
+    defaultValues: { transactionId: '' },
+  });
+
   useEffect(() => {
     if (user) {
         setIsLoading(true);
@@ -253,12 +271,23 @@ export default function SettingsAdminPage() {
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
+            
+            const plansPromise = supabase.from('plans').select('*').order('price', { ascending: true });
 
-            const [{ data, error }, { data: seoRequestData, error: seoRequestError }] = await Promise.all([settingsPromise, seoRequestPromise]);
+            const [
+                { data, error }, 
+                { data: seoRequestData, error: seoRequestError },
+                { data: plansData, error: plansError }
+            ] = await Promise.all([settingsPromise, seoRequestPromise, plansPromise]);
 
             if (error && error.code !== 'PGRST116') {
                 toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
             }
+
+            if (plansData) {
+                setPlans(plansData);
+            }
+            setIsLoadingPlans(false);
 
             form.reset({
                 siteName: user.siteName || '',
@@ -440,6 +469,43 @@ export default function SettingsAdminPage() {
         toast({ title: 'Palette applied!', description: 'Click "Save" to make the changes permanent.' });
     };
 
+    const handlePlanChangeClick = (plan: Plan) => {
+        if (!user || plan.id === user.subscriptionPlan) return;
+        setPlanToChange(plan);
+        setIsChangePlanDialogOpen(true);
+    };
+
+    const onSubscriptionChangeSubmit = async (data: SubscriptionChangeFormData) => {
+        if (!user || !planToChange) return;
+
+        setIsSubmitting(true);
+        try {
+            const { error: paymentError } = await supabase.from('subscription_payments').insert({
+                user_id: user.id,
+                plan_id: planToChange.id,
+                amount: planToChange.price,
+                payment_method: 'mobile_banking',
+                transaction_id: data.transactionId,
+                status: 'pending_verification',
+            });
+
+            if (paymentError) throw paymentError;
+
+            const { error: profileError } = await supabase.from('profiles').update({
+                subscription_status: 'pending_verification'
+            }).eq('id', user.id);
+
+            if (profileError) throw profileError;
+            
+            toast({ title: 'Upgrade Request Submitted', description: 'Your request is under review. You will be notified upon approval.' });
+            await refreshUser();
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error submitting request', description: e.message });
+        } finally {
+            setIsSubmitting(false);
+            setIsChangePlanDialogOpen(false);
+        }
+    };
 
   const handleLogoUpload = (result: any) => {
     if (result.event === 'success') {
@@ -470,6 +536,7 @@ export default function SettingsAdminPage() {
   const logoIcon = brandingForm.watch('logo_icon');
   const faviconUrl = brandingForm.watch('favicon_url');
   const socialShareImageUrl = brandingForm.watch('social_share_image_url');
+  const currentPlan = useMemo(() => plans.find(p => p.id === user?.subscriptionPlan), [plans, user]);
 
   const isLogoUrlValid = useMemo(() => {
     if (!logoImageUrl) return false;
@@ -518,6 +585,7 @@ export default function SettingsAdminPage() {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>সাইট সেটিংস</CardTitle>
@@ -527,12 +595,13 @@ export default function SettingsAdminPage() {
       </CardHeader>
       <CardContent>
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="general">সাধারণ</TabsTrigger>
               <TabsTrigger value="branding">ব্র্যান্ডিং</TabsTrigger>
               <TabsTrigger value="appearance">সাজসজ্জা</TabsTrigger>
               <TabsTrigger value="seo">এসইও</TabsTrigger>
               <TabsTrigger value="payments">পেমেন্ট</TabsTrigger>
+              <TabsTrigger value="subscription">Subscription</TabsTrigger>
             </TabsList>
             <TabsContent value="general" className="mt-6">
                 <Form {...form}>
@@ -1023,9 +1092,106 @@ export default function SettingsAdminPage() {
                     </form>
                 </Form>
             </TabsContent>
+            <TabsContent value="subscription" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Subscription Management</CardTitle>
+                        <CardDescription>View your current plan and manage your subscription.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-8">
+                         {isLoadingPlans || !currentPlan ? (
+                            <Skeleton className="h-48 w-full" />
+                         ) : (
+                            <Card className="bg-muted/50">
+                                <CardHeader>
+                                    <CardTitle>Your Current Plan: {currentPlan.name}</CardTitle>
+                                    <CardDescription>{currentPlan.description}</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-4xl font-bold font-headline">
+                                        {currentPlan.price === 0 ? 'Free' : `৳${currentPlan.price}`}
+                                        <span className="text-sm font-normal text-muted-foreground">{currentPlan.period}</span>
+                                    </p>
+                                </CardContent>
+                            </Card>
+                         )}
+                         <div className="space-y-4">
+                            <h3 className="font-semibold">Available Plans</h3>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                {plans.filter(p => p.id !== user?.subscriptionPlan).map(plan => (
+                                    <Card key={plan.id}>
+                                        <CardHeader>
+                                            <CardTitle>{plan.name}</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <p className="text-2xl font-bold font-headline">
+                                                {plan.price === 0 ? 'Free' : `৳${plan.price}`}
+                                                <span className="text-sm font-normal text-muted-foreground">{plan.period}</span>
+                                            </p>
+                                            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+                                                {plan.features.map((feature, i) => (
+                                                    <li key={i} className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-500" /> {feature}</li>
+                                                ))}
+                                            </ul>
+                                        </CardContent>
+                                        <CardFooter>
+                                            <Button className="w-full" onClick={() => handlePlanChangeClick(plan)} disabled={user?.subscription_status === 'pending_verification'}>
+                                                {user?.subscription_status === 'pending_verification' ? 'Upgrade Pending' : `Switch to ${plan.name}`}
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                ))}
+                            </div>
+                         </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
           </Tabs>
       </CardContent>
     </Card>
+    <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upgrade to {planToChange?.name}</DialogTitle>
+            <DialogDescription>To upgrade your plan, please complete the payment below.</DialogDescription>
+          </DialogHeader>
+            <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
+                <h3 className="font-bold mb-2 text-foreground">Mobile Banking Instructions</h3>
+                <ol className="list-decimal list-inside space-y-2">
+                    <li>Open your preferred mobile banking app.</li>
+                    <li>Select the "Payment" option.</li>
+                    <li>Enter the merchant number: <strong>{paymentForm.getValues('mobileBankingNumber') || '...'}</strong></li>
+                    <li>Enter the amount: <strong>৳{planToChange?.price.toFixed(2)}</strong></li>
+                    <li>Complete the payment and copy the Transaction ID.</li>
+                    <li>Paste the Transaction ID in the box below.</li>
+                </ol>
+            </div>
+            <Form {...subscriptionChangeForm}>
+            <form onSubmit={subscriptionChangeForm.handleSubmit(onSubscriptionChangeSubmit)} className="space-y-4">
+                <FormField
+                    control={subscriptionChangeForm.control}
+                    name="transactionId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Transaction ID</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., 8N7F6G5H4J" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <DialogFooter>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Submit for Verification
+                    </Button>
+                </DialogFooter>
+            </form>
+            </Form>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

@@ -130,7 +130,7 @@ export default function SubscriptionPaymentsPage() {
     currentPage * PAYMENTS_PER_PAGE
   );
 
-  const handleUpdateStatus = async (payment: SubscriptionPaymentWithDetails, newPaymentStatus: 'completed' | 'failed', newProfileStatus: 'active' | 'inactive') => {
+  const handleUpdateStatus = async (payment: SubscriptionPaymentWithDetails, newPaymentStatus: 'completed' | 'failed') => {
     setIsActionLoading(true);
     try {
         const { error: paymentError } = await supabase
@@ -139,17 +139,29 @@ export default function SubscriptionPaymentsPage() {
             .eq('id', payment.id);
         
         if (paymentError) throw paymentError;
+        
+        let profileUpdate = {};
+        if (newPaymentStatus === 'completed') {
+            profileUpdate = { 
+                subscription_status: 'active',
+                subscription_plan: payment.plan_id
+            };
+        } else { // 'failed'
+             profileUpdate = { 
+                subscription_status: 'inactive'
+            };
+        }
 
         const { error: profileError } = await supabase
             .from('profiles')
-            .update({ subscription_status: newProfileStatus })
+            .update(profileUpdate)
             .eq('id', payment.user_id);
             
         if (profileError) throw profileError;
         
-        toast({ title: 'Success', description: `Payment marked as ${newPaymentStatus} and user set to ${newProfileStatus}.` });
-        fetchPayments(); // Refresh data
-        setSelectedPayment(null); // Close dialog
+        toast({ title: 'Success', description: `Payment reviewed and status updated.` });
+        fetchPayments();
+        setSelectedPayment(null);
 
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'Action failed', description: e.message });
@@ -164,6 +176,8 @@ export default function SubscriptionPaymentsPage() {
       case 'completed':
         return 'default';
       case 'pending':
+        return 'secondary';
+       case 'pending_verification':
         return 'secondary';
       default:
         return 'destructive';
@@ -331,11 +345,11 @@ export default function SubscriptionPaymentsPage() {
                 </div>
                 <DialogFooter className="sm:justify-between pt-4 gap-2">
                     <div className="flex gap-2">
-                        <Button onClick={() => handleUpdateStatus(selectedPayment, 'completed', 'active')} disabled={isActionLoading || selectedPayment.status === 'completed'}>
+                        <Button onClick={() => handleUpdateStatus(selectedPayment, 'completed')} disabled={isActionLoading || selectedPayment.status === 'completed'}>
                             {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Approve
                         </Button>
-                        <Button variant="destructive" onClick={() => handleUpdateStatus(selectedPayment, 'failed', 'inactive')} disabled={isActionLoading || selectedPayment.status === 'failed'}>
+                        <Button variant="destructive" onClick={() => handleUpdateStatus(selectedPayment, 'failed')} disabled={isActionLoading || selectedPayment.status === 'failed'}>
                             {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Reject
                         </Button>
