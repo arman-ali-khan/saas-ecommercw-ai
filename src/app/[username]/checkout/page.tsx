@@ -17,7 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
-import { Loader2, Truck } from 'lucide-react';
+import { Loader2, Truck, Home, Briefcase, Building } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ShippingZone } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,6 +25,15 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 
+type Address = {
+    id: string;
+    customer_id: string;
+    site_id: string;
+    name: string;
+    details: string;
+    type: 'home' | 'work' | 'other' | null;
+    created_at: string;
+};
 
 const checkoutSchema = z
   .object({
@@ -69,6 +78,9 @@ export default function CheckoutPage() {
   const [shippingZones, setShippingZones] = useState<ShippingZone[]>([]);
   const [isLoadingShipping, setIsLoadingShipping] = useState(true);
   const [uncompletedOrderId, setUncompletedOrderId] = useState<string | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -173,7 +185,7 @@ export default function CheckoutPage() {
   }, [username]);
   
   useEffect(() => {
-    const fetchSettings = async () => {
+    const fetchSettingsAndAddresses = async () => {
       if (!siteId) {
         setIsLoadingPaymentSettings(false);
         setIsLoadingShipping(false);
@@ -203,10 +215,17 @@ export default function CheckoutPage() {
       
       setIsLoadingPaymentSettings(false);
       setIsLoadingShipping(false);
+
+      if (customer) {
+        const { data: addressesData } = await supabase.from('customer_addresses').select('*').eq('customer_id', customer.id);
+        if (addressesData) {
+            setSavedAddresses(addressesData);
+        }
+      }
     };
 
-    fetchSettings();
-  }, [siteId, form]);
+    fetchSettingsAndAddresses();
+  }, [siteId, customer, form]);
 
   useEffect(() => {
     if (customerHasHydrated && customer) {
@@ -230,6 +249,46 @@ export default function CheckoutPage() {
       router.push(`/`);
     }
   }, [isHydrated, cartCount, router, isSubmitting]);
+
+  const handleSelectAddress = async (address: Address) => {
+    setSelectedAddressId(address.id);
+    const details = address.details;
+    const parts = details.split(',');
+    const city = parts.length > 1 ? parts.pop()?.trim() || '' : '';
+    const restOfAddress = parts.join(', ').trim();
+
+    form.setValue('name', customer?.full_name || '');
+    form.setValue('address', restOfAddress);
+    form.setValue('city', city);
+    // Note: Phone is not part of saved address, user still needs to enter it.
+    
+    if (!uncompletedOrderId || !siteId || !customer) return;
+
+    const uncompletedOrderData = {
+        id: uncompletedOrderId,
+        site_id: siteId,
+        customer_id: customer.id,
+        customer_info: {
+            name: customer.full_name || '',
+            email: customer.email || '',
+            address: restOfAddress,
+            city: city,
+            phone: form.getValues('phone'),
+        },
+        cart_items: cartItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          imageUrl: item.images[0]?.imageUrl
+        })),
+        cart_total: cartSubtotal,
+        status: 'shipping-info-entered'
+    };
+
+    await supabase.from('uncompleted_orders').upsert(uncompletedOrderData, { onConflict: 'id' });
+    toast({ title: "Address selected", description: "Shipping information has been filled." });
+  }
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     if (!siteId) {
@@ -291,6 +350,12 @@ export default function CheckoutPage() {
         toast({ variant: 'destructive', title: 'অর্ডার স্থাপন ব্যর্থ হয়েছে', description: error.message || 'একটি অপ্রত্যাশিত সমস্যা হয়েছে।' });
         setIsSubmitting(false);
     }
+  }
+  
+  const AddressIcon = ({type}: {type: string | null}) => {
+    if (type === 'home') return <Home className="h-5 w-5 text-muted-foreground" />
+    if (type === 'work') return <Briefcase className="h-5 w-5 text-muted-foreground" />
+    return <Building className="h-5 w-5 text-muted-foreground" />;
   }
 
   if (!isHydrated || (cartCount === 0 && !window.location.search.includes('order_id'))) {
@@ -377,6 +442,34 @@ export default function CheckoutPage() {
           <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-6">
             <h1 className="text-3xl font-headline font-bold">যোগাযোগ ও শিপিং</h1>
             
+            {customer && savedAddresses.length > 0 && (
+                <div className="space-y-3">
+                    <Label>সংরক্ষিত ঠিকানা</Label>
+                    <RadioGroup 
+                        onValueChange={(id) => {
+                            const selectedAddr = savedAddresses.find(a => a.id === id);
+                            if(selectedAddr) handleSelectAddress(selectedAddr);
+                        }} 
+                        value={selectedAddressId || ''}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    >
+                        {savedAddresses.map(address => (
+                            <Label key={address.id} htmlFor={`address-${address.id}`} className={cn("flex items-start gap-4 rounded-md border-2 p-4 cursor-pointer transition-colors", selectedAddressId === address.id ? "border-primary bg-primary/10" : "border-muted bg-popover")}>
+                                <RadioGroupItem value={address.id} id={`address-${address.id}`} className="mt-1" />
+                                <div className="flex-grow">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <AddressIcon type={address.type} />
+                                        <p className="font-semibold">{address.name}</p>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">{address.details}</p>
+                                </div>
+                            </Label>
+                        ))}
+                    </RadioGroup>
+                    <p className="text-sm text-muted-foreground text-center pt-2">অথবা নিচে একটি নতুন ঠিকানা পূরণ করুন</p>
+                </div>
+            )}
+
             <div className="grid md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>পুরো নাম</FormLabel><FormControl><Input placeholder="আপনার পুরো নাম" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>ইমেল ঠিকানা</FormLabel><FormControl><Input placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -494,3 +587,6 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+
+    
