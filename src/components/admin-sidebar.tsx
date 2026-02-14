@@ -280,10 +280,7 @@ export default function AdminSidebar() {
         </div>
         <div className="flex-1 overflow-auto py-2">
           <nav className="grid items-start px-4 text-sm font-medium gap-1">
-            {adminNavLinks.map((link) => (
-              <NavLink key={link.href} {...link} />
-            ))}
-            <Collapsible open={pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')}>
+          <Collapsible open={pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')}>
               <CollapsibleTrigger className={cn(
                 'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
                 (pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')) && 'bg-sidebar-primary text-sidebar-primary-foreground'
@@ -300,6 +297,10 @@ export default function AdminSidebar() {
                 <Link href="/admin/attributes" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/attributes' && 'text-sidebar-accent-foreground')}>Attributes</Link>
               </CollapsibleContent>
             </Collapsible>
+            {adminNavLinks.map((link) => (
+              <NavLink key={link.href} {...link} />
+            ))}
+           
           </nav>
         </div>
         <div className="mt-auto p-4 border-t border-sidebar-border">
