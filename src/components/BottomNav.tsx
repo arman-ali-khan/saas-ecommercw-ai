@@ -24,7 +24,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Input } from './ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
-
+import { motion } from 'framer-motion';
 
 function CategoryDrawer() {
   const params = useParams();
@@ -163,73 +163,96 @@ export default function BottomNav() {
   const { setSearchOpen } = useSearchStore();
   const { cartItems } = useCart();
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
-  const [activeIndex, setActiveIndex] = useState(2); // Default to Home
+  const [activeTab, setActiveTab] = useState('home');
 
   const navLinks = [
-    { href: '#menu', label: 'Menu', icon: Menu, isSheet: true, sheetContent: 'category' },
-    { href: '#search', label: 'Search', icon: Search, action: () => setSearchOpen(true) },
-    { href: '/', label: 'Home', icon: Home },
-    { href: customer ? '/profile' : '/login', label: 'Profile', icon: User },
-    { href: '#cart', label: 'Cart', icon: ShoppingBagIcon, isSheet: true, sheetContent: 'cart' },
+    { id: 'menu', label: 'Menu', icon: Menu, isSheet: true, sheetContent: 'category' },
+    { id: 'search', label: 'Search', icon: Search, action: () => setSearchOpen(true) },
+    { id: 'home', href: '/', label: 'Home', icon: Home },
+    { id: 'profile', href: customer ? '/profile' : '/login', label: 'Profile', icon: User },
+    { id: 'cart', label: 'Cart', icon: ShoppingBagIcon, isSheet: true, sheetContent: 'cart' },
   ];
-  
+
   useEffect(() => {
-    const activeLinkIndex = navLinks.findIndex(link => link.href !== '#' && pathname === link.href);
-    setActiveIndex(activeLinkIndex !== -1 ? activeLinkIndex : 2); // default to home if no match
+    const activeLink = navLinks.find(link => link.href && pathname === link.href);
+    if (activeLink) {
+        setActiveTab(activeLink.id);
+    } else {
+        setActiveTab('home'); // Default to home
+    }
   }, [pathname]);
 
   if (pathname.includes('/admin')) {
       return null;
   }
   
-  const NavItem = ({ link, index, isActive }: { link: any, index: number, isActive: boolean }) => {
-    const itemContent = (
-      <div className={cn("bottom-nav-item", isActive && "active")}>
-        <div className="bottom-nav-icon">
-          <link.icon className="h-6 w-6" />
-           {link.label === 'Cart' && cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
-                  {cartCount}
-              </span>
-           )}
+  const NavItemContent = ({ link, isActive }: { link: (typeof navLinks)[0], isActive: boolean }) => (
+    <div className={cn(
+        "relative z-20 flex h-full w-full flex-col items-center justify-center text-muted-foreground transition-all duration-300 outline-none",
+        isActive && "-translate-y-6 text-primary"
+    )}>
+        <div className="relative">
+            <link.icon className="h-6 w-6" />
+            {link.label === 'Cart' && cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+                    {cartCount}
+                </span>
+            )}
         </div>
-        <span className="bottom-nav-label">{link.label}</span>
-      </div>
-    );
-    
-    if (link.isSheet) {
-      return (
-        <Sheet>
-          <SheetTrigger asChild>
-            <button className="flex-1 focus:outline-none">{itemContent}</button>
-          </SheetTrigger>
-          <SheetContent side="left" className="flex flex-col">
-            {link.sheetContent === 'category' ? <CategoryDrawer /> : <CartDrawerContent />}
-          </SheetContent>
-        </Sheet>
-      )
-    }
-
-    if (link.action) {
-      return (
-        <button onClick={link.action} className="flex-1 focus:outline-none">{itemContent}</button>
-      );
-    }
-    
-    return (
-      <Link href={link.href} className="flex-1">{itemContent}</Link>
-    );
-  };
-  
-  const indicatorPosition = `calc(${activeIndex * 20 + 10}% - 30px)`;
+        <span className={cn(
+            "absolute bottom-[-18px] text-[10px] font-bold uppercase opacity-0 transition-all",
+            isActive && "opacity-100 bottom-1"
+        )}>
+            {link.label}
+        </span>
+    </div>
+  );
 
   return (
-    <div className="bottom-nav-container">
-      <div className="bottom-nav-list">
-        <div className="nav-indicator" style={{ transform: `translateX(${indicatorPosition})` }}></div>
-        {navLinks.map((link, index) => (
-          <NavItem key={index} link={link} index={index} isActive={index === activeIndex} />
-        ))}
+    <div className="fixed bottom-0 left-0 right-0 flex justify-center pb-4 z-50 pointer-events-none md:hidden">
+      <div className="pointer-events-auto relative h-[80px] w-[95%] max-w-sm overflow-hidden rounded-2xl shadow-2xl">
+        <div className="absolute inset-0 bg-card" />
+        <div className="relative flex h-[80px] items-end justify-around">
+          {navLinks.map((tab) => (
+            <div key={tab.id} className="relative flex-1 h-full pt-4">
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="bubble"
+                    className="absolute z-10 bottom-[25px] left-1/2 -translate-x-1/2 h-[60px] w-[60px] rounded-full border-[6px] border-background bg-background"
+                    transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
+                  >
+                    <div className="absolute -left-[19px] top-[28px] h-5 w-5 bg-card">
+                        <div className="h-full w-full rounded-tr-[100%] bg-background" />
+                    </div>
+                    <div className="absolute -right-[19px] top-[28px] h-5 w-5 bg-card">
+                        <div className="h-full w-full rounded-tl-[100%] bg-background" />
+                    </div>
+                  </motion.div>
+                )}
+
+                {(() => {
+                    const isActive = activeTab === tab.id;
+                    const content = <NavItemContent link={tab} isActive={isActive} />;
+                    const className = "h-full w-full focus:outline-none";
+
+                    if (tab.isSheet) {
+                        return (
+                          <Sheet>
+                              <SheetTrigger className={className} onClick={() => setActiveTab(tab.id)}>{content}</SheetTrigger>
+                              <SheetContent side="left" className="flex flex-col">
+                                  {tab.sheetContent === 'category' ? <CategoryDrawer /> : <CartDrawerContent />}
+                              </SheetContent>
+                          </Sheet>
+                        );
+                    } else if (tab.action) {
+                        return <button className={className} onClick={() => { tab.action(); setActiveTab(tab.id); }}>{content}</button>;
+                    } else {
+                        return <Link href={tab.href!} className={className}>{content}</Link>;
+                    }
+                })()}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
