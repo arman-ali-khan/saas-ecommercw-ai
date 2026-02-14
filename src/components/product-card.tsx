@@ -74,7 +74,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
           )}
         </CardContent>
       </Link>
-      <CardFooter className="p-1 sm:p-4 pt-1 sm:mt-auto justify-between items-center">
+      <CardFooter className="p-1 block sm:p-4 pt-1 sm:mt-auto items-center">
         <div className="flex flex-col w-full justify-start sm:justify-center">
             {flashDeal && (
                 <p className="text-sm font-bold text-muted-foreground line-through">
