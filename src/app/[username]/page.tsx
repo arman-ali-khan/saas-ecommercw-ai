@@ -288,7 +288,7 @@ export default async function UserPage({
                                 </div>
                               </CardHeader>
                             )}
-                            <CardContent className="p-6 flex flex-col flex-grow items-center">
+                            <CardContent className="p-1 sm:p-6 flex flex-col flex-grow items-center">
                               {!feature.image_url && (
                                 <div className="bg-primary/10 p-4 rounded-full mb-4">
                                   <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
