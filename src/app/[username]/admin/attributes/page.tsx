@@ -16,7 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit, Trash2, Loader2, Store, Scale, Ruler, Tags, Weight, Palette } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, Store, Scale, Ruler, Tags, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,7 +32,6 @@ const attributeTypes = [
   { type: 'unit', label: 'Units', icon: Scale },
   { type: 'size', label: 'Sizes', icon: Ruler },
   { type: 'tag', label: 'Tags', icon: Tags },
-  { type: 'weight', label: 'Weights', icon: Weight },
   { type: 'color', label: 'Colors', icon: Palette },
 ];
 

@@ -23,7 +23,6 @@ export interface Product {
   brand?: string | null;
   unit?: string | null;
   size?: string | null;
-  weight?: string | null;
   color?: string | null;
   has_flash_deal?: boolean;
   flash_deal_price?: number;
@@ -240,7 +239,7 @@ export interface SeoRequest {
 export interface ProductAttribute {
   id: string;
   site_id: string;
-  type: 'brand' | 'unit' | 'size' | 'tag' | 'weight' | 'color';
+  type: 'brand' | 'unit' | 'size' | 'tag' | 'color';
   value: string;
   created_at: string;
 }
