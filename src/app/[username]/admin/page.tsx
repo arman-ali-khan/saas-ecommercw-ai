@@ -226,9 +226,7 @@ export default function AdminDashboard() {
         <StatCard title="Total Products" value={stats.totalProducts} icon={Package} isLoading={isLoading} />
         <StatCard title="New Uncompleted Orders" value={stats.uncompletedOrders} icon={FileClock} isLoading={isLoading} description={`${stats.totalUncompletedOrders} total abandoned carts`} />
       </div>
-
-       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+      <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> Revenue (Last 7 Days)</CardTitle>
           </CardHeader>
@@ -247,7 +245,74 @@ export default function AdminDashboard() {
             )}
           </CardContent>
        </Card>
+       <div className="grid gap-6 lg:grid-cols-2">
+      
        
+       <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> Total Sales by Payment Method</CardTitle>
+                <CardDescription>All-time sales distribution by payment method (excludes canceled orders).</CardDescription>
+            </CardHeader>
+            <CardContent className="h-80">
+                {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : paymentMethodData.length === 0 ? (
+                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                    No sales data available.
+                </div>
+                ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Tooltip
+                            contentStyle={{ backgroundColor: 'hsl(var(--background))' }}
+                            formatter={(value: number) => `BDT ${value.toFixed(2)}`}
+                        />
+                        <Pie
+                            data={paymentMethodData}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius="60%"
+                            outerRadius="80%"
+                            paddingAngle={5}
+                            strokeWidth={0}
+                        >
+                            {paymentMethodData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                        </Pie>
+                        <Legend
+                            iconSize={10}
+                            layout="vertical"
+                            verticalAlign="middle"
+                            align="right"
+                        />
+                        {totalSales > 0 && (
+                            <text
+                                x="50%"
+                                y="50%"
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                className="fill-foreground text-2xl font-bold"
+                            >
+                                {`৳${(totalSales / 1000).toFixed(0)}k`}
+                            </text>
+                        )}
+                        {totalSales > 0 && (
+                            <text
+                                x="50%"
+                                y="50%"
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                dy="20"
+                                className="fill-muted-foreground text-sm"
+                            >
+                                Total Sales
+                            </text>
+                        )}
+                    </PieChart>
+                </ResponsiveContainer>
+                )}
+            </CardContent>
+        </Card>
+
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -326,71 +391,6 @@ export default function AdminDashboard() {
             </CardContent>
         </Card>
        </div>
-
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> Total Sales by Payment Method</CardTitle>
-                <CardDescription>All-time sales distribution by payment method (excludes canceled orders).</CardDescription>
-            </CardHeader>
-            <CardContent className="h-80">
-                {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : paymentMethodData.length === 0 ? (
-                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                    No sales data available.
-                </div>
-                ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <Tooltip
-                            contentStyle={{ backgroundColor: 'hsl(var(--background))' }}
-                            formatter={(value: number) => `BDT ${value.toFixed(2)}`}
-                        />
-                        <Pie
-                            data={paymentMethodData}
-                            dataKey="value"
-                            nameKey="name"
-                            innerRadius="60%"
-                            outerRadius="80%"
-                            paddingAngle={5}
-                            strokeWidth={0}
-                        >
-                            {paymentMethodData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                        </Pie>
-                        <Legend
-                            iconSize={10}
-                            layout="vertical"
-                            verticalAlign="middle"
-                            align="right"
-                        />
-                        {totalSales > 0 && (
-                            <text
-                                x="50%"
-                                y="50%"
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                className="fill-foreground text-2xl font-bold"
-                            >
-                                {`৳${(totalSales / 1000).toFixed(0)}k`}
-                            </text>
-                        )}
-                        {totalSales > 0 && (
-                            <text
-                                x="50%"
-                                y="50%"
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                dy="20"
-                                className="fill-muted-foreground text-sm"
-                            >
-                                Total Sales
-                            </text>
-                        )}
-                    </PieChart>
-                </ResponsiveContainer>
-                )}
-            </CardContent>
-        </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
