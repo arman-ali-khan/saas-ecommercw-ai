@@ -62,17 +62,17 @@ export default function CustomerNotificationsPage() {
     if (!customer) return;
 
     const channel = supabase
-      .channel(`customer-notifications-${customer.id}`)
+      .channel(`customer-notifications-page-${customer.id}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'notifications',
-          filter: `recipient_id=eq.${customer.id}`,
+          filter: `recipient_id=eq.${customer.id}&recipient_type=eq.customer`,
         },
-        (payload) => {
-          setNotifications((prev) => [payload.new as Notification, ...prev]);
+        () => {
+            fetchNotifications();
         }
       )
       .subscribe();
@@ -80,21 +80,14 @@ export default function CustomerNotificationsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [customer]);
+  }, [customer, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId: string) => {
-    const { error } = await supabase
+    await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('id', notificationId);
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
-      );
-    }
+    // The real-time listener will trigger a refetch, no need to manually update state.
   };
 
   const handleMarkAllAsRead = async () => {
@@ -107,9 +100,8 @@ export default function CustomerNotificationsPage() {
 
     if (error) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-        setNotifications(prev => prev.map(n => ({...n, is_read: true})));
     }
+    // The real-time listener will trigger a refetch.
   }
 
   if (isLoading) {

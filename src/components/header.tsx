@@ -30,7 +30,7 @@ import { useAuth } from '@/stores/auth';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
 import { type Notification, type HeaderLink } from '@/types';
@@ -46,71 +46,53 @@ function CustomerNotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
+  const fetchAndSetNotifications = useCallback(async () => {
     if (!customer) return;
 
-    const fetchNotifications = async () => {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('recipient_id', customer.id)
-        .eq('recipient_type', 'customer')
-        .order('created_at', { ascending: false })
-        .limit(5);
+    const unreadCountPromise = supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('recipient_id', customer.id)
+      .eq('recipient_type', 'customer')
+      .eq('is_read', false);
 
-      if (data) {
-        setNotifications(data);
-        const unread = data.filter((n) => !n.is_read).length;
-        setUnreadCount(unread);
-      }
-    };
+    const recentNotifsPromise = supabase
+      .from('notifications')
+      .select('*')
+      .eq('recipient_id', customer.id)
+      .eq('recipient_type', 'customer')
+      .order('created_at', { ascending: false })
+      .limit(5);
 
-    const fetchUnreadCount = async () => {
-      const { count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('recipient_id', customer.id)
-        .eq('recipient_type', 'customer')
-        .eq('is_read', false);
-      setUnreadCount(count || 0);
-    };
+    const [{ count }, { data: recentData }] = await Promise.all([unreadCountPromise, recentNotifsPromise]);
+    
+    setUnreadCount(count || 0);
+    if(recentData) {
+      setNotifications(recentData);
+    }
+  }, [customer]);
 
-    fetchNotifications();
-    fetchUnreadCount();
+  useEffect(() => {
+    if (customer) {
+      fetchAndSetNotifications();
+    }
+  }, [customer, fetchAndSetNotifications]);
+
+  useEffect(() => {
+    if (!customer) return;
 
     const channel = supabase
       .channel(`header-customer-notifications-${customer.id}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'notifications',
-          filter: `recipient_id=eq.${customer.id}`,
+          filter: `recipient_id=eq.${customer.id}&recipient_type=eq.customer`,
         },
-        (payload) => {
-          setNotifications((prev) => [
-            payload.new as Notification,
-            ...prev.slice(0, 4),
-          ]);
-          setUnreadCount((prev) => prev + 1);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${customer.id}`,
-        },
-        (payload) => {
-          setNotifications((prev) =>
-            prev.map((n) =>
-              n.id === payload.new.id ? (payload.new as Notification) : n
-            )
-          );
-          fetchUnreadCount();
+        () => {
+          fetchAndSetNotifications();
         }
       )
       .subscribe();
@@ -118,10 +100,11 @@ function CustomerNotificationBell() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [customer]);
+  }, [customer, fetchAndSetNotifications]);
 
   const handleMarkAsRead = async (id: string) => {
     await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    // The real-time listener will trigger a refetch, so no need to manually update state here.
   };
 
   return (

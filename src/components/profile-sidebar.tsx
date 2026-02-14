@@ -37,7 +37,7 @@ export default function ProfileSidebar() {
 
     const channel = supabase
         .channel(`profile-sidebar-notifications-${user.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}`}, fetchCount)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}&recipient_type=eq.customer`}, fetchCount)
         .subscribe();
 
     return () => {
