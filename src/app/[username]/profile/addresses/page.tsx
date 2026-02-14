@@ -12,57 +12,25 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import Link from 'next/link';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import type { Address } from '@/types';
 
-type Address = {
-    id: string;
-    customer_id: string;
-    site_id: string;
-    name: string;
-    details: string;
-    phone: string | null;
-    type: 'home' | 'work' | 'other' | null;
-    created_at: string;
-};
-
-const addressSchema = z.object({
-  name: z.string().min(2, 'ঠিকানার একটি নাম দিন (যেমন, বাড়ি)।'),
-  details: z.string().min(10, 'সম্পূর্ণ ঠিকানা লিখুন।'),
-  phone: z.string().min(10, 'অনুগ্রহ করে একটি বৈধ ফোন নম্বর লিখুন।'),
-  type: z.enum(['home', 'work', 'other']).default('other'),
-});
-
-type AddressFormData = z.infer<typeof addressSchema>;
 
 export default function AddressesPage() {
     const { customer, _hasHydrated } = useCustomerAuth();
     const { toast } = useToast();
     const [addresses, setAddresses] = useState<Address[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [isAlertOpen, setIsAlertOpen] = useState(false);
-    const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
-
-    const form = useForm<AddressFormData>({
-        resolver: zodResolver(addressSchema),
-        defaultValues: { name: '', details: '', phone: '', type: 'home' },
-    });
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [addressToDelete, setAddressToDelete] = useState<Address | null>(null);
 
     const fetchAddresses = useCallback(async () => {
         if (!customer) return;
@@ -88,70 +56,16 @@ export default function AddressesPage() {
             setIsLoading(false);
         }
     }, [customer, _hasHydrated, fetchAddresses]);
-
-    useEffect(() => {
-        if (isFormOpen) {
-            if (selectedAddress) {
-                form.reset({
-                    name: selectedAddress.name,
-                    details: selectedAddress.details,
-                    phone: selectedAddress.phone || '',
-                    type: selectedAddress.type || 'other'
-                });
-            } else {
-                form.reset({ name: '', details: '', phone: '', type: 'home' });
-            }
-        }
-    }, [isFormOpen, selectedAddress, form]);
-
-    const onSubmit = async (data: AddressFormData) => {
-        if (!customer) return;
-        setIsSubmitting(true);
-        
-        const payload = {
-            ...data,
-            customer_id: customer.id,
-            site_id: customer.site_id,
-        };
-
-        let error;
-        if (selectedAddress) {
-            // Update
-            const { error: updateError } = await supabase.from('customer_addresses').update(payload).eq('id', selectedAddress.id);
-            error = updateError;
-            if (!error) toast({ title: 'ঠিকানা আপডেট করা হয়েছে' });
-        } else {
-            // Create
-            const { error: insertError } = await supabase.from('customer_addresses').insert(payload);
-            error = insertError;
-            if (!error) toast({ title: 'নতুন ঠিকানা যোগ করা হয়েছে' });
-        }
-
-        if (error) {
-            toast({ variant: 'destructive', title: 'একটি সমস্যা হয়েছে', description: error.message });
-        } else {
-            await fetchAddresses();
-            setIsFormOpen(false);
-            setSelectedAddress(null);
-        }
-        setIsSubmitting(false);
-    };
     
-    const openForm = (address: Address | null) => {
-        setSelectedAddress(address);
-        setIsFormOpen(true);
-    };
-
     const openDeleteAlert = (address: Address) => {
-        setSelectedAddress(address);
-        setIsAlertOpen(true);
+        setAddressToDelete(address);
     };
 
     const handleDelete = async () => {
-        if (!selectedAddress) return;
-        setIsSubmitting(true);
-        const { error } = await supabase.from('customer_addresses').delete().eq('id', selectedAddress.id);
-        setIsSubmitting(false);
+        if (!addressToDelete) return;
+        setIsDeleting(true);
+        const { error } = await supabase.from('customer_addresses').delete().eq('id', addressToDelete.id);
+        setIsDeleting(false);
 
         if (error) {
             toast({ title: 'ঠিকানা মুছতে সমস্যা হয়েছে', variant: 'destructive', description: error.message });
@@ -160,8 +74,7 @@ export default function AddressesPage() {
             await fetchAddresses();
         }
 
-        setIsAlertOpen(false);
-        setSelectedAddress(null);
+        setAddressToDelete(null);
     };
 
   const AddressIcon = ({type}: {type: string | null}) => {
@@ -196,8 +109,10 @@ export default function AddressesPage() {
                 <h1 className="text-2xl font-bold">আমার ঠিকানা</h1>
                 <p className="text-muted-foreground">আপনার সংরক্ষিত শিপিং ঠিকানাগুলি পরিচালনা করুন।</p>
             </div>
-            <Button onClick={() => openForm(null)}>
-              <Plus className="mr-2 h-4 w-4" /> নতুন ঠিকানা যোগ করুন
+            <Button asChild>
+              <Link href="/profile/addresses/new">
+                <Plus className="mr-2 h-4 w-4" /> নতুন ঠিকানা যোগ করুন
+              </Link>
             </Button>
         </div>
 
@@ -219,8 +134,10 @@ export default function AddressesPage() {
                                 </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => openForm(address)} className="cursor-pointer">
-                                        <Edit className="mr-2 h-4 w-4" /> সম্পাদনা
+                                    <DropdownMenuItem asChild>
+                                        <Link href={`/profile/addresses/${address.id}/edit`} className="cursor-pointer">
+                                            <Edit className="mr-2 h-4 w-4" /> সম্পাদনা
+                                        </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => openDeleteAlert(address)}>
                                         <Trash2 className="mr-2 h-4 w-4" /> মুছে ফেলুন
@@ -245,98 +162,32 @@ export default function AddressesPage() {
              <Card>
                 <CardContent className="text-center py-16">
                     <p className="text-muted-foreground">আপনার কোনো সংরক্ষিত ঠিকানা নেই।</p>
-                     <Button className="mt-4" onClick={() => openForm(null)}>
-                        <Plus className="mr-2 h-4 w-4" /> নতুন ঠিকানা যোগ করুন
+                     <Button asChild className="mt-4">
+                        <Link href="/profile/addresses/new">
+                            <Plus className="mr-2 h-4 w-4" /> নতুন ঠিকানা যোগ করুন
+                        </Link>
                     </Button>
                 </CardContent>
             </Card>
         )}
     </div>
 
-    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{selectedAddress ? 'ঠিকানা সম্পাদনা করুন' : 'নতুন ঠিকানা যোগ করুন'}</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>ঠিকানার নাম</FormLabel>
-                            <FormControl><Input placeholder="e.g., বাড়ির ঠিকানা" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>ফোন নম্বর</FormLabel>
-                            <FormControl><Input placeholder="01..." {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="details"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>সম্পূর্ণ ঠিকানা</FormLabel>
-                            <FormControl><Textarea placeholder="বাড়ি #, রাস্তা #, এলাকা, শহর" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="type"
-                        render={({ field }) => (
-                        <FormItem className="space-y-3">
-                            <FormLabel>ঠিকানার ধরন</FormLabel>
-                            <FormControl>
-                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="home" /></FormControl><FormLabel className="font-normal">বাড়ি</FormLabel></FormItem>
-                                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="work" /></FormControl><FormLabel className="font-normal">অফিস</FormLabel></FormItem>
-                                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="other" /></FormControl><FormLabel className="font-normal">অন্যান্য</FormLabel></FormItem>
-                                </RadioGroup>
-                            </FormControl>
-                             <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <DialogFooter>
-                        <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isSubmitting ? 'সংরক্ষণ করা হচ্ছে...' : 'সংরক্ষণ করুন'}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </Form>
-        </DialogContent>
-    </Dialog>
-
-    <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+    <AlertDialog open={!!addressToDelete} onOpenChange={(open) => !open && setAddressToDelete(null)}>
         <AlertDialogContent>
         <AlertDialogHeader>
             <AlertDialogTitle>আপনি কি নিশ্চিত?</AlertDialogTitle>
             <AlertDialogDescription>
-                এই ঠিকানাটি স্থায়ীভাবে মুছে ফেলা হবে: "{selectedAddress?.name}". এই কাজটি বাতিল করা যাবে না।
+                এই ঠিকানাটি স্থায়ীভাবে মুছে ফেলা হবে: "{addressToDelete?.name}". এই কাজটি বাতিল করা যাবে না।
             </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
             <AlertDialogCancel>বাতিল</AlertDialogCancel>
             <AlertDialogAction 
                 onClick={handleDelete}
-                disabled={isSubmitting}
+                disabled={isDeleting}
                 className={cn(buttonVariants({ variant: "destructive" }))}
             >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 মুছে ফেলুন
             </AlertDialogAction>
         </AlertDialogFooter>
