@@ -119,3 +119,7 @@
   opacity: 1;
   transform: rotate(3deg) translate(0px, -4px);
 }
+
+svg.lucide.lucide-chart-no-axes-column.h-6.w-6.text-muted-foreground {
+  rotate: 90deg;
+}

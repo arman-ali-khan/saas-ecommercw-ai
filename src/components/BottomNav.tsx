@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, User, Menu, Search, ShoppingBag as ShoppingBagIcon, Trash2, Plus, Minus } from 'lucide-react';
+import { Home, User, Menu, Search, ShoppingBag as ShoppingBagIcon, Trash2, Plus, Minus,ChartNoAxesColumn } from 'lucide-react';
 import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -164,7 +164,7 @@ export default function BottomNav() {
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
   const navLinks = [
-    { id: 'menu', label: 'Menu', icon: Menu, isSheet: true, sheetContent: 'category' },
+    { id: 'menu', label: 'Menu', icon: ChartNoAxesColumn, isSheet: true, sheetContent: 'category' },
     { id: 'search', label: 'Search', icon: Search, action: () => setSearchOpen(true) },
     { id: 'home', href: '/', label: 'Home', icon: Home },
     { id: 'cart', label: 'Cart', icon: ShoppingBagIcon, isSheet: true, sheetContent: 'cart' },
