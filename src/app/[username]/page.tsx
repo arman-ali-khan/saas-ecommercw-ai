@@ -291,267 +291,99 @@ export default async function UserPage({
                   <h2 className="text-3xl font-headline font-bold text-center mb-8">
                     {section.title}
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                    {storeFeatures.map((feature) => (
-                      <Card key={feature.id} className="overflow-hidden flex flex-col text-center">
-                        {feature.image_url && (
-                          <CardHeader className="p-0">
-                            <div className="relative aspect-video w-full">
-                              <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
-                            </div>
-                          </CardHeader>
-                        )}
-                        <CardContent className="p-6 flex flex-col flex-grow items-center">
-                          {!feature.image_url && (
-                            <div className="bg-primary/10 p-4 rounded-full mb-4">
-                              <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
-                            </div>
-                          )}
-                          <CardTitle className="font-headline text-2xl mt-4">
-                            {feature.title}
-                          </CardTitle>
-                          <p className="text-muted-foreground mt-4 flex-grow">
-                            {feature.description}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                  <Carousel opts={{ align: 'start' }} className="w-full">
+                    <CarouselContent className="-ml-6">
+                      {storeFeatures.map((feature) => (
+                        <CarouselItem key={feature.id} className="pl-6 basis-1/2 md:basis-1/3">
+                          <Card className="overflow-hidden flex flex-col text-center h-full">
+                            {feature.image_url && (
+                              <CardHeader className="p-0">
+                                <div className="relative aspect-video w-full">
+                                  <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
+                                </div>
+                              </CardHeader>
+                            )}
+                            <CardContent className="p-6 flex flex-col flex-grow items-center">
+                              {!feature.image_url && (
+                                <div className="bg-primary/10 p-4 rounded-full mb-4">
+                                  <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
+                                </div>
+                              )}
+                              <CardTitle className="font-headline text-2xl mt-4">
+                                {feature.title}
+                              </CardTitle>
+                              <p className="text-muted-foreground mt-4 flex-grow">
+                                {feature.description}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 hidden md:flex" />
+                    <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 hidden md:flex" />
+                  </Carousel>
                 </section>
               );
             }
-            // Fallback to original hardcoded content
+            
+            const fallbackFeatures = [
+                { image: aboutImage, icon: Leaf, title: 'আমাদের ভূমি থেকে, আপনার ঘরে', description: 'আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।' },
+                { image: storyImage, icon: Users, title: 'কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব', description: 'আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।' },
+                { image: qualityImage, icon: Heart, title: 'বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি', description: 'প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।' }
+            ];
+
             return (
               <section key={section.id}>
                 <h2 className="text-3xl font-headline font-bold text-center mb-8">
                   {section.title}
                 </h2>
-                <div className="hidden lg:grid grid-cols-3 gap-6">
-                  <Card className="overflow-hidden flex flex-col">
-                    <div className="relative h-64 w-full">
-                      <Image
-                        src={aboutImage.imageUrl}
-                        alt={aboutImage.description}
-                        data-ai-hint={aboutImage.imageHint}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-6 flex flex-col flex-grow">
-                      <CardHeader className="p-0">
-                        <Leaf className="w-10 h-10 text-accent mb-4" />
-                        <CardTitle className="font-headline text-2xl">
-                          আমাদের ভূমি থেকে, আপনার ঘরে
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-0 mt-4 flex-grow">
-                        <p className="text-muted-foreground">
-                          আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের
-                          উৎপত্তিস্থলের মতোই প্রাকৃতিক।
-                        </p>
-                      </CardContent>
-                      <Button
-                        asChild
-                        variant="secondary"
-                        className="mt-6 w-fit"
-                      >
-                        <Link href={`/about`}>
-                          আরও জানুন <ArrowRight className="ml-2" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </Card>
-                  <Card className="overflow-hidden flex flex-col">
-                    <div className="relative h-64 w-full">
-                      <Image
-                        src={storyImage.imageUrl}
-                        alt={storyImage.description}
-                        data-ai-hint={storyImage.imageHint}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-6 flex flex-col flex-grow">
-                      <CardHeader className="p-0">
-                        <Users className="w-10 h-10 text-accent mb-4" />
-                        <CardTitle className="font-headline text-2xl">
-                          কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-0 mt-4 flex-grow">
-                        <p className="text-muted-foreground">
-                          আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য
-                          নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা
-                          করি।
-                        </p>
-                      </CardContent>
-                      <Button
-                        asChild
-                        variant="secondary"
-                        className="mt-6 w-fit"
-                      >
-                        <Link href={`/about`}>
-                          আরও জানুন <ArrowRight className="ml-2" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </Card>
-                  <Card className="overflow-hidden flex flex-col">
-                    <div className="relative h-64 w-full">
-                      <Image
-                        src={qualityImage.imageUrl}
-                        alt={qualityImage.description}
-                        data-ai-hint={qualityImage.imageHint}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-6 flex flex-col flex-grow">
-                      <CardHeader className="p-0">
-                        <Heart className="w-10 h-10 text-accent mb-4" />
-                        <CardTitle className="font-headline text-2xl">
-                          বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-0 mt-4 flex-grow">
-                        <p className="text-muted-foreground">
-                          প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়।
-                          আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।
-                        </p>
-                      </CardContent>
-                      <Button
-                        asChild
-                        variant="secondary"
-                        className="mt-6 w-fit"
-                      >
-                        <Link href={`/about`}>
-                          আরও জানুন <ArrowRight className="ml-2" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </Card>
-                </div>
-
-                <div className="lg:hidden">
-                  <Carousel
-                    opts={{ align: 'start', loop: true }}
+                <Carousel
+                    opts={{ align: 'start' }}
                     className="w-full"
-                  >
-                    <CarouselContent>
-                      <CarouselItem>
-                        <Card className="overflow-hidden">
-                          <div className="relative h-64 w-full">
-                            <Image
-                              src={aboutImage.imageUrl}
-                              alt={aboutImage.description}
-                              data-ai-hint={aboutImage.imageHint}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                          <div className="p-6">
-                            <CardHeader className="p-0">
-                              <Leaf className="w-10 h-10 text-accent mb-4" />
-                              <CardTitle className="font-headline text-2xl">
-                                আমাদের ভূমি থেকে, আপনার ঘরে
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0 mt-4">
-                              <p className="text-muted-foreground">
-                                আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা
-                                তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।
-                              </p>
-                            </CardContent>
-                            <Button
-                              asChild
-                              variant="secondary"
-                              className="mt-6 w-fit"
-                            >
-                              <Link href={`/about`}>
-                                আরও জানুন <ArrowRight className="ml-2" />
-                              </Link>
-                            </Button>
-                          </div>
-                        </Card>
-                      </CarouselItem>
-                      <CarouselItem>
-                        <Card className="overflow-hidden">
-                          <div className="relative h-64 w-full">
-                            <Image
-                              src={storyImage.imageUrl}
-                              alt={storyImage.description}
-                              data-ai-hint={storyImage.imageHint}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                          <div className="p-6">
-                            <CardHeader className="p-0">
-                              <Users className="w-10 h-10 text-accent mb-4" />
-                              <CardTitle className="font-headline text-2xl">
-                                কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0 mt-4">
-                              <p className="text-muted-foreground">
-                                আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য
-                                মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা
-                                করি।
-                              </p>
-                            </CardContent>
-                            <Button
-                              asChild
-                              variant="secondary"
-                              className="mt-6 w-fit"
-                            >
-                              <Link href={`/about`}>
-                                আরও জানুন <ArrowRight className="ml-2" />
-                              </Link>
-                            </Button>
-                          </div>
-                        </Card>
-                      </CarouselItem>
-                      <CarouselItem>
-                        <Card className="overflow-hidden">
-                          <div className="relative h-64 w-full">
-                            <Image
-                              src={qualityImage.imageUrl}
-                              alt={qualityImage.description}
-                              data-ai-hint={qualityImage.imageHint}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                          <div className="p-6">
-                            <CardHeader className="p-0">
-                              <Heart className="w-10 h-10 text-accent mb-4" />
-                              <CardTitle className="font-headline text-2xl">
-                                বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0 mt-4">
-                              <p className="text-muted-foreground">
-                                প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়।
-                                আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।
-                              </p>
-                            </CardContent>
-                            <Button
-                              asChild
-                              variant="secondary"
-                              className="mt-6 w-fit"
-                            >
-                              <Link href={`/about`}>
-                                আরও জানুন <ArrowRight className="ml-2" />
-                              </Link>
-                            </Button>
-                          </div>
-                        </Card>
-                      </CarouselItem>
+                >
+                    <CarouselContent className="-ml-6">
+                        {fallbackFeatures.map((feature, index) => (
+                            <CarouselItem key={index} className="pl-6 basis-1/2 md:basis-1/3">
+                                <Card className="overflow-hidden flex flex-col h-full">
+                                    <div className="relative h-64 w-full">
+                                        <Image
+                                            src={feature.image.imageUrl}
+                                            alt={feature.image.description}
+                                            data-ai-hint={feature.image.imageHint}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                    <div className="p-6 flex flex-col flex-grow">
+                                        <CardHeader className="p-0">
+                                            <feature.icon className="w-10 h-10 text-accent mb-4" />
+                                            <CardTitle className="font-headline text-2xl">
+                                                {feature.title}
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="p-0 mt-4 flex-grow">
+                                            <p className="text-muted-foreground">
+                                                {feature.description}
+                                            </p>
+                                        </CardContent>
+                                        <Button
+                                            asChild
+                                            variant="secondary"
+                                            className="mt-6 w-fit"
+                                        >
+                                            <Link href={`/about`}>
+                                                আরও জানুন <ArrowRight className="ml-2" />
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                </Card>
+                            </CarouselItem>
+                        ))}
                     </CarouselContent>
-                    <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2" />
-                    <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2" />
-                  </Carousel>
-                </div>
+                    <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 hidden md:flex" />
+                    <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 hidden md:flex" />
+                </Carousel>
               </section>
             );
 
