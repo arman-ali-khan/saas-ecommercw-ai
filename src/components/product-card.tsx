@@ -74,8 +74,8 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
           )}
         </CardContent>
       </Link>
-      <CardFooter className="p-1 sm:p-4 sm:mt-auto flex flex-cols sm:flex-row justify-between items-center">
-        <div className="flex flex-col">
+      <CardFooter className="p-1 sm:p-4 sm:mt-auto flex flex-col sm:flex-row justify-between items-center">
+        <divzsfs className="flex flex-col">
             {flashDeal && (
                 <p className="text-sm font-bold text-muted-foreground line-through">
                     {product.price.toFixed(2)} {product.currency}
