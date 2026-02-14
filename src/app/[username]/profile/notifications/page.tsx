@@ -51,7 +51,7 @@ export default function CustomerNotificationsPage() {
     setIsLoading(false);
   }, [customer, toast]);
 
-  console.log(customer,'customer')
+  console.log('customer',notifications)
 
   useEffect(() => {
     if (_hasHydrated && customer) {
