@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react';
 import { useAuth } from '@/stores/auth';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { supabase } from '@/lib/supabase/client';
+import type { Session } from '@supabase/supabase-js';
 
 export default function AuthProvider({
   children,
@@ -10,18 +12,31 @@ export default function AuthProvider({
   children: React.ReactNode;
 }) {
   const { setUser, setSession, setLoading, refreshUser } = useAuth();
+  const { setCustomer, refreshCustomer } = useCustomerAuth();
 
   useEffect(() => {
     setLoading(true);
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session: Session | null) => {
       setSession(session);
+
       if (session?.user) {
-        await refreshUser();
-      } else {
-        // No session, user is logged out.
+        const role = session.user.user_metadata?.role;
+        
+        // Clear both states initially to prevent state mixing
         setUser(null);
+        setCustomer(null);
+
+        if (role === 'admin' || role === 'saas_admin') {
+          await refreshUser();
+        } else if (role === 'customer') {
+          await refreshCustomer();
+        }
+      } else {
+        // No session, user is logged out, clear both.
+        setUser(null);
+        setCustomer(null);
       }
       setLoading(false);
     });
@@ -29,7 +44,7 @@ export default function AuthProvider({
     return () => {
       subscription.unsubscribe();
     };
-  }, [setUser, setSession, setLoading, refreshUser]);
+  }, [setUser, setSession, setLoading, refreshUser, setCustomer, refreshCustomer]);
 
   return <>{children}</>;
 }

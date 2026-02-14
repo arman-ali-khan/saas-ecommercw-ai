@@ -1,7 +1,5 @@
 // src/app/api/auth/register-customer/route.ts
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
@@ -12,29 +10,44 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+    
+    // 1. Create the user in Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // Set to true to send a confirmation email
+        user_metadata: {
+            full_name: fullName,
+            role: 'customer',
+            site_id: siteId,
+        }
+    });
 
-    // 1. Generate ID and Hash Password
-    const userId = uuidv4(); 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    if (authError) {
+        console.error("Auth Error:", authError);
+        return NextResponse.json({ error: `Authentication error: ${authError.message}` }, { status: 400 });
+    }
+
+    const userId = authData.user.id;
 
     // 2. Insert into customer_profiles
-    const { data, error } = await supabaseAdmin
+    const { data, error: profileError } = await supabaseAdmin
       .from('customer_profiles')
       .insert([{
         id: userId,
         full_name: fullName,
-        email: email, // Make sure this column exists in your table!
-        password_hash: hashedPassword,
+        email: email,
         site_id: siteId,
         role: 'customer'
       }])
       .select()
       .single();
 
-    if (error) {
-      console.error("DB Error:", error);
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (profileError) {
+      console.error("DB Error:", profileError);
+      // If profile creation fails, we should delete the auth user to avoid orphans
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      return NextResponse.json({ error: profileError.message }, { status: 400 });
     }
 
     return NextResponse.json({ user: data }, { status: 200 });

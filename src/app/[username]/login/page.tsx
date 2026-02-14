@@ -27,7 +27,6 @@ import {
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
@@ -35,18 +34,12 @@ const formSchema = z.object({
 });
 
 export default function CustomerLoginPage() {
-  const { customerLogin,customer:user } = useCustomerAuth();
+  const { customerLogin, customer } = useCustomerAuth();
   const router = useRouter();
-  const params = useParams();
-  const domain = params.username as string;
   const { toast } = useToast();
   
-  console.log(user,'router')
-  
   const [isLoading, setIsLoading] = useState(false);
-  const [siteId, setSiteId] = useState<string | null>(null);
 
-  // Define the form correctly using useForm
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,43 +48,30 @@ export default function CustomerLoginPage() {
     },
   });
 
-  useEffect(() => {
-    async function fetchSiteId() {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('domain', domain)
-        .single();
-      
-      if (data) setSiteId(data.id);
-    }
-    fetchSiteId();
-  }, [domain]);
-
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
-      if (user.role === 'customer') {
-        router.push(`/profile`);
-      } else if (user.domain === domain) {
-        router.push(`/admin`);
-      }
+    if (customer) {
+      router.push(`/profile`);
     }
-  }, [user, router, domain]);
+  }, [customer, router]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Note: You need a way to get siteId. 
-    // Usually, you fetch it based on the 'username' from the URL.
     setIsLoading(true);
-    const result = await customerLogin(values.email, values.password, siteId || '');
+    const { error } = await customerLogin(values.email, values.password);
     setIsLoading(false);
 
-    if (result.error) {
+    if (error) {
       toast({
         variant: 'destructive',
         title: 'লগইন ব্যর্থ',
-        description: result.error,
+        description: error.message,
       });
+    } else {
+       toast({
+        title: 'লগইন সফল!',
+        description: 'আপনাকে আপনার প্রোফাইলে নিয়ে যাওয়া হচ্ছে...',
+      });
+      // The redirect is handled by the useEffect hook
     }
   }
 
@@ -101,13 +81,9 @@ export default function CustomerLoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">লগ ইন</CardTitle>
-          <Link href={`/admin/login`} className="font-medium text-primary hover:underline">
-              Admin
-            </Link>
           <CardDescription>আপনার অ্যাকাউন্টে চালিয়ে যেতে সাইন ইন করুন।</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Form component receives the 'form' variable defined above */}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField

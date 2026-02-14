@@ -7,7 +7,6 @@ import SaasHeader from './saas-header';
 import SaasFooter from './saas-footer';
 import FixedCartButton from '@/components/fixed-cart-button';
 import FloatingChatButton from '@/components/floating-chat-button';
-import CustomerAuthInitializer from '@/components/auth/customer-auth-initializer';
 import { useState, useEffect } from 'react';
 import BottomNav from './BottomNav';
 
@@ -34,7 +33,6 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   if (isStorePage) {
     return (
       <div className="flex flex-col min-h-screen">
-        <CustomerAuthInitializer />
         <Header />
         <main className="flex-grow container mx-auto px-1 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
           {children}
