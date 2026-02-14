@@ -34,7 +34,7 @@ const formSchema = z.object({
 });
 
 export default function CustomerLoginPage() {
-  const { customerLogin, customer } = useCustomerAuth();
+  const { customerLogin, customer, _hasHydrated } = useCustomerAuth();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -50,10 +50,10 @@ export default function CustomerLoginPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (customer) {
+    if (_hasHydrated && customer) {
       router.push(`/profile`);
     }
-  }, [customer, router]);
+  }, [customer, router, _hasHydrated]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -73,6 +73,14 @@ export default function CustomerLoginPage() {
       });
       // The redirect is handled by the useEffect hook
     }
+  }
+
+  if (!_hasHydrated || (_hasHydrated && customer)) {
+    return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
   }
 
   return (

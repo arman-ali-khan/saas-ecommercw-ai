@@ -93,7 +93,7 @@ export default function AdminLoginPage() {
   }
 
   // Show a full-screen loader while we are verifying if a user is already logged in or needs redirecting.
-  if (authLoading || (loggedInUser && hostname === '')) {
+  if (authLoading || loggedInUser) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
