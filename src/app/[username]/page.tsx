@@ -238,7 +238,7 @@ export default async function UserPage({
             return (
               <section key={section.id}>
                 <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-3xl font-headline font-bold">
+                    <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">
                         {section.title}
                     </h2>
                     <Button asChild variant="ghost">
@@ -255,7 +255,7 @@ export default async function UserPage({
             if (featuredProducts.length === 0) return null;
             return (
               <section key={section.id}>
-                <h2 className="text-3xl font-headline font-bold text-center mb-8">
+                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">
                   {section.title}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -320,7 +320,7 @@ export default async function UserPage({
 
             return (
               <section key={section.id}>
-                <h2 className="text-3xl font-headline font-bold text-center mb-8">
+                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">
                   {section.title}
                 </h2>
                 <Carousel
@@ -382,7 +382,7 @@ export default async function UserPage({
               return (
                 <section key={section.id}>
                   <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-3xl font-headline font-bold">
+                    <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">
                       {section.title}
                     </h2>
                     <Button asChild variant="ghost">
