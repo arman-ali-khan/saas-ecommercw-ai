@@ -144,7 +144,7 @@ export interface SubscriptionPayment {
   amount: number;
   payment_method: string;
   transaction_id: string | null;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'pending_verification' | 'completed' | 'failed';
   created_at: string;
 }
 
@@ -265,3 +265,13 @@ export interface SaaSReview {
   avatar_url?: string;
 }
     
+export interface Address {
+    id: string;
+    customer_id: string;
+    site_id: string;
+    name: string;
+    details: string;
+    phone: string | null;
+    type: 'home' | 'work' | 'other' | null;
+    created_at: string;
+};
