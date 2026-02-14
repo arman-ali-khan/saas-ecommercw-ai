@@ -209,7 +209,7 @@ export default function BottomNav() {
   );
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 flex justify-center pb-0 z-50 pointer-events-none md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 flex justify-center pb-0 z-50 pointer-events-none md:hidden bg-blue-300">
       <div className="pointer-events-auto relative h-[80px] w-[95%] max-w-sm overflow-hidden rounded-2xl shadow-2xl">
         <div className="absolute inset-0 bg-card" />
         <div className="relative flex h-[80px] items-end justify-around">
