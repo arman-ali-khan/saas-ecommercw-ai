@@ -26,7 +26,6 @@ export default function CustomerNotificationsPage() {
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const fetchNotifications = useCallback(async () => {
     if (!customer) return;
     setIsLoading(true);
@@ -103,7 +102,6 @@ export default function CustomerNotificationsPage() {
       .eq('recipient_id', customer.id)
       .eq('site_id', customer.site_id)
       .eq('is_read', false);
-
     if (error) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
     }
