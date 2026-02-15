@@ -24,17 +24,16 @@ export default function AuthProvider({
       if (session?.user) {
         const role = session.user.user_metadata?.role;
         
-        // Clear both states initially to prevent state mixing
-        setUser(null);
-        setCustomer(null);
-
+        // This logic determines which user profile to refresh based on the role
+        // in the session. We avoid resetting the state to null prematurely, which
+        // was causing the component tree to unmount and remount on tab focus.
         if (role === 'admin' || role === 'saas_admin') {
           await refreshUser();
         } else if (role === 'customer') {
           await refreshCustomer();
         }
       } else {
-        // No session, user is logged out, clear both.
+        // No session, user is logged out, clear both user states.
         setUser(null);
         setCustomer(null);
       }
