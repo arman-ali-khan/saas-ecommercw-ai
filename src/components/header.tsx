@@ -173,6 +173,7 @@ export default function Header() {
   const { toast } = useToast();
   const { isSearchOpen, setSearchOpen } = useSearchStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const {
     user: siteOwner,
@@ -316,30 +317,6 @@ export default function Header() {
     );
   };
 
-  const AuthNavMobile = () => {
-    if (isLoading) return null;
-    if (currentUser) return null;
-    return (
-      <div className="space-y-4">
-        <SheetClose asChild>
-          <Link
-            href={'/login'}
-            className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground"
-          >
-            লগ ইন
-          </Link>
-        </SheetClose>
-        <SheetClose asChild>
-          <Button asChild className="w-full">
-            <Link href={`/register`}>
-              সাইন আপ করুন
-            </Link>
-          </Button>
-        </SheetClose>
-      </div>
-    );
-  };
-
   const HeaderLogo = () =>
     isSiteInfoLoading ? (
       <div className="flex items-center gap-3">
@@ -398,7 +375,7 @@ export default function Header() {
       <div className="container mx-auto flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
           <div className="md:hidden">
-            <Sheet>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <Menu className="h-6 w-6" />
@@ -412,23 +389,41 @@ export default function Header() {
                     Main navigation menu
                   </SheetDescription>
                 </SheetHeader>
-                <SheetClose asChild>
-                  <div className="mb-8">
-                    <HeaderLogo />
-                  </div>
-                </SheetClose>
+                <Link href="/" onClick={() => setIsSheetOpen(false)} className="mb-8">
+                  <HeaderLogo />
+                </Link>
                 <nav className="flex flex-col gap-6">
-                  {navLinks.map((link) => (
-                    <SheetClose asChild key={link.id}>
-                      <NavLink {...link} className="text-lg" />
-                    </SheetClose>
-                  ))}
+                  {navLinks.map((link) => {
+                    const isActive = (link.href === '/' ? pathname === '/' : pathname.startsWith(link.href)) && link.href.length > 1;
+                    return (
+                        <Link
+                        key={link.id}
+                        href={link.href}
+                        className={cn(
+                            'text-lg font-medium text-foreground/80 transition-colors hover:text-foreground',
+                            isActive && 'text-primary font-semibold'
+                        )}
+                        onClick={() => setIsSheetOpen(false)}
+                        >
+                        {link.label}
+                        </Link>
+                    )
+                  })}
                 </nav>
                 <div className="mt-auto pt-6 border-t space-y-4">
-                  <AuthNavMobile />
-                   <SheetClose asChild>
-                    <Button variant="outline" className="w-full">Close Menu</Button>
-                  </SheetClose>
+                  {isLoading ? null : !currentUser ? (
+                    <div className="space-y-4">
+                        <Link href={'/login'} className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground" onClick={() => setIsSheetOpen(false)}>
+                            লগ ইন
+                        </Link>
+                        <Button asChild className="w-full" onClick={() => setIsSheetOpen(false)}>
+                            <Link href={`/register`}>
+                                সাইন আপ করুন
+                            </Link>
+                        </Button>
+                    </div>
+                  ) : null}
+                   <Button variant="outline" className="w-full" onClick={() => setIsSheetOpen(false)}>Close Menu</Button>
                 </div>
               </SheetContent>
             </Sheet>
@@ -542,5 +537,3 @@ export default function Header() {
     </header>
   );
 }
-
-    

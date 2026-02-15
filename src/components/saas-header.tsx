@@ -10,7 +10,6 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetClose,
   SheetHeader,
   SheetTitle,
   SheetDescription,
@@ -36,6 +35,8 @@ export default function SaasHeader() {
     logoUrl: string | null;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
 
   useEffect(() => {
     setIsHydrated(true);
@@ -68,10 +69,12 @@ export default function SaasHeader() {
     href,
     label,
     className,
+    onClick,
   }: {
     href: string;
     label: string;
     className?: string;
+    onClick?: () => void;
   }) => {
     return (
       <Link
@@ -80,6 +83,7 @@ export default function SaasHeader() {
           'text-sm font-medium text-foreground/80 transition-colors hover:text-foreground',
           className
         )}
+        onClick={onClick}
       >
         {label}
       </Link>
@@ -111,18 +115,16 @@ export default function SaasHeader() {
       </Link>
     );
   };
-
+  
   const AuthNavMobile = () => {
     if (!isHydrated) return null;
     
     if (user?.isSaaSAdmin) {
         return (
             <div className="border-t pt-6 mt-6 space-y-4">
-                <SheetClose asChild>
-                    <Button asChild className="w-full">
-                        <Link href="/dashboard">SaaS Dashboard</Link>
-                    </Button>
-                </SheetClose>
+                <Button asChild className="w-full" onClick={() => setIsSheetOpen(false)}>
+                    <Link href="/dashboard">SaaS Dashboard</Link>
+                </Button>
             </div>
         )
     }
@@ -130,29 +132,24 @@ export default function SaasHeader() {
     if (user && user.domain) {
       return (
         <div className="border-t pt-6 mt-6 space-y-4">
-          <SheetClose asChild>
-            <Button asChild className="w-full">
-              <Link href={`/${user.domain}/admin`}>ড্যাশবোর্ড</Link>
-            </Button>
-          </SheetClose>
+          <Button asChild className="w-full" onClick={() => setIsSheetOpen(false)}>
+            <Link href={`/${user.domain}/admin`}>ড্যাশবোর্ড</Link>
+          </Button>
         </div>
       );
     }
     return (
       <div className="border-t pt-6 mt-6 space-y-4">
-        <SheetClose asChild>
-          <Link
+        <Link
             href="/login"
             className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground"
+            onClick={() => setIsSheetOpen(false)}
           >
             লগ ইন
-          </Link>
-        </SheetClose>
-        <SheetClose asChild>
-          <Button asChild className="w-full">
-            <Link href="/get-started">শুরু করুন</Link>
-          </Button>
-        </SheetClose>
+        </Link>
+        <Button asChild className="w-full" onClick={() => setIsSheetOpen(false)}>
+          <Link href="/get-started">শুরু করুন</Link>
+        </Button>
       </div>
     );
   };
@@ -162,7 +159,7 @@ export default function SaasHeader() {
       <div className="container mx-auto flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <div className="md:hidden">
-            <Sheet>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <Menu className="h-6 w-6" />
@@ -176,16 +173,12 @@ export default function SaasHeader() {
                     Site navigation
                   </SheetDescription>
                 </SheetHeader>
-                <SheetClose asChild>
-                  <div className="mb-8">
-                    <HeaderLogo />
-                  </div>
-                </SheetClose>
+                <Link href="/" className="mb-8" onClick={() => setIsSheetOpen(false)}>
+                  <HeaderLogo />
+                </Link>
                 <nav className="flex flex-col gap-6">
                   {navLinks.map((link) => (
-                    <SheetClose asChild key={link.href}>
-                      <NavLink {...link} className="text-lg" />
-                    </SheetClose>
+                      <NavLink {...link} className="text-lg" onClick={() => setIsSheetOpen(false)} key={link.href}/>
                   ))}
                 </nav>
                 <div className="mt-auto">
