@@ -36,7 +36,7 @@ const CustomTopLoader = () => {
     }, []); // Run only once on mount
 
     if (isLoading) {
-        return <NextTopLoader color="hsl(var(--primary))" showSpinner={true} />;
+        return <NextTopLoader color="hsl(var(--primary))" showSpinner={false} />;
     }
 
     if (logoUrl) {
@@ -48,11 +48,11 @@ const CustomTopLoader = () => {
                 <div class="spinner-icon with-logo" style="background-image: url(${logoUrl});"></div>
             </div>
         `;
-        return <NextTopLoader color="hsl(var(--primary))" showSpinner={true} template={template} />;
+        return <NextTopLoader color="hsl(var(--primary))" showSpinner={false} template={template} />;
     }
     
     // Fallback for SaaS pages or stores without image logos
-    return <NextTopLoader color="hsl(var(--primary))" showSpinner={true} />;
+    return <NextTopLoader color="hsl(var(--primary))" showSpinner={false} />;
 };
 
 export default CustomTopLoader;
