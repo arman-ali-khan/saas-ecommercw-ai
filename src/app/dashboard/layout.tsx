@@ -5,13 +5,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SaasAdminSidebar from '@/components/saas-admin-sidebar';
 import { useAuth } from '@/stores/auth';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PanelLeft } from 'lucide-react';
+import { PanelLeft, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardLayout({
   children,
@@ -60,8 +60,8 @@ export default function DashboardLayout({
 
   if (loading || !user || !user.isSaaSAdmin) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <Skeleton className="h-full w-full" />
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
