@@ -253,28 +253,27 @@ export default async function UserPage({
                     <CarouselContent className="-ml-6">
                       {storeFeatures.map((feature) => (
                         <CarouselItem key={feature.id} className="pl-6 basis-1/2 md:basis-1/4 lg:basis-1/5">
-                          <Card className="overflow-hidden flex flex-col text-center h-full">
-                            {feature.image_url && (
+                           <Card className="overflow-hidden flex flex-col text-center h-full">
                               <CardHeader className="p-0">
-                                <div className="relative h-28 sm:h-[200px] w-full">
-                                  <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
+                                <div className="relative h-28 sm:h-[200px] w-full bg-muted flex items-center justify-center">
+                                  {feature.image_url ? (
+                                    <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
+                                  ) : (
+                                    <div className="bg-primary/10 p-4 rounded-full">
+                                      <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
+                                    </div>
+                                  )}
                                 </div>
                               </CardHeader>
-                            )}
-                            <CardContent className="p-1 sm:p-6 flex flex-col flex-grow items-center">
-                              {!feature.image_url && (
-                                <div className="bg-primary/10 p-4 rounded-full mb-4">
-                                  <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
-                                </div>
-                              )}
-                              <CardTitle className="font-headline text-base sm:text-lg mt-4"> 
-                                {feature.title}
-                              </CardTitle>
-                              <p className="text-muted-foreground text-xs mt-4 flex-grow">
-                                {feature.description}
-                              </p>
-                            </CardContent>
-                          </Card>
+                              <CardContent className="p-4 sm:p-6 flex flex-col flex-grow items-center">
+                                <CardTitle className="font-headline text-base sm:text-lg">
+                                  {feature.title}
+                                </CardTitle>
+                                <p className="text-muted-foreground text-xs mt-2 flex-grow">
+                                  {feature.description}
+                                </p>
+                              </CardContent>
+                            </Card>
                         </CarouselItem>
                       ))}
                     </CarouselContent>
