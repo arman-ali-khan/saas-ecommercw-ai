@@ -8,7 +8,6 @@ import {
   ShoppingBag,
   Package,
   FileClock,
-  CreditCard,
   FileText,
   MessageSquare,
   Settings,
@@ -24,7 +23,6 @@ import {
   GalleryHorizontal,
   Globe,
   Flame,
-  ClipboardList,
   ChevronDown,
   Sparkles,
   Palette,
@@ -255,7 +253,6 @@ export default function AdminSidebar() {
     { href: `/admin/reviews`, label: 'Reviews', icon: Star, count: pendingReviewsCount },
     { href: `/admin/features`, label: 'Store Features', icon: Sparkles },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
-    { href: `/admin/theme`, label: 'Theme', icon: Palette },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: unviewedUncompletedCount },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
     { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
@@ -338,7 +335,29 @@ export default function AdminSidebar() {
               </CollapsibleContent>
             </Collapsible>
             
-            {adminNavLinks.slice(3).map((link) => (
+            {adminNavLinks.slice(3, 13).map((link) => (
+              <NavLink key={link.href} {...link} />
+            ))}
+
+            <Collapsible>
+              <CollapsibleTrigger className={cn(
+                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
+                pathname.startsWith('/admin/theme') && 'bg-sidebar-primary text-sidebar-primary-foreground'
+              )}>
+                <div className="flex items-center gap-3">
+                  <Palette className="h-4 w-4" />
+                  Theme
+                </div>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-7 space-y-1 py-1">
+                <Link href="/admin/theme/header" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/header' && 'text-sidebar-accent-foreground')}>Header</Link>
+                <Link href="/admin/theme/footer" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/footer' && 'text-sidebar-accent-foreground')}>Footer</Link>
+                <Link href="/admin/theme/appearance" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/appearance' && 'text-sidebar-accent-foreground')}>Appearance</Link>
+              </CollapsibleContent>
+            </Collapsible>
+           
+            {adminNavLinks.slice(13).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
            

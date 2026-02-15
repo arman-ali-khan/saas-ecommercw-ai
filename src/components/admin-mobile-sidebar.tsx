@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -7,7 +8,6 @@ import {
   ShoppingBag,
   Package,
   FileClock,
-  CreditCard,
   FileText,
   MessageSquare,
   Settings,
@@ -23,7 +23,6 @@ import {
   GalleryHorizontal,
   Globe,
   Flame,
-  ClipboardList,
   ChevronDown,
   Sparkles,
   Palette,
@@ -55,6 +54,7 @@ export default function AdminMobileSidebar() {
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [unviewedUncompletedCount, setUnviewedUncompletedCount] = useState(0);
   const [totalCustomersCount, setTotalCustomersCount] = useState(0);
+  const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
   const [siteSettings, setSiteSettings] = useState<{
     logo_type?: 'icon' | 'image';
     logo_icon?: string;
@@ -71,7 +71,7 @@ export default function AdminMobileSidebar() {
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .eq('site_id', user.id)
-        .eq('status', 'processing');
+        .eq('status', 'approved');
       setProcessingOrdersCount(orderCount || 0);
 
       const { count: notifCount } = await supabase
@@ -108,6 +108,13 @@ export default function AdminMobileSidebar() {
         .select('*', { count: 'exact', head: true })
         .eq('site_id', user.id);
       setTotalCustomersCount(customerCount || 0);
+      
+      const { count: reviewCount } = await supabase
+        .from('product_reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', user.id)
+        .eq('is_approved', false);
+      setPendingReviewsCount(reviewCount || 0);
 
       // Fetch site settings
       const { data: settingsData } = await supabase
@@ -126,17 +133,17 @@ export default function AdminMobileSidebar() {
       .channel(`admin-mobile-sidebar-channel-${user.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
+        { event: '*', schema: 'public', table: 'orders', filter: `site_id=eq.${user.id}` },
         fetchAllData
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'notifications' },
+        { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` },
         fetchAllData
       )
        .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'live_chat_messages' },
+        { event: '*', schema: 'public', table: 'live_chat_messages', filter: `site_id=eq.${user.id}` },
         fetchAllData
       )
       .on(
@@ -157,6 +164,11 @@ export default function AdminMobileSidebar() {
           table: 'customer_profiles',
           filter: `site_id=eq.${user.id}`,
         },
+        fetchAllData
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'product_reviews', filter: `site_id=eq.${user.id}` },
         fetchAllData
       )
       .on(
@@ -221,10 +233,9 @@ export default function AdminMobileSidebar() {
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
-    { href: `/admin/reviews`, label: 'Reviews', icon: Star },
+    { href: `/admin/reviews`, label: 'Reviews', icon: Star, count: pendingReviewsCount },
     { href: `/admin/features`, label: 'Store Features', icon: Sparkles },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
-    { href: `/admin/theme`, label: 'Theme', icon: Palette },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: unviewedUncompletedCount },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
     { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
@@ -320,7 +331,35 @@ export default function AdminMobileSidebar() {
               </CollapsibleContent>
             </Collapsible>
             
-            {adminNavLinks.slice(3).map((link) => (
+            {adminNavLinks.slice(3, 13).map((link) => (
+              <NavLink key={link.href} {...link} />
+            ))}
+
+            <Collapsible>
+              <CollapsibleTrigger className={cn(
+                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
+                pathname.startsWith('/admin/theme') && 'bg-sidebar-primary text-sidebar-primary-foreground'
+              )}>
+                <div className="flex items-center gap-3">
+                  <Palette className="h-4 w-4" />
+                  Theme
+                </div>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-7 space-y-1 py-1">
+                <SheetClose asChild>
+                  <Link href="/admin/theme/header" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/header' && 'text-sidebar-accent-foreground')}>Header</Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link href="/admin/theme/footer" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/footer' && 'text-sidebar-accent-foreground')}>Footer</Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link href="/admin/theme/appearance" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/appearance' && 'text-sidebar-accent-foreground')}>Appearance</Link>
+                </SheetClose>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {adminNavLinks.slice(13).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 
