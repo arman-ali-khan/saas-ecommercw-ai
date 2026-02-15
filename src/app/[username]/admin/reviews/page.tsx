@@ -315,7 +315,32 @@ export default function ReviewsAdminPage() {
                     )}
                 />
                 <FormField control={form.control} name="customer_name" render={({ field }) => (<FormItem><FormLabel>Customer Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="rating" render={({ field }) => (<FormItem><FormLabel>Rating</FormLabel><div className="flex items-center gap-2"><FormControl>{[1, 2, 3, 4, 5].map((star) => (<Star key={star} className={cn("h-7 w-7 cursor-pointer transition-colors", field.value >= star ? "text-primary fill-primary" : "text-muted-foreground/30")} onClick={() => field.onChange(star)}/>))}</FormControl></div><FormMessage /></FormItem>)} />
+                <FormField
+                    control={form.control}
+                    name="rating"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Rating</FormLabel>
+                        <FormControl>
+                            <div className="flex items-center gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                    key={star}
+                                    className={cn(
+                                    "h-7 w-7 cursor-pointer transition-colors",
+                                    field.value >= star
+                                        ? "text-primary fill-primary"
+                                        : "text-muted-foreground/30"
+                                    )}
+                                    onClick={() => field.onChange(star)}
+                                />
+                            ))}
+                            </div>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
                 <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Review Title (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="review_text" render={({ field }) => (<FormItem><FormLabel>Review Text</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="is_approved" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><FormLabel>Approved</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
