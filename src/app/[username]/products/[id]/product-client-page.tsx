@@ -23,6 +23,7 @@ import {
   Wand2,
   Star,
   CheckCircle,
+  Loader2,
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
