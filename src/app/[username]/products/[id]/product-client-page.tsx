@@ -382,6 +382,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     variant="outline"
                     size="icon"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    aria-label="Decrease quantity"
                     >
                     <Minus className="h-4 w-4" />
                     </Button>
@@ -398,6 +399,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     variant="outline"
                     size="icon"
                     onClick={() => setQuantity(quantity + 1)}
+                    aria-label="Increase quantity"
                     >
                     <Plus className="h-4 w-4" />
                     </Button>
@@ -434,7 +436,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                         <Twitter className="h-5 w-5" />
                     </a>
                     </Button>
-                    <Button variant="outline" size="icon" disabled>
+                    <Button variant="outline" size="icon" disabled aria-label="Share on TikTok">
                     <TikTokIcon />
                     </Button>
                     <Button
@@ -490,7 +492,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
         <div className="mt-16">
             <h2 className="text-3xl font-headline font-bold mb-8">Related Products</h2>
             {isLoadingRelated ? (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
                     {[...Array(4)].map((_, i) => (
                         <div key={i} className="space-y-2">
                             <Skeleton className="h-56 w-full" />
@@ -501,7 +503,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     ))}
                 </div>
             ) : relatedProducts.length > 0 ? (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
                     {relatedProducts.map((p) => (
                         <ProductCard key={p.id} product={p} />
                     ))}
@@ -521,3 +523,5 @@ export default function ProductClientPage({ product }: { product: Product }) {
     </div>
   );
 }
+
+    

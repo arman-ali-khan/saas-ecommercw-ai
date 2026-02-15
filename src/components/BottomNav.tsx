@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -217,7 +218,7 @@ export default function BottomNav() {
               </Sheet>
             );
           } else if (link.action) {
-            return <button type="button" aria-haspopup={link.label} key={link.id} className="flex-1 p-2 focus:outline-none" onClick={link.action}>{content}</button>;
+            return <button type="button" aria-label={link.label} key={link.id} className="flex-1 p-2 focus:outline-none" onClick={link.action}>{content}</button>;
           } else {
             return <Link aria-label={link.label} key={link.id} href={link.href!} className="flex-1 p-2 focus:outline-none">{content}</Link>;
           }
@@ -226,3 +227,5 @@ export default function BottomNav() {
     </div>
   );
 }
+
+    

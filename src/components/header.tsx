@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -462,6 +463,7 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   className="relative h-10 w-10 rounded-full"
+                  aria-label="Open user menu"
                 >
                   <Avatar className="h-10 w-10">
                     <AvatarFallback>
@@ -540,3 +542,5 @@ export default function Header() {
     </header>
   );
 }
+
+    

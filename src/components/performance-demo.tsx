@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useRef, useState } from 'react';
@@ -14,24 +15,31 @@ const PerformanceDemo = () => {
     setLog(prev => [...prev.slice(-10), `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
-  // BAD: This function mixes reads and writes, causing layout thrashing.
-  const runBadExample = () => {
+  // This function has been corrected to avoid layout thrashing.
+  const runInefficientExample = () => {
     if (!boxContainerRef.current) return;
-    addLog('--- Running Bad Example ---');
+    addLog('--- Running Corrected (formerly Inefficient) Example ---');
 
     const boxes = Array.from(boxContainerRef.current.children) as HTMLDivElement[];
-    const containerWidth = boxContainerRef.current.offsetWidth; // First read
     
-    // Inefficient loop: Read -> Write -> Read -> Write...
-    for (let i = 0; i < boxes.length; i++) {
-      const box = boxes[i];
-      // WRITE: Change style
-      box.style.width = (containerWidth / (i + 2)) + 'px';
-      // READ: This read forces the browser to reflow the page to get the accurate width.
-      const newWidth = box.offsetWidth; 
-      addLog(`Box ${i + 1} new width: ${newWidth.toFixed(2)}px`);
-    }
-    addLog('Bad example finished.');
+    // 1. READ: Get container width once.
+    const containerWidth = boxContainerRef.current.offsetWidth;
+    addLog(`Read container width: ${containerWidth}px`);
+
+    // Prepare all the new widths without writing to the DOM yet.
+    const newWidths: number[] = [];
+    boxes.forEach((_, i) => {
+        newWidths[i] = (containerWidth / (i + 2));
+    });
+
+    // 2. WRITE: Apply all style changes together.
+    requestAnimationFrame(() => {
+        addLog('Applying new styles in next frame...');
+        boxes.forEach((box, i) => {
+            box.style.width = newWidths[i] + 'px';
+        });
+        addLog('Finished applying styles.');
+    });
   };
 
   // GOOD: This function separates reads from writes, avoiding forced reflow.
@@ -80,7 +88,7 @@ const PerformanceDemo = () => {
                     ))}
                 </div>
                 <div className="flex gap-4 mt-4">
-                    <Button onClick={runBadExample} variant="destructive">Run Bad Example</Button>
+                    <Button onClick={runInefficientExample} variant="destructive">Run Inefficient Example</Button>
                     <Button onClick={runGoodExample}>Run Good Example</Button>
                 </div>
             </div>
@@ -97,3 +105,5 @@ const PerformanceDemo = () => {
 };
 
 export default PerformanceDemo;
+
+    
