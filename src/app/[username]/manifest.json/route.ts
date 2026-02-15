@@ -44,6 +44,9 @@ export async function GET(request: Request, { params }: { params: { username: st
     .select('favicon_url')
     .eq('site_id', profile.id)
     .single();
+    
+  const faviconUrl = settings?.favicon_url;
+  const siteInitial = (profile.site_name || 'S').charAt(0).toUpperCase();
 
   const manifest = {
     name: profile.site_name || 'My Awesome Store',
@@ -55,17 +58,23 @@ export async function GET(request: Request, { params }: { params: { username: st
     theme_color: '#ffffff',
     icons: [
       {
-        src: settings?.favicon_url || '/favicon.ico',
+        src: faviconUrl || `https://placehold.co/192/FFFFFF/000000?text=${siteInitial}`,
         sizes: '192x192',
         type: 'image/png',
-        purpose: 'any maskable'
+        purpose: 'any'
       },
       {
-        src: settings?.favicon_url || '/favicon.ico',
+        src: faviconUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`,
         sizes: '512x512',
         type: 'image/png',
-        purpose: 'any maskable'
+        purpose: 'any'
       },
+       {
+        src: faviconUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`,
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable'
+      }
     ],
   };
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -18,6 +19,18 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     setHostname(window.location.hostname);
   }, []);
+
+  useEffect(() => {
+    const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
+    const isStorePage = hostname && hostname !== rootDomain && hostname !== `www.${rootDomain}`;
+    
+    if (isStorePage && 'serviceWorker' in navigator) {
+        navigator.serviceWorker
+            .register('/sw.js')
+            .then(registration => console.log('Service Worker registered with scope:', registration.scope))
+            .catch(error => console.error('Service Worker registration failed:', error));
+    }
+  }, [hostname]);
 
   if (!hostname) {
     return null;
