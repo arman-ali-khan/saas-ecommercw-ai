@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -36,6 +37,8 @@ const formSchema = z.object({
 export default function CustomerLoginPage() {
   const { customerLogin, customer, _hasHydrated } = useCustomerAuth();
   const router = useRouter();
+  const params = useParams();
+  const username = params.username as string;
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -51,9 +54,9 @@ export default function CustomerLoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (_hasHydrated && customer) {
-      router.push(`/profile`);
+      router.push(`/${username}/profile`);
     }
-  }, [customer, router, _hasHydrated]);
+  }, [customer, router, _hasHydrated, username]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -75,7 +78,7 @@ export default function CustomerLoginPage() {
     }
   }
 
-  if (!_hasHydrated || (_hasHydrated && customer)) {
+  if (!_hasHydrated || customer) {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -128,7 +131,7 @@ export default function CustomerLoginPage() {
           </Form>
           <div className="mt-6 text-center text-sm">
             অ্যাকাউন্ট নেই?{' '}
-            <Link href={`/register`} className="font-medium text-primary hover:underline">
+            <Link href={`/${username}/register`} className="font-medium text-primary hover:underline">
               সাইন আপ
             </Link>
           </div>

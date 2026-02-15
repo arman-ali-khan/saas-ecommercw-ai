@@ -20,19 +20,20 @@ export default function AdminLayout({
   const username = params.username as string;
   const { user, loading } = useAuth();
   
-  // If we are not on the login page, and auth is still loading or the user is not the correct admin,
-  // we redirect to the login page.
+  // Redirect logic in useEffect
   useEffect(() => {
-    if (!loading && pathname !== `/admin/login`) {
+    // Once loading is complete, and we are not on the login page...
+    if (!loading && pathname !== `/${username}/admin/login`) {
+        // ...if there's no user or the user's domain doesn't match, redirect.
         if (!user || user.domain !== username) {
-            router.replace(`/admin/login`);
+            router.replace(`/${username}/admin/login`);
         }
     }
   }, [user, loading, username, router, pathname]);
 
-  // On non-login pages, show a full-screen loader while we check auth.
+  // Show a full-screen loader while we check auth, unless we are on the login page.
   // This prevents content flashing before the redirect can happen.
-  if (pathname !== `/admin/login` && (loading || !user || user.domain !== username)) {
+  if (pathname !== `/${username}/admin/login` && (loading || !user || user.domain !== username)) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -42,7 +43,7 @@ export default function AdminLayout({
   
   // On the login page itself, we just render the page component,
   // which will handle its own logic (e.g., redirecting if already logged in).
-  if (pathname === `/admin/login`) {
+  if (pathname === `/${username}/admin/login`) {
     return <>{children}</>;
   }
   
@@ -50,6 +51,7 @@ export default function AdminLayout({
   const isPendingFromRegistration = user?.subscription_status === 'pending_verification' && user?.last_subscription_from === 'get-started';
   const isFailed = user?.subscription_status === 'failed';
   const isPending = (user?.subscription_status === 'pending' || isPendingFromRegistration || isFailed);
+
 
   return (
     <div className="fixed inset-0 bg-background z-50">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -55,7 +56,7 @@ export default function AdminLoginPage() {
   // If user is already logged in as the correct admin, redirect them away from login.
   useEffect(() => {
     if (!authLoading && loggedInUser?.domain === username) {
-      router.replace(`/admin`);
+      router.replace(`/${username}/admin`);
     } else if (!authLoading && loggedInUser && loggedInUser.domain !== username) {
       // If logged in as a *different* admin, redirect to their correct dashboard
       toast({
