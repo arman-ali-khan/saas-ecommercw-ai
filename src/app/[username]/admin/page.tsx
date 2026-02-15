@@ -284,7 +284,8 @@ export default function AdminDashboard() {
                             verticalAlign="middle"
                             align="right"
                         />
-                        {totalSales > 0 && (
+                       <div className='flex flex-col'>
+                       {totalSales > 0 && (
                             <text
                                 
                                 textAnchor="middle"
@@ -305,6 +306,7 @@ export default function AdminDashboard() {
                                 Total Sales
                             </text>
                         )}
+                       </div>
                     </PieChart>
                 </ResponsiveContainer>
                 )}
