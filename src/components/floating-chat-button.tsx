@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -14,6 +13,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from './ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const ChatSkeleton = () => (
     <div className="p-4 space-y-4">
@@ -163,9 +168,22 @@ export default function FloatingChatButton() {
   const [isLoading, setIsLoading] = useState(true);
   const [siteName, setSiteName] = useState('Your Store');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
 
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const domain = params.username as string;
+
+  useEffect(() => {
+    const hasSeenTooltip = localStorage.getItem('chatTooltipSeen');
+    if (!hasSeenTooltip) {
+      localStorage.setItem('chatTooltipSeen', 'true');
+      setIsTooltipOpen(true);
+      const timer = setTimeout(() => {
+        setIsTooltipOpen(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const fetchChatData = useCallback(async (isInitialLoad = false) => {
     if (!conversationId || !siteId) return;
@@ -317,15 +335,24 @@ export default function FloatingChatButton() {
   return (
     <>
       <div className="fixed bottom-28 right-6 z-50">
-        <Button size="icon" className="relative rounded-full w-14 h-14 shadow-lg" onClick={isOpen ? () => setIsOpen(false) : handleOpenChat}>
-          {isOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
-          <span className="sr-only">চ্যাট খুলুন</span>
-          {!isOpen && unreadCount > 0 && (
-             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
-                {unreadCount}
-            </span>
-          )}
-        </Button>
+        <TooltipProvider delayDuration={200}>
+            <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
+                <TooltipTrigger asChild>
+                    <Button size="icon" className="relative rounded-full sm:w-14 w-10 h-10 sm:h-14 shadow-lg" onClick={isOpen ? () => setIsOpen(false) : handleOpenChat}>
+                        {isOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
+                        <span className="sr-only">চ্যাট খুলুন</span>
+                        {!isOpen && unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+                                {unreadCount}
+                            </span>
+                        )}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>আমাদের প্রশ্ন করুন</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
       </div>
       <ChatWindow
         isOpen={isOpen}
