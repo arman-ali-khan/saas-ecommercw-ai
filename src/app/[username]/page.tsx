@@ -7,7 +7,7 @@ import ProductCard from '@/components/product-card';
 import { ArrowRight, Leaf, Users, Heart, SearchX, Star } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Section, Category, FlashDeal, StoreFeature, Product, ProductReview } from '@/types';
 import DynamicIcon from '@/components/dynamic-icon';
@@ -55,7 +55,20 @@ const WhyUsSkeleton = () => (
 
 // --- Async Components for Streaming ---
 async function FlashDeals({ siteId, section }: { siteId: string, section: Section }) {
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies });
+  const cookieStore = cookies();
+  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value;
+      },
+      set(name: string, value: string, options: CookieOptions) {
+        try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+      },
+      remove(name: string, options: CookieOptions) {
+        try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+      },
+    },
+  });
   const { data } = await supabase
     .from('flash_deals')
     .select('*, products!inner(*)')
@@ -77,7 +90,20 @@ async function FlashDeals({ siteId, section }: { siteId: string, section: Sectio
 }
 
 async function FeaturedProducts({ siteId, section }: { siteId: string, section: Section }) {
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies });
+  const cookieStore = cookies();
+  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value;
+      },
+      set(name: string, value: string, options: CookieOptions) {
+        try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+      },
+      remove(name: string, options: CookieOptions) {
+        try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+      },
+    },
+  });
   const { data } = await supabase.from('products').select('*').eq('site_id', siteId).eq('is_featured', true).limit(5);
   const featuredProducts = (data as Product[]) || [];
   if (featuredProducts.length === 0) return null;
@@ -93,7 +119,20 @@ async function FeaturedProducts({ siteId, section }: { siteId: string, section: 
 }
 
 async function WhyUs({ siteId, section }: { siteId: string, section: Section }) {
-    const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies });
+    const cookieStore = cookies();
+    const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+          },
+          remove(name: string, options: CookieOptions) {
+            try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+          },
+        },
+    });
     const { data } = await supabase.from('store_features').select('*').eq('site_id', siteId).order('order', { ascending: true });
     const storeFeatures = (data as StoreFeature[]) || [];
 
@@ -168,7 +207,20 @@ async function WhyUs({ siteId, section }: { siteId: string, section: Section }) 
 
 async function CategoryProducts({ siteId, section }: { siteId: string, section: Section }) {
   if (!section.category) return null;
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies });
+  const cookieStore = cookies();
+  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value;
+      },
+      set(name: string, value: string, options: CookieOptions) {
+        try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+      },
+      remove(name: string, options: CookieOptions) {
+        try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+      },
+    },
+  });
   const { data } = await supabase.from('products').select('*').eq('site_id', siteId).overlaps('categories', [section.category]).limit(5);
   const products = (data as Product[]) || [];
   if (products.length === 0) return null;
@@ -187,7 +239,20 @@ async function CategoryProducts({ siteId, section }: { siteId: string, section: 
 }
 
 async function CustomerReviews({ siteId, section }: { siteId: string, section: Section }) {
-    const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies });
+    const cookieStore = cookies();
+    const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+          },
+          remove(name: string, options: CookieOptions) {
+            try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+          },
+        },
+    });
     const { data } = await supabase.from('product_reviews').select('*').eq('site_id', siteId).eq('is_approved', true).limit(10).order('created_at', { ascending: false });
     const approvedReviews = (data as ProductReview[]) || [];
     if (approvedReviews.length === 0) return null;
@@ -228,7 +293,27 @@ async function CustomerReviews({ siteId, section }: { siteId: string, section: S
 export default async function UserPage({ params }: { params: { username: string } }) {
   const { username } = params;
   const cookieStore = cookies();
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {}
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {}
+        },
+      },
+    }
+  );
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('domain', username).single();
 
