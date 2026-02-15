@@ -29,6 +29,19 @@ export interface Product {
   flash_deal_range?: { from?: Date; to?: Date };
 }
 
+export interface ProductReview {
+    id: string;
+    created_at: string;
+    site_id: string;
+    product_id: string;
+    customer_id?: string;
+    customer_name: string;
+    rating: number;
+    title?: string;
+    review_text: string;
+    is_approved: boolean;
+}
+
 export interface CartItem extends Product {
   quantity: number;
 }

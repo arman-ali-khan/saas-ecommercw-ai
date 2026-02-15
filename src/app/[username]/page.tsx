@@ -3,9 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import ProductCard from '@/components/product-card';
-import { ArrowRight, Leaf, Users, Heart, SearchX } from 'lucide-react';
+import { ArrowRight, Leaf, Users, Heart, SearchX, Star } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
 import {
   Carousel,
@@ -16,10 +16,12 @@ import {
 } from '@/components/ui/carousel';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Section, Category, FlashDeal, StoreFeature, Product } from '@/types';
+import type { Section, Category, FlashDeal, StoreFeature, Product, ProductReview } from '@/types';
 import DynamicIcon from '@/components/dynamic-icon';
 import { cn } from '@/lib/utils';
 import FlashDealCarousel from '@/components/flash-deal-carousel';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
 
 // Force dynamic rendering to ensure the latest section settings are always used.
 export const dynamic = 'force-dynamic';
@@ -73,14 +75,16 @@ export default async function UserPage({
     slidesResult,
     categoriesResult,
     flashDealsResult,
-    storeFeaturesResult
+    storeFeaturesResult,
+    reviewsResult
   ] = await Promise.all([
     supabase.from('products').select('*').eq('site_id', siteId),
     supabase.from('store_settings').select('homepage_sections').eq('site_id', siteId).single(),
     supabase.from('carousel_slides').select('*').eq('site_id', siteId).eq('is_enabled', true).order('order', { ascending: true }),
     supabase.from('categories').select('*').eq('site_id', siteId).order('name', { ascending: true }),
     supabase.from('flash_deals').select('*, products!inner(*)').eq('site_id', siteId).eq('is_active', true).gt('end_date', new Date().toISOString()),
-    supabase.from('store_features').select('*').eq('site_id', siteId).order('order', { ascending: true })
+    supabase.from('store_features').select('*').eq('site_id', siteId).order('order', { ascending: true }),
+    supabase.from('product_reviews').select('*').eq('site_id', siteId).eq('is_approved', true).limit(10).order('created_at', { ascending: false })
   ]);
   
   const allProducts = (productsResult.data as Product[]) || [];
@@ -89,6 +93,7 @@ export default async function UserPage({
   const categoriesData = categoriesResult.data;
   const flashDealsData = flashDealsResult.data;
   const storeFeaturesData = storeFeaturesResult.data;
+  const approvedReviews = (reviewsResult.data as ProductReview[]) || [];
   
   const storeFeatures = (storeFeaturesData as StoreFeature[]) || [];
   const categories = (categoriesData as Category[]) || [];
@@ -101,6 +106,15 @@ export default async function UserPage({
 
     // If sections are defined in the database (even as an empty array), use them as the source of truth.
     if (Array.isArray(dbSections)) {
+      // Manually add 'customer-reviews' if it doesn't exist for backward compatibility
+      if (!dbSections.some(s => s.id === 'customer-reviews')) {
+        dbSections.push({
+          id: 'customer-reviews',
+          title: 'What Our Customers Say',
+          enabled: true,
+          isCategorySection: false,
+        });
+      }
       return dbSections as Section[];
     }
 
@@ -140,6 +154,12 @@ export default async function UserPage({
         isCategorySection: true,
         category: cat,
       })),
+       {
+        id: 'customer-reviews',
+        title: 'What Our Customers Say',
+        enabled: true,
+        isCategorySection: false,
+      },
     ];
   })();
 
@@ -343,6 +363,49 @@ export default async function UserPage({
                 </Carousel>
               </section>
             );
+
+          case 'customer-reviews':
+            if (approvedReviews.length === 0) return null;
+            return (
+              <section key={section.id}>
+                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">
+                  {section.title}
+                </h2>
+                <Carousel
+                    opts={{ align: 'start', loop: approvedReviews.length > 3 }}
+                    className="w-full"
+                >
+                  <CarouselContent className="-ml-6">
+                    {approvedReviews.map((review) => (
+                      <CarouselItem key={review.id} className="pl-6 basis-full md:basis-1/2 lg:basis-1/3">
+                        <Card className="h-full flex flex-col">
+                          <CardHeader className="flex-row items-center gap-4">
+                            <Avatar>
+                              <AvatarFallback>{review.customer_name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                               <CardTitle className="text-base">{review.customer_name}</CardTitle>
+                               <div className="flex items-center gap-0.5">
+                                 {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star key={i} className={cn("h-4 w-4", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                                ))}
+                               </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="flex-grow">
+                              <p className="font-semibold">{review.title}</p>
+                              <p className="text-muted-foreground text-sm italic">"{review.review_text}"</p>
+                          </CardContent>
+                        </Card>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 hidden md:flex" />
+                  <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 hidden md:flex" />
+                </Carousel>
+              </section>
+            );
+
 
           default:
             if (section.isCategorySection && section.category) {

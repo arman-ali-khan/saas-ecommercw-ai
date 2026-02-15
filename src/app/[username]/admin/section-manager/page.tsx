@@ -110,21 +110,15 @@ export default function SectionManagerPage() {
         ];
     }
     
-    // Ensure 'flash_deals' section exists for users with older saved settings
+    // --- Backwards compatibility checks ---
     if (!currentSections.some(s => s.id === 'flash_deals')) {
         const heroIndex = currentSections.findIndex(s => s.id === 'hero');
-        const flashDealSection: Section = {
-            id: 'flash_deals',
-            title: 'Flash Deals',
-            enabled: true,
-            isCategorySection: false,
-        };
-        if (heroIndex !== -1) {
-            currentSections.splice(heroIndex + 1, 0, flashDealSection);
-        } else {
-            currentSections.unshift(flashDealSection);
-        }
+        currentSections.splice(heroIndex !== -1 ? heroIndex + 1 : 0, 0, { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false });
     }
+    if (!currentSections.some(s => s.id === 'customer-reviews')) {
+        currentSections.push({ id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false });
+    }
+    // --- End backwards compatibility ---
 
 
     setSections(currentSections);
