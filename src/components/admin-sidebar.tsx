@@ -56,6 +56,7 @@ export default function AdminSidebar() {
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [unviewedUncompletedCount, setUnviewedUncompletedCount] = useState(0);
   const [totalCustomersCount, setTotalCustomersCount] = useState(0);
+  const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
   const [siteSettings, setSiteSettings] = useState<{
     logo_type?: 'icon' | 'image';
     logo_icon?: string;
@@ -110,6 +111,13 @@ export default function AdminSidebar() {
         .eq('site_id', user.id);
       setTotalCustomersCount(customerCount || 0);
 
+      const { count: reviewCount } = await supabase
+        .from('product_reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', user.id)
+        .eq('is_approved', false);
+      setPendingReviewsCount(reviewCount || 0);
+
       // Fetch site settings
       const { data: settingsData } = await supabase
         .from('store_settings')
@@ -158,6 +166,11 @@ export default function AdminSidebar() {
           table: 'customer_profiles',
           filter: `site_id=eq.${user.id}`,
         },
+        fetchAllData
+      )
+       .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'product_reviews', filter: `site_id=eq.${user.id}` },
         fetchAllData
       )
       .on(
@@ -239,6 +252,7 @@ export default function AdminSidebar() {
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
+    { href: `/admin/reviews`, label: 'Reviews', icon: Star, count: pendingReviewsCount },
     { href: `/admin/features`, label: 'Store Features', icon: Sparkles },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/theme`, label: 'Theme', icon: Palette },

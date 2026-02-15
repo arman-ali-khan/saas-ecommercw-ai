@@ -21,10 +21,12 @@ import {
   Plus,
   Minus,
   Wand2,
+  Star,
+  CheckCircle,
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
-import type { Product, FlashDeal } from '@/types';
+import type { Product, FlashDeal, ProductReview } from '@/types';
 import { cn } from '@/lib/utils';
 import RichTextRenderer from '@/components/saas-page-renderer';
 import { supabase } from '@/lib/supabase/client';
@@ -32,6 +34,13 @@ import { Badge } from '@/components/ui/badge';
 import Countdown from '@/components/countdown';
 import ProductCard from '@/components/product-card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 const TikTokIcon = () => (
   <svg
@@ -52,6 +61,86 @@ const TikTokIcon = () => (
   </svg>
 );
 
+const reviewSchema = z.object({
+  rating: z.number().min(1, { message: 'Please select a rating.' }).max(5),
+  title: z.string().min(3, { message: 'Title must be at least 3 characters.' }).optional().or(z.literal('')),
+  review_text: z.string().min(10, { message: 'Review must be at least 10 characters.'}),
+});
+
+type ReviewFormData = z.infer<typeof reviewSchema>;
+
+const ReviewForm = ({ product, onReviewSubmitted }: { product: Product, onReviewSubmitted: () => void }) => {
+    const { customer } = useCustomerAuth();
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const form = useForm<ReviewFormData>({
+        resolver: zodResolver(reviewSchema),
+        defaultValues: { rating: 0, title: '', review_text: '' },
+    });
+
+    if (!customer) {
+        return <p className="text-sm text-muted-foreground">Please <Link href="/login" className="underline">log in</Link> to leave a review.</p>;
+    }
+
+    const onSubmit = async (data: ReviewFormData) => {
+        setIsSubmitting(true);
+        const { error } = await supabase.from('product_reviews').insert({
+            site_id: product.site_id,
+            product_id: product.id,
+            customer_id: customer.id,
+            customer_name: customer.full_name,
+            ...data
+        });
+
+        if (error) {
+            toast({ variant: 'destructive', title: 'Failed to submit review', description: error.message });
+        } else {
+            toast({ title: 'Review submitted for approval!' });
+            form.reset();
+            onReviewSubmitted();
+        }
+        setIsSubmitting(false);
+    };
+
+    return (
+        <Card>
+            <CardHeader><h4 className="font-semibold">Leave a Review</h4></CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                         <FormField
+                            control={form.control}
+                            name="rating"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Your Rating</FormLabel>
+                                <div className="flex items-center gap-2">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                        key={star}
+                                        className={cn( "h-7 w-7 cursor-pointer transition-colors", field.value >= star ? "text-primary fill-primary" : "text-muted-foreground/30" )}
+                                        onClick={() => field.onChange(star)}
+                                    />
+                                ))}
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Review Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Best mangoes ever!" /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="review_text" render={({ field }) => (<FormItem><FormLabel>Your Review</FormLabel><FormControl><Textarea {...field} placeholder="What did you like or dislike?" rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Submit Review
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    );
+};
+
 export default function ProductClientPage({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -64,9 +153,27 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
   const [shareUrl, setShareUrl] = useState('');
   const [flashDeal, setFlashDeal] = useState<FlashDeal | null>(null);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
 
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLoadingRelated, setIsLoadingRelated] = useState(true);
+
+  const fetchReviews = useCallback(async () => {
+    setIsLoadingReviews(true);
+    const { data, error } = await supabase
+        .from('product_reviews')
+        .select('*')
+        .eq('product_id', product.id)
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false });
+    if(error) {
+      console.error("Error fetching reviews", error);
+    } else {
+      setReviews(data as ProductReview[]);
+    }
+    setIsLoadingReviews(false);
+  }, [product.id]);
 
   useEffect(() => {
     setShareUrl(window.location.href);
@@ -109,7 +216,8 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
     fetchFlashDeal();
     fetchRelatedProducts();
-  }, [product.id, product.categories, product.site_id]);
+    fetchReviews();
+  }, [product.id, product.categories, product.site_id, fetchReviews]);
 
   const onThumbClick = useCallback(
     (index: number) => {
@@ -345,6 +453,35 @@ export default function ProductClientPage({ product }: { product: Product }) {
                 </div>
                 )}
 
+            </div>
+        </div>
+        
+        <div className="mt-16">
+            <h2 className="text-3xl font-headline font-bold mb-8">Customer Reviews</h2>
+            {isLoadingReviews ? <Skeleton className="h-40 w-full" /> : (
+                reviews.length > 0 ? (
+                    <div className="space-y-6">
+                        {reviews.map(review => (
+                            <Card key={review.id}>
+                                <CardHeader className="flex flex-row items-center gap-4">
+                                     <div className="flex items-center gap-1">
+                                        {Array.from({ length: 5 }).map((_, i) => (
+                                            <Star key={i} className={cn("h-5 w-5", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                                        ))}
+                                    </div>
+                                    <h4 className="font-semibold">{review.title}</h4>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-muted-foreground italic">"{review.review_text}"</p>
+                                    <p className="text-sm font-semibold mt-4">- {review.customer_name}</p>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                ) : <p className="text-muted-foreground">No reviews for this product yet.</p>
+            )}
+            <div className="mt-12">
+                <ReviewForm product={product} onReviewSubmitted={fetchReviews} />
             </div>
         </div>
 
