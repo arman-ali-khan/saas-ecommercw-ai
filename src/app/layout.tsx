@@ -5,11 +5,9 @@ import { Toaster } from '@/components/ui/toaster';
 import SiteLayout from '@/components/site-layout';
 import AuthProvider from '@/components/auth-provider';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import CustomTopLoader from '@/components/custom-top-loader';
-
-// Force dynamic rendering to ensure the latest settings (like favicon) are always used.
-export const dynamic = 'force-dynamic';
+import { allFontVariables } from '@/lib/fonts';
  
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = cookies();
@@ -60,77 +58,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-
-  const headersList = headers();
-  const host = headersList.get('host');
-  const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
-  const isStorePage = host && host !== rootDomain && !host.startsWith('www.');
-  const subdomain = isStorePage ? host.split('.')[0] : null;
-
-  let fontPrimary = 'Hind Siliguri';
-  let fontSecondary = 'Orbitron';
-
-  try {
-    if (isStorePage && subdomain) {
-      const { data: profile } = await supabase.from('profiles').select('id').eq('domain', subdomain).single();
-      if (profile) {
-          const { data: settings } = await supabase
-              .from('store_settings')
-              .select('font_primary, font_secondary')
-              .eq('site_id', profile.id)
-              .single();
-          if (settings) {
-              fontPrimary = settings.font_primary || fontPrimary;
-              fontSecondary = settings.font_secondary || fontSecondary;
-          }
-      }
-    } else {
-      const { data: settings } = await supabase
-          .from('saas_settings')
-          .select('font_primary, font_secondary')
-          .eq('id', 1)
-          .single();
-      if (settings) {
-          fontPrimary = settings.font_primary || fontPrimary;
-          fontSecondary = settings.font_secondary || fontSecondary;
-      }
-    }
-  } catch(e) {
-    console.error("Error fetching font settings:", e);
-    // Defaults will be used in case of an error
-  }
-
-  const fontFamilies = [fontPrimary, fontSecondary]
-    .filter(Boolean)
-    .map(font => `${font.replace(/ /g, '+')}:wght@400;700`)
-    .join('&family=');
-  
-  const fontUrl = fontFamilies ? `https://fonts.googleapis.com/css2?family=${fontFamilies}&display=swap` : '';
-
 
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        {fontUrl && <link href={fontUrl} rel="stylesheet" />}
-      </head>
+    <html lang="en" className={`${allFontVariables} dark`} suppressHydrationWarning>
+      <head />
       <body className="font-body antialiased bg-background text-foreground">
         <CustomTopLoader />
         <AuthProvider>

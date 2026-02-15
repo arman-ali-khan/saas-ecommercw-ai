@@ -14,10 +14,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { getProductsByDomain, checkDomainExists } from '@/lib/products';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Section, Category, FlashDeal, StoreFeature } from '@/types';
+import type { Section, Category, FlashDeal, StoreFeature, Product } from '@/types';
 import DynamicIcon from '@/components/dynamic-icon';
 import { cn } from '@/lib/utils';
 import FlashDealCarousel from '@/components/flash-deal-carousel';
@@ -31,23 +30,7 @@ export default async function UserPage({
   params: { username: string };
 }) {
   const { username } = params;
-  const domainExists = await checkDomainExists(username);
-
-  if (!domainExists) {
-    return (
-      <div className="flex flex-col items-center justify-center text-center py-20 min-h-[60vh]">
-        <SearchX className="w-24 h-24 text-muted-foreground mb-6" />
-        <h1 className="text-4xl font-headline font-bold">Store Not Found</h1>
-        <p className="mt-4 max-w-md mx-auto text-lg text-muted-foreground">
-          The store at "{username}" does not exist.
-        </p>
-        <Button asChild className="mt-8">
-          <Link href="/">Go to Homepage</Link>
-        </Button>
-      </div>
-    );
-  }
-
+  
   const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -67,7 +50,6 @@ export default async function UserPage({
     .eq('domain', username)
     .single();
 
-  // This should not happen if domainExists is true, but it's a good safeguard.
   if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-20 min-h-[60vh]">
@@ -82,41 +64,32 @@ export default async function UserPage({
       </div>
     );
   }
+
+  const siteId = profile.id;
+
+  const [
+    productsResult,
+    settingsResult,
+    slidesResult,
+    categoriesResult,
+    flashDealsResult,
+    storeFeaturesResult
+  ] = await Promise.all([
+    supabase.from('products').select('*').eq('site_id', siteId),
+    supabase.from('store_settings').select('homepage_sections').eq('site_id', siteId).single(),
+    supabase.from('carousel_slides').select('*').eq('site_id', siteId).eq('is_enabled', true).order('order', { ascending: true }),
+    supabase.from('categories').select('*').eq('site_id', siteId).order('name', { ascending: true }),
+    supabase.from('flash_deals').select('*, products!inner(*)').eq('site_id', siteId).eq('is_active', true).gt('end_date', new Date().toISOString()),
+    supabase.from('store_features').select('*').eq('site_id', siteId).order('order', { ascending: true })
+  ]);
   
-  const allProducts = await getProductsByDomain(username);
-
-  const { data: settingsData } = await supabase
-    .from('store_settings')
-    .select('homepage_sections')
-    .eq('site_id', profile.id)
-    .single();
-    
-  const { data: slidesData } = await supabase
-    .from('carousel_slides')
-    .select('*')
-    .eq('site_id', profile.id)
-    .eq('is_enabled', true)
-    .order('order', { ascending: true });
-    
-  const { data: categoriesData } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('site_id', profile.id)
-    .order('name', { ascending: true });
-
-  const { data: flashDealsData } = await supabase
-    .from('flash_deals')
-    .select('*, products!inner(*)')
-    .eq('site_id', profile.id)
-    .eq('is_active', true)
-    .gt('end_date', new Date().toISOString());
-
-  const { data: storeFeaturesData } = await supabase
-    .from('store_features')
-    .select('*')
-    .eq('site_id', profile.id)
-    .order('order', { ascending: true });
-
+  const allProducts = (productsResult.data as Product[]) || [];
+  const settingsData = settingsResult.data;
+  const slidesData = slidesResult.data;
+  const categoriesData = categoriesResult.data;
+  const flashDealsData = flashDealsResult.data;
+  const storeFeaturesData = storeFeaturesResult.data;
+  
   const storeFeatures = (storeFeaturesData as StoreFeature[]) || [];
   const categories = (categoriesData as Category[]) || [];
   const featuredProducts = allProducts.filter((p) => p.is_featured);

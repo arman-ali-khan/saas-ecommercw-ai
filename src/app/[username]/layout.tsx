@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { fontMap } from '@/lib/fonts';
 
 // Force dynamic rendering to ensure the latest settings (like favicon) are always used.
 export const dynamic = 'force-dynamic';
@@ -124,6 +125,9 @@ export default async function UsernameLayout({
       .single();
 
     if (settings) {
+      const primaryFontVar = settings.font_primary ? fontMap[settings.font_primary]?.variable : null;
+      const secondaryFontVar = settings.font_secondary ? fontMap[settings.font_secondary]?.variable : null;
+      
       const styleVars = [
         settings.theme_background && `--background: ${settings.theme_background};`,
         settings.theme_foreground && `--foreground: ${settings.theme_foreground};`,
@@ -137,8 +141,8 @@ export default async function UsernameLayout({
         settings.theme_secondary && `--muted: ${settings.theme_secondary};`,
         settings.theme_foreground && `--muted-foreground: ${settings.theme_foreground};`,
         settings.theme_primary && `--ring: ${settings.theme_primary};`,
-        settings.font_primary && `--font-body: '${settings.font_primary}';`,
-        settings.font_secondary && `--font-headline: '${settings.font_secondary}';`,
+        primaryFontVar && `--font-body: var(${primaryFontVar});`,
+        secondaryFontVar && `--font-headline: var(${secondaryFontVar});`,
       ]
         .filter(Boolean)
         .join(' ');
@@ -156,5 +160,3 @@ export default async function UsernameLayout({
     </>
   );
 }
-
-    
