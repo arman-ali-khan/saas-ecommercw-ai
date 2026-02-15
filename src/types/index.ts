@@ -118,6 +118,8 @@ export interface Category {
   description: string | null;
   created_at: string;
   icon: string;
+  image_url?: string | null;
+  card_color?: string | null;
 }
 
 export interface ShippingZone {

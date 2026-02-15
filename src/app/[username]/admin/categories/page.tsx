@@ -9,11 +9,13 @@ import { useAuth } from '@/stores/auth';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Category } from '@/types';
+import Image from 'next/image';
 
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -46,6 +48,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -59,12 +62,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
+import ImageUploader from '@/components/image-uploader';
 
 
 const categorySchema = z.object({
     name: z.string().min(1, 'Category name is required.'),
     description: z.string().optional(),
     icon: z.string().min(1, 'An icon is required.'),
+    image_url: z.string().url().optional().or(z.literal('')),
+    card_color: z.string().optional(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -81,7 +87,7 @@ export default function CategoriesAdminPage() {
 
     const form = useForm<CategoryFormData>({
         resolver: zodResolver(categorySchema),
-        defaultValues: { name: '', description: '', icon: 'Package' },
+        defaultValues: { name: '', description: '', icon: 'Package', image_url: '', card_color: '' },
     });
 
     const fetchCategories = useCallback(async () => {
@@ -111,9 +117,15 @@ export default function CategoriesAdminPage() {
     useEffect(() => {
         if (isFormOpen) {
             if (selectedCategory) {
-                form.reset({ name: selectedCategory.name, description: selectedCategory.description || '', icon: selectedCategory.icon || 'Package' });
+                form.reset({ 
+                    name: selectedCategory.name, 
+                    description: selectedCategory.description || '', 
+                    icon: selectedCategory.icon || 'Package',
+                    image_url: selectedCategory.image_url || '',
+                    card_color: selectedCategory.card_color || ''
+                });
             } else {
-                form.reset({ name: '', description: '', icon: 'Package' });
+                form.reset({ name: '', description: '', icon: 'Package', image_url: '', card_color: '' });
             }
         }
     }, [isFormOpen, selectedCategory, form]);
@@ -215,7 +227,7 @@ export default function CategoriesAdminPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="w-[50px]">Icon</TableHead>
+                                            <TableHead className="w-[80px]">Image/Icon</TableHead>
                                             <TableHead>Name</TableHead>
                                             <TableHead>Description</TableHead>
                                             <TableHead className="text-right">Actions</TableHead>
@@ -225,7 +237,15 @@ export default function CategoriesAdminPage() {
                                         {categories.map((category) => (
                                             <TableRow key={category.id}>
                                                 <TableCell>
-                                                    <DynamicIcon name={category.icon || 'Package'} className="h-5 w-5 text-muted-foreground" />
+                                                    <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
+                                                        {category.image_url ? (
+                                                            <Image src={category.image_url} alt={category.name} fill className="object-cover" />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center">
+                                                                <DynamicIcon name={category.icon || 'Package'} className="h-6 w-6 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell className="font-medium">{category.name}</TableCell>
                                                 <TableCell className="text-muted-foreground">{category.description}</TableCell>
@@ -250,7 +270,15 @@ export default function CategoriesAdminPage() {
                                         <CardHeader>
                                             <div className="flex justify-between items-start">
                                                 <div className="flex items-center gap-3">
-                                                    <DynamicIcon name={category.icon || 'Package'} className="h-6 w-6 text-muted-foreground" />
+                                                    <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted shrink-0">
+                                                        {category.image_url ? (
+                                                            <Image src={category.image_url} alt={category.name} fill className="object-cover" />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center">
+                                                                <DynamicIcon name={category.icon || 'Package'} className="h-6 w-6 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <CardTitle>{category.name}</CardTitle>
                                                 </div>
                                                 <DropdownMenu>
@@ -284,7 +312,7 @@ export default function CategoriesAdminPage() {
             </Card>
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>{selectedCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
                         <DialogDescription>
@@ -293,39 +321,34 @@ export default function CategoriesAdminPage() {
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
+                            <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Category Name</FormLabel><FormControl><Input placeholder="e.g., ফল" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="A short description of the category." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                             <FormField control={form.control} name="image_url" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Category Name</FormLabel>
-                                    <FormControl><Input placeholder="e.g., ফল" {...field} /></FormControl>
+                                    <FormLabel>Category Image</FormLabel>
+                                    <div className="flex items-start gap-4">
+                                        <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
+                                            {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
+                                        </div>
+                                        <div className="space-y-2 flex-grow">
+                                            <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
+                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} />
+                                        </div>
+                                    </div>
+                                    <FormDescription>Recommended for homepage category carousel.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
+                            )} />
+                            <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>Fallback Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormDescription>This icon will be shown if no image is uploaded.</FormDescription><FormMessage /></FormItem>)} />
+                             <FormField control={form.control} name="card_color" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Description (Optional)</FormLabel>
-                                    <FormControl><Textarea placeholder="A short description of the category." {...field} /></FormControl>
+                                    <FormLabel>Card Background Color</FormLabel>
+                                    <FormControl><Input placeholder="e.g., #1A2B3C or hsl(224, 71%, 4%)" {...field} /></FormControl>
+                                    <FormDescription>Optionally set a background color for the category card on the homepage.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="icon"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Icon</FormLabel>
-                                    <FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
+                            )} />
+
                             <DialogFooter>
                                 <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

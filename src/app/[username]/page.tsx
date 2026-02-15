@@ -2,11 +2,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import ProductCard from '@/components/product-card';
 import { ArrowRight, Leaf, Users, Heart, SearchX, Star } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Section, Category, FlashDeal, StoreFeature, Product, ProductReview } from '@/types';
@@ -377,23 +377,44 @@ export default async function UserPage({ params }: { params: { username: string 
       case 'hero':
         if (heroSlides.length === 0 && categories.length === 0) return null;
         return (
-          <section key={section.id} className="grid sm:grid-cols-[260px_1fr] gap-2 sm:gap-8 items-start">
-            {categories.length > 0 && (
-              <div className="hidden sm:block sticky top-24">
-                <Card><CardHeader><CardTitle>Categories</CardTitle></CardHeader>
-                  <CardContent><nav className="flex flex-col gap-1">
-                      {categories.map((cat) => (<Link key={cat.id} href={`/products?category=${encodeURIComponent(cat.name)}`} passHref>
-                          <Button variant="ghost" className="w-full justify-start gap-3"><DynamicIcon name={cat.icon || 'Package'} className="h-5 w-5 text-muted-foreground" /><span className="truncate">{cat.name}</span></Button>
-                      </Link>))}
-                  </nav></CardContent>
-                </Card>
-              </div>
-            )}
-            <div className={cn("w-full rounded-lg overflow-hidden", categories.length === 0 && "lg:col-span-2")}>
+          <section key={section.id} className="space-y-16">
+            <div className="w-full rounded-lg overflow-hidden">
               {heroSlides.length > 0 ? <HeroCarousel slides={heroSlides} /> : (
                 <div className="aspect-video bg-muted rounded-lg flex items-center justify-center"><p className="text-muted-foreground">Welcome to the store!</p></div>
               )}
             </div>
+
+            {categories.length > 0 && (
+              <div>
+                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">Shop By Category</h2>
+                <Carousel opts={{ align: 'start' }} className="w-full">
+                    <CarouselContent className="-ml-4">
+                        {categories.map((cat) => (
+                            <CarouselItem key={cat.id} className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
+                                <Link href={`/products?category=${encodeURIComponent(cat.name)}`}>
+                                    <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1" style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}>
+                                        <div className="relative aspect-square w-full">
+                                            {cat.image_url ? (
+                                                <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center bg-muted">
+                                                    <DynamicIcon name={cat.icon || 'Package'} className="h-12 w-12 text-muted-foreground" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <CardFooter className="p-3">
+                                            <h3 className="font-semibold w-full text-center text-sm">{cat.name}</h3>
+                                        </CardFooter>
+                                    </Card>
+                                </Link>
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="absolute -left-4 top-1/2 -translate-y-1/2 hidden md:flex" />
+                    <CarouselNext className="absolute -right-4 top-1/2 -translate-y-1/2 hidden md:flex" />
+                </Carousel>
+              </div>
+            )}
           </section>
         );
       case 'flash_deals':
