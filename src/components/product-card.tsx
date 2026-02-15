@@ -222,7 +222,7 @@ export function ProductShowcaseBlock({ product_ids, title, username }: { product
       const response = await fetch('/api/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData) });
       const newOrder = await response.json();
       if (!response.ok) throw new Error(newOrder.error || 'Failed to create order');
-      router.push(`/${username}/checkout/success?order_id=${newOrder.id}`);
+      router.push(`/checkout/success?order_id=${newOrder.id}`);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Order failed', description: error.message });
       setIsSubmitting(false);

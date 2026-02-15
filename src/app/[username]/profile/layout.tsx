@@ -25,7 +25,7 @@ export default function ProfileLayout({
 
     // If no user is logged in after hydration, redirect to the domain-specific login page
     if (!user) {
-      router.push(`/${username}/login`);
+      router.push(`/login`);
       return;
     }
   }, [user, _hasHydrated, router, username]);

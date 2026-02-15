@@ -54,7 +54,7 @@ export default function CustomerLoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (_hasHydrated && customer) {
-      router.push(`/${username}/profile`);
+      router.push(`/profile`);
     }
   }, [customer, router, _hasHydrated, username]);
 
@@ -131,7 +131,7 @@ export default function CustomerLoginPage() {
           </Form>
           <div className="mt-6 text-center text-sm">
             অ্যাকাউন্ট নেই?{' '}
-            <Link href={`/${username}/register`} className="font-medium text-primary hover:underline">
+            <Link href={`/register`} className="font-medium text-primary hover:underline">
               সাইন আপ
             </Link>
           </div>
