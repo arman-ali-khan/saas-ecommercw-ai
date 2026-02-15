@@ -19,6 +19,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -37,6 +38,7 @@ import Image from 'next/image';
 import DynamicIcon from '@/components/dynamic-icon';
 import { type SeoRequest, type Plan } from '@/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const availableBankingMethods = [
