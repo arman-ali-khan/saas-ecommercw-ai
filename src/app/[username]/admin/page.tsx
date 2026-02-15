@@ -286,8 +286,7 @@ export default function AdminDashboard() {
                         />
                         {totalSales > 0 && (
                             <text
-                                x="50%"
-                                y="50%"
+                                
                                 textAnchor="middle"
                                 dominantBaseline="middle"
                                 className="fill-foreground text-2xl font-bold"
@@ -297,8 +296,7 @@ export default function AdminDashboard() {
                         )}
                         {totalSales > 0 && (
                             <text
-                                x="50%"
-                                y="50%"
+                                
                                 textAnchor="middle"
                                 dominantBaseline="middle"
                                 dy="20"
