@@ -27,7 +27,7 @@ import SaasHeader from '@/components/saas-header';
 import SaasFooter from '@/components/saas-footer';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { type Plan, type SaasFeature, type SaaSReview } from '@/types';
+import { type Plan, type SaasFeature, type SaaSReview, type SaasShowcaseItem } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import DynamicIcon from '@/components/dynamic-icon';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -37,6 +37,7 @@ export default function SaasLandingPage() {
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
   const [features, setFeatures] = useState<SaasFeature[]>([]);
   const [reviews, setReviews] = useState<SaaSReview[]>([]);
+  const [showcaseItems, setShowcaseItems] = useState<SaasShowcaseItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -59,11 +60,18 @@ export default function SaasLandingPage() {
         .eq('is_approved', true)
         .order('created_at', { ascending: false });
 
+      const showcasePromise = supabase
+        .from('saas_showcase')
+        .select('*')
+        .eq('is_enabled', true)
+        .order('order', { ascending: true });
+
       const [
           { data: plans }, 
           { data: featuresData }, 
-          { data: reviewsData }
-      ] = await Promise.all([plansPromise, featuresPromise, reviewsPromise]);
+          { data: reviewsData },
+          { data: showcaseData }
+      ] = await Promise.all([plansPromise, featuresPromise, reviewsPromise, showcasePromise]);
 
       if (plans) {
         const tiers = plans.map((plan: Plan) => ({
@@ -90,6 +98,10 @@ export default function SaasLandingPage() {
 
       if (reviewsData) {
         setReviews(reviewsData as SaaSReview[]);
+      }
+      
+      if (showcaseData) {
+        setShowcaseItems(showcaseData as SaasShowcaseItem[]);
       }
 
       setIsLoading(false);
@@ -136,6 +148,44 @@ export default function SaasLandingPage() {
                 </div>
             </div>
           </section>
+
+          {/* Showcase Section */}
+          {showcaseItems.length > 0 && (
+            <section id="showcase">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {isLoading ? (
+                        [...Array(3)].map((_, index) => (
+                            <div key={index} className="flex items-center gap-6">
+                                <Skeleton className="h-20 w-20 rounded-lg" />
+                                <div className="space-y-2 flex-1">
+                                    <Skeleton className="h-6 w-3/4" />
+                                    <Skeleton className="h-4 w-full" />
+                                    <Skeleton className="h-4 w-5/6" />
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        showcaseItems.map((item) => (
+                            <div key={item.id} className="flex items-center gap-6">
+                                <div className="relative h-20 w-20 shrink-0">
+                                    {item.image_url ? (
+                                        <Image src={item.image_url} alt={item.title} fill className="object-cover rounded-lg" />
+                                    ) : (
+                                        <div className="bg-primary/10 p-4 rounded-lg h-full w-full flex items-center justify-center">
+                                            <DynamicIcon name={item.icon} className="w-10 h-10 text-primary" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold">{item.title}</h3>
+                                    <p className="text-muted-foreground mt-1">{item.description}</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </section>
+          )}
 
           {/* Features Section */}
           <section id="features">

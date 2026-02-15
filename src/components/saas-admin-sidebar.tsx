@@ -16,6 +16,7 @@ import {
   FileText,
   Store,
   Star,
+  GalleryVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -136,6 +137,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: pendingSubscriptionsCount },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
+    { href: `/dashboard/showcase`, label: 'Showcase', icon: GalleryVertical },
     { href: `/dashboard/pages`, label: 'Pages', icon: FileText },
     { href: `/dashboard/reviews`, label: 'Reviews', icon: Star, count: pendingReviewsCount },
     { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell, count: unreadCount },

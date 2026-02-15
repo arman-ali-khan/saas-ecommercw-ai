@@ -1,6 +1,5 @@
 
 
-
 export interface ProductImage {
   imageUrl: string;
   imageHint: string;
@@ -278,6 +277,17 @@ export interface SaaSReview {
   rating: number;
   is_approved: boolean;
   avatar_url?: string;
+}
+
+export interface SaasShowcaseItem {
+  id: string;
+  title: string;
+  description: string | null;
+  icon: string;
+  image_url: string | null;
+  order: number;
+  is_enabled: boolean;
+  created_at: string;
 }
     
 export interface Address {
