@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -320,7 +319,7 @@ export default function Header() {
     if (isLoading) return null;
     if (currentUser) return null;
     return (
-      <div className="border-t pt-6 mt-6 space-y-4">
+      <div className="space-y-4">
         <SheetClose asChild>
           <Link
             href={'/login'}
@@ -332,7 +331,7 @@ export default function Header() {
         <SheetClose asChild>
           <Button asChild className="w-full">
             <Link href={`/register`}>
-              সাইন আপ
+              সাইন আপ করুন
             </Link>
           </Button>
         </SheetClose>
@@ -424,8 +423,11 @@ export default function Header() {
                     </SheetClose>
                   ))}
                 </nav>
-                <div className="mt-auto">
+                <div className="mt-auto pt-6 border-t space-y-4">
                   <AuthNavMobile />
+                   <SheetClose asChild>
+                    <Button variant="outline" className="w-full">Close Menu</Button>
+                  </SheetClose>
                 </div>
               </SheetContent>
             </Sheet>

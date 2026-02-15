@@ -31,15 +31,22 @@ export default function FixedCartButton() {
     updateQuantity,
     removeFromCart,
   } = useCart();
-  const cartTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
-  const pathname = usePathname();
   const { toast } = useToast();
-
+  
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => {
     setIsHydrated(true);
   }, []);
+
+  const cartTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
+  const pathname = usePathname();
+
+  if (!isHydrated || cartCount === 0 || pathname.startsWith('/admin')) {
+    return null;
+  }
+  
+  const checkoutUrl = `/checkout`;
 
   const handleRemoveFromCart = (productId: string) => {
     removeFromCart(productId);
@@ -48,12 +55,6 @@ export default function FixedCartButton() {
       variant: 'destructive',
     });
   }
-
-  if (!isHydrated || cartCount === 0 || pathname.startsWith('/admin')) {
-    return null;
-  }
-  
-  const checkoutUrl = `/checkout`;
 
   return (
     <div className="hidden md:block">
@@ -162,6 +163,9 @@ export default function FixedCartButton() {
                       <Link href={checkoutUrl}>চেকআউটে এগিয়ে যান</Link>
                     </Button>
                   </SheetClose>
+                  <SheetClose asChild>
+                    <Button variant="outline" className="w-full">Close</Button>
+                  </SheetClose>
                 </div>
               </SheetFooter>
             </>
@@ -174,7 +178,7 @@ export default function FixedCartButton() {
               </p>
               <SheetClose asChild>
                 <Button asChild className="mt-6">
-                  <Link href={`/products`}>কেনাকাটা শুরু করুন</Link>
+                  <Link href={'/products'}>কেনাকাটা শুরু করুন</Link>
                 </Button>
               </SheetClose>
             </div>

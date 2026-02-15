@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -222,6 +221,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
+    { href: `/admin/reviews`, label: 'Reviews', icon: Star },
     { href: `/admin/features`, label: 'Store Features', icon: Sparkles },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/theme`, label: 'Theme', icon: Palette },
@@ -335,6 +335,9 @@ export default function AdminMobileSidebar() {
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>
+           <SheetClose asChild>
+            <Button variant="outline" className="w-full">Close Menu</Button>
+          </SheetClose>
         </div>
       </div>
   );

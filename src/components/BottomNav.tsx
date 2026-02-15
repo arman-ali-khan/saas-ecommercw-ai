@@ -51,22 +51,29 @@ function CategoryDrawer() {
       <SheetHeader>
         <SheetTitle>Categories</SheetTitle>
       </SheetHeader>
-      <div className="py-4">
-        {isLoading ? <p>Loading...</p> : (
-          <nav className="flex flex-col gap-1">
-            {categories.map((cat) => (
-              <SheetClose asChild key={cat.id}>
-                <Link href={`/products?category=${encodeURIComponent(cat.name)}`} passHref>
-                  <Button variant="ghost" className="w-full justify-start gap-3">
-                    <DynamicIcon name={cat.icon || 'Package'} className="h-5 w-5 text-muted-foreground" />
-                    <span className="truncate">{cat.name}</span>
-                  </Button>
-                </Link>
-              </SheetClose>
-            ))}
-            {categories.length === 0 && <p className="text-muted-foreground text-center">No categories found.</p>}
-          </nav>
-        )}
+      <ScrollArea className="flex-grow my-4 -mr-6">
+        <div className="pr-6">
+            {isLoading ? <p>Loading...</p> : (
+            <nav className="flex flex-col gap-1">
+                {categories.map((cat) => (
+                <SheetClose asChild key={cat.id}>
+                    <Link href={`/products?category=${encodeURIComponent(cat.name)}`} passHref>
+                    <Button variant="ghost" className="w-full justify-start gap-3">
+                        <DynamicIcon name={cat.icon || 'Package'} className="h-5 w-5 text-muted-foreground" />
+                        <span className="truncate">{cat.name}</span>
+                    </Button>
+                    </Link>
+                </SheetClose>
+                ))}
+                {categories.length === 0 && <p className="text-muted-foreground text-center">No categories found.</p>}
+            </nav>
+            )}
+        </div>
+      </ScrollArea>
+       <div className="w-full pt-4 mt-auto border-t">
+        <SheetClose asChild>
+            <Button variant="outline" className="w-full">Close</Button>
+        </SheetClose>
       </div>
     </>
   );
@@ -129,7 +136,7 @@ function CartDrawerContent() {
                             ))}
                         </div>
                     </ScrollArea>
-                    <div className="w-full space-y-4 pt-4 border-t">
+                    <div className="w-full space-y-4 pt-4 border-t mt-auto">
                         <div className="flex justify-between font-bold text-lg">
                             <span>সাব-টোটাল</span>
                             <span>{cartTotal.toFixed(2)} {cartItems[0]?.currency}</span>
@@ -138,6 +145,9 @@ function CartDrawerContent() {
                             <Button asChild className="w-full" size="lg">
                                 <Link href={`/checkout`}>চেকআউটে যান</Link>
                             </Button>
+                        </SheetClose>
+                         <SheetClose asChild>
+                            <Button variant="outline" className="w-full">Close</Button>
                         </SheetClose>
                     </div>
                 </>
