@@ -196,7 +196,7 @@ export default function BottomNav() {
           
           if (link.isSheet) {
             return (
-              <Sheet key={link.id}>
+              <Sheet  key={link.id}>
                   <SheetTrigger className="flex-1 p-2 focus:outline-none">
                     {content}
                   </SheetTrigger>
@@ -206,9 +206,9 @@ export default function BottomNav() {
               </Sheet>
             );
           } else if (link.action) {
-            return <button key={link.id} className="flex-1 p-2 focus:outline-none" onClick={link.action}>{content}</button>;
+            return <button type="button" aria-haspopup={link.label} key={link.id} className="flex-1 p-2 focus:outline-none" onClick={link.action}>{content}</button>;
           } else {
-            return <Link key={link.id} href={link.href!} className="flex-1 p-2 focus:outline-none">{content}</Link>;
+            return <Link aria-label={link.label} key={link.id} href={link.href!} className="flex-1 p-2 focus:outline-none">{content}</Link>;
           }
         })}
       </div>
