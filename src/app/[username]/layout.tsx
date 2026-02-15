@@ -69,6 +69,7 @@ export async function generateMetadata({
     title,
     description,
     keywords,
+    manifest: '/manifest.json',
     icons: faviconUrl ? [{ rel: 'icon', url: faviconUrl }] : null,
     openGraph: {
         title: title,
