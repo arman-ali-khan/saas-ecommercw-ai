@@ -77,7 +77,8 @@ export default function ShoppingCart() {
                       <Image
                         src={item.images[0].imageUrl}
                         alt={item.name}
-                        fill
+                        width={96}
+                        height={96}
                         className="object-cover"
                       />
                     </div>

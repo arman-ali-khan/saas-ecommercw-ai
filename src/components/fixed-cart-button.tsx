@@ -90,7 +90,8 @@ export default function FixedCartButton() {
                         <Image
                           src={item.images[0].imageUrl}
                           alt={item.name}
-                          fill
+                          width={96}
+                          height={96}
                           className="object-cover"
                         />
                       </div>
@@ -169,7 +170,7 @@ export default function FixedCartButton() {
               <ShoppingBagIcon className="w-24 h-24 text-muted-foreground/50 mb-4" />
               <h3 className="font-semibold text-xl">আপনার ব্যাগ খালি</h3>
               <p className="text-muted-foreground mt-2">
-                মনে হচ্ছে আপনি এখনো কিছু যোগ করেননি।
+                মনে হচ্ছে আপনি এখনো কিছু অ্যাড করেননি।
               </p>
               <SheetClose asChild>
                 <Button asChild className="mt-6">

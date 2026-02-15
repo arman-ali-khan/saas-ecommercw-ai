@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -59,7 +58,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
               data-ai-hint={product.images[0].imageHint}
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              sizes="(max-width: 767px) 50vw, (max-width: 1023px) 25vw, 20vw"
             />
           </div>
           {flashDeal && <Badge className="absolute top-2 left-2" variant="destructive">Sale</Badge>}

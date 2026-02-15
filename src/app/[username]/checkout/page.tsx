@@ -395,7 +395,8 @@ export default function CheckoutPage() {
                       <Image
                         src={item.images[0].imageUrl}
                         alt={item.name}
-                        fill
+                        width={64}
+                        height={64}
                         className="object-cover"
                       />
                       <span className="absolute -top-0 -right-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">

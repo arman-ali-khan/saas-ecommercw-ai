@@ -98,7 +98,8 @@ function SuccessPageContent() {
                   <Image
                     src={item.imageUrl || 'https://placehold.co/100x100'}
                     alt={item.name}
-                    fill
+                    width={56}
+                    height={56}
                     className="object-cover"
                   />
                   <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
