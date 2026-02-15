@@ -23,6 +23,7 @@ import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
 import ImageUploader from '@/components/image-uploader';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 
 const showcaseSchema = z.object({
     title: z.string().min(1, 'Title is required.'),
