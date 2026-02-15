@@ -1,15 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import Image from 'next/image';
-import { Skeleton } from './ui/skeleton';
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { Store } from 'lucide-react';
 
 export default function SaasPreloader() {
   const pathname = usePathname();
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [isLogoLoading, setIsLogoLoading] = useState(true);
 
   // We only want the preloader on the homepage
   const isHomePage = pathname === '/';
@@ -21,20 +17,6 @@ export default function SaasPreloader() {
     }
     
     document.body.classList.remove('loaded');
-
-    const fetchLogo = async () => {
-      setIsLogoLoading(true);
-      const { data } = await supabase
-        .from('saas_settings')
-        .select('logo_url')
-        .eq('id', 1)
-        .single();
-      if (data?.logo_url) {
-        setLogoUrl(data.logo_url);
-      }
-      setIsLogoLoading(false);
-    };
-    fetchLogo();
 
     const handleLoad = () => {
       setTimeout(() => {
@@ -57,13 +39,9 @@ export default function SaasPreloader() {
     <div id="preloader">
       <div className="flex flex-col items-center gap-4">
         <div className="loader-logo-container">
-          {isLogoLoading ? (
-            <Skeleton className="h-full w-full rounded-lg" />
-          ) : logoUrl ? (
-            <Image src={logoUrl} alt="Loading..." fill className="object-contain" priority />
-          ) : (
-            <div className="h-full w-full bg-muted rounded-lg" />
-          )}
+          <div className="h-full w-full bg-primary rounded-full flex items-center justify-center">
+            <Store className="h-1/2 w-1/2 text-primary-foreground" />
+          </div>
         </div>
         <div className="progress-bar">
           <div className="progress-bar-inner"></div>
