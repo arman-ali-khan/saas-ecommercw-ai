@@ -23,17 +23,17 @@ export default function AdminLayout({
   // Redirect logic in useEffect
   useEffect(() => {
     // Once loading is complete, and we are not on the login page...
-    if (!loading && pathname !== `/${username}/admin/login`) {
+    if (!loading && pathname !== `/admin/login`) {
         // ...if there's no user or the user's domain doesn't match, redirect.
         if (!user || user.domain !== username) {
-            router.replace(`/${username}/admin/login`);
+            router.replace(`/admin/login`);
         }
     }
   }, [user, loading, username, router, pathname]);
 
   // Show a full-screen loader while we check auth, unless we are on the login page.
   // This prevents content flashing before the redirect can happen.
-  if (pathname !== `/${username}/admin/login` && (loading || !user || user.domain !== username)) {
+  if (pathname !== `/admin/login` && (loading || !user || user.domain !== username)) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -43,7 +43,7 @@ export default function AdminLayout({
   
   // On the login page itself, we just render the page component,
   // which will handle its own logic (e.g., redirecting if already logged in).
-  if (pathname === `/${username}/admin/login`) {
+  if (pathname === `/admin/login`) {
     return <>{children}</>;
   }
   
