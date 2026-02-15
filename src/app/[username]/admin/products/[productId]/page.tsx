@@ -33,7 +33,7 @@ import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, Calendar as CalendarIcon
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
-import type { Product, ProductAttribute } from '@/types';
+import type { Product, ProductAttribute, Category } from '@/types';
 import ImageUploader from '@/components/image-uploader';
 import {
   DropdownMenu,
@@ -133,6 +133,7 @@ export default function ManageProductPage() {
   const isNew = productId === 'new';
 
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slugStatus, setSlugStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'invalid'>('empty');
@@ -320,6 +321,16 @@ export default function ManageProductPage() {
         setAttributes(data);
     }
   }, [user, toast]);
+  
+  const fetchCategories = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase.from('categories').select('*').eq('site_id', user.id);
+    if(error) {
+        toast({ title: 'Error fetching categories', variant: 'destructive', description: error.message });
+    } else if (data) {
+        setCategories(data as Category[]);
+    }
+  }, [user, toast]);
 
   const groupedAttributes = useMemo(() => {
     return attributes.reduce((acc, attr) => {
@@ -338,9 +349,10 @@ export default function ManageProductPage() {
       
       if (user) {
         fetchAttributes();
+        fetchCategories();
       }
     }
-  }, [authLoading, user, isNew, fetchProduct, fetchAttributes]);
+  }, [authLoading, user, isNew, fetchProduct, fetchAttributes, fetchCategories]);
 
 
   const onSubmit = async (values: ProductFormData) => {
@@ -587,6 +599,44 @@ export default function ManageProductPage() {
                         />
                     </div>
                     
+                    <FormField
+                        control={form.control}
+                        name="categories"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Categories</FormLabel>
+                            <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between font-normal">
+                                <span className="truncate pr-2">
+                                    {field.value?.length ? field.value.join(', ') : "Select categories"}
+                                </span>
+                                <ChevronDown className="h-4 w-4 opacity-50" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                {categories.map((cat) => (
+                                <DropdownMenuCheckboxItem
+                                    key={cat.id}
+                                    checked={field.value?.includes(cat.name)}
+                                    onCheckedChange={(checked) => {
+                                    const currentValues = field.value || [];
+                                    return checked
+                                        ? field.onChange([...currentValues, cat.name])
+                                        : field.onChange(currentValues.filter((value) => value !== cat.name));
+                                    }}
+                                >
+                                    {cat.name}
+                                </DropdownMenuCheckboxItem>
+                                ))}
+                                {categories.length === 0 && <div className="p-2 text-sm text-muted-foreground">No categories found. Create them in the Category Manager.</div>}
+                            </DropdownMenuContent>
+                            </DropdownMenu>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <FormField control={form.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Brands</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select brands"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes.brand || []).map((option) => (<DropdownMenuCheckboxItem key={option} checked={field.value?.includes(option)} onCheckedChange={(checked) => { const currentValues = field.value || []; return checked ? field.onChange([...currentValues, option]) : field.onChange(currentValues.filter((value: string) => value !== option)); }}>{option}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="color" render={({ field }) => (<FormItem><FormLabel>Colors</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select colors"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes.color || []).map((option) => (<DropdownMenuCheckboxItem key={option} checked={field.value?.includes(option)} onCheckedChange={(checked) => { const currentValues = field.value || []; return checked ? field.onChange([...currentValues, option]) : field.onChange(currentValues.filter((value: string) => value !== option)); }}>{option}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>)} />
@@ -879,3 +929,5 @@ export default function ManageProductPage() {
     </div>
   );
 }
+
+    
