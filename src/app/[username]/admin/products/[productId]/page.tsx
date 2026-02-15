@@ -253,16 +253,18 @@ export default function ManageProductPage() {
   const fetchProduct = useCallback(async () => {
     if (isNew || !user) return;
     
+    const decodedProductId = decodeURIComponent(productId);
+    
     const productPromise = supabase
       .from('products')
       .select('*')
-      .match({ id: productId, site_id: user.id })
+      .match({ id: decodedProductId, site_id: user.id })
       .single();
     
     const flashDealPromise = supabase
       .from('flash_deals')
       .select('*')
-      .eq('product_id', productId)
+      .eq('product_id', decodedProductId)
       .eq('site_id', user.id)
       .single();
 
