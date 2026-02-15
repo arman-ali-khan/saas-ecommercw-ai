@@ -304,7 +304,7 @@ export default async function UserPage({
                             <CarouselItem key={index} className="pl-6 basis-1/2 md:basis-1/4 lg:basis-1/5">
                                 <Card className="overflow-hidden flex flex-col h-full">
                                     <div className="relative h-64 w-full">
-                                        <Image
+                                        <Image width={90} height={60}
                                             src={feature.image.imageUrl}
                                             alt={feature.image.description}
                                             data-ai-hint={feature.image.imageHint}
