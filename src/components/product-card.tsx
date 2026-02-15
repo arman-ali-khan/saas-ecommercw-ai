@@ -52,7 +52,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
       <Link href={productUrl} className="block relative">
         <CardHeader className="p-0">
-          <div className="relative w-full h-28 sm:h-[200px]">
+          <div className="relative w-full h-36 sm:h-[200px]">
             <Image
               src={product.images[0].imageUrl}
               alt={product.name}
