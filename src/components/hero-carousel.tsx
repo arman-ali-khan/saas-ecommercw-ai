@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -47,8 +48,6 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
             <div className="relative h-[50vh] md:h-[60vh]">
               {slide.image && (
                 <Image
-                width={400}
-                height={200}
                   src={slide.image.imageUrl}
                   alt={slide.image.description}
                   data-ai-hint={slide.image.imageHint}
