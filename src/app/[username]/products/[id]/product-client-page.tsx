@@ -490,7 +490,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
         <div className="mt-16">
             <h2 className="text-3xl font-headline font-bold mb-8">Related Products</h2>
             {isLoadingRelated ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
                     {[...Array(4)].map((_, i) => (
                         <div key={i} className="space-y-2">
                             <Skeleton className="h-56 w-full" />
@@ -501,7 +501,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     ))}
                 </div>
             ) : relatedProducts.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
                     {relatedProducts.map((p) => (
                         <ProductCard key={p.id} product={p} />
                     ))}
