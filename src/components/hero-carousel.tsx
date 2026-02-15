@@ -29,7 +29,7 @@ interface HeroCarouselProps {
 }
 
 export default function HeroCarousel({ slides }: HeroCarouselProps) {
-  const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: false }));
+  const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
 
   return (
     <Carousel
