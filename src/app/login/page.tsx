@@ -90,8 +90,9 @@ export default function LoginPage() {
     }
   }
 
-  // Show a loader if auth state is loading or if we are already logged in and waiting for redirect
-  if (loading || (user && hostname === '')) {
+  // Show a loader if the auth state is loading, or if a user is already
+  // logged in (and we're waiting for the redirect effect to fire).
+  if (loading || user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

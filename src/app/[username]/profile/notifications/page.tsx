@@ -128,7 +128,7 @@ export default function CustomerNotificationsPage() {
       </div>
     );
   }
-  console.log(notifications,'noti')
+  
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
