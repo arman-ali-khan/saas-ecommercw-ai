@@ -347,27 +347,35 @@ export default function UsersAdminPage() {
             </AlertDialog>
             
             {/* Block/Unblock User Alert */}
-            <AlertDialog open={isBlockOpen} onOpenChange={setIsBlockOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            You are about to <span className="font-bold">{selectedUser?.subscription_status === 'active' ? 'block' : 'unblock'}</span> the store for <span className="font-bold">{selectedUser?.full_name}</span>.
-                            {selectedUser?.subscription_status === 'active' 
-                                ? " This will set their subscription status to 'inactive' and may prevent them from accessing certain features."
-                                : " This will set their subscription status to 'active'."
-                            }
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={performBlock} className={cn(buttonVariants({ variant: selectedUser?.subscription_status === 'active' ? "destructive" : "default" }))} disabled={isBlocking}>
-                            {isBlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {selectedUser?.subscription_status === 'active' ? 'Block Store' : 'Unblock Store'}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {isBlockOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0">
+                    <div className="w-full max-w-md p-6 bg-background rounded-lg shadow-xl border animate-in zoom-in-95">
+                        <div className="text-center sm:text-left">
+                            <h3 className="text-lg font-semibold text-foreground">Are you sure?</h3>
+                            <div className="mt-2">
+                                <p className="text-sm text-muted-foreground">
+                                    You are about to <span className="font-bold">{selectedUser?.subscription_status === 'active' ? 'block' : 'unblock'}</span> the store for <span className="font-bold">{selectedUser?.full_name}</span>.
+                                    {selectedUser?.subscription_status === 'active'
+                                    ? " This will set their subscription status to 'inactive' and may prevent them from accessing certain features."
+                                    : " This will set their subscription status to 'active'."
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsBlockOpen(false)}>Cancel</Button>
+                            <Button
+                            onClick={performBlock}
+                            className={cn(buttonVariants({ variant: selectedUser?.subscription_status === 'active' ? 'destructive' : 'default' }))}
+                            disabled={isBlocking}
+                            >
+                                {isBlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {selectedUser?.subscription_status === 'active' ? 'Block Store' : 'Unblock Store'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }
