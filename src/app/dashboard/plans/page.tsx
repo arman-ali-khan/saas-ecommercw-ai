@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -28,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -68,6 +70,9 @@ const planSchema = z.object({
   period: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
   features: z.string().min(1, 'Please list at least one feature.'),
+  product_limit: z.string().regex(/^\d*$/, "Must be a positive number").optional(),
+  customer_limit: z.string().regex(/^\d*$/, "Must be a positive number").optional(),
+  order_limit: z.string().regex(/^\d*$/, "Must be a positive number").optional(),
 });
 
 type PlanFormData = z.infer<typeof planSchema>;
@@ -124,6 +129,9 @@ export default function PlansAdminPage() {
           price: selectedPlan.price,
           features: selectedPlan.features.join('\n'),
           period: selectedPlan.period || '',
+          product_limit: selectedPlan.product_limit?.toString() ?? '',
+          customer_limit: selectedPlan.customer_limit?.toString() ?? '',
+          order_limit: selectedPlan.order_limit?.toString() ?? '',
         });
       } else {
         form.reset({
@@ -133,6 +141,9 @@ export default function PlansAdminPage() {
           period: '/মাস',
           description: '',
           features: '',
+          product_limit: '',
+          customer_limit: '',
+          order_limit: '',
         });
       }
     }
@@ -142,24 +153,28 @@ export default function PlansAdminPage() {
     setIsSubmitting(true);
     try {
       const planPayload = {
-        ...data,
+        id: data.id,
+        name: data.name,
         price: data.price,
         period: data.period || null,
+        description: data.description,
         features: data.features.split('\n').filter((f) => f.trim() !== ''),
+        product_limit: data.product_limit ? parseInt(data.product_limit, 10) : null,
+        customer_limit: data.customer_limit ? parseInt(data.customer_limit, 10) : null,
+        order_limit: data.order_limit ? parseInt(data.order_limit, 10) : null,
       };
 
       let error;
+      const { id, ...updateData } = planPayload;
 
       if (selectedPlan && selectedPlan.id) {
-        // Update
         const { error: updateError } = await supabase
           .from('plans')
-          .update(planPayload)
+          .update(updateData)
           .eq('id', selectedPlan.id);
         error = updateError;
         if (!error) toast({ title: 'Plan Updated' });
       } else {
-        // Create
         const { error: insertError } = await supabase
           .from('plans')
           .insert(planPayload);
@@ -259,6 +274,7 @@ export default function PlansAdminPage() {
                 <TableRow>
                   <TableHead>Plan Name</TableHead>
                   <TableHead>Price</TableHead>
+                  <TableHead>Limits</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -270,6 +286,13 @@ export default function PlansAdminPage() {
                     <TableCell>
                       {plan.price === 0 ? 'বিনামূল্যে' : `৳ ${plan.price.toFixed(2)}`}{' '}
                       {plan.period}
+                    </TableCell>
+                    <TableCell>
+                        <ul className="text-xs list-disc list-inside">
+                            <li>Products: {plan.product_limit ?? 'Unlimited'}</li>
+                            <li>Customers: {plan.customer_limit ?? 'Unlimited'}</li>
+                            <li>Orders: {plan.order_limit ?? 'Unlimited'}/mo</li>
+                        </ul>
                     </TableCell>
                     <TableCell>{plan.description}</TableCell>
                     <TableCell className="text-right">
@@ -303,13 +326,21 @@ export default function PlansAdminPage() {
                   <CardTitle className="text-lg">{plan.name}</CardTitle>
                   <CardDescription>{plan.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow">
+                <CardContent className="flex-grow space-y-4">
                   <p className="font-semibold text-xl">
                     {plan.price === 0 ? 'বিনামূল্যে' : `৳ ${plan.price.toFixed(2)}`}{' '}
                     <span className="text-sm text-muted-foreground">
                       {plan.period}
                     </span>
                   </p>
+                  <div className="text-sm text-muted-foreground">
+                    <h4 className="font-semibold text-foreground mb-1">Limits:</h4>
+                     <ul className="list-disc list-inside">
+                        <li>Products: {plan.product_limit ?? 'Unlimited'}</li>
+                        <li>Customers: {plan.customer_limit ?? 'Unlimited'}</li>
+                        <li>Orders: {plan.order_limit ?? 'Unlimited'}/mo</li>
+                    </ul>
+                  </div>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
                   <Button
@@ -334,14 +365,17 @@ export default function PlansAdminPage() {
       </Card>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {selectedPlan ? 'Edit Plan' : 'Add New Plan'}
             </DialogTitle>
+            <DialogDescription>
+                Fill in the details for the subscription plan below.
+            </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
               <FormField
                 control={form.control}
                 name="id"
@@ -405,6 +439,35 @@ export default function PlansAdminPage() {
                   )}
                 />
               </div>
+
+               <div className="space-y-2 rounded-lg border p-4">
+                    <h3 className="text-sm font-medium">Resource Limits</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <FormField control={form.control} name="product_limit" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Product Limit</FormLabel>
+                                <FormControl><Input type="number" min="0" placeholder="Unlimited" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="customer_limit" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Customer Limit</FormLabel>
+                                <FormControl><Input type="number" min="0" placeholder="Unlimited" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="order_limit" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Order Limit</FormLabel>
+                                <FormControl><Input type="number" min="0" placeholder="Unlimited" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                    </div>
+              </div>
+
+
               <FormField
                 control={form.control}
                 name="description"

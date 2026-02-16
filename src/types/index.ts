@@ -109,6 +109,9 @@ export interface Plan {
   period: string | null;
   description: string;
   features: string[];
+  product_limit: number | null;
+  customer_limit: number | null;
+  order_limit: number | null;
 }
 
 export interface Category {
