@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -164,9 +163,9 @@ export default function AdminSidebar() {
   if (loading || !user) {
     // You can return a loading skeleton here
     return (
-      <div className="hidden border-r border-sidebar-border bg-sidebar md:block">
+      <div className="hidden border-r border-border bg-card md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
-            <div className="flex h-20 items-center border-b border-sidebar-border px-6">
+            <div className="flex h-20 items-center border-b border-border px-6">
                 {/* Skeleton for logo */}
             </div>
             <div className="flex-1 overflow-auto py-2">
@@ -223,23 +222,23 @@ export default function AdminSidebar() {
       <Link
         href={href}
         className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-          isActive && 'bg-sidebar-primary text-sidebar-primary-foreground'
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground',
+          isActive && 'bg-primary text-primary-foreground'
         )}
       >
         <Icon className="h-4 w-4" />
         {label}
         {showCount ? (
-          <Badge className={cn("ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full", countVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 'bg-sidebar-accent text-sidebar-accent-foreground')}>{count}</Badge>
+          <Badge className={cn("ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full", countVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 'bg-accent text-accent-foreground')}>{count}</Badge>
         ) : null}
       </Link>
     );
   };
 
   return (
-    <div className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:block sticky top-0 h-screen">
+    <div className="hidden border-r border-border bg-card text-card-foreground md:block sticky top-0 h-screen">
       <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-20 items-center border-b border-sidebar-border px-6">
+        <div className="flex h-20 items-center border-b border-border px-6">
           <Link href={`/admin`} className="flex items-center gap-3">
               <div className={`${logoType === 'image' ? '' : 'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
                   {logoType === 'image' && logoImageUrl ? (
@@ -262,8 +261,8 @@ export default function AdminSidebar() {
 
             <Collapsible>
               <CollapsibleTrigger className={cn(
-                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
-                (pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')) && 'bg-sidebar-primary text-sidebar-primary-foreground'
+                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
+                (pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')) && 'bg-primary text-primary-foreground'
               )}>
                 <div className="flex items-center gap-3">
                   <Package className="h-4 w-4" />
@@ -272,9 +271,9 @@ export default function AdminSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
-                <Link href="/admin/products" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/products' && 'text-sidebar-accent-foreground')}>All Products</Link>
-                <Link href="/admin/products/new" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/products/new' && 'text-sidebar-accent-foreground')}>Create Product</Link>
-                <Link href="/admin/attributes" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/attributes' && 'text-sidebar-accent-foreground')}>Attributes</Link>
+                <Link href="/admin/products" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/products' && 'text-accent-foreground')}>All Products</Link>
+                <Link href="/admin/products/new" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/products/new' && 'text-accent-foreground')}>Create Product</Link>
+                <Link href="/admin/attributes" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/attributes' && 'text-accent-foreground')}>Attributes</Link>
               </CollapsibleContent>
             </Collapsible>
             
@@ -284,8 +283,8 @@ export default function AdminSidebar() {
 
             <Collapsible>
               <CollapsibleTrigger className={cn(
-                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
-                pathname.startsWith('/admin/theme') && 'bg-sidebar-primary text-sidebar-primary-foreground'
+                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
+                pathname.startsWith('/admin/theme') && 'bg-primary text-primary-foreground'
               )}>
                 <div className="flex items-center gap-3">
                   <Palette className="h-4 w-4" />
@@ -294,9 +293,9 @@ export default function AdminSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
-                <Link href="/admin/theme/header" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/header' && 'text-sidebar-accent-foreground')}>Header</Link>
-                <Link href="/admin/theme/footer" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/footer' && 'text-sidebar-accent-foreground')}>Footer</Link>
-                <Link href="/admin/theme/appearance" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/appearance' && 'text-sidebar-accent-foreground')}>Appearance</Link>
+                <Link href="/admin/theme/header" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/header' && 'text-accent-foreground')}>Header</Link>
+                <Link href="/admin/theme/footer" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/footer' && 'text-accent-foreground')}>Footer</Link>
+                <Link href="/admin/theme/appearance" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/appearance' && 'text-accent-foreground')}>Appearance</Link>
               </CollapsibleContent>
             </Collapsible>
            
@@ -306,7 +305,7 @@ export default function AdminSidebar() {
            
           </nav>
         </div>
-        <div className="mt-auto p-4 border-t border-sidebar-border">
+        <div className="mt-auto p-4 border-t border-border">
           <div className='space-y-2'>
               <Button onClick={handleLanguageToggle} variant="outline" className="w-full justify-start">
                  <Globe className="mr-2 h-4 w-4" />
@@ -317,11 +316,11 @@ export default function AdminSidebar() {
                       <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
-                      <p className="text-sm font-semibold text-sidebar-foreground">{user.fullName}</p>
+                      <p className="text-sm font-semibold text-card-foreground">{user.fullName}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
               </div>
-              <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+              <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-foreground/70 hover:bg-accent hover:text-accent-foreground">
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
               </Button>
@@ -331,5 +330,3 @@ export default function AdminSidebar() {
     </div>
   );
 }
-
-    

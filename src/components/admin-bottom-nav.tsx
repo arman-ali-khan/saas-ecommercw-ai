@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -100,19 +99,19 @@ export default function AdminBottomNav() {
   ];
 
   return (
-    <div className="admin-bottom-nav md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border z-50 p-1">
+    <div className="admin-bottom-nav md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 p-1">
       <div className="grid h-16 grid-cols-5 gap-1">
         <Sheet>
           <SheetTrigger asChild>
             <Button
               variant="ghost"
-              className="flex flex-col h-auto items-center justify-center p-1 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              className="flex flex-col h-auto items-center justify-center p-1 text-card-foreground/70 hover:bg-accent hover:text-accent-foreground"
             >
               <PanelLeft className="h-5 w-5" />
               <span className="text-xs font-normal">Menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72 bg-sidebar border-r-0">
+          <SheetContent side="left" className="p-0 w-72 bg-card border-r-0">
             <SheetHeader className="sr-only">
               <SheetTitle>Admin Menu</SheetTitle>
               <SheetDescription>Main navigation for the admin dashboard.</SheetDescription>
@@ -127,8 +126,8 @@ export default function AdminBottomNav() {
             <Link key={link.href} href={link.href}>
               <div
                 className={cn(
-                  'flex flex-col h-full items-center justify-center p-1 rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                  isActive && 'text-sidebar-primary bg-sidebar-accent'
+                  'flex flex-col h-full items-center justify-center p-1 rounded-md text-card-foreground/70 hover:bg-accent hover:text-accent-foreground',
+                  isActive && 'text-primary bg-accent'
                 )}
               >
                 <div className="relative">

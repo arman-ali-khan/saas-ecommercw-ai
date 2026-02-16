@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -211,14 +210,14 @@ export default function AdminMobileSidebar() {
             <Link
                 href={href}
                 className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                isActive && 'bg-sidebar-primary text-sidebar-primary-foreground'
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground',
+                isActive && 'bg-primary text-primary-foreground'
                 )}
             >
                 <Icon className="h-4 w-4" />
                 {label}
                 {showCount ? (
-                  <Badge className={cn("ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full", countVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 'bg-sidebar-accent text-sidebar-accent-foreground')}>{count}</Badge>
+                  <Badge className={cn("ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full", countVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 'bg-accent text-accent-foreground')}>{count}</Badge>
                 ) : null}
             </Link>
       </SheetClose>
@@ -226,8 +225,8 @@ export default function AdminMobileSidebar() {
   };
 
   return (
-    <div className="flex h-full max-h-screen flex-col gap-2 text-sidebar-foreground bg-sidebar">
-        <div className="flex h-20 items-center border-b border-sidebar-border px-6">
+    <div className="flex h-full max-h-screen flex-col gap-2 text-card-foreground bg-card">
+        <div className="flex h-20 items-center border-b border-border px-6">
           <SheetClose asChild>
             <Link href={`/admin`} className="flex items-center gap-3">
               <div className={`${logoType === 'image' ? '' : 'bg-primary'} p-2 rounded-full flex items-center justify-center h-10 w-10`}>
@@ -252,8 +251,8 @@ export default function AdminMobileSidebar() {
 
             <Collapsible>
               <CollapsibleTrigger className={cn(
-                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
-                (pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')) && 'bg-sidebar-primary text-sidebar-primary-foreground'
+                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
+                (pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')) && 'bg-primary text-primary-foreground'
               )}>
                 <div className="flex items-center gap-3">
                   <Package className="h-4 w-4" />
@@ -263,13 +262,13 @@ export default function AdminMobileSidebar() {
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
                 <SheetClose asChild>
-                  <Link href="/admin/products" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/products' && 'text-sidebar-accent-foreground')}>All Products</Link>
+                  <Link href="/admin/products" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/products' && 'text-accent-foreground')}>All Products</Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link href="/admin/products/new" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/products/new' && 'text-sidebar-accent-foreground')}>Create Product</Link>
+                  <Link href="/admin/products/new" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/products/new' && 'text-accent-foreground')}>Create Product</Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link href="/admin/attributes" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/attributes' && 'text-sidebar-accent-foreground')}>Attributes</Link>
+                  <Link href="/admin/attributes" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/attributes' && 'text-accent-foreground')}>Attributes</Link>
                 </SheetClose>
               </CollapsibleContent>
             </Collapsible>
@@ -280,8 +279,8 @@ export default function AdminMobileSidebar() {
 
             <Collapsible>
               <CollapsibleTrigger className={cn(
-                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
-                pathname.startsWith('/admin/theme') && 'bg-sidebar-primary text-sidebar-primary-foreground'
+                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
+                pathname.startsWith('/admin/theme') && 'bg-primary text-primary-foreground'
               )}>
                 <div className="flex items-center gap-3">
                   <Palette className="h-4 w-4" />
@@ -291,13 +290,13 @@ export default function AdminMobileSidebar() {
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
                 <SheetClose asChild>
-                  <Link href="/admin/theme/header" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/header' && 'text-sidebar-accent-foreground')}>Header</Link>
+                  <Link href="/admin/theme/header" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/header' && 'text-accent-foreground')}>Header</Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link href="/admin/theme/footer" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/footer' && 'text-sidebar-accent-foreground')}>Footer</Link>
+                  <Link href="/admin/theme/footer" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/footer' && 'text-accent-foreground')}>Footer</Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link href="/admin/theme/appearance" className={cn("block rounded-lg px-3 py-1.5 text-sidebar-foreground/80 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", pathname === '/admin/theme/appearance' && 'text-sidebar-accent-foreground')}>Appearance</Link>
+                  <Link href="/admin/theme/appearance" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/appearance' && 'text-accent-foreground')}>Appearance</Link>
                 </SheetClose>
               </CollapsibleContent>
             </Collapsible>
@@ -308,12 +307,12 @@ export default function AdminMobileSidebar() {
 
           </nav>
         </div>
-        <div className="mt-auto p-4 border-t border-sidebar-border space-y-2">
-           <Button onClick={handleLanguageToggle} variant="ghost" className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+        <div className="mt-auto p-4 border-t border-border space-y-2">
+           <Button onClick={handleLanguageToggle} variant="ghost" className="w-full justify-start text-foreground/70 hover:bg-accent hover:text-accent-foreground">
              <Globe className="mr-2 h-4 w-4" />
              Switch to {language === 'bn' ? 'English' : 'Bengali'}
           </Button>
-          <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+          <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-foreground/70 hover:bg-accent hover:text-accent-foreground">
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>
@@ -324,5 +323,3 @@ export default function AdminMobileSidebar() {
       </div>
   );
 }
-
-    
