@@ -21,6 +21,26 @@ export default function AdminLayout({
   const username = params.username as string;
   const { user, loading } = useAuth();
   
+  const { isSubscriptionExpired, isExpiringSoon, daysRemaining } = useMemo(() => {
+    if (!user?.subscription_end_date) {
+        return { isSubscriptionExpired: false, isExpiringSoon: false, daysRemaining: null };
+    }
+    const now = new Date();
+    const endDate = new Date(user.subscription_end_date);
+    const expired = isBefore(endDate, now);
+    const remaining = differenceInDays(endDate, now);
+    const expiring = !expired && remaining >= 0 && remaining <= 10;
+
+    return { isSubscriptionExpired: expired, isExpiringSoon: expiring, daysRemaining: remaining };
+  }, [user?.subscription_end_date]);
+
+  const isPendingFromRegistration = user?.subscription_status === 'pending_verification' && user?.last_subscription_from === 'get-started';
+  const isFailed = user?.subscription_status === 'failed';
+  const isPending = (user?.subscription_status === 'pending' || isPendingFromRegistration || isFailed);
+  const isBlocked = user?.subscription_status === 'inactive';
+  
+  const isContentDisabled = isPending || isBlocked || isSubscriptionExpired;
+
   useEffect(() => {
     if (!loading && pathname !== `/admin/login`) {
         if (!user || user.domain !== username) {
@@ -50,26 +70,6 @@ export default function AdminLayout({
   }
   
   // If we reach here, the user is valid and loaded. Render the full dashboard layout.
-  const { isSubscriptionExpired, isExpiringSoon, daysRemaining } = useMemo(() => {
-    if (!user?.subscription_end_date) {
-        return { isSubscriptionExpired: false, isExpiringSoon: false, daysRemaining: null };
-    }
-    const now = new Date();
-    const endDate = new Date(user.subscription_end_date);
-    const expired = isBefore(endDate, now);
-    const remaining = differenceInDays(endDate, now);
-    const expiring = !expired && remaining >= 0 && remaining <= 10;
-
-    return { isSubscriptionExpired: expired, isExpiringSoon: expiring, daysRemaining: remaining };
-  }, [user?.subscription_end_date]);
-
-  const isPendingFromRegistration = user?.subscription_status === 'pending_verification' && user?.last_subscription_from === 'get-started';
-  const isFailed = user?.subscription_status === 'failed';
-  const isPending = (user?.subscription_status === 'pending' || isPendingFromRegistration || isFailed);
-  const isBlocked = user?.subscription_status === 'inactive';
-  
-  const isContentDisabled = isPending || isBlocked || isSubscriptionExpired;
-  
   return (
     <div className="fixed inset-0 bg-background z-50">
       <div className="grid w-full h-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
