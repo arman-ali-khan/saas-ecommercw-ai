@@ -26,6 +26,7 @@ type ConversationSummary = {
 
 export default function LiveQuestionsAdminPage() {
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id;
   const [messagesByConversation, setMessagesByConversation] = useState<Map<string, LiveChatMessage[]>>(new Map());
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -34,13 +35,13 @@ export default function LiveQuestionsAdminPage() {
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   
   const fetchAndGroupMessages = useCallback(async (isInitialLoad: boolean) => {
-    if (!user) return;
+    if (!userId) return;
     if (isInitialLoad) setIsLoading(true);
     
     const { data, error } = await supabase
       .from('live_chat_messages')
       .select('*')
-      .eq('site_id', user.id)
+      .eq('site_id', userId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -55,12 +56,12 @@ export default function LiveQuestionsAdminPage() {
       setMessagesByConversation(grouped);
     }
     if (isInitialLoad) setIsLoading(false);
-  }, [user]);
+  }, [userId]);
 
 
   // Re-architected data fetching and subscription logic.
   useEffect(() => {
-    if (authLoading || !user) {
+    if (authLoading || !userId) {
       return;
     }
     
@@ -69,14 +70,14 @@ export default function LiveQuestionsAdminPage() {
 
     // Set up subscription
     const channel = supabase
-      .channel(`admin-live-chat-${user.id}`)
+      .channel(`admin-live-chat-${userId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'live_chat_messages',
-          filter: `site_id=eq.${user.id}`,
+          filter: `site_id=eq.${userId}`,
         },
         () => {
             fetchAndGroupMessages(false);
@@ -87,7 +88,7 @@ export default function LiveQuestionsAdminPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [authLoading, user, fetchAndGroupMessages]);
+  }, [authLoading, userId, fetchAndGroupMessages]);
 
 
   // Scroll to bottom when a conversation is selected or a new message arrives
