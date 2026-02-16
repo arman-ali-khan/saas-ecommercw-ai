@@ -53,30 +53,9 @@ const WhyUsSkeleton = () => (
     </div>
 )
 
-// --- Async Components for Streaming ---
-async function FlashDeals({ siteId, section }: { siteId: string, section: Section }) {
-  const cookieStore = cookies();
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
-      },
-      set(name: string, value: string, options: CookieOptions) {
-        try { cookieStore.set({ name, value, ...options }); } catch (error) {}
-      },
-      remove(name: string, options: CookieOptions) {
-        try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
-      },
-    },
-  });
-  const { data } = await supabase
-    .from('flash_deals')
-    .select('*, products!inner(*)')
-    .eq('site_id', siteId)
-    .eq('is_active', true)
-    .gt('end_date', new Date().toISOString());
-  const flashDeals = (data as FlashDeal[]) || [];
-  if (flashDeals.length === 0) return null;
+// --- Synchronous Presentation Components ---
+function FlashDeals({ deals, section }: { deals: FlashDeal[], section: Section }) {
+  if (deals.length === 0) return null;
 
   return (
     <section>
@@ -84,59 +63,26 @@ async function FlashDeals({ siteId, section }: { siteId: string, section: Sectio
         <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
         <Button asChild variant="ghost"><Link href={`/flash-deals`}>সব দেখুন <ArrowRight className="ml-2" /></Link></Button>
       </div>
-      <FlashDealCarousel deals={flashDeals} />
+      <FlashDealCarousel deals={deals} />
     </section>
   );
 }
 
-async function FeaturedProducts({ siteId, section }: { siteId: string, section: Section }) {
-  const cookieStore = cookies();
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
-      },
-      set(name: string, value: string, options: CookieOptions) {
-        try { cookieStore.set({ name, value, ...options }); } catch (error) {}
-      },
-      remove(name: string, options: CookieOptions) {
-        try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
-      },
-    },
-  });
-  const { data } = await supabase.from('products').select('*').eq('site_id', siteId).eq('is_featured', true).limit(5);
-  const featuredProducts = (data as Product[]) || [];
-  if (featuredProducts.length === 0) return null;
+function FeaturedProducts({ products, section }: { products: Product[], section: Section }) {
+  if (products.length === 0) return null;
 
   return (
     <section>
       <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {featuredProducts.map((product) => <ProductCard key={product.id} product={product} />)}
+        {products.map((product) => <ProductCard key={product.id} product={product} />)}
       </div>
     </section>
   );
 }
 
-async function WhyUs({ siteId, section }: { siteId: string, section: Section }) {
-    const cookieStore = cookies();
-    const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            try { cookieStore.set({ name, value, ...options }); } catch (error) {}
-          },
-          remove(name: string, options: CookieOptions) {
-            try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
-          },
-        },
-    });
-    const { data } = await supabase.from('store_features').select('*').eq('site_id', siteId).order('order', { ascending: true });
-    const storeFeatures = (data as StoreFeature[]) || [];
-
-    if (storeFeatures.length === 0) {
+function WhyUs({ features, section }: { features: StoreFeature[], section: Section }) {
+    if (features.length === 0) {
          const fallbackFeatures = [
             { image: { imageUrl: 'https://picsum.photos/seed/about1/800/600', description: 'Traceability', imageHint: 'farmer field' }, icon: Leaf, title: 'আমাদের ভূমি থেকে, আপনার ঘরে', description: 'আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।' },
             { image: { imageUrl: 'https://picsum.photos/seed/about2/800/600', description: 'Community', imageHint: 'community farmers' }, icon: Users, title: 'কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব', description: 'আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।' },
@@ -178,7 +124,7 @@ async function WhyUs({ siteId, section }: { siteId: string, section: Section }) 
             <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
             <Carousel opts={{ align: 'start' }} className="w-full">
             <CarouselContent className="-ml-6">
-                {storeFeatures.map((feature) => (
+                {features.map((feature) => (
                 <CarouselItem key={feature.id} className="pl-6 basis-1/2 md:basis-1/4 lg:basis-1/5">
                     <Card className="overflow-hidden flex flex-col text-center h-full">
                     <CardHeader className="p-0">
@@ -205,64 +151,15 @@ async function WhyUs({ siteId, section }: { siteId: string, section: Section }) 
     );
 }
 
-async function CategoryProducts({ siteId, section }: { siteId: string, section: Section }) {
-  if (!section.category) return null;
-  const cookieStore = cookies();
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
-      },
-      set(name: string, value: string, options: CookieOptions) {
-        try { cookieStore.set({ name, value, ...options }); } catch (error) {}
-      },
-      remove(name: string, options: CookieOptions) {
-        try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
-      },
-    },
-  });
-  const { data } = await supabase.from('products').select('*').eq('site_id', siteId).overlaps('categories', [section.category]).limit(5);
-  const products = (data as Product[]) || [];
-  if (products.length === 0) return null;
-
-  return (
-    <section>
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
-        <Button asChild variant="ghost"><Link href={`/products?category=${encodeURIComponent(section.category)}`}>সব দেখুন <ArrowRight className="ml-2" /></Link></Button>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {products.map((product) => <ProductCard key={product.id} product={product} />)}
-      </div>
-    </section>
-  );
-}
-
-async function CustomerReviews({ siteId, section }: { siteId: string, section: Section }) {
-    const cookieStore = cookies();
-    const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            try { cookieStore.set({ name, value, ...options }); } catch (error) {}
-          },
-          remove(name: string, options: CookieOptions) {
-            try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
-          },
-        },
-    });
-    const { data } = await supabase.from('product_reviews').select('*').eq('site_id', siteId).eq('is_approved', true).limit(10).order('created_at', { ascending: false });
-    const approvedReviews = (data as ProductReview[]) || [];
-    if (approvedReviews.length === 0) return null;
+function CustomerReviews({ reviews, section }: { reviews: ProductReview[], section: Section }) {
+    if (reviews.length === 0) return null;
     
     return (
         <section>
             <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
-            <Carousel opts={{ align: 'start', loop: approvedReviews.length > 3 }} className="w-full">
+            <Carousel opts={{ align: 'start', loop: reviews.length > 3 }} className="w-full">
             <CarouselContent className="-ml-6">
-                {approvedReviews.map((review) => (
+                {reviews.map((review) => (
                 <CarouselItem key={review.id} className="pl-6 basis-full md:basis-1/2 lg:basis-1/3">
                     <Card className="h-full flex flex-col">
                     <CardHeader className="flex-row items-center gap-4">
@@ -289,6 +186,34 @@ async function CustomerReviews({ siteId, section }: { siteId: string, section: S
     );
 }
 
+// --- Async Components that remain for scalability ---
+async function CategoryProducts({ siteId, section }: { siteId: string, section: Section }) {
+  if (!section.category) return null;
+  const cookieStore = cookies();
+  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    cookies: {
+      get(name: string) { return cookieStore.get(name)?.value; },
+      set(name: string, value: string, options: CookieOptions) { try { cookieStore.set({ name, value, ...options }); } catch (error) {} },
+      remove(name: string, options: CookieOptions) { try { cookieStore.set({ name, value: '', ...options }); } catch (error) {} },
+    },
+  });
+  const { data } = await supabase.from('products').select('*').eq('site_id', siteId).overlaps('categories', [section.category]).limit(5);
+  const products = (data as Product[]) || [];
+  if (products.length === 0) return null;
+
+  return (
+    <section>
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
+        <Button asChild variant="ghost"><Link href={`/products?category=${encodeURIComponent(section.category)}`}>সব দেখুন <ArrowRight className="ml-2" /></Link></Button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {products.map((product) => <ProductCard key={product.id} product={product} />)}
+      </div>
+    </section>
+  );
+}
+
 // --- Main Page Component ---
 export default async function UserPage({ params }: { params: { username: string } }) {
   const { username } = params;
@@ -298,19 +223,9 @@ export default async function UserPage({ params }: { params: { username: string 
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {}
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {}
-        },
+        get(name: string) { return cookieStore.get(name)?.value; },
+        set(name: string, value: string, options: CookieOptions) { try { cookieStore.set({ name, value, ...options }); } catch (error) {} },
+        remove(name: string, options: CookieOptions) { try { cookieStore.set({ name, value: '', ...options }); } catch (error) {} },
       },
     }
   );
@@ -330,17 +245,32 @@ export default async function UserPage({ params }: { params: { username: string 
 
   const siteId = profile.id;
 
-  // Initial, above-the-fold data
-  const [settingsResult, slidesResult, categoriesResult] = await Promise.all([
-    supabase.from('store_settings').select('homepage_sections').eq('site_id', siteId).single(),
-    supabase.from('carousel_slides').select('*').eq('site_id', siteId).eq('is_enabled', true).order('order', { ascending: true }),
-    supabase.from('categories').select('*').eq('site_id', siteId).order('name', { ascending: true }),
+  const [
+    settingsResult,
+    slidesResult,
+    categoriesResult,
+    flashDealsResult,
+    featuredProductsResult,
+    storeFeaturesResult,
+    reviewsResult
+  ] = await Promise.all([
+      supabase.from('store_settings').select('homepage_sections').eq('site_id', siteId).single(),
+      supabase.from('carousel_slides').select('*').eq('site_id', siteId).eq('is_enabled', true).order('order', { ascending: true }),
+      supabase.from('categories').select('*').eq('site_id', siteId).order('name', { ascending: true }),
+      supabase.from('flash_deals').select('*, products!inner(*)').eq('site_id', siteId).eq('is_active', true).gt('end_date', new Date().toISOString()),
+      supabase.from('products').select('*').eq('site_id', siteId).eq('is_featured', true).limit(5),
+      supabase.from('store_features').select('*').eq('site_id', siteId).order('order', { ascending: true }),
+      supabase.from('product_reviews').select('*').eq('site_id', siteId).eq('is_approved', true).limit(10).order('created_at', { ascending: false })
   ]);
   
   const settingsData = settingsResult.data;
   const slidesData = slidesResult.data;
   const categories = (categoriesResult.data as Category[]) || [];
-  
+  const flashDeals = (flashDealsResult.data as FlashDeal[]) || [];
+  const featuredProducts = (featuredProductsResult.data as Product[]) || [];
+  const storeFeatures = (storeFeaturesResult.data as StoreFeature[]) || [];
+  const approvedReviews = (reviewsResult.data as ProductReview[]) || [];
+
   const sectionsToRender: Section[] = (() => {
     const dbSections = settingsData?.homepage_sections;
     if (Array.isArray(dbSections)) {
@@ -349,7 +279,6 @@ export default async function UserPage({ params }: { params: { username: string 
         }
         return dbSections as Section[];
     }
-    // Fallback if settings are not in DB
     const allCategories = [...new Set(categories.map(c => c.name))];
     return [
       { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false },
@@ -418,13 +347,13 @@ export default async function UserPage({ params }: { params: { username: string 
           </section>
         );
       case 'flash_deals':
-        return <Suspense key={section.id} fallback={<SectionSkeleton />}><FlashDeals siteId={siteId} section={section} /></Suspense>;
+        return <FlashDeals key={section.id} deals={flashDeals} section={section} />;
       case 'featured':
-        return <Suspense key={section.id} fallback={<SectionSkeleton />}><FeaturedProducts siteId={siteId} section={section} /></Suspense>;
+        return <FeaturedProducts key={section.id} products={featuredProducts} section={section} />;
       case 'why-us':
-        return <Suspense key={section.id} fallback={<WhyUsSkeleton />}><WhyUs siteId={siteId} section={section} /></Suspense>;
+        return <WhyUs key={section.id} features={storeFeatures} section={section} />;
       case 'customer-reviews':
-        return <Suspense key={section.id} fallback={<WhyUsSkeleton />}><CustomerReviews siteId={siteId} section={section} /></Suspense>;
+        return <CustomerReviews key={section.id} reviews={approvedReviews} section={section} />;
       default:
         if (section.isCategorySection && section.category) {
           return <Suspense key={section.id} fallback={<SectionSkeleton />}><CategoryProducts siteId={siteId} section={section} /></Suspense>;
