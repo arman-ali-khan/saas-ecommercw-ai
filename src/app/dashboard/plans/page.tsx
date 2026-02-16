@@ -63,10 +63,7 @@ const planSchema = z.object({
     .string()
     .min(1, "ID is required. Use a short, lowercase name like 'pro' or 'starter'."),
   name: z.string().min(1, 'Plan name is required'),
-  price: z.preprocess(
-    (a) => parseFloat(z.string().parse(a)),
-    z.number().min(0, "Price must be a non-negative number.")
-  ),
+  price: z.coerce.number().min(0, "Price must be a non-negative number."),
   period: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
   features: z.string().min(1, 'Please list at least one feature.'),
@@ -159,9 +156,9 @@ export default function PlansAdminPage() {
         period: data.period || null,
         description: data.description,
         features: data.features.split('\n').filter((f) => f.trim() !== ''),
-        product_limit: data.product_limit ? parseInt(data.product_limit, 10) : null,
-        customer_limit: data.customer_limit ? parseInt(data.customer_limit, 10) : null,
-        order_limit: data.order_limit ? parseInt(data.order_limit, 10) : null,
+        product_limit: data.product_limit && data.product_limit.trim() !== '' ? parseInt(data.product_limit, 10) : null,
+        customer_limit: data.customer_limit && data.customer_limit.trim() !== '' ? parseInt(data.customer_limit, 10) : null,
+        order_limit: data.order_limit && data.order_limit.trim() !== '' ? parseInt(data.order_limit, 10) : null,
       };
 
       let error;
