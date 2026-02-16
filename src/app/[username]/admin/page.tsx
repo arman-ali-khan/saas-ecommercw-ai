@@ -279,15 +279,16 @@ export default function AdminDashboard() {
                             ))}
                         </Pie>
                         <Legend
-                            iconSize={10}
-                            layout="vertical"
-                            verticalAlign="middle"
-                            align="right"
+                          iconSize={10}
+                          layout="horizontal"
+                          verticalAlign="bottom"
+                          align="center"
+                          wrapperStyle={{paddingTop: 20}}
                         />
-                       <div className='flex flex-col'>
                        {totalSales > 0 && (
                             <text
-                                
+                                x="50%"
+                                y="50%"
                                 textAnchor="middle"
                                 dominantBaseline="middle"
                                 className="fill-foreground text-2xl font-bold"
@@ -297,7 +298,8 @@ export default function AdminDashboard() {
                         )}
                         {totalSales > 0 && (
                             <text
-                                
+                                x="50%"
+                                y="50%"
                                 textAnchor="middle"
                                 dominantBaseline="middle"
                                 dy="20"
@@ -306,7 +308,6 @@ export default function AdminDashboard() {
                                 Total Sales
                             </text>
                         )}
-                       </div>
                     </PieChart>
                 </ResponsiveContainer>
                 )}
@@ -358,9 +359,10 @@ export default function AdminDashboard() {
                         </Pie>
                         <Legend
                           iconSize={10}
-                          layout="vertical"
-                          verticalAlign="middle"
-                          align="right"
+                          layout="horizontal"
+                          verticalAlign="bottom"
+                          align="center"
+                           wrapperStyle={{paddingTop: 20}}
                         />
                         {totalOrdersForMonth > 0 && (
                           <text
