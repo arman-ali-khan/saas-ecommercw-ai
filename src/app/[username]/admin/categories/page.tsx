@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -320,36 +321,38 @@ export default function CategoriesAdminPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Category Name</FormLabel><FormControl><Input placeholder="e.g., ফল" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="A short description of the category." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                             <FormField control={form.control} name="image_url" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Category Image</FormLabel>
-                                    <div className="flex items-start gap-4">
-                                        <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
-                                            {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
+                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                            <div className="max-h-[70vh] overflow-y-auto pr-6 pl-1 space-y-4">
+                                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Category Name</FormLabel><FormControl><Input placeholder="e.g., ফল" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="A short description of the category." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="image_url" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Category Image</FormLabel>
+                                        <div className="flex items-start gap-4">
+                                            <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
+                                                {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
+                                            </div>
+                                            <div className="space-y-2 flex-grow">
+                                                <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
+                                                <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} />
+                                            </div>
                                         </div>
-                                        <div className="space-y-2 flex-grow">
-                                            <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
-                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} />
-                                        </div>
-                                    </div>
-                                    <FormDescription>Recommended for homepage category carousel.</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>Fallback Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormDescription>This icon will be shown if no image is uploaded.</FormDescription><FormMessage /></FormItem>)} />
-                             <FormField control={form.control} name="card_color" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Card Background Color</FormLabel>
-                                    <FormControl><Input placeholder="e.g., #1A2B3C or hsl(224, 71%, 4%)" {...field} /></FormControl>
-                                    <FormDescription>Optionally set a background color for the category card on the homepage.</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+                                        <FormDescription>Recommended for homepage category carousel.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>Fallback Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormDescription>This icon will be shown if no image is uploaded.</FormDescription><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="card_color" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Card Background Color</FormLabel>
+                                        <FormControl><Input placeholder="e.g., #1A2B3C or hsl(224, 71%, 4%)" {...field} /></FormControl>
+                                        <FormDescription>Optionally set a background color for the category card on the homepage.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
 
-                            <DialogFooter>
+                            <DialogFooter className="pt-4">
                                 <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmitting ? 'Saving...' : 'Save Category'}
