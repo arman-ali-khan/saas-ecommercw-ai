@@ -172,6 +172,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
     { href: `/admin/customers`, label: 'Customers', icon: Users, count: totalCustomersCount, countVariant: 'neutral' as const },
     { href: `/admin/shipping`, label: 'Shipping', icon: Truck },
+    { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
@@ -180,7 +181,6 @@ export default function AdminMobileSidebar() {
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: unviewedUncompletedCount },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
-    { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
     { href: `/admin/settings`, label: 'Settings', icon: Settings },
   ];
   
