@@ -21,15 +21,15 @@ export async function generateMetadata({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
+        get: (name: string) => {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: CookieOptions) {
+        set: (name: string, value: string, options: CookieOptions) => {
           try {
             cookieStore.set({ name, value, ...options });
           } catch (error) {}
         },
-        remove(name: string, options: CookieOptions) {
+        remove: (name: string, options: CookieOptions) => {
           try {
             cookieStore.set({ name, value: '', ...options });
           } catch (error) {}
@@ -101,15 +101,15 @@ export default async function UsernameLayout({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
+        get: (name: string) => {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: CookieOptions) {
+        set: (name: string, value: string, options: CookieOptions) => {
           try {
             cookieStore.set({ name, value, ...options });
           } catch (error) {}
         },
-        remove(name: string, options: CookieOptions) {
+        remove: (name: string, options: CookieOptions) => {
           try {
             cookieStore.set({ name, value: '', ...options });
           } catch (error) {}
