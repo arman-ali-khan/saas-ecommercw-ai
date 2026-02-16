@@ -44,9 +44,19 @@ export const useCustomerAuth = create<CustomerAuthState>()(
           const response = await fetch('/api/auth/get-customer');
           if (response.ok) {
             const { customerProfile } = await response.json();
+            
+            const currentCustomer = get().customer;
+            // Only update state if the customer object has actually changed.
+            if (currentCustomer && JSON.stringify(currentCustomer) === JSON.stringify(customerProfile)) {
+                return;
+            }
+
             set({ customer: customerProfile });
           } else {
-             set({ customer: null });
+             const currentCustomer = get().customer;
+             if (currentCustomer) { // Only clear if there was a customer
+                set({ customer: null });
+             }
           }
         } catch (error) {
             console.error("Failed to refresh customer profile:", error);
@@ -56,7 +66,6 @@ export const useCustomerAuth = create<CustomerAuthState>()(
 
       customerLogout: async () => {
         await supabase.auth.signOut();
-        // The actual state clearing will be handled by the central AuthProvider
         set({ customer: null });
       },
 
