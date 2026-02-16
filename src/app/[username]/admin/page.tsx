@@ -41,6 +41,7 @@ import {
   LineChart,
   PieChart as PieChartIcon,
   Users,
+  Ban,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -57,6 +58,7 @@ import {
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -104,7 +106,7 @@ export default function AdminDashboard() {
 
 
       // Fetch all orders once
-      const ordersPromise = supabase.from('orders').select('total, status, created_at, payment_method').eq('site_id', user.id);
+      const ordersPromise = supabase.from('orders').select('total, status, created_at, payment_method, shipping_info, order_number, id').eq('site_id', user.id);
       const productsPromise = supabase.from('products').select('*', { count: 'exact' }).eq('site_id', user.id);
       const uncompletedPromise = supabase.from('uncompleted_orders').select('*', { count: 'exact' }).eq('site_id', user.id);
       const customersPromise = supabase.from('customer_profiles').select('*', { count: 'exact', head: true }).eq('site_id', user.id);
@@ -223,15 +225,25 @@ export default function AdminDashboard() {
     </Card>
   );
 
-  const LimitStatCard = ({ title, value, limit, icon: Icon, isLoading }: { title: string, value: number, limit: number | null, icon: React.ElementType, isLoading?: boolean }) => {
+  const productLimit = user?.product_limit;
+  const isProductLimitReached = productLimit !== null && stats.totalProducts >= productLimit;
+  
+  const customerLimit = user?.customer_limit;
+  const isCustomerLimitReached = customerLimit !== null && stats.totalCustomers >= customerLimit;
+
+  const orderLimit = user?.order_limit;
+  const isOrderLimitReached = orderLimit !== null && stats.ordersThisMonth >= orderLimit;
+
+
+  const LimitStatCard = ({ title, value, limit, icon: Icon, isLimitReached, isLoading }: { title: string, value: number, limit: number | null, icon: React.ElementType, isLimitReached: boolean, isLoading?: boolean }) => {
     const isUnlimited = limit === null;
     const percentage = !isUnlimited && limit > 0 ? Math.min(100, (value / limit) * 100) : 0;
 
     return (
-        <Card>
+        <Card className={isLimitReached ? 'border-destructive' : ''}>
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center justify-between">
-                    <span>{title}</span>
+                    <span className={isLimitReached ? 'text-destructive' : ''}>{title}</span>
                     <Icon className="h-4 w-4 text-muted-foreground" />
                 </CardTitle>
             </CardHeader>
@@ -248,7 +260,7 @@ export default function AdminDashboard() {
                             {!isUnlimited && <span className="text-lg text-muted-foreground"> / {limit}</span>}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {isUnlimited ? "Unlimited on your current plan" : `${Math.max(0, limit - value)} remaining`}
+                            {isLimitReached ? "Limit reached. Upgrade plan to add more." : isUnlimited ? "Unlimited on your current plan" : `${Math.max(0, limit - value)} remaining`}
                         </p>
                         {!isUnlimited && <Progress value={percentage} className="mt-2 h-2" />}
                     </>
@@ -265,12 +277,25 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+      { (isProductLimitReached || isCustomerLimitReached || isOrderLimitReached) && (
+        <Alert variant="destructive">
+          <Ban className="h-4 w-4" />
+          <AlertTitle>Subscription Limit Reached</AlertTitle>
+          <AlertDescription>
+            You have reached one or more limits of your current plan. Please{' '}
+            <Link href="/admin/settings" className="font-semibold underline">
+                upgrade your subscription
+            </Link>
+            {' '}to continue adding new products, or accepting new customers/orders.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard title="Total Revenue" value={`BDT ${stats.totalRevenue.toFixed(2)}`} icon={DollarSign} isLoading={isLoading} description="All-time delivered orders" />
         <StatCard title="New Uncompleted Orders" value={stats.uncompletedOrders} icon={FileClock} isLoading={isLoading} description={`${stats.totalUncompletedOrders} total abandoned carts`} />
-        <LimitStatCard title="Products" value={stats.totalProducts} limit={user?.product_limit ?? null} icon={Package} isLoading={isLoading} />
-        <LimitStatCard title="Customers" value={stats.totalCustomers} limit={user?.customer_limit ?? null} icon={Users} isLoading={isLoading} />
-        <LimitStatCard title="Orders (This Month)" value={stats.ordersThisMonth} limit={user?.order_limit ?? null} icon={ShoppingBag} isLoading={isLoading} />
+        <LimitStatCard title="Products" value={stats.totalProducts} limit={user?.product_limit ?? null} icon={Package} isLoading={isLoading} isLimitReached={isProductLimitReached} />
+        <LimitStatCard title="Customers" value={stats.totalCustomers} limit={user?.customer_limit ?? null} icon={Users} isLoading={isLoading} isLimitReached={isCustomerLimitReached}/>
+        <LimitStatCard title="Orders (This Month)" value={stats.ordersThisMonth} limit={user?.order_limit ?? null} icon={ShoppingBag} isLoading={isLoading} isLimitReached={isOrderLimitReached}/>
       </div>
       <Card>
           <CardHeader>
@@ -361,13 +386,13 @@ export default function AdminDashboard() {
         </Card>
 
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" /> Order Status</CardTitle>
                     <CardDescription>Order distribution for the selected month.</CardDescription>
                 </div>
                 <Select onValueChange={(value) => setSelectedMonth(new Date(value))} defaultValue={format(selectedMonth, 'yyyy-MM-dd')}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue placeholder="Select Month" />
                     </SelectTrigger>
                     <SelectContent>
@@ -461,7 +486,7 @@ export default function AdminDashboard() {
                           {pendingOrders.map(order => (
                             <TableRow key={order.id}>
                               <TableCell className="font-mono text-xs">{order.order_number}</TableCell>
-                              <TableCell>{(order as any).shipping_info.name}</TableCell>
+                              <TableCell>{(order as any).shipping_info?.name || 'N/A'}</TableCell>
                               <TableCell>BDT {order.total.toFixed(2)}</TableCell>
                               <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/orders/${order.id}`}><Eye className="mr-2 h-4 w-4"/>Details</Link></Button></TableCell>
                             </TableRow>
@@ -472,7 +497,7 @@ export default function AdminDashboard() {
                     <div className="grid gap-4 md:hidden">
                         {pendingOrders.map(order => (
                             <Card key={order.id}>
-                                <CardHeader><CardTitle className="text-sm">{order.order_number}</CardTitle><CardDescription>{(order as any).shipping_info.name}</CardDescription></CardHeader>
+                                <CardHeader><CardTitle className="text-sm">{order.order_number}</CardTitle><CardDescription>{(order as any).shipping_info?.name || 'N/A'}</CardDescription></CardHeader>
                                 <CardContent className="flex justify-between items-center"><p className="font-bold">BDT {order.total.toFixed(2)}</p><Button variant="secondary" size="sm" asChild><Link href={`/admin/orders/${order.id}`}>View Order</Link></Button></CardContent>
                             </Card>
                         ))}
