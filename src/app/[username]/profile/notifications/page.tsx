@@ -63,30 +63,6 @@ export default function CustomerNotificationsPage() {
     }
   }, [customer, _hasHydrated, fetchNotifications]);
 
-  useEffect(() => {
-    if (!customer) return;
-
-    const channel = supabase
-      .channel(`customer-notifications-page-${customer.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${customer.id}&recipient_type=eq.customer&site_id=eq.${customer.site_id}`,
-        },
-        () => {
-            fetchNotifications();
-        }
-      )
-      .subscribe();
- 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [customer, fetchNotifications]);
-
   const handleMarkAsRead = async (notificationId: string) => {
     if (!customer) return;
     setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));

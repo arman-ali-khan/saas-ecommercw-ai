@@ -70,45 +70,7 @@ export default function AdminBottomNav() {
       }
     };
     
-    fetchCounts(); // Initial fetch
-
-    const channel = supabase
-      .channel(`admin-dashboard-counts-channel-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-          filter: `site_id=eq.${user.id}`,
-        },
-        fetchCounts
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${user.id}&recipient_type=eq.admin`,
-        },
-        fetchCounts
-      )
-      .on(
-        'postgres_changes',
-        {
-            event: '*',
-            schema: 'public',
-            table: 'live_chat_messages',
-            filter: `site_id=eq.${user.id}`
-        },
-        fetchCounts
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    fetchCounts();
   }, [user]);
 
   const navLinks = [

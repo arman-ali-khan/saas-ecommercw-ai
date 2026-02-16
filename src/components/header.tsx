@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -69,30 +70,6 @@ function CustomerNotificationBell() {
     if (customer) {
       fetchAndSetNotifications();
     }
-  }, [customer, fetchAndSetNotifications]);
-
-  useEffect(() => {
-    if (!customer) return;
-
-    const channel = supabase
-      .channel(`header-customer-notifications-${customer.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${customer.id}&recipient_type=eq.customer&site_id=eq.${customer.site_id}`,
-        },
-        () => {
-          fetchAndSetNotifications();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [customer, fetchAndSetNotifications]);
 
   const handleMarkAsRead = async (id: string) => {

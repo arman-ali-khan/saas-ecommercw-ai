@@ -58,13 +58,6 @@ export default function SeoRequestsPage() {
 
   useEffect(() => {
     fetchRequests();
-    
-    const channel = supabase
-      .channel('seo-requests-channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'seo_requests' }, fetchRequests)
-      .subscribe();
-      
-    return () => { supabase.removeChannel(channel) };
   }, [fetchRequests]);
   
   const handleMarkAsComplete = async () => {
@@ -80,6 +73,7 @@ export default function SeoRequestsPage() {
         toast({ variant: 'destructive', title: 'Failed to update status', description: error.message });
     } else {
         toast({ title: 'Request marked as complete!' });
+        fetchRequests(); // Refetch data
         setSelectedRequest(null);
     }
   };
@@ -181,5 +175,3 @@ export default function SeoRequestsPage() {
     </>
   );
 }
-
-    

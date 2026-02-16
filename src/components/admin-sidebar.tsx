@@ -128,64 +128,6 @@ export default function AdminSidebar() {
     };
     
     fetchAllData();
-
-    const channel = supabase
-      .channel(`admin-sidebar-channel-${user.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders', filter: `site_id=eq.${user.id}` },
-        fetchAllData
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` },
-        fetchAllData
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'live_chat_messages', filter: `site_id=eq.${user.id}` },
-        fetchAllData
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'uncompleted_orders',
-          filter: `site_id=eq.${user.id}`,
-        },
-        fetchAllData
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'customer_profiles',
-          filter: `site_id=eq.${user.id}`,
-        },
-        fetchAllData
-      )
-       .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'product_reviews', filter: `site_id=eq.${user.id}` },
-        fetchAllData
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'store_settings',
-          filter: `site_id=eq.${user.id}`,
-        },
-        (payload) => setSiteSettings(payload.new as any)
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [user]);
 
   const handleLogout = async () => {

@@ -86,18 +86,6 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     };
 
     fetchCounts();
-
-    const channel = supabase
-      .channel(`saas-admin-sidebar-counts-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, fetchCounts)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'subscription_payments' }, fetchCounts)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'seo_requests' }, fetchCounts)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'saas_reviews' }, fetchCounts)
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [user]);
   
   useEffect(() => {

@@ -58,31 +58,6 @@ export default function AdminNotificationsPage() {
     }
   }, [user, authLoading, fetchNotifications]);
 
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel(`admin-notifications-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${user.id}`,
-        },
-        (payload) => {
-          setNotifications((prev) => [payload.new as Notification, ...prev]);
-          toast({ title: 'New Notification!', description: (payload.new as Notification).message });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, toast]);
-
   const handleMarkAsRead = async (notificationId: string) => {
     const { error } = await supabase
       .from('notifications')

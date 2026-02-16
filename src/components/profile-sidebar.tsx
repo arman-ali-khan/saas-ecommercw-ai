@@ -45,19 +45,6 @@ export default function ProfileSidebar() {
     }
   }, [user, _hasHydrated, fetchCount]);
 
-  useEffect(() => {
-    if (!user) return;
-    
-    const channel = supabase
-        .channel(`profile-sidebar-notifications-${user.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}&recipient_type=eq.customer&site_id=eq.${user.site_id}`}, fetchCount)
-        .subscribe();
-
-    return () => {
-        supabase.removeChannel(channel);
-    };
-  }, [user, fetchCount]);
-
   if (!_hasHydrated || !user) {
     return null;
   }
