@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
 import { supabase } from '@/lib/supabase/client';
 import type { Order, Product } from '@/types';
@@ -59,9 +59,11 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalProducts: 0,
@@ -97,121 +99,137 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const siteId = user?.id;
-    if (!siteId) return;
+    if (!siteId) {
+        setIsLoading(false);
+        return;
+    }
 
     const fetchData = async () => {
       setIsLoading(true);
+      try {
+        const sevenDaysAgo = subDays(new Date(), 7).toISOString();
+        const startOfCurrentMonth = startOfMonth(new Date()).toISOString();
 
-      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
-      const startOfCurrentMonth = startOfMonth(new Date()).toISOString();
 
+        // Fetch all orders once
+        const ordersPromise = supabase.from('orders').select('total, status, created_at, payment_method, shipping_info, order_number, id').eq('site_id', siteId);
+        const productsPromise = supabase.from('products').select('*', { count: 'exact' }).eq('site_id', siteId);
+        const uncompletedPromise = supabase.from('uncompleted_orders').select('*', { count: 'exact' }).eq('site_id', siteId);
+        const customersPromise = supabase.from('customer_profiles').select('*', { count: 'exact', head: true }).eq('site_id', siteId);
 
-      // Fetch all orders once
-      const ordersPromise = supabase.from('orders').select('total, status, created_at, payment_method, shipping_info, order_number, id').eq('site_id', siteId);
-      const productsPromise = supabase.from('products').select('*', { count: 'exact' }).eq('site_id', siteId);
-      const uncompletedPromise = supabase.from('uncompleted_orders').select('*', { count: 'exact' }).eq('site_id', siteId);
-      const customersPromise = supabase.from('customer_profiles').select('*', { count: 'exact', head: true }).eq('site_id', siteId);
+        const [
+          { data: allOrders, error: ordersError },
+          { data: productsData, count: totalProducts, error: productsError },
+          { data: uncompletedData, count: totalUncompleted, error: uncompletedError },
+          { count: totalCustomers, error: customersError },
+        ] = await Promise.all([ordersPromise, productsPromise, uncompletedPromise, customersPromise]);
+        
+        if (ordersError) throw new Error(`Failed to fetch orders: ${ordersError.message}`);
+        if (productsError) throw new Error(`Failed to fetch products: ${productsError.message}`);
+        if (uncompletedError) throw new Error(`Failed to fetch uncompleted orders: ${uncompletedError.message}`);
+        if (customersError) throw new Error(`Failed to fetch customers: ${customersError.message}`);
 
-      const [
-        { data: allOrders, error: ordersError },
-        { data: productsData, count: totalProducts, error: productsError },
-        { data: uncompletedData, count: totalUncompleted, error: uncompletedError },
-        { count: totalCustomers, error: customersError },
-      ] = await Promise.all([ordersPromise, productsPromise, uncompletedPromise, customersPromise]);
+        if (allOrders) {
+          // --- Revenue Chart Data (Last 7 days) ---
+          const totalRevenue = allOrders
+            .filter(o => o.status === 'delivered')
+            .reduce((acc, o) => acc + o.total, 0);
 
-      if (allOrders) {
-        // --- Revenue Chart Data (Last 7 days) ---
-        const totalRevenue = allOrders
-          .filter(o => o.status === 'delivered')
-          .reduce((acc, o) => acc + o.total, 0);
+          setPendingOrders(allOrders.filter(o => o.status === 'pending').slice(0, 5) as any);
 
-        setPendingOrders(allOrders.filter(o => o.status === 'pending').slice(0, 5) as any);
+          const dailyRevenue: { [key: string]: number } = {};
+          for (let i = 6; i >= 0; i--) {
+              const date = subDays(new Date(), i);
+              const formattedDate = format(date, 'MMM d');
+              dailyRevenue[formattedDate] = 0;
+          }
 
-        const dailyRevenue: { [key: string]: number } = {};
-        for (let i = 6; i >= 0; i--) {
-            const date = subDays(new Date(), i);
-            const formattedDate = format(date, 'MMM d');
-            dailyRevenue[formattedDate] = 0;
+          allOrders
+            .filter(o => new Date(o.created_at) >= new Date(sevenDaysAgo) && o.status === 'delivered')
+            .forEach(o => {
+              const date = format(new Date(o.created_at), 'MMM d');
+              if (dailyRevenue.hasOwnProperty(date)) {
+                 dailyRevenue[date] += o.total;
+              }
+            });
+          
+          const revenueChartFormattedData = Object.keys(dailyRevenue)
+              .map(date => ({ date, Revenue: dailyRevenue[date] }));
+              
+          setRevenueChartData(revenueChartFormattedData);
+          
+          const monthlyOrdersCount = allOrders.filter(o => new Date(o.created_at) >= new Date(startOfCurrentMonth) && o.status !== 'canceled').length;
+
+          setStats(prev => ({ ...prev, totalRevenue, ordersThisMonth: monthlyOrdersCount }));
+
+          // --- Order Status Chart Data (for selected month) ---
+          const start = startOfMonth(selectedMonth);
+          const end = endOfMonth(selectedMonth);
+          
+          const ordersForMonth = allOrders.filter(o => isWithinInterval(new Date(o.created_at), {start, end}));
+          
+          const statusCounts = ordersForMonth.reduce((acc, order) => {
+              const status = order.status.toLowerCase();
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+          }, {} as Record<string, number>);
+
+          const chartData = Object.entries(statusCounts)
+            .map(([status, count]) => ({
+                name: ORDER_STATUSES[status as keyof typeof ORDER_STATUSES]?.label || status,
+                value: count,
+                fill: ORDER_STATUSES[status as keyof typeof ORDER_STATUSES]?.color || '#8884d8',
+            }))
+            .filter(item => item.name !== 'Canceled');
+            
+          setOrderStatusData(chartData);
+
+          // --- Payment Method Chart Data (All Time) ---
+          const paymentMethodSales = allOrders
+            .filter(o => o.status !== 'canceled')
+            .reduce((acc, order) => {
+              const method = order.payment_method; // 'cod' or 'mobile_banking'
+              acc[method] = (acc[method] || 0) + order.total;
+              return acc;
+            }, {} as Record<string, number>);
+          
+          const paymentChartData = Object.entries(paymentMethodSales)
+            .map(([method, total]) => ({
+              name: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.label || method,
+              value: total,
+              fill: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.color || '#8884d8',
+            }));
+          
+          setPaymentMethodData(paymentChartData);
         }
 
-        allOrders
-          .filter(o => new Date(o.created_at) >= new Date(sevenDaysAgo) && o.status === 'delivered')
-          .forEach(o => {
-            const date = format(new Date(o.created_at), 'MMM d');
-            if (dailyRevenue.hasOwnProperty(date)) {
-               dailyRevenue[date] += o.total;
-            }
-          });
+        if (productsData) {
+          setStats(prev => ({ ...prev, totalProducts: totalProducts || 0 }));
+          setLowStockProducts(productsData.filter(p => p.stock !== undefined && p.stock !== null && p.stock < 10).slice(0, 5));
+        }
         
-        const revenueChartFormattedData = Object.keys(dailyRevenue)
-            .map(date => ({ date, Revenue: dailyRevenue[date] }));
-            
-        setRevenueChartData(revenueChartFormattedData);
-        
-        const monthlyOrdersCount = allOrders.filter(o => new Date(o.created_at) >= new Date(startOfCurrentMonth) && o.status !== 'canceled').length;
+        if (uncompletedData) {
+          const unviewedCount = uncompletedData.filter((o: any) => !o.is_viewed).length;
+          setStats(prev => ({...prev, uncompletedOrders: unviewedCount, totalUncompletedOrders: totalUncompleted || 0}));
+        } else {
+          setStats(prev => ({...prev, uncompletedOrders: 0, totalUncompletedOrders: 0}));
+        }
 
-        setStats(prev => ({ ...prev, totalRevenue, ordersThisMonth: monthlyOrdersCount }));
-
-        // --- Order Status Chart Data (for selected month) ---
-        const start = startOfMonth(selectedMonth);
-        const end = endOfMonth(selectedMonth);
-        
-        const ordersForMonth = allOrders.filter(o => isWithinInterval(new Date(o.created_at), {start, end}));
-        
-        const statusCounts = ordersForMonth.reduce((acc, order) => {
-            const status = order.status.toLowerCase();
-            acc[status] = (acc[status] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>);
-
-        const chartData = Object.entries(statusCounts)
-          .map(([status, count]) => ({
-              name: ORDER_STATUSES[status as keyof typeof ORDER_STATUSES]?.label || status,
-              value: count,
-              fill: ORDER_STATUSES[status as keyof typeof ORDER_STATUSES]?.color || '#8884d8',
-          }))
-          .filter(item => item.name !== 'Canceled');
-          
-        setOrderStatusData(chartData);
-
-        // --- Payment Method Chart Data (All Time) ---
-        const paymentMethodSales = allOrders
-          .filter(o => o.status !== 'canceled')
-          .reduce((acc, order) => {
-            const method = order.payment_method; // 'cod' or 'mobile_banking'
-            acc[method] = (acc[method] || 0) + order.total;
-            return acc;
-          }, {} as Record<string, number>);
-        
-        const paymentChartData = Object.entries(paymentMethodSales)
-          .map(([method, total]) => ({
-            name: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.label || method,
-            value: total,
-            fill: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.color || '#8884d8',
-          }));
-        
-        setPaymentMethodData(paymentChartData);
+        setStats(prev => ({ ...prev, totalCustomers: totalCustomers || 0 }));
+      } catch (error: any) {
+        console.error("Failed to fetch dashboard data:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Failed to load dashboard',
+            description: error.message
+        });
+      } finally {
+        setIsLoading(false);
       }
-
-      if (productsData) {
-        setStats(prev => ({ ...prev, totalProducts: totalProducts || 0 }));
-        setLowStockProducts(productsData.filter(p => p.stock !== undefined && p.stock !== null && p.stock < 10).slice(0, 5));
-      }
-      
-      if (uncompletedData) {
-        const unviewedCount = uncompletedData.filter((o: any) => !o.is_viewed).length;
-        setStats(prev => ({...prev, uncompletedOrders: unviewedCount, totalUncompletedOrders: totalUncompleted || 0}));
-      } else {
-        setStats(prev => ({...prev, uncompletedOrders: 0, totalUncompletedOrders: 0}));
-      }
-
-      setStats(prev => ({ ...prev, totalCustomers: totalCustomers || 0 }));
-      
-      setIsLoading(false);
     };
 
     fetchData();
-  }, [user?.id, selectedMonth]);
+  }, [user?.id, selectedMonth, toast]);
 
   const StatCard = ({ title, value, icon: Icon, isLoading, description }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean, description?: string }) => (
     <Card>
@@ -550,5 +568,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    
