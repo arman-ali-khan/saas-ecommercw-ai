@@ -40,6 +40,21 @@ import Image from 'next/image';
 import { useSearchStore } from '@/stores/useSearchStore';
 import { Input } from './ui/input';
 
+type SiteInfo = {
+  id: string;
+  name: string;
+  description: string | null;
+  logoType: 'icon' | 'image';
+  logoIcon: string;
+  logoImageUrl: string | null;
+} | null;
+
+interface HeaderProps {
+    siteInfo: SiteInfo;
+    navLinks: HeaderLink[];
+    isLoading: boolean;
+}
+
 function CustomerNotificationBell() {
   const { customer } = useCustomerAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -141,7 +156,7 @@ function CustomerNotificationBell() {
   );
 }
 
-export default function Header() {
+export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoading }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
@@ -161,16 +176,6 @@ export default function Header() {
     _hasHydrated: customerHasHydrated,
   } = useCustomerAuth();
 
-  const [siteInfo, setSiteInfo] = useState<{
-    name: string;
-    description: string | null;
-    logoType: 'icon' | 'image';
-    logoIcon: string;
-    logoImageUrl: string | null;
-  }>({ name: 'Store', description: '', logoType: 'icon', logoIcon: 'Leaf', logoImageUrl: null });
-  const [isSiteInfoLoading, setIsSiteInfoLoading] = useState(true);
-  const [navLinks, setNavLinks] = useState<HeaderLink[]>([]);
-  
   const domain = params.username as string;
 
   const currentUser = siteOwner
@@ -191,59 +196,8 @@ export default function Header() {
         }
       : null;
 
-  const isLoading = siteOwnerLoading || !customerHasHydrated;
+  const isLoadingAuth = siteOwnerLoading || !customerHasHydrated;
   
-  useEffect(() => {
-    async function fetchInfo() {
-      setIsSiteInfoLoading(true);
-      if (domain) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id, site_name, site_description')
-          .eq('domain', domain)
-          .single();
-
-        if (profileData) {
-          const { data: settingsData } = await supabase
-            .from('store_settings')
-            .select('logo_type, logo_icon, logo_image_url')
-            .eq('site_id', profileData.id)
-            .single();
-
-          setSiteInfo({
-            name: profileData.site_name || domain,
-            description: profileData.site_description,
-            logoType: settingsData?.logo_type || 'icon',
-            logoIcon: settingsData?.logo_icon || 'Leaf',
-            logoImageUrl: settingsData?.logo_image_url || null
-          });
-
-          const { data: headerLinksData } = await supabase
-            .from('header_links')
-            .select('*')
-            .eq('site_id', profileData.id)
-            .order('order');
-          
-          if (headerLinksData && headerLinksData.length > 0) {
-            setNavLinks(headerLinksData);
-          } else {
-            setNavLinks([
-              { id: '1', site_id: '', label: 'হোম', href: '/', order: 0 },
-              { id: '2', site_id: '', label: 'পণ্য', href: `/products`, order: 1 },
-              { id: '3', site_id: '', label: 'Flash Deals', href: `/flash-deals`, order: 2 },
-              { id: '4', site_id: '', label: 'ট্র্যাক অর্ডার', href: `/track-order`, order: 3 },
-              { id: '5', site_id: '', label: 'আমাদের সম্পর্কে', href: `/about`, order: 4 },
-            ]);
-          }
-        } else {
-          setSiteInfo({ name: domain, description: 'An e-commerce store', logoType: 'icon', logoIcon: 'Leaf', logoImageUrl: null });
-        }
-      } 
-      setIsSiteInfoLoading(false);
-    }
-    fetchInfo();
-  }, [domain]);
-
   const logout = async () => {
     if (currentUser?.type === 'admin') {
       await siteOwnerLogout();
@@ -293,7 +247,7 @@ export default function Header() {
   };
 
   const HeaderLogo = () =>
-    isSiteInfoLoading ? (
+    isSiteInfoLoading || !siteInfo ? (
       <div className="flex items-center gap-3">
         <Skeleton className="h-10 w-10 rounded-full" />
         <div className="space-y-2">
@@ -386,7 +340,7 @@ export default function Header() {
                   })}
                 </nav>
                 <div className="mt-auto pt-6 border-t space-y-4">
-                  {isLoading ? null : !currentUser ? (
+                  {isLoadingAuth ? null : !currentUser ? (
                     <div className="space-y-4">
                         <Link href={'/login'} className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground" onClick={() => setIsSheetOpen(false)}>
                             লগ ইন
@@ -425,7 +379,7 @@ export default function Header() {
               <CustomerNotificationBell />
             </div>
           )}
-          {isLoading ? (
+          {isLoadingAuth ? (
             <Skeleton className="h-10 w-10 rounded-full" />
           ) : currentUser ? (
             <DropdownMenu>

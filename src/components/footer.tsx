@@ -3,13 +3,25 @@
 
 import Link from 'next/link';
 import { Facebook, Twitter, Instagram, Linkedin, Youtube } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
+import type { FooterLinkCategory, SocialLink } from '@/types';
 import DynamicIcon from './dynamic-icon';
 import Image from 'next/image';
 import { Skeleton } from './ui/skeleton';
-import type { FooterLinkCategory, SocialLink } from '@/types';
+
+type SiteInfo = {
+  name: string;
+  description: string | null;
+  logoType: 'icon' | 'image';
+  logoIcon: string;
+  logoImageUrl: string | null;
+} | null;
+
+interface FooterProps {
+    siteInfo: SiteInfo;
+    footerCategories: FooterLinkCategory[];
+    socialLinks: SocialLink[];
+    isLoading: boolean;
+}
 
 const platformIcons = {
     facebook: Facebook,
@@ -22,72 +34,7 @@ const platformIcons = {
     ),
 };
 
-export default function Footer() {
-  const params = useParams();
-  const domain = params.username as string;
-  const [siteInfo, setSiteInfo] = useState<{
-    name: string;
-    description: string | null;
-    logoType: 'icon' | 'image';
-    logoIcon: string;
-    logoImageUrl: string | null;
-  } | null>(null);
-  const [footerCategories, setFooterCategories] = useState<FooterLinkCategory[]>([]);
-  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchInfo() {
-      if (domain) {
-        setIsLoading(true);
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id, site_name, site_description')
-          .eq('domain', domain)
-          .single();
-          
-        if (profileData) {
-          const siteId = profileData.id;
-          const { data: settingsData } = await supabase
-            .from('store_settings')
-            .select('logo_type, logo_icon, logo_image_url')
-            .eq('site_id', siteId)
-            .single();
-
-          setSiteInfo({
-            name: profileData.site_name || domain,
-            description: profileData.site_description,
-            logoType: settingsData?.logo_type || 'icon',
-            logoIcon: settingsData?.logo_icon || 'Leaf',
-            logoImageUrl: settingsData?.logo_image_url || null,
-          });
-
-          const { data: footerCatData } = await supabase
-            .from('footer_link_categories')
-            .select('*, footer_links(*)')
-            .eq('site_id', siteId)
-            .order('order');
-            
-          if (footerCatData) {
-            const categories = footerCatData.map(cat => ({
-                ...cat,
-                links: cat.footer_links.sort((a: any, b: any) => a.order - b.order)
-            }));
-            setFooterCategories(categories as FooterLinkCategory[]);
-          }
-          
-          const { data: socialData } = await supabase.from('social_links').select('*').eq('site_id', siteId);
-          if (socialData) {
-            setSocialLinks(socialData as SocialLink[]);
-          }
-        }
-        setIsLoading(false);
-      } else {
-        setIsLoading(false);
-      }
-    }
-    fetchInfo();
-  }, [domain]);
+export default function Footer({ siteInfo, footerCategories, socialLinks, isLoading }: FooterProps) {
   
   const FooterLogo = () => {
     if (isLoading || !siteInfo) {

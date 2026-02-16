@@ -48,7 +48,6 @@ export const useCustomerAuth = create<CustomerAuthState>()(
             const { customerProfile } = await response.json();
             
             const currentCustomer = get().customer;
-            // Only update state if the customer object has actually changed.
             if (
               currentCustomer &&
               currentCustomer.id === customerProfile.id &&
@@ -60,10 +59,8 @@ export const useCustomerAuth = create<CustomerAuthState>()(
 
             set({ customer: customerProfile });
           } else {
-             const currentCustomer = get().customer;
-             if (currentCustomer) { // Only clear if there was a customer
-                set({ customer: null });
-             }
+            // If the API call fails or returns not-ok, clear the customer state.
+            set({ customer: null });
           }
         } catch (error) {
             console.error("Failed to refresh customer profile:", error);
