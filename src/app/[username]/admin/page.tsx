@@ -6,7 +6,7 @@ import { useAuth } from '@/stores/auth';
 import { supabase } from '@/lib/supabase/client';
 import type { Order, Product } from '@/types';
 import Link from 'next/link';
-import { format, subDays, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import {
   Card,
   CardContent,
