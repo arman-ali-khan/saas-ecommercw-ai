@@ -91,6 +91,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
               product_limit: planDetails.product_limit ?? null,
               customer_limit: planDetails.customer_limit ?? null,
               order_limit: planDetails.order_limit ?? null,
+              subscription_end_date: adminProfile.subscription_end_date,
             };
             set({ user: appUser });
           } else {
@@ -273,6 +274,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
           product_limit: currentUser?.product_limit ?? null,
           customer_limit: currentUser?.customer_limit ?? null,
           order_limit: currentUser?.order_limit ?? null,
+          subscription_end_date: data.subscription_end_date,
         };
         
         set({ user: updatedUser });

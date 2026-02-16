@@ -98,11 +98,12 @@ export interface User {
   subscriptionPlan: string | null;
   role: string | null;
   isSaaSAdmin: boolean;
-  subscription_status: 'active' | 'pending' | 'pending_verification' | 'inactive' | 'canceled' | null;
+  subscription_status: 'active' | 'pending' | 'pending_verification' | 'inactive' | 'canceled' | 'failed' | null;
   last_subscription_from: string | null;
   product_limit: number | null;
   customer_limit: number | null;
   order_limit: number | null;
+  subscription_end_date: string | null;
 }
 
 export interface Plan {

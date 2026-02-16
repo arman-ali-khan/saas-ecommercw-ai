@@ -6,8 +6,9 @@ import AdminBottomNav from '@/components/admin-bottom-nav';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { Terminal, Loader2, AlertCircle } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { differenceInDays, isBefore, format } from 'date-fns';
 
 export default function AdminLayout({
   children,
@@ -20,19 +21,34 @@ export default function AdminLayout({
   const username = params.username as string;
   const { user, loading } = useAuth();
   
-  // Redirect logic in useEffect
   useEffect(() => {
-    // Once loading is complete, and we are not on the login page...
     if (!loading && pathname !== `/admin/login`) {
-        // ...if there's no user or the user's domain doesn't match, redirect.
         if (!user || user.domain !== username) {
             router.replace(`/admin/login`);
         }
     }
   }, [user, loading, username, router, pathname]);
 
-  // Show a full-screen loader while we check auth, unless we are on the login page.
-  // This prevents content flashing before the redirect can happen.
+  const { isSubscriptionExpired, isExpiringSoon, daysRemaining } = useMemo(() => {
+    if (!user?.subscription_end_date) {
+        return { isSubscriptionExpired: false, isExpiringSoon: false, daysRemaining: null };
+    }
+    const now = new Date();
+    const endDate = new Date(user.subscription_end_date);
+    const expired = isBefore(endDate, now);
+    const remaining = differenceInDays(endDate, now);
+    const expiring = !expired && remaining >= 0 && remaining <= 10;
+
+    return { isSubscriptionExpired: expired, isExpiringSoon: expiring, daysRemaining: remaining };
+  }, [user?.subscription_end_date]);
+
+  const isPendingFromRegistration = user?.subscription_status === 'pending_verification' && user?.last_subscription_from === 'get-started';
+  const isFailed = user?.subscription_status === 'failed';
+  const isPending = (user?.subscription_status === 'pending' || isPendingFromRegistration || isFailed);
+  const isBlocked = user?.subscription_status === 'inactive';
+  
+  const isContentDisabled = isPending || isBlocked || isSubscriptionExpired;
+
   if (pathname !== `/admin/login` && (loading || !user || user.domain !== username)) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
@@ -41,18 +57,10 @@ export default function AdminLayout({
     );
   }
   
-  // On the login page itself, we just render the page component,
-  // which will handle its own logic (e.g., redirecting if already logged in).
   if (pathname === `/admin/login`) {
     return <>{children}</>;
   }
   
-  // If we've reached this point, the user is authenticated for this admin area.
-  const isPendingFromRegistration = user?.subscription_status === 'pending_verification' && user?.last_subscription_from === 'get-started';
-  const isFailed = user?.subscription_status === 'failed';
-  const isPending = (user?.subscription_status === 'pending' || isPendingFromRegistration || isFailed);
-
-
   return (
     <div className="fixed inset-0 bg-background z-50">
       <div className="grid w-full h-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -67,7 +75,35 @@ export default function AdminLayout({
                 </AlertDescription>
             </Alert>
           )}
-          <fieldset disabled={isPending}>
+          {isBlocked && (
+             <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Account Blocked</AlertTitle>
+                <AlertDescription>
+                  Your account has been blocked. Please contact support for assistance.
+                </AlertDescription>
+            </Alert>
+          )}
+           {isSubscriptionExpired && !isBlocked && (
+             <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Subscription Expired</AlertTitle>
+                <AlertDescription>
+                  Your subscription ended on {user?.subscription_end_date ? format(new Date(user.subscription_end_date), 'PP') : 'N/A'}. 
+                  Please renew your plan to continue using all features.
+                </AlertDescription>
+            </Alert>
+          )}
+          {isExpiringSoon && !isSubscriptionExpired && !isBlocked && (
+             <Alert className="mb-6 border-amber-500 text-amber-500 [&>svg]:text-amber-500">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Subscription Expiring Soon</AlertTitle>
+                <AlertDescription>
+                  Your subscription will expire in {daysRemaining} day(s). Renew now to avoid any disruption.
+                </AlertDescription>
+            </Alert>
+          )}
+          <fieldset disabled={isContentDisabled}>
             {children}
           </fieldset>
         </main>

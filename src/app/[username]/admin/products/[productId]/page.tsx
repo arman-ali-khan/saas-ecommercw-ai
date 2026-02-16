@@ -29,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, Calendar as CalendarIcon, PackageCheck } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, Calendar as CalendarIcon, PackageCheck, Ban } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -47,7 +47,7 @@ import RichTextEditor from '@/components/rich-text-editor';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, isBefore } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -144,6 +144,13 @@ export default function ManageProductPage() {
   const isSubscriptionPending =
     user?.subscription_status === 'pending' ||
     user?.subscription_status === 'pending_verification';
+
+  const isSubscriptionExpired = useMemo(() => {
+    if (!user?.subscription_end_date) return false;
+    const now = new Date();
+    const endDate = new Date(user.subscription_end_date);
+    return isBefore(endDate, now);
+  }, [user?.subscription_end_date]);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -515,7 +522,7 @@ export default function ManageProductPage() {
   const productLimit = user?.product_limit;
   const isLimitReached = productLimit !== null && productCount >= productLimit;
   
-  if (isNew && isLimitReached) {
+  if (isNew && isLimitReached && !isSubscriptionExpired) {
     return (
         <div>
             <Button variant="ghost" asChild className="mb-4 -ml-4">
@@ -537,9 +544,32 @@ export default function ManageProductPage() {
         </div>
     )
   }
+
+  if (isNew && isSubscriptionExpired) {
+    return (
+        <div>
+            <Button variant="ghost" asChild className="mb-4 -ml-4">
+                <Link href={`/admin/products`}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Products
+                </Link>
+            </Button>
+            <Alert variant="destructive">
+                <Ban className="h-4 w-4" />
+                <AlertTitle>Subscription Expired</AlertTitle>
+                <AlertDescription>
+                    Your subscription has expired. You cannot create new products. Please renew your subscription to add more.
+                    <Button asChild className="mt-4 block w-fit">
+                        <Link href="/admin/settings">Manage Subscription</Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        </div>
+    )
+  }
   
   const isButtonDisabled = isNew 
-    ? isSubmitting || isSubscriptionPending || slugStatus !== 'available' || isLimitReached
+    ? isSubmitting || isSubscriptionPending || slugStatus !== 'available' || isLimitReached || isSubscriptionExpired
     : isSubmitting || isSubscriptionPending;
 
   return (
@@ -965,5 +995,3 @@ export default function ManageProductPage() {
     </div>
   );
 }
-
-    

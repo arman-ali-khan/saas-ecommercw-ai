@@ -135,6 +135,12 @@ export default function CustomerLoginPage() {
               সাইন আপ
             </Link>
           </div>
+          <div className="mt-6 text-center text-sm">
+            এডমিন লগইন{' '}
+            <Link href={`/admin/login`} className="font-medium text-primary hover:underline">
+              Admin
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
