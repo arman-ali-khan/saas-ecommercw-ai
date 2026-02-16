@@ -28,6 +28,7 @@ import {
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
@@ -54,46 +55,54 @@ export default function LoginPage() {
     },
   });
 
-  // This effect handles redirection after login
+  // This effect handles redirection if a user is already logged in
   useEffect(() => {
-    // Wait until loading is false and user is populated
     if (!loading && user) {
-      if (user.isSaaSAdmin) {
-        toast({ title: 'Admin login successful' });
-        // Use full page reload to prevent race condition with layout auth check
-        window.location.href = '/dashboard';
-      } else if (user.domain) {
-        toast({
-          title: 'লগইন সফল',
-          description: `আবারও স্বাগতম, ${user.email}!`,
-        });
-        // Redirect to the user's subdomain
-        if (hostname) {
-          const rootDomain = hostname.split('.').slice(-2).join('.');
-          window.location.href = `${window.location.protocol}//${user.domain}.${rootDomain}/admin`;
+        if (user.isSaaSAdmin) {
+            window.location.href = '/dashboard';
+        } else if (user.domain && hostname) {
+            const rootDomain = hostname.split('.').slice(-2).join('.');
+            window.location.href = `${window.location.protocol}//${user.domain}.${rootDomain}/admin`;
         }
-      }
     }
-  }, [user, loading, router, toast, hostname]);
+  }, [user, loading, hostname]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    const { error } = await saasLogin(values.email, values.password);
-    setIsLoading(false);
+    const { user, error } = await saasLogin(values.email, values.password);
 
-    // On success, the useEffect above will handle the redirect.
-    // We only need to handle the error case here.
-    if (error) {
+    if (error || !user) {
+      setIsLoading(false);
       toast({
         variant: 'destructive',
         title: 'লগইন ব্যর্থ',
         description: error || 'অবৈধ ইমেল বা পাসওয়ার্ড।',
       });
+      return;
+    }
+
+    toast({ title: 'Login Successful!' });
+    
+    // Redirect logic is now handled directly here
+    const role = user.user_metadata?.role;
+    if (role === 'saas_admin') {
+      window.location.href = '/dashboard';
+    } else if (role === 'admin') {
+      const { data: profileData } = await supabase.from('profiles').select('domain').eq('id', user.id).single();
+      if (profileData?.domain && hostname) {
+        const rootDomain = hostname.split('.').slice(-2).join('.');
+        window.location.href = `${window.location.protocol}//${profileData.domain}.${rootDomain}/admin`;
+      } else {
+        setIsLoading(false);
+        toast({ variant: 'destructive', title: 'Redirect Failed', description: 'Could not determine your store domain.' });
+      }
+    } else {
+      setIsLoading(false);
+      toast({ variant: 'destructive', title: 'Login Failed', description: 'Invalid user role for this login page.' });
     }
   }
 
-  // Show a loader if the auth state is loading, or if a user is already
-  // logged in (and we're waiting for the redirect effect to fire).
+  // Show a loader if auth state is loading or a user is logged in (and we're about to redirect).
   if (loading || user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">

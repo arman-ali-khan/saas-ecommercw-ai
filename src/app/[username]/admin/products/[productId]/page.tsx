@@ -434,7 +434,11 @@ export default function ManageProductPage() {
 
   const handleSetFeatured = (fromIndex: number) => {
     if (fromIndex === 0) return;
-    move(fromIndex, 0);
+    const images = form.getValues('images');
+    const newImages = [...images];
+    const [movedItem] = newImages.splice(fromIndex, 1);
+    newImages.unshift(movedItem);
+    form.setValue('images', newImages, { shouldDirty: true, shouldValidate: true });
   };
 
   const handleImageUpload = (result: any) => {

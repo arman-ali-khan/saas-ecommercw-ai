@@ -74,9 +74,9 @@ export default function AdminLoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     const { error } = await storeLogin(values.email, values.password, username);
-    setIsSubmitting(false);
 
     if (error) {
+      setIsSubmitting(false);
       toast({
         variant: 'destructive',
         title: 'Login Failed',
@@ -84,14 +84,13 @@ export default function AdminLoginPage() {
       });
       return;
     }
-
-    // On success, don't do anything here. The AuthProvider's onAuthStateChange
-    // will handle fetching the profile and setting the user state.
-    // The useEffect hook will then handle the redirect.
+    
     toast({
       title: 'Login Successful!',
       description: 'Redirecting to your dashboard...',
     });
+    // Use a full page reload to ensure auth state is fully propagated.
+    window.location.pathname = '/admin';
   }
 
   // Show a full-screen loader while we are verifying if a user is already logged in or needs redirecting.
