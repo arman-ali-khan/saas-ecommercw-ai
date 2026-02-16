@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -59,7 +60,8 @@ export default function LoginPage() {
     if (!loading && user) {
       if (user.isSaaSAdmin) {
         toast({ title: 'Admin login successful' });
-        router.push('/dashboard');
+        // Use full page reload to prevent race condition with layout auth check
+        window.location.href = '/dashboard';
       } else if (user.domain) {
         toast({
           title: 'লগইন সফল',
