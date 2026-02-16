@@ -6,7 +6,7 @@ import { useAuth } from '@/stores/auth';
 import { supabase } from '@/lib/supabase/client';
 import type { Order, Product } from '@/types';
 import Link from 'next/link';
-import { format, subDays, startOfMonth, endOfMonth, subMonths, isWithinInterval } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import {
   Card,
   CardContent,
@@ -96,7 +96,8 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (!user) return;
+    const siteId = user?.id;
+    if (!siteId) return;
 
     const fetchData = async () => {
       setIsLoading(true);
@@ -106,10 +107,10 @@ export default function AdminDashboard() {
 
 
       // Fetch all orders once
-      const ordersPromise = supabase.from('orders').select('total, status, created_at, payment_method, shipping_info, order_number, id').eq('site_id', user.id);
-      const productsPromise = supabase.from('products').select('*', { count: 'exact' }).eq('site_id', user.id);
-      const uncompletedPromise = supabase.from('uncompleted_orders').select('*', { count: 'exact' }).eq('site_id', user.id);
-      const customersPromise = supabase.from('customer_profiles').select('*', { count: 'exact', head: true }).eq('site_id', user.id);
+      const ordersPromise = supabase.from('orders').select('total, status, created_at, payment_method, shipping_info, order_number, id').eq('site_id', siteId);
+      const productsPromise = supabase.from('products').select('*', { count: 'exact' }).eq('site_id', siteId);
+      const uncompletedPromise = supabase.from('uncompleted_orders').select('*', { count: 'exact' }).eq('site_id', siteId);
+      const customersPromise = supabase.from('customer_profiles').select('*', { count: 'exact', head: true }).eq('site_id', siteId);
 
       const [
         { data: allOrders, error: ordersError },
@@ -210,7 +211,7 @@ export default function AdminDashboard() {
     };
 
     fetchData();
-  }, [user, selectedMonth]);
+  }, [user?.id, selectedMonth]);
 
   const StatCard = ({ title, value, icon: Icon, isLoading, description }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean, description?: string }) => (
     <Card>
@@ -549,3 +550,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+    

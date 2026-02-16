@@ -63,21 +63,22 @@ export default function AdminSidebar() {
   } | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    const siteId = user?.id;
+    if (!siteId) return;
 
     const fetchAllData = async () => {
       // Fetch counts
       const { count: orderCount } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
-        .eq('site_id', user.id)
+        .eq('site_id', siteId)
         .eq('status', 'approved');
       setProcessingOrdersCount(orderCount || 0);
       
       const { count: notifCount } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
-        .eq('recipient_id', user.id)
+        .eq('recipient_id', siteId)
         .eq('recipient_type', 'admin')
         .eq('is_read', false);
       setUnreadNotificationsCount(notifCount || 0);
@@ -85,7 +86,7 @@ export default function AdminSidebar() {
       const { data: convosWithUnread } = await supabase
         .from('live_chat_messages')
         .select('conversation_id')
-        .eq('site_id', user.id)
+        .eq('site_id', siteId)
         .eq('is_read', false)
         .eq('sender_type', 'customer');
         
@@ -99,20 +100,20 @@ export default function AdminSidebar() {
       const { count: uncompletedCount } = await supabase
         .from('uncompleted_orders')
         .select('*', { count: 'exact', head: true })
-        .eq('site_id', user.id)
+        .eq('site_id', siteId)
         .eq('is_viewed', false);
       setUnviewedUncompletedCount(uncompletedCount || 0);
 
       const { count: customerCount } = await supabase
         .from('customer_profiles')
         .select('*', { count: 'exact', head: true })
-        .eq('site_id', user.id);
+        .eq('site_id', siteId);
       setTotalCustomersCount(customerCount || 0);
 
       const { count: reviewCount } = await supabase
         .from('product_reviews')
         .select('*', { count: 'exact', head: true })
-        .eq('site_id', user.id)
+        .eq('site_id', siteId)
         .eq('is_approved', false);
       setPendingReviewsCount(reviewCount || 0);
 
@@ -120,7 +121,7 @@ export default function AdminSidebar() {
       const { data: settingsData } = await supabase
         .from('store_settings')
         .select('logo_type, logo_icon, logo_image_url, language')
-        .eq('site_id', user.id)
+        .eq('site_id', siteId)
         .single();
       if (settingsData) {
         setSiteSettings(settingsData);
@@ -128,7 +129,7 @@ export default function AdminSidebar() {
     };
     
     fetchAllData();
-  }, [user]);
+  }, [user?.id]);
 
   const handleLogout = async () => {
     try {
@@ -330,3 +331,5 @@ export default function AdminSidebar() {
     </div>
   );
 }
+
+    
