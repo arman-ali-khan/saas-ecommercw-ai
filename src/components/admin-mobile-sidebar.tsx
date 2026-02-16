@@ -23,6 +23,7 @@ import {
   ChevronDown,
   Sparkles,
   Palette,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -51,6 +52,7 @@ export default function AdminMobileSidebar() {
   const [unviewedUncompletedCount, setUnviewedUncompletedCount] = useState(0);
   const [totalCustomersCount, setTotalCustomersCount] = useState(0);
   const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
+  const [pendingQnaCount, setPendingQnaCount] = useState(0);
   const [siteSettings, setSiteSettings] = useState<{
     logo_type?: 'icon' | 'image';
     logo_icon?: string;
@@ -98,6 +100,13 @@ export default function AdminMobileSidebar() {
         .eq('site_id', siteId)
         .eq('is_approved', false);
       setPendingReviewsCount(reviewCount || 0);
+      
+      const { count: qnaCount } = await supabase
+        .from('product_qna')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', siteId)
+        .eq('is_approved', false);
+      setPendingQnaCount(qnaCount || 0);
 
       // Fetch site settings
       const { data: settingsData } = await supabase
@@ -159,6 +168,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/admin/reviews`, label: 'Reviews', icon: Star, count: pendingReviewsCount },
+    { href: `/admin/qna`, label: 'Q&A', icon: HelpCircle, count: pendingQnaCount },
     { href: `/admin/features`, label: 'Store Features', icon: Sparkles },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: unviewedUncompletedCount },
@@ -255,7 +265,7 @@ export default function AdminMobileSidebar() {
               </CollapsibleContent>
             </Collapsible>
             
-            {adminNavLinks.slice(3, 13).map((link) => (
+            {adminNavLinks.slice(3, 14).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 
@@ -283,7 +293,7 @@ export default function AdminMobileSidebar() {
               </CollapsibleContent>
             </Collapsible>
 
-            {adminNavLinks.slice(13).map((link) => (
+            {adminNavLinks.slice(14).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 

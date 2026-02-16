@@ -42,6 +42,20 @@ export interface ProductReview {
     is_approved: boolean;
 }
 
+export interface ProductQna {
+  id: string;
+  created_at: string;
+  site_id: string;
+  product_id: string;
+  customer_id?: string | null;
+  customer_name: string;
+  question: string;
+  answer?: string | null;
+  is_approved: boolean;
+  answerer_name?: string | null;
+  products?: { name: string, images: { imageUrl: string }[] } | null;
+}
+
 export interface CartItem extends Product {
   quantity: number;
 }

@@ -1,6 +1,5 @@
-
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,10 +23,11 @@ import {
   Star,
   CheckCircle,
   Loader2,
+  HelpCircle,
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
-import type { Product, FlashDeal, ProductReview } from '@/types';
+import type { Product, FlashDeal, ProductReview, ProductQna } from '@/types';
 import { cn } from '@/lib/utils';
 import RichTextRenderer from '@/components/saas-page-renderer';
 import { supabase } from '@/lib/supabase/client';
@@ -43,6 +43,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import Link from 'next/link';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const TikTokIcon = () => (
   <svg
@@ -143,6 +144,77 @@ const ReviewForm = ({ product, onReviewSubmitted }: { product: Product, onReview
     );
 };
 
+const qnaSchema = z.object({
+  question: z.string().min(10, { message: 'Question must be at least 10 characters.' }),
+});
+
+type QnaFormData = z.infer<typeof qnaSchema>;
+
+const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestionSubmitted: () => void }) => {
+    const { customer } = useCustomerAuth();
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const form = useForm<QnaFormData>({
+        resolver: zodResolver(qnaSchema),
+        defaultValues: { question: '' },
+    });
+
+    if (!customer) {
+        return <p className="text-sm text-muted-foreground mt-8 text-center">Please <Link href="/login" className="underline font-semibold">log in</Link> to ask a question.</p>;
+    }
+
+    const onSubmit = async (data: QnaFormData) => {
+        setIsSubmitting(true);
+        const { error } = await supabase.from('product_qna').insert({
+            site_id: product.site_id,
+            product_id: product.id,
+            customer_id: customer.id,
+            customer_name: customer.full_name,
+            question: data.question,
+        });
+
+        if (error) {
+            toast({ variant: 'destructive', title: 'Failed to submit question', description: error.message });
+        } else {
+            toast({ title: 'Question submitted!', description: 'Your question will be visible once it has been answered.' });
+            form.reset();
+            onQuestionSubmitted();
+        }
+        setIsSubmitting(false);
+    };
+    
+    return (
+         <Card className="mt-8">
+            <CardHeader>
+                <h4 className="font-semibold text-lg">প্রশ্ন করুন</h4>
+            </CardHeader>
+            <CardContent>
+                 <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="question"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                    <Textarea {...field} placeholder="এই পণ্য সম্পর্কে আপনার প্রশ্ন এখানে লিখুন..." rows={3} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            প্রশ্ন জমা দিন
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    )
+}
+
 export default function ProductClientPage({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -156,7 +228,10 @@ export default function ProductClientPage({ product }: { product: Product }) {
   const [shareUrl, setShareUrl] = useState('');
   const [flashDeal, setFlashDeal] = useState<FlashDeal | null>(null);
   const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [qna, setQna] = useState<ProductQna[]>([]);
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  const [isLoadingQna, setIsLoadingQna] = useState(true);
+  const [qnaSearch, setQnaSearch] = useState('');
 
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLoadingRelated, setIsLoadingRelated] = useState(true);
@@ -175,6 +250,22 @@ export default function ProductClientPage({ product }: { product: Product }) {
       setReviews(data as ProductReview[]);
     }
     setIsLoadingReviews(false);
+  }, [product.id]);
+  
+  const fetchQna = useCallback(async () => {
+    setIsLoadingQna(true);
+    const { data, error } = await supabase
+        .from('product_qna')
+        .select('*')
+        .eq('product_id', product.id)
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false });
+    if (error) {
+        console.error("Error fetching Q&A:", error);
+    } else {
+        setQna(data as ProductQna[]);
+    }
+    setIsLoadingQna(false);
   }, [product.id]);
 
   useEffect(() => {
@@ -219,7 +310,8 @@ export default function ProductClientPage({ product }: { product: Product }) {
     fetchFlashDeal();
     fetchRelatedProducts();
     fetchReviews();
-  }, [product.id, product.categories, product.site_id, fetchReviews]);
+    fetchQna();
+  }, [product.id, product.categories, product.site_id, fetchReviews, fetchQna]);
 
   const onThumbClick = useCallback(
     (index: number) => {
@@ -277,6 +369,12 @@ export default function ProductClientPage({ product }: { product: Product }) {
   const shareText = `বাংলা ন্যাচারালস থেকে ${product.name} দেখুন!`;
   const images = product.images || [];
   const displayPrice = flashDeal ? flashDeal.discount_price : product.price;
+
+  const filteredQna = useMemo(() => 
+    qna.filter(item => 
+        item.question.toLowerCase().includes(qnaSearch.toLowerCase()) ||
+        item.answer?.toLowerCase().includes(qnaSearch.toLowerCase())
+    ), [qna, qnaSearch]);
 
   return (
     <div>
@@ -490,6 +588,45 @@ export default function ProductClientPage({ product }: { product: Product }) {
         </div>
 
         <div className="mt-16">
+            <h2 className="text-3xl font-headline font-bold mb-8">প্রশ্ন ও উত্তর</h2>
+            {isLoadingQna ? <Skeleton className="h-60 w-full" /> : (
+                <>
+                    <Input 
+                        placeholder="প্রশ্ন বা উত্তর খুঁজুন..." 
+                        value={qnaSearch}
+                        onChange={(e) => setQnaSearch(e.target.value)}
+                        className="mb-6"
+                    />
+                    {filteredQna.length > 0 ? (
+                        <Accordion type="single" collapsible className="w-full space-y-4">
+                            {filteredQna.map(item => (
+                                <AccordionItem value={item.id} key={item.id} className="border rounded-lg bg-muted/20">
+                                    <AccordionTrigger className="text-left font-semibold p-4 hover:no-underline">
+                                        <div className="flex items-start gap-3">
+                                            <div className="bg-background rounded-full p-2 mt-1">
+                                                <HelpCircle className="h-5 w-5 text-primary"/>
+                                            </div>
+                                            <div>
+                                                {item.question}
+                                                <p className="text-xs text-muted-foreground font-normal mt-1">Asked by {item.customer_name}</p>
+                                            </div>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="p-4 pt-0 pl-14">
+                                        <p className="text-foreground/80">{item.answer}</p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
+                    ) : (
+                        <p className="text-muted-foreground text-center py-8">এই পণ্যের জন্য এখনও কোনো প্রশ্ন জিজ্ঞাসা করা হয়নি।</p>
+                    )}
+                </>
+            )}
+            <QnaForm product={product} onQuestionSubmitted={fetchQna} />
+        </div>
+
+        <div className="mt-16">
             <h2 className="text-3xl font-headline font-bold mb-8">Related Products</h2>
             {isLoadingRelated ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
@@ -523,5 +660,3 @@ export default function ProductClientPage({ product }: { product: Product }) {
     </div>
   );
 }
-
-    
