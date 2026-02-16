@@ -8,6 +8,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import CustomTopLoader from '@/components/custom-top-loader';
 import { allFontVariables } from '@/lib/fonts';
+import { Analytics } from "@vercel/analytics/next"
  
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = cookies();
@@ -64,6 +65,7 @@ export default async function RootLayout({
       <head />
       <body className="font-body antialiased bg-background text-foreground">
         <CustomTopLoader />
+        <Analytics/>
         <AuthProvider>
           <SiteLayout>{children}</SiteLayout>
         </AuthProvider>
