@@ -1,4 +1,3 @@
-
 'use client';
 
 import { create } from 'zustand';
@@ -43,25 +42,35 @@ export const useCustomerAuth = create<CustomerAuthState>()(
 
       refreshCustomer: async () => {
         try {
-          const response = await fetch('/api/auth/get-customer');
-          if (response.ok) {
-            const { customerProfile } = await response.json();
-            
-            const currentCustomer = get().customer;
-            if (
-              currentCustomer &&
-              currentCustomer.id === customerProfile.id &&
-              currentCustomer.full_name === customerProfile.full_name &&
-              currentCustomer.email === customerProfile.email
-            ) {
-              return;
-            }
-
-            set({ customer: customerProfile });
-          } else {
-            // If the API call fails or returns not-ok, clear the customer state.
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user) {
             set({ customer: null });
+            return;
           }
+
+          const { data: customerProfile, error: profileError } = await supabase
+              .from('customer_profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+          if (profileError || !customerProfile) {
+              console.error("Failed to refresh customer profile:", profileError);
+              set({ customer: null });
+              return;
+          }
+            
+          const currentCustomer = get().customer;
+          if (
+            currentCustomer &&
+            currentCustomer.id === customerProfile.id &&
+            currentCustomer.full_name === customerProfile.full_name &&
+            currentCustomer.email === customerProfile.email
+          ) {
+            return;
+          }
+
+          set({ customer: customerProfile });
         } catch (error) {
             console.error("Failed to refresh customer profile:", error);
             set({ customer: null });
