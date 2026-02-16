@@ -78,20 +78,8 @@ export default function LiveQuestionsAdminPage() {
           table: 'live_chat_messages',
           filter: `site_id=eq.${user.id}`,
         },
-        (payload) => {
-            const newMessage = payload.new as LiveChatMessage;
-            setMessagesByConversation(prevMap => {
-                const newMap = new Map(prevMap);
-                const conversation = newMap.get(newMessage.conversation_id) || [];
-                
-                if (conversation.some(msg => msg.id === newMessage.id)) {
-                    return prevMap;
-                }
-                
-                const updatedConversation = [...conversation, newMessage];
-                newMap.set(newMessage.conversation_id, updatedConversation);
-                return newMap;
-            });
+        () => {
+            fetchAndGroupMessages(false);
         }
       )
       .subscribe();

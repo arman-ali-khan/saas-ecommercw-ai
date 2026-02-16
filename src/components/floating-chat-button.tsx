@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -212,19 +213,9 @@ export default function FloatingChatButton() {
           }]);
         }
     }
-
-    if (!isOpen) {
-        const { count } = await supabase
-            .from('live_chat_messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', conversationId)
-            .eq('sender_type', 'agent')
-            .eq('is_read', false);
-        setUnreadCount(count || 0);
-    }
     
     if (isInitialLoad) setIsLoading(false);
-  }, [conversationId, siteId, siteName, isOpen]);
+  }, [conversationId, siteId, siteName]);
 
 
   useEffect(() => {
@@ -276,11 +267,14 @@ export default function FloatingChatButton() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'live_chat_messages', filter: `conversation_id=eq.${conversationId}`},
-        () => fetchChatData()
+        (payload) => {
+            const newMessage = payload.new as LiveChatMessage;
+            setChatMessages((prev) => [...prev, newMessage]);
+        }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [conversationId, fetchChatData]);
+  }, [conversationId]);
 
   useEffect(() => {
     if (isOpen) {
