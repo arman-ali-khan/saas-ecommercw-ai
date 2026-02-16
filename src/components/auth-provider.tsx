@@ -24,20 +24,23 @@ export default function AuthProvider({
       if (session?.user) {
         const role = session.user.user_metadata?.role;
         
-        // This logic determines which user profile to refresh based on the role
-        // in the session. We avoid resetting the state to null prematurely, which
-        // was causing the component tree to unmount and remount on tab focus.
         if (role === 'admin' || role === 'saas_admin') {
           await refreshUser();
+          setCustomer(null); // Ensure other user type is cleared
         } else if (role === 'customer') {
           await refreshCustomer();
+          setUser(null); // Ensure other user type is cleared
+        } else {
+          // If role is unknown, clear everything
+          setUser(null);
+          setCustomer(null);
         }
       } else {
         // No session, user is logged out, clear both user states.
         setUser(null);
         setCustomer(null);
       }
-      setLoading(false);
+      setLoading(false); // Set loading to false only after all async operations are complete
     });
 
     return () => {
