@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '@/lib/supabase/client';
@@ -12,8 +13,10 @@ interface CustomerUser {
 
 interface CustomerAuthState {
   customer: CustomerUser | null;
+  loading: boolean;
   _hasHydrated: boolean; 
   setHasHydrated: (state: boolean) => void; 
+  setCustomerLoading: (loading: boolean) => void;
   customerLogin: (email: string, password: string) => Promise<{ error: { message: string } | null }>;
   refreshCustomer: () => Promise<void>;
   customerLogout: () => Promise<void>;
@@ -24,9 +27,11 @@ export const useCustomerAuth = create<CustomerAuthState>()(
   persist(
     (set, get) => ({
       customer: null,
+      loading: true,
       _hasHydrated: false,
 
       setHasHydrated: (state: boolean) => set({ _hasHydrated: state }),
+      setCustomerLoading: (loading) => set({ loading }),
 
       customerLogin: async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });

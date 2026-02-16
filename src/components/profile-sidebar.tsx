@@ -19,7 +19,7 @@ import { Badge } from './ui/badge';
 
 export default function ProfileSidebar() {
   const pathname = usePathname();
-  const { customer:user, _hasHydrated } = useCustomerAuth();
+  const { customer:user, loading: customerLoading } = useCustomerAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchCount = useCallback(async () => {
@@ -40,12 +40,12 @@ export default function ProfileSidebar() {
   }, [user]);
 
   useEffect(() => {
-    if (_hasHydrated && user) {
+    if (!customerLoading && user) {
         fetchCount();
     }
-  }, [user, _hasHydrated, fetchCount]);
+  }, [user, customerLoading, fetchCount]);
 
-  if (!_hasHydrated || !user) {
+  if (customerLoading || !user) {
     return null;
   }
   

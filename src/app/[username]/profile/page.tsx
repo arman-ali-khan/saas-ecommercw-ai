@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -31,7 +32,7 @@ const StatCard = ({ title, value, icon: Icon, isLoading }: { title: string, valu
 );
 
 export default function ProfilePage() {
-  const { customer: user, customerLogout, _hasHydrated } = useCustomerAuth();
+  const { customer: user, customerLogout, loading: customerLoading } = useCustomerAuth();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -39,7 +40,7 @@ export default function ProfilePage() {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   useEffect(() => {
-    if (_hasHydrated && user) {
+    if (!customerLoading && user) {
         setIsLoadingStats(true);
         supabase.from('orders').select('*').eq('customer_id', user.id)
             .then(({ data, error }) => {
@@ -50,8 +51,10 @@ export default function ProfilePage() {
                 }
                 setIsLoadingStats(false);
             });
+    } else if (!customerLoading && !user) {
+        setIsLoadingStats(false);
     }
-  }, [user, _hasHydrated, toast]);
+  }, [user, customerLoading, toast]);
 
   const stats = useMemo(() => {
     const totalSpent = orders.reduce((acc, order) => acc + (order.status !== 'canceled' ? order.total : 0), 0);

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,7 +11,7 @@ import ProfileAddressForm, { type AddressFormData } from '@/components/profile-a
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function EditAddressPage() {
-    const { customer, _hasHydrated } = useCustomerAuth();
+    const { customer, loading: customerLoading } = useCustomerAuth();
     const router = useRouter();
     const params = useParams();
     const { toast } = useToast();
@@ -42,12 +43,12 @@ export default function EditAddressPage() {
     }, [customer, addressId, toast, router]);
 
     useEffect(() => {
-        if (_hasHydrated && customer) {
+        if (!customerLoading && customer) {
             fetchData();
-        } else if (_hasHydrated && !customer) {
+        } else if (!customerLoading && !customer) {
             router.push('/login');
         }
-    }, [customer, _hasHydrated, fetchData, router]);
+    }, [customer, customerLoading, fetchData, router]);
 
     const onSubmit = async (data: AddressFormData) => {
         if (!customer || !initialData) return;

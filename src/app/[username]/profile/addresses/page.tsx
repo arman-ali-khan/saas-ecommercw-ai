@@ -1,3 +1,4 @@
+
 'use client';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +26,7 @@ import type { Address } from '@/types';
 
 
 export default function AddressesPage() {
-    const { customer, _hasHydrated } = useCustomerAuth();
+    const { customer, loading: customerLoading } = useCustomerAuth();
     const { toast } = useToast();
     const [addresses, setAddresses] = useState<Address[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -50,12 +51,12 @@ export default function AddressesPage() {
     }, [customer, toast]);
 
     useEffect(() => {
-        if(_hasHydrated && customer) {
+        if(!customerLoading && customer) {
             fetchAddresses();
-        } else if (_hasHydrated && !customer) {
+        } else if (!customerLoading && !customer) {
             setIsLoading(false);
         }
-    }, [customer, _hasHydrated, fetchAddresses]);
+    }, [customer, customerLoading, fetchAddresses]);
     
     const openDeleteAlert = (address: Address) => {
         setAddressToDelete(address);
@@ -83,7 +84,7 @@ export default function AddressesPage() {
     return <Building className="h-5 w-5 text-muted-foreground" />;
   }
   
-   if (isLoading) {
+   if (isLoading || customerLoading) {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">

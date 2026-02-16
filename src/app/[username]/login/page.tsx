@@ -35,7 +35,7 @@ const formSchema = z.object({
 });
 
 export default function CustomerLoginPage() {
-  const { customerLogin, customer, _hasHydrated } = useCustomerAuth();
+  const { customerLogin, customer, loading } = useCustomerAuth();
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;
@@ -53,10 +53,10 @@ export default function CustomerLoginPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (_hasHydrated && customer) {
+    if (!loading && customer) {
       router.push(`/profile`);
     }
-  }, [customer, router, _hasHydrated, username]);
+  }, [customer, router, loading, username]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -78,7 +78,7 @@ export default function CustomerLoginPage() {
     }
   }
 
-  if (!_hasHydrated || customer) {
+  if (loading || customer) {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />

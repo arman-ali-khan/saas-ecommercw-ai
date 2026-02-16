@@ -23,7 +23,7 @@ import { supabase } from '@/lib/supabase/client';
 
 
 export default function CustomerNotificationsPage() {
-  const { customer, _hasHydrated } = useCustomerAuth();
+  const { customer, loading: customerLoading } = useCustomerAuth();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,12 +56,12 @@ export default function CustomerNotificationsPage() {
 
 
   useEffect(() => {
-    if (_hasHydrated && customer) {
+    if (!customerLoading && customer) {
       fetchNotifications();
-    } else if (_hasHydrated && !customer) {
+    } else if (!customerLoading && !customer) {
       setIsLoading(false);
     }
-  }, [customer, _hasHydrated, fetchNotifications]);
+  }, [customer, customerLoading, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     if (!customer) return;
@@ -87,7 +87,7 @@ export default function CustomerNotificationsPage() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || customerLoading) {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">

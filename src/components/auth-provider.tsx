@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -12,10 +13,11 @@ export default function AuthProvider({
   children: React.ReactNode;
 }) {
   const { setUser, setSession, setLoading, refreshUser } = useAuth();
-  const { setCustomer, refreshCustomer } = useCustomerAuth();
+  const { setCustomer, refreshCustomer, setCustomerLoading } = useCustomerAuth();
 
   useEffect(() => {
     setLoading(true);
+    setCustomerLoading(true);
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session: Session | null) => {
@@ -41,12 +43,13 @@ export default function AuthProvider({
         setCustomer(null);
       }
       setLoading(false); // Set loading to false only after all async operations are complete
+      setCustomerLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [setUser, setSession, setLoading, refreshUser, setCustomer, refreshCustomer]);
+  }, [setUser, setSession, setLoading, refreshUser, setCustomer, refreshCustomer, setCustomerLoading]);
 
   return <>{children}</>;
 }

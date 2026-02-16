@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -31,7 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Eye, XCircle, Loader2 } from 'lucide-react';
 
 export default function OrdersPage() {
-    const { customer, _hasHydrated } = useCustomerAuth();
+    const { customer, loading: customerLoading } = useCustomerAuth();
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -58,10 +59,12 @@ export default function OrdersPage() {
     }, [customer, toast]);
 
     useEffect(() => {
-        if (_hasHydrated) {
+        if (!customerLoading && customer) {
             fetchOrders();
+        } else if (!customerLoading && !customer) {
+            setIsLoading(false);
         }
-    }, [_hasHydrated, fetchOrders]);
+    }, [customer, customerLoading, fetchOrders]);
     
     const translateStatus = (status: string): string => {
         switch (status.toLowerCase()) {
@@ -109,7 +112,7 @@ export default function OrdersPage() {
         }
     };
     
-    if (isLoading || !_hasHydrated) {
+    if (isLoading || customerLoading) {
         return (
             <Card>
                 <CardHeader>
