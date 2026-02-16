@@ -41,7 +41,7 @@ export default function CustomerLoginPage() {
   const username = params.username as string;
   const { toast } = useToast();
   
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,14 +54,14 @@ export default function CustomerLoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && customer) {
-      router.push(`/profile`);
+      window.location.pathname = `/profile`;
     }
   }, [customer, router, loading, username]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
+    setIsSubmitting(true);
     const { error } = await customerLogin(values.email, values.password);
-    setIsLoading(false);
+    setIsSubmitting(false);
 
     if (error) {
       toast({
@@ -123,9 +123,9 @@ export default function CustomerLoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? 'সাইন ইন করা হচ্ছে...' : 'সাইন ইন'}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? 'সাইন ইন করা হচ্ছে...' : 'সাইন ইন'}
               </Button>
             </form>
           </Form>
