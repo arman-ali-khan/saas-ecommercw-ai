@@ -29,6 +29,27 @@ export default function AdminLayout({
     }
   }, [user, loading, username, router, pathname]);
 
+  // Render the login page directly
+  if (pathname === `/admin/login`) {
+    return <>{children}</>;
+  }
+
+  // Show a full-page loader only while the initial auth check is running.
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // After loading, if the user is invalid, we're about to redirect.
+  // Render nothing to avoid errors from child components trying to access a null user.
+  if (!user || user.domain !== username) {
+      return null;
+  }
+  
+  // If we reach here, the user is valid and loaded. Render the full dashboard layout.
   const { isSubscriptionExpired, isExpiringSoon, daysRemaining } = useMemo(() => {
     if (!user?.subscription_end_date) {
         return { isSubscriptionExpired: false, isExpiringSoon: false, daysRemaining: null };
@@ -48,18 +69,6 @@ export default function AdminLayout({
   const isBlocked = user?.subscription_status === 'inactive';
   
   const isContentDisabled = isPending || isBlocked || isSubscriptionExpired;
-
-  if (pathname !== `/admin/login` && (loading || !user || user.domain !== username)) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-  if (pathname === `/admin/login`) {
-    return <>{children}</>;
-  }
   
   return (
     <div className="fixed inset-0 bg-background z-50">
