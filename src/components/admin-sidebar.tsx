@@ -8,9 +8,7 @@ import {
   Package,
   FileClock,
   FileText,
-  MessageSquare,
   Settings,
-  Bot,
   Star,
   LayoutList,
   Home,
@@ -50,7 +48,6 @@ export default function AdminSidebar() {
   const { user, loading, logout: authLogout } = useAuth();
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [unviewedUncompletedCount, setUnviewedUncompletedCount] = useState(0);
   const [totalCustomersCount, setTotalCustomersCount] = useState(0);
   const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
@@ -81,20 +78,6 @@ export default function AdminSidebar() {
         .eq('recipient_type', 'admin')
         .eq('is_read', false);
       setUnreadNotificationsCount(notifCount || 0);
-
-      const { data: convosWithUnread } = await supabase
-        .from('live_chat_messages')
-        .select('conversation_id')
-        .eq('site_id', siteId)
-        .eq('is_read', false)
-        .eq('sender_type', 'customer');
-        
-      if (convosWithUnread) {
-          const uniqueConvoIds = [...new Set(convosWithUnread.map(c => c.conversation_id))];
-          setUnreadChatCount(uniqueConvoIds.length);
-      } else {
-          setUnreadChatCount(0);
-      }
 
       const { count: uncompletedCount } = await supabase
         .from('uncompleted_orders')
@@ -197,7 +180,6 @@ export default function AdminSidebar() {
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: unviewedUncompletedCount },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
-    { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
     { href: `/admin/settings`, label: 'Settings', icon: Settings },
   ];
 

@@ -8,9 +8,7 @@ import {
   Package,
   FileClock,
   FileText,
-  MessageSquare,
   Settings,
-  Bot,
   Star,
   LayoutList,
   Home,
@@ -50,7 +48,6 @@ export default function AdminMobileSidebar() {
   const { user, loading, logout: authLogout } = useAuth();
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [unviewedUncompletedCount, setUnviewedUncompletedCount] = useState(0);
   const [totalCustomersCount, setTotalCustomersCount] = useState(0);
   const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
@@ -81,20 +78,6 @@ export default function AdminMobileSidebar() {
         .eq('recipient_type', 'admin')
         .eq('is_read', false);
       setUnreadNotificationsCount(notifCount || 0);
-
-      const { data: convosWithUnread } = await supabase
-        .from('live_chat_messages')
-        .select('conversation_id')
-        .eq('site_id', siteId)
-        .eq('is_read', false)
-        .eq('sender_type', 'customer');
-        
-      if (convosWithUnread) {
-          const uniqueConvoIds = [...new Set(convosWithUnread.map(c => c.conversation_id))];
-          setUnreadChatCount(uniqueConvoIds.length);
-      } else {
-          setUnreadChatCount(0);
-      }
 
       const { count: uncompletedCount } = await supabase
         .from('uncompleted_orders')
@@ -172,7 +155,6 @@ export default function AdminMobileSidebar() {
     { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
     { href: `/admin/customers`, label: 'Customers', icon: Users, count: totalCustomersCount, countVariant: 'neutral' as const },
     { href: `/admin/shipping`, label: 'Shipping', icon: Truck },
-    { href: `/admin/live-questions`, label: 'Live Questions', icon: Bot, count: unreadChatCount },
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },

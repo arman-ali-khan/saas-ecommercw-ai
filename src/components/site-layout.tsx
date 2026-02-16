@@ -1,4 +1,3 @@
-
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -7,7 +6,6 @@ import Footer from '@/components/footer';
 import SaasHeader from './saas-header';
 import SaasFooter from './saas-footer';
 import FixedCartButton from '@/components/fixed-cart-button';
-import FloatingChatButton from '@/components/floating-chat-button';
 import { useState, useEffect } from 'react';
 import BottomNav from './BottomNav';
 import { supabase } from '@/lib/supabase/client';
@@ -158,7 +156,6 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         <div className="hidden md:block">
           <FixedCartButton />
         </div>
-        <FloatingChatButton />
       </div>
     );
   }

@@ -4,8 +4,6 @@ import Link from 'next/link';
 import {
   LayoutDashboard,
   ShoppingBag,
-  Package,
-  MessageSquare,
   PanelLeft,
   Bell,
 } from 'lucide-react';
@@ -30,7 +28,6 @@ export default function AdminBottomNav() {
   const { user } = useAuth();
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-  const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -52,21 +49,6 @@ export default function AdminBottomNav() {
         .eq('recipient_type', 'admin')
         .eq('is_read', false);
       setUnreadNotificationsCount(notifCount || 0);
-
-      // Fetch unread chat conversations count
-      const { data: convosWithUnread, error: convoError } = await supabase
-        .from('live_chat_messages')
-        .select('conversation_id')
-        .eq('site_id', user.id)
-        .eq('is_read', false)
-        .eq('sender_type', 'customer');
-        
-      if (convosWithUnread) {
-          const uniqueConvoIds = [...new Set(convosWithUnread.map(c => c.conversation_id))];
-          setUnreadChatCount(uniqueConvoIds.length);
-      } else {
-          setUnreadChatCount(0);
-      }
     };
     
     fetchCounts();
@@ -86,12 +68,6 @@ export default function AdminBottomNav() {
       count: unreadNotificationsCount,
     },
     {
-      href: `/admin/live-questions`,
-      label: 'Chat',
-      icon: MessageSquare,
-      count: unreadChatCount,
-    },
-    {
       href: `/admin`,
       label: 'Dashboard',
       icon: LayoutDashboard,
@@ -100,7 +76,7 @@ export default function AdminBottomNav() {
 
   return (
     <div className="admin-bottom-nav md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 p-1">
-      <div className="grid h-16 grid-cols-5 gap-1">
+      <div className="grid h-16 grid-cols-4 gap-1">
         <Sheet>
           <SheetTrigger asChild>
             <Button
