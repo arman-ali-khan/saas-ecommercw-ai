@@ -40,7 +40,7 @@ import {
   Eye,
   LineChart,
   PieChart as PieChartIcon,
-  Wallet,
+  Users,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -56,15 +56,17 @@ import {
   Cell,
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from "@/components/ui/progress";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     totalRevenue: 0,
-    totalOrders: 0,
     totalProducts: 0,
     uncompletedOrders: 0,
     totalUncompletedOrders: 0,
+    totalCustomers: 0,
+    ordersThisMonth: 0,
   });
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
@@ -98,17 +100,21 @@ export default function AdminDashboard() {
       setIsLoading(true);
 
       const sevenDaysAgo = subDays(new Date(), 7).toISOString();
+      const startOfCurrentMonth = startOfMonth(new Date()).toISOString();
+
 
       // Fetch all orders once
-      const { data: allOrders, error: ordersError } = await supabase.from('orders').select('*').eq('site_id', user.id);
-      
-      const productsPromise = supabase.from('products').select('*').eq('site_id', user.id);
+      const ordersPromise = supabase.from('orders').select('total, status, created_at, payment_method').eq('site_id', user.id);
+      const productsPromise = supabase.from('products').select('*', { count: 'exact' }).eq('site_id', user.id);
       const uncompletedPromise = supabase.from('uncompleted_orders').select('*', { count: 'exact' }).eq('site_id', user.id);
+      const customersPromise = supabase.from('customer_profiles').select('*', { count: 'exact', head: true }).eq('site_id', user.id);
 
       const [
-        { data: productsData, error: productsError },
+        { data: allOrders, error: ordersError },
+        { data: productsData, count: totalProducts, error: productsError },
         { data: uncompletedData, count: totalUncompleted, error: uncompletedError },
-      ] = await Promise.all([productsPromise, uncompletedPromise]);
+        { count: totalCustomers, error: customersError },
+      ] = await Promise.all([ordersPromise, productsPromise, uncompletedPromise, customersPromise]);
 
       if (allOrders) {
         // --- Revenue Chart Data (Last 7 days) ---
@@ -116,8 +122,7 @@ export default function AdminDashboard() {
           .filter(o => o.status === 'delivered')
           .reduce((acc, o) => acc + o.total, 0);
 
-        const totalOrders = allOrders.filter(o => o.status !== 'canceled').length;
-        setPendingOrders(allOrders.filter(o => o.status === 'pending').slice(0, 5));
+        setPendingOrders(allOrders.filter(o => o.status === 'pending').slice(0, 5) as any);
 
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
@@ -139,7 +144,10 @@ export default function AdminDashboard() {
             .map(date => ({ date, Revenue: dailyRevenue[date] }));
             
         setRevenueChartData(revenueChartFormattedData);
-        setStats(prev => ({ ...prev, totalRevenue, totalOrders }));
+        
+        const monthlyOrdersCount = allOrders.filter(o => new Date(o.created_at) >= new Date(startOfCurrentMonth) && o.status !== 'canceled').length;
+
+        setStats(prev => ({ ...prev, totalRevenue, ordersThisMonth: monthlyOrdersCount }));
 
         // --- Order Status Chart Data (for selected month) ---
         const start = startOfMonth(selectedMonth);
@@ -183,7 +191,7 @@ export default function AdminDashboard() {
       }
 
       if (productsData) {
-        setStats(prev => ({ ...prev, totalProducts: productsData.length }));
+        setStats(prev => ({ ...prev, totalProducts: totalProducts || 0 }));
         setLowStockProducts(productsData.filter(p => p.stock !== undefined && p.stock !== null && p.stock < 10).slice(0, 5));
       }
       
@@ -193,6 +201,8 @@ export default function AdminDashboard() {
       } else {
         setStats(prev => ({...prev, uncompletedOrders: 0, totalUncompletedOrders: 0}));
       }
+
+      setStats(prev => ({ ...prev, totalCustomers: totalCustomers || 0 }));
       
       setIsLoading(false);
     };
@@ -212,6 +222,41 @@ export default function AdminDashboard() {
         </CardContent>
     </Card>
   );
+
+  const LimitStatCard = ({ title, value, limit, icon: Icon, isLoading }: { title: string, value: number, limit: number | null, icon: React.ElementType, isLoading?: boolean }) => {
+    const isUnlimited = limit === null;
+    const percentage = !isUnlimited && limit > 0 ? Math.min(100, (value / limit) * 100) : 0;
+
+    return (
+        <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center justify-between">
+                    <span>{title}</span>
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <>
+                        <Skeleton className="h-7 w-24 mb-2" />
+                        <Skeleton className="h-4 w-full" />
+                    </>
+                ) : (
+                    <>
+                        <div className="text-2xl font-bold">
+                            {value}
+                            {!isUnlimited && <span className="text-lg text-muted-foreground"> / {limit}</span>}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {isUnlimited ? "Unlimited on your current plan" : `${Math.max(0, limit - value)} remaining`}
+                        </p>
+                        {!isUnlimited && <Progress value={percentage} className="mt-2 h-2" />}
+                    </>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
   
   const monthOptions = [...Array(6)].map((_, i) => subMonths(new Date(), i));
   const totalOrdersForMonth = orderStatusData.reduce((sum, item) => sum + item.value, 0);
@@ -220,11 +265,12 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard title="Total Revenue" value={`BDT ${stats.totalRevenue.toFixed(2)}`} icon={DollarSign} isLoading={isLoading} description="All-time delivered orders" />
-        <StatCard title="Total Orders" value={stats.totalOrders} icon={ShoppingBag} isLoading={isLoading} description="Excludes canceled orders" />
-        <StatCard title="Total Products" value={stats.totalProducts} icon={Package} isLoading={isLoading} />
         <StatCard title="New Uncompleted Orders" value={stats.uncompletedOrders} icon={FileClock} isLoading={isLoading} description={`${stats.totalUncompletedOrders} total abandoned carts`} />
+        <LimitStatCard title="Products" value={stats.totalProducts} limit={user?.product_limit ?? null} icon={Package} isLoading={isLoading} />
+        <LimitStatCard title="Customers" value={stats.totalCustomers} limit={user?.customer_limit ?? null} icon={Users} isLoading={isLoading} />
+        <LimitStatCard title="Orders (This Month)" value={stats.ordersThisMonth} limit={user?.order_limit ?? null} icon={ShoppingBag} isLoading={isLoading} />
       </div>
       <Card>
           <CardHeader>
@@ -250,7 +296,7 @@ export default function AdminDashboard() {
        
        <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" /> Total Sales by Payment Method</CardTitle>
+                <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" /> Total Sales by Payment Method</CardTitle>
                 <CardDescription>All-time sales distribution by payment method (excludes canceled orders).</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
@@ -415,7 +461,7 @@ export default function AdminDashboard() {
                           {pendingOrders.map(order => (
                             <TableRow key={order.id}>
                               <TableCell className="font-mono text-xs">{order.order_number}</TableCell>
-                              <TableCell>{order.shipping_info.name}</TableCell>
+                              <TableCell>{(order as any).shipping_info.name}</TableCell>
                               <TableCell>BDT {order.total.toFixed(2)}</TableCell>
                               <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/orders/${order.id}`}><Eye className="mr-2 h-4 w-4"/>Details</Link></Button></TableCell>
                             </TableRow>
@@ -426,7 +472,7 @@ export default function AdminDashboard() {
                     <div className="grid gap-4 md:hidden">
                         {pendingOrders.map(order => (
                             <Card key={order.id}>
-                                <CardHeader><CardTitle className="text-sm">{order.order_number}</CardTitle><CardDescription>{order.shipping_info.name}</CardDescription></CardHeader>
+                                <CardHeader><CardTitle className="text-sm">{order.order_number}</CardTitle><CardDescription>{(order as any).shipping_info.name}</CardDescription></CardHeader>
                                 <CardContent className="flex justify-between items-center"><p className="font-bold">BDT {order.total.toFixed(2)}</p><Button variant="secondary" size="sm" asChild><Link href={`/admin/orders/${order.id}`}>View Order</Link></Button></CardContent>
                             </Card>
                         ))}

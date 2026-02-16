@@ -29,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, Calendar as CalendarIcon, PackageCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -49,6 +49,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const productFormSchema = z.object({
   id: z
@@ -137,6 +138,8 @@ export default function ManageProductPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slugStatus, setSlugStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'invalid'>('empty');
+  const [productCount, setProductCount] = useState(0);
+  const [isLoadingProductCount, setIsLoadingProductCount] = useState(!isNew);
   
   const isSubscriptionPending =
     user?.subscription_status === 'pending' ||
@@ -169,9 +172,8 @@ export default function ManageProductPage() {
 
   const nameValue = form.watch('name');
   
-  // This useEffect will automatically generate a unique slug from the product name for new products.
   useEffect(() => {
-    if (!isNew || !user) return; // Only run for new products, and if user is loaded
+    if (!isNew || !user) return;
 
     const generateAndCheckSlug = async (name: string) => {
       if (!name) {
@@ -183,11 +185,11 @@ export default function ManageProductPage() {
       const baseSlug = name
         .toLowerCase()
         .replace(/&/g, 'and')
-        .replace(/[^a-z0-9\u0980-\u09FF\s-]/g, '') // Allow Bengali characters
-        .replace(/\s+/g, '-') // replace spaces with hyphens
-        .replace(/-+/g, '-') // remove consecutive hyphens
+        .replace(/[^a-z0-9\u0980-\u09FF\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
         .trim()
-        .slice(0, 50); // Truncate long names
+        .slice(0, 50);
       
       if (baseSlug.length < 2) {
         setSlugStatus('empty');
@@ -201,7 +203,7 @@ export default function ManageProductPage() {
       let attempt = 0;
 
       while (!isUnique && attempt < 10) {
-        const randomNumber = Math.floor(100 + Math.random() * 900); // 3-digit random number
+        const randomNumber = Math.floor(100 + Math.random() * 900);
         const candidateSlug = `${randomNumber}-${baseSlug}`;
 
         try {
@@ -212,14 +214,13 @@ export default function ManageProductPage() {
                 .eq('id', candidateSlug)
                 .maybeSingle();
 
-            if (!data) { // If no record is found, the slug is unique
+            if (!data) {
                 isUnique = true;
                 finalSlug = candidateSlug;
             } else {
                 attempt++;
             }
         } catch (err) {
-            // Stop on database error
             break;
         }
       }
@@ -229,7 +230,7 @@ export default function ManageProductPage() {
         setSlugStatus('available');
       } else {
         form.setValue('id', '', { shouldValidate: true });
-        setSlugStatus('unavailable'); // Indicates we couldn't find a unique slug
+        setSlugStatus('unavailable');
         toast({
           variant: 'destructive',
           title: 'Could not generate unique slug',
@@ -240,7 +241,7 @@ export default function ManageProductPage() {
 
     const handler = setTimeout(() => {
       generateAndCheckSlug(nameValue);
-    }, 750); // Debounce for 750ms
+    }, 750);
 
     return () => clearTimeout(handler);
   }, [nameValue, isNew, user, form, toast]);
@@ -341,15 +342,24 @@ export default function ManageProductPage() {
   
   useEffect(() => {
     if (!authLoading) {
-      if (isNew) {
-        setIsLoading(false);
-      } else if (user) {
-        fetchProduct();
-      }
-      
       if (user) {
         fetchAttributes();
         fetchCategories();
+        if (isNew) {
+          setIsLoading(false);
+          setIsLoadingProductCount(true);
+          supabase
+            .from('products')
+            .select('id', { count: 'exact', head: true })
+            .eq('site_id', user.id)
+            .then(({ count }) => {
+              setProductCount(count || 0);
+              setIsLoadingProductCount(false);
+            });
+        } else {
+           fetchProduct();
+           setIsLoadingProductCount(false);
+        }
       }
     }
   }, [authLoading, user, isNew, fetchProduct, fetchAttributes, fetchCategories]);
@@ -476,7 +486,7 @@ export default function ManageProductPage() {
   };
 
 
-  if (isLoading) {
+  if (isLoading || isLoadingProductCount) {
     return (
       <Card>
         <CardHeader>
@@ -501,9 +511,35 @@ export default function ManageProductPage() {
       </Card>
     );
   }
+
+  const productLimit = user?.product_limit;
+  const isLimitReached = productLimit !== null && productCount >= productLimit;
+  
+  if (isNew && isLimitReached) {
+    return (
+        <div>
+            <Button variant="ghost" asChild className="mb-4 -ml-4">
+                <Link href={`/admin/products`}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Products
+                </Link>
+            </Button>
+            <Alert variant="destructive">
+                <PackageCheck className="h-4 w-4" />
+                <AlertTitle>Product Limit Reached</AlertTitle>
+                <AlertDescription>
+                    You have reached your limit of {productLimit} products for the current plan. Please upgrade your subscription to add more products.
+                    <Button asChild className="mt-4 block w-fit">
+                        <Link href="/admin/settings">Manage Subscription</Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        </div>
+    )
+  }
   
   const isButtonDisabled = isNew 
-    ? isSubmitting || isSubscriptionPending || slugStatus !== 'available'
+    ? isSubmitting || isSubscriptionPending || slugStatus !== 'available' || isLimitReached
     : isSubmitting || isSubscriptionPending;
 
   return (

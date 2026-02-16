@@ -2,7 +2,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { User } from '@/types';
+import type { User, Plan } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import type { Session } from '@supabase/supabase-js';
 
@@ -57,6 +57,24 @@ export const useAuth = create<AuthState>()((set, get) => ({
                 set({ user: null });
                 return;
             }
+
+            let planDetails: Partial<Plan> = {
+              product_limit: null,
+              customer_limit: null,
+              order_limit: null,
+            };
+
+            if (adminProfile.subscription_plan) {
+              const { data: planData } = await supabase
+                .from('plans')
+                .select('product_limit, customer_limit, order_limit')
+                .eq('id', adminProfile.subscription_plan)
+                .single();
+              if (planData) {
+                planDetails = planData;
+              }
+            }
+
             const appUser: User = {
               id: adminProfile.id,
               username: adminProfile.username,
@@ -70,6 +88,9 @@ export const useAuth = create<AuthState>()((set, get) => ({
               role: adminProfile.role,
               isSaaSAdmin: adminProfile.role === 'saas_admin',
               last_subscription_from: adminProfile.last_subscription_from,
+              product_limit: planDetails.product_limit ?? null,
+              customer_limit: planDetails.customer_limit ?? null,
+              order_limit: planDetails.order_limit ?? null,
             };
             set({ user: appUser });
           } else {
@@ -235,11 +256,12 @@ export const useAuth = create<AuthState>()((set, get) => ({
             return { user: null, error: error.message };
         }
         
+        const currentUser = get().user;
         const updatedUser: User = {
           id: data.id,
           username: data.username,
           fullName: data.full_name,
-          email: get().user?.email || '', // email doesn't change
+          email: currentUser?.email || '', // email doesn't change
           domain: data.domain,
           siteName: data.site_name,
           siteDescription: data.site_description,
@@ -248,6 +270,9 @@ export const useAuth = create<AuthState>()((set, get) => ({
           role: data.role,
           isSaaSAdmin: data.role === 'saas_admin',
           last_subscription_from: data.last_subscription_from,
+          product_limit: currentUser?.product_limit ?? null,
+          customer_limit: currentUser?.customer_limit ?? null,
+          order_limit: currentUser?.order_limit ?? null,
         };
         
         set({ user: updatedUser });
