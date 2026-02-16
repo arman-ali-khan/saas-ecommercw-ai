@@ -8,7 +8,6 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import CustomTopLoader from '@/components/custom-top-loader';
 import { allFontVariables } from '@/lib/fonts';
-import SaasPreloader from '@/components/saas-preloader';
  
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = cookies();
@@ -64,7 +63,6 @@ export default async function RootLayout({
     <html lang="en" className={`${allFontVariables} dark`} suppressHydrationWarning>
       <head />
       <body className="font-body antialiased bg-background text-foreground">
-        <SaasPreloader />
         <CustomTopLoader />
         <AuthProvider>
           <SiteLayout>{children}</SiteLayout>

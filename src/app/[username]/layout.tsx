@@ -21,9 +21,7 @@ export async function generateMetadata({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => {
-          return cookieStore.get(name)?.value;
-        },
+        get: (name: string) => cookieStore.get(name)?.value,
         set: (name: string, value: string, options: CookieOptions) => {
           try {
             cookieStore.set({ name, value, ...options });
@@ -38,10 +36,10 @@ export async function generateMetadata({
     }
   );
 
-  // Fetch the main profile to get the site ID and default names/descriptions
+  // Fetch the main profile and its related settings in one go.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, site_name, site_description')
+    .select('id, site_name, site_description, store_settings(seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url)')
     .eq('domain', username)
     .single();
 
@@ -51,19 +49,14 @@ export async function generateMetadata({
     };
   }
 
-  // Fetch the specific SEO settings for this site
-  const { data: settings } = await supabase
-    .from('store_settings')
-    .select('seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url')
-    .eq('site_id', profile.id)
-    .single();
+  // The joined store_settings might be an object or an array with one object.
+  const settings = (Array.isArray(profile.store_settings) ? profile.store_settings[0] : profile.store_settings) || {};
 
-  // Use the specific SEO settings if they exist, otherwise fall back to the main profile info
-  const title = settings?.seo_title || profile.site_name || 'Store';
-  const description = settings?.seo_description || profile.site_description || 'An e-commerce store.';
-  const keywords = settings?.seo_keywords || '';
-  const faviconUrl = settings?.favicon_url;
-  const socialShareImageUrl = settings?.social_share_image_url;
+  const title = settings.seo_title || profile.site_name || 'Store';
+  const description = settings.seo_description || profile.site_description || 'An e-commerce store.';
+  const keywords = settings.seo_keywords || '';
+  const faviconUrl = settings.favicon_url;
+  const socialShareImageUrl = settings.social_share_image_url;
 
   return {
     title,
@@ -87,7 +80,6 @@ export async function generateMetadata({
 }
 
 // The default export now just passes its children through.
-// The actual layout is now handled by src/components/site-layout.tsx
 export default async function UsernameLayout({
   children,
   params,
@@ -101,9 +93,7 @@ export default async function UsernameLayout({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => {
-          return cookieStore.get(name)?.value;
-        },
+        get: (name: string) => cookieStore.get(name)?.value,
         set: (name: string, value: string, options: CookieOptions) => {
           try {
             cookieStore.set({ name, value, ...options });
@@ -120,20 +110,14 @@ export default async function UsernameLayout({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, store_settings(theme_primary, theme_background, theme_accent, theme_card, theme_foreground, theme_secondary, font_primary, font_secondary)')
     .eq('domain', params.username)
     .single();
 
   let themeStyles = '';
 
   if (profile) {
-    const { data: settings } = await supabase
-      .from('store_settings')
-      .select(
-        'theme_primary, theme_background, theme_accent, theme_card, theme_foreground, theme_secondary, font_primary, font_secondary'
-      )
-      .eq('site_id', profile.id)
-      .single();
+    const settings = (Array.isArray(profile.store_settings) ? profile.store_settings[0] : profile.store_settings) || {};
 
     if (settings) {
       const primaryFontVar = settings.font_primary ? fontMap[settings.font_primary]?.variable : null;
