@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -137,7 +136,6 @@ export default function ManageProductPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [slugStatus, setSlugStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'invalid'>('empty');
   const [productCount, setProductCount] = useState(0);
   const [isLoadingProductCount, setIsLoadingProductCount] = useState(!isNew);
   
@@ -180,11 +178,10 @@ export default function ManageProductPage() {
   const nameValue = form.watch('name');
   
   useEffect(() => {
-    if (!isNew || !user) return;
+    if (!isNew) return;
 
-    const generateAndCheckSlug = async (name: string) => {
+    const generateSlug = (name: string) => {
       if (!name) {
-        setSlugStatus('empty');
         form.setValue('id', '');
         return;
       }
@@ -199,59 +196,22 @@ export default function ManageProductPage() {
         .slice(0, 50);
       
       if (baseSlug.length < 2) {
-        setSlugStatus('empty');
+        form.setValue('id', '');
         return;
       }
       
-      setSlugStatus('checking');
+      const randomNumber = Math.floor(100 + Math.random() * 900);
+      const finalSlug = `${randomNumber}-${baseSlug}`;
 
-      let finalSlug = '';
-      let isUnique = false;
-      let attempt = 0;
-
-      while (!isUnique && attempt < 10) {
-        const randomNumber = Math.floor(100 + Math.random() * 900);
-        const candidateSlug = `${randomNumber}-${baseSlug}`;
-
-        try {
-            const { data, error } = await supabase
-                .from('products')
-                .select('id')
-                .eq('site_id', user.id)
-                .eq('id', candidateSlug)
-                .maybeSingle();
-
-            if (!data) {
-                isUnique = true;
-                finalSlug = candidateSlug;
-            } else {
-                attempt++;
-            }
-        } catch (err) {
-            break;
-        }
-      }
-
-      if (finalSlug) {
-        form.setValue('id', finalSlug, { shouldValidate: true });
-        setSlugStatus('available');
-      } else {
-        form.setValue('id', '', { shouldValidate: true });
-        setSlugStatus('unavailable');
-        toast({
-          variant: 'destructive',
-          title: 'Could not generate unique slug',
-          description: 'Please try a slightly different product name.',
-        })
-      }
+      form.setValue('id', finalSlug, { shouldValidate: true });
     };
 
     const handler = setTimeout(() => {
-      generateAndCheckSlug(nameValue);
+      generateSlug(nameValue);
     }, 750);
 
     return () => clearTimeout(handler);
-  }, [nameValue, isNew, user, form, toast]);
+  }, [nameValue, isNew, form]);
 
 
   const { fields, append, remove, move } = useFieldArray({
@@ -387,15 +347,6 @@ export default function ManageProductPage() {
       return;
     }
     
-    if (isNew && slugStatus !== 'available') {
-        toast({
-            variant: 'destructive',
-            title: 'Invalid Slug',
-            description: 'Please choose a unique, available slug for your product.'
-        });
-        return;
-    }
-
     setIsSubmitting(true);
     
     const { has_flash_deal, flash_deal_price, flash_deal_range, ...productValues } = values;
@@ -569,7 +520,7 @@ export default function ManageProductPage() {
   }
   
   const isButtonDisabled = isNew 
-    ? isSubmitting || isSubscriptionPending || slugStatus !== 'available' || isLimitReached || isSubscriptionExpired
+    ? isSubmitting || isSubscriptionPending || isLimitReached || isSubscriptionExpired
     : isSubmitting || isSubscriptionPending;
 
   return (
@@ -618,20 +569,12 @@ export default function ManageProductPage() {
                             <Input
                                 {...field}
                                 placeholder="e.g., 123-himsagar-mango"
-                                disabled={isNew}
+                                disabled={!isNew}
                             />
                             </FormControl>
                             <FormDescription>
                                 A unique, URL-friendly identifier automatically generated from your product name.
                             </FormDescription>
-                            {isNew && (
-                                <div className="min-h-[20px] pt-1">
-                                    {slugStatus === 'checking' && <p className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking availability...</p>}
-                                    {slugStatus === 'unavailable' && <p className="text-sm text-destructive">Could not generate a unique slug. Try a different name.</p>}
-                                    {slugStatus === 'invalid' && <p className="text-sm text-destructive">Slug must be 3+ characters and can only contain lowercase letters, numbers, and hyphens.</p>}
-                                    {slugStatus === 'available' && <p className="text-sm text-green-500">This slug is available!</p>}
-                                </div>
-                            )}
                             <FormMessage />
                         </FormItem>
                         )}
