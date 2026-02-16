@@ -12,7 +12,6 @@ interface AuthState {
   loading: boolean;
   saasLogin: (email: string, password: string) => Promise<{ user: any | null; error: string | null }>;
   storeLogin: (email: string, password: string, domain: string) => Promise<{ user: any | null; error: string | null }>;
-  customerLogin: (email: string, password: string, siteId:string) => Promise<{ user: any | null; error: string | null }>;
   register: (
     username: string,
     fullName: string,
@@ -105,8 +104,14 @@ export const useAuth = create<AuthState>()((set, get) => ({
           };
 
           const currentUser = get().user;
-          // Only update state if the user object has actually changed.
-          if (currentUser && JSON.stringify(currentUser) === JSON.stringify(newUser)) {
+          // Only update state if the user object has actually changed by comparing key immutable properties.
+          if (
+            currentUser &&
+            currentUser.id === newUser.id &&
+            currentUser.subscription_status === newUser.subscription_status &&
+            currentUser.subscription_end_date === newUser.subscription_end_date &&
+            currentUser.fullName === newUser.fullName
+          ) {
             return;
           }
           
@@ -217,31 +222,6 @@ export const useAuth = create<AuthState>()((set, get) => ({
           return { user: null, error: 'Connection failed' };
       }
   },
-
-  // Inside useAuth.ts
-  customerLogin: async (email, password, siteId) => {
-    try {
-      const response = await fetch('/api/auth/login-customer', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, siteId }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-  
-      const result = await response.json();
-  
-      if (!response.ok) {
-        return { user: null, error: result.error || 'লগইন করতে সমস্যা হয়েছে' };
-      }
-  
-      set({ user: result.user, loading: false });
-      return { user: result.user, error: null };
-    } catch (err) {
-      // এখানে console.log দিন যাতে আপনি ব্রাউজারের Inspect > Console-এ আসল এরর দেখতে পান
-      console.error("Login Fetch Error:", err);
-      return { user: null, error: 'সার্ভারের সাথে সংযোগ করতে ব্যর্থ হয়েছে' };
-    }
-  },
-  
     
     logout: async () => {
       const { error } = await supabase.auth.signOut();

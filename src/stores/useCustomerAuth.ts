@@ -1,4 +1,6 @@
 
+'use client';
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '@/lib/supabase/client';
@@ -47,8 +49,13 @@ export const useCustomerAuth = create<CustomerAuthState>()(
             
             const currentCustomer = get().customer;
             // Only update state if the customer object has actually changed.
-            if (currentCustomer && JSON.stringify(currentCustomer) === JSON.stringify(customerProfile)) {
-                return;
+            if (
+              currentCustomer &&
+              currentCustomer.id === customerProfile.id &&
+              currentCustomer.full_name === customerProfile.full_name &&
+              currentCustomer.email === customerProfile.email
+            ) {
+              return;
             }
 
             set({ customer: customerProfile });
