@@ -28,8 +28,8 @@ export async function generateProductDescription(input: GenerateProductDescripti
       throw new Error('The Gemini API key is not configured. Please add it in your AI settings.');
     }
 
-    const localAi = genkit({
-      plugins: [googleAI({ apiKey: apiKey })],
+    const dynamicGenerationFlow = genkit({
+      plugins: [googleAI({ apiKey })],
     });
     
     const categoryString = categories ? categories.join(', ') : 'general';
@@ -55,7 +55,7 @@ Instructions:
 10. DO NOT include the product name in the description itself.
 11. CRITICAL: Your entire output must be ONLY the JSON object. Do not include any introductory text, explanations, or markdown code fences. The output must be valid JSON that can be parsed directly.`;
 
-    const result = await localAi.generate({
+    const result = await dynamicGenerationFlow.generate({
       model: 'googleai/gemini-pro',
       prompt,
       config: { temperature: 0.7 },
@@ -63,27 +63,26 @@ Instructions:
 
     const generatedJsonString = result.text;
     
-    try {
-        // Validate if the output is a valid JSON.
-        JSON.parse(generatedJsonString);
-        return { longDescription: generatedJsonString };
-    } catch (jsonError) {
-        console.error("AI returned invalid JSON:", jsonError, "Raw output:", generatedJsonString);
-        throw new Error('AI produced an invalid format. Please try generating again.');
-    }
+    // Validate if the output is a valid JSON.
+    JSON.parse(generatedJsonString);
+    
+    return { longDescription: generatedJsonString };
 
   } catch (e: any) {
     console.error("AI Generation Error:", e);
-    if (e.isGenkitError) {
-      const genkitError = e as GenkitError;
-      throw new Error(`AI Error: ${genkitError.message} (Code: ${genkitError.code})`);
-    }
+    
     if (e.message.includes('API key not valid')) {
-      throw new Error('The provided Gemini API key is not valid. Please check your AI settings.');
+        throw new Error('The provided Gemini API key is not valid. Please check your AI settings.');
     }
-    if (e.message.includes('AI produced an invalid format')) {
-        throw e;
+    if (e instanceof SyntaxError) { // This will catch JSON.parse errors
+        console.error("AI returned invalid JSON:", e, "Raw output was:", (e as any).source);
+        throw new Error('AI produced an invalid format. Please try generating again.');
     }
+    const genkitError = e as GenkitError;
+    if (genkitError.code) {
+        throw new Error(`AI Error: ${genkitError.message} (Code: ${genkitError.code})`);
+    }
+
     throw new Error('Failed to generate description due to an unexpected error.');
   }
 }
