@@ -121,6 +121,17 @@ const ReviewForm = ({ product, onReviewSubmitted, setDialogOpen }: { product: Pr
             toast({ variant: 'destructive', title: 'Failed to submit review', description: error.message });
         } else {
             toast({ title: 'Review submitted for approval!' });
+            
+            // Create notification for admin
+            const notificationMessage = `New review for "${product.name}" from ${customer.full_name}.`;
+            await supabase.from('notifications').insert({
+                recipient_id: product.site_id,
+                recipient_type: 'admin',
+                site_id: product.site_id,
+                message: notificationMessage,
+                link: '/admin/reviews',
+            });
+
             form.reset();
             onReviewSubmitted();
             setDialogOpen(false); // Close dialog on success
@@ -204,6 +215,17 @@ const QnaForm = ({ product, onQuestionSubmitted, setDialogOpen }: { product: Pro
             toast({ variant: 'destructive', title: 'Failed to submit question', description: error.message });
         } else {
             toast({ title: 'Question submitted!', description: 'Your question will be visible once it has been answered.' });
+            
+            // Create notification for admin
+            const notificationMessage = `New question for "${product.name}" from ${customer.full_name}.`;
+            await supabase.from('notifications').insert({
+                recipient_id: product.site_id,
+                recipient_type: 'admin',
+                site_id: product.site_id,
+                message: notificationMessage,
+                link: '/admin/qna',
+            });
+            
             form.reset();
             onQuestionSubmitted();
             setDialogOpen(false); // Close dialog
@@ -712,4 +734,3 @@ export default function ProductClientPage({ product }: { product: Product }) {
     </div>
   );
 }
-
