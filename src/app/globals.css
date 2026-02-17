@@ -75,7 +75,9 @@
   ul[data-type="taskList"] {
     @apply list-none p-0;
   }
-  
+  .tiptap {
+    font-size: 12px;
+}
   ul[data-type=taskList] li {
     display: flex;
     align-items: center;
