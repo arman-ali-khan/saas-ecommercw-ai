@@ -29,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, PackageCheck, Ban, CalendarIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, PackageCheck, Ban, CalendarIcon, Wand2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -49,6 +49,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { generateProductDescription } from '@/ai/flows/generate-product-description';
+
 
 const productFormSchema = z.object({
   id: z
@@ -150,6 +152,7 @@ export default function ManageProductPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [productCount, setProductCount] = useState(0);
   const [isLoadingProductCount, setIsLoadingProductCount] = useState(!isNew);
   
@@ -451,6 +454,40 @@ export default function ManageProductPage() {
     }
   };
 
+  const handleGenerateDescription = async () => {
+      if (!user) return;
+      setIsGenerating(true);
+      try {
+          const { data: settingsData, error: settingsError } = await supabase
+              .from('store_settings')
+              .select('gemini_api_key')
+              .eq('site_id', user.id)
+              .single();
+          
+          if (settingsError || !settingsData?.gemini_api_key) {
+              toast({ variant: 'destructive', title: 'AI Error', description: 'Gemini API key is not configured. Please add it in Settings > AI Settings.' });
+              return;
+          }
+
+          const productData = form.getValues();
+          const result = await generateProductDescription({
+              apiKey: settingsData.gemini_api_key,
+              name: productData.name,
+              description: productData.description,
+              categories: productData.categories,
+              origin: productData.origin,
+          });
+
+          form.setValue('long_description', result.longDescription, { shouldValidate: true });
+          toast({ title: 'AI description generated!' });
+
+      } catch (error: any) {
+          toast({ variant: 'destructive', title: 'Generation Failed', description: error.message });
+      } finally {
+          setIsGenerating(false);
+      }
+  };
+
 
   if (isLoading || isLoadingProductCount) {
     return (
@@ -684,7 +721,13 @@ export default function ManageProductPage() {
                         name="long_description"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Long Description</FormLabel>
+                            <div className="flex justify-between items-center mb-2">
+                                <FormLabel>Long Description</FormLabel>
+                                <Button type="button" variant="outline" size="sm" onClick={handleGenerateDescription} disabled={isGenerating}>
+                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                                    Generate with AI
+                                </Button>
+                            </div>
                             <FormControl>
                             <RichTextEditor value={field.value || ''} onChange={field.onChange} />
                             </FormControl>

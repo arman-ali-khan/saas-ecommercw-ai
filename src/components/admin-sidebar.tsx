@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -24,6 +25,7 @@ import {
   Sparkles,
   Palette,
   HelpCircle,
+  Wand2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -190,7 +192,6 @@ export default function AdminSidebar() {
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: unviewedUncompletedCount },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
-    { href: `/admin/settings`, label: 'Settings', icon: Settings },
   ];
 
   const NavLink = ({
@@ -269,7 +270,7 @@ export default function AdminSidebar() {
               </CollapsibleContent>
             </Collapsible>
             
-            {adminNavLinks.slice(3, 14).map((link) => (
+            {adminNavLinks.slice(3, 16).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 
@@ -290,10 +291,23 @@ export default function AdminSidebar() {
                 <Link href="/admin/theme/appearance" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/appearance' && 'text-accent-foreground')}>Appearance</Link>
               </CollapsibleContent>
             </Collapsible>
-           
-            {adminNavLinks.slice(14).map((link) => (
-              <NavLink key={link.href} {...link} />
-            ))}
+
+            <Collapsible>
+              <CollapsibleTrigger className={cn(
+                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
+                pathname.startsWith('/admin/settings') && 'bg-primary text-primary-foreground'
+              )}>
+                <div className="flex items-center gap-3">
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </div>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-7 space-y-1 py-1">
+                <Link href="/admin/settings" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings' && 'text-accent-foreground')}>Store Settings</Link>
+                <Link href="/admin/settings/ai" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings/ai' && 'text-accent-foreground')}>AI Settings</Link>
+              </CollapsibleContent>
+            </Collapsible>
            
           </nav>
         </div>
