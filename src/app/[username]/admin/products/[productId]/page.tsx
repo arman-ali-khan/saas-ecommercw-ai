@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -195,15 +196,7 @@ export default function ManageProductPage() {
         .trim()
         .slice(0, 50);
       
-      if (baseSlug.length < 2) {
-        form.setValue('id', '');
-        return;
-      }
-      
-      const randomNumber = Math.floor(100 + Math.random() * 900);
-      const finalSlug = `${randomNumber}-${baseSlug}`;
-
-      form.setValue('id', finalSlug, { shouldValidate: true });
+      form.setValue('id', baseSlug, { shouldValidate: true });
     };
 
     const handler = setTimeout(() => {
@@ -214,7 +207,7 @@ export default function ManageProductPage() {
   }, [nameValue, isNew, form]);
 
 
-  const { fields, append, remove, move } = useFieldArray({
+  const { fields, append, remove, swap } = useFieldArray({
     control: form.control,
     name: 'images',
   });
@@ -434,11 +427,7 @@ export default function ManageProductPage() {
 
   const handleSetFeatured = (fromIndex: number) => {
     if (fromIndex === 0) return;
-    const images = form.getValues('images');
-    const newImages = [...images];
-    const [movedItem] = newImages.splice(fromIndex, 1);
-    newImages.unshift(movedItem);
-    form.setValue('images', newImages, { shouldDirty: true, shouldValidate: true });
+    swap(0, fromIndex);
   };
 
   const handleImageUpload = (result: any) => {
@@ -572,12 +561,12 @@ export default function ManageProductPage() {
                             <FormControl>
                             <Input
                                 {...field}
-                                placeholder="e.g., 123-himsagar-mango"
+                                placeholder="e.g., himsagar-mango"
                                 disabled={!isNew}
                             />
                             </FormControl>
                             <FormDescription>
-                                A unique, URL-friendly identifier automatically generated from your product name.
+                                A unique, URL-friendly identifier. Auto-generated from name for new products.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -844,92 +833,101 @@ export default function ManageProductPage() {
                 </CardContent>
             </Card>
 
-              <Card>
+            <Card>
                 <CardHeader>
-                  <CardTitle>Product Images</CardTitle>
-                  <CardDescription>
-                    Upload images for your product. The first image in the list will be the featured image.
-                  </CardDescription>
+                    <CardTitle>Product Images</CardTitle>
+                    <CardDescription>
+                        Upload images for your product. The first image in the list will be the featured image.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {fields.map((field, index) => (
-                      <div key={field.id} className="space-y-2">
-                        <Card className="overflow-hidden">
-                          <CardContent className="p-0">
-                            <div className="relative group aspect-square w-full">
-                              {field.imageUrl ? (
-                                <Image
-                                  src={field.imageUrl}
-                                  alt={`Product Image ${index + 1}`}
-                                  fill
-                                  className="object-cover"
-                                />
-                              ) : (
-                                <div className="h-full w-full flex items-center justify-center bg-muted">
-                                  <p className="text-xs text-muted-foreground">No image</p>
-                                </div>
-                              )}
-
-                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {index > 0 && (
-                                  <Button
-                                    type="button"
-                                    variant="secondary"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => handleSetFeatured(index)}
-                                    title="Set as featured"
-                                  >
-                                    <Star className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                <Button
-                                  type="button"
-                                  variant="destructive"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => remove(index)}
-                                  title="Delete image"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-
-                              {index === 0 && (
-                                <Badge className="absolute top-2 left-2">
-                                  Featured
-                                </Badge>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        <FormField
-                          control={form.control}
-                          name={`images.${index}.imageHint`}
-                          render={({ field: hintField }) => (
+                    <FormField
+                        control={form.control}
+                        name="images"
+                        render={() => (
                             <FormItem>
-                              <FormLabel className="sr-only">Image Hint</FormLabel>
-                              <FormControl>
-                                <Input {...hintField} placeholder="AI Image Hint" />
-                              </FormControl>
-                              <FormMessage />
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                    {fields.map((field, index) => (
+                                    <div key={field.id} className="space-y-2">
+                                        <Card className="overflow-hidden">
+                                        <CardContent className="p-0">
+                                            <div className="relative group aspect-square w-full">
+                                            {field.imageUrl ? (
+                                                <Image
+                                                src={field.imageUrl}
+                                                alt={`Product Image ${index + 1}`}
+                                                fill
+                                                className="object-cover"
+                                                />
+                                            ) : (
+                                                <div className="h-full w-full flex items-center justify-center bg-muted">
+                                                <p className="text-xs text-muted-foreground">No image</p>
+                                                </div>
+                                            )}
+
+                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {index > 0 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    onClick={() => handleSetFeatured(index)}
+                                                    title="Set as featured"
+                                                >
+                                                    <Star className="h-4 w-4" />
+                                                </Button>
+                                                )}
+                                                <Button
+                                                type="button"
+                                                variant="destructive"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => remove(index)}
+                                                title="Delete image"
+                                                >
+                                                <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+
+                                            {index === 0 && (
+                                                <Badge className="absolute top-2 left-2">
+                                                Featured
+                                                </Badge>
+                                            )}
+                                            </div>
+                                        </CardContent>
+                                        </Card>
+
+                                        <FormField
+                                        control={form.control}
+                                        name={`images.${index}.imageHint`}
+                                        render={({ field: hintField }) => (
+                                            <FormItem>
+                                            <FormLabel className="sr-only">Image Hint</FormLabel>
+                                            <FormControl>
+                                                <Input {...hintField} placeholder="AI Image Hint" />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                        />
+                                    </div>
+                                    ))}
+                                </div>
+                                <FormMessage className="pt-2" />
                             </FormItem>
-                          )}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                        )}
+                    />
                 </CardContent>
                 <CardFooter>
-                  <ImageUploader
+                    <ImageUploader
                     onUpload={handleImageUpload}
                     label="Upload Images"
                     multiple={true}
-                  />
+                    />
                 </CardFooter>
-              </Card>
+            </Card>
               
               <Button type="submit" disabled={isButtonDisabled}>
                 {isSubmitting && (
