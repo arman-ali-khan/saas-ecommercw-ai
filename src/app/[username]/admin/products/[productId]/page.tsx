@@ -138,6 +138,17 @@ export default function ManageProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productCount, setProductCount] = useState(0);
   const [isLoadingProductCount, setIsLoadingProductCount] = useState(!isNew);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
   
   const isSubscriptionPending =
     user?.subscription_status === 'pending' ||
@@ -815,7 +826,7 @@ export default function ManageProductPage() {
                                                 defaultMonth={field.value?.from}
                                                 selected={field.value}
                                                 onSelect={field.onChange}
-                                                numberOfMonths={2}
+                                                numberOfMonths={isMobile ? 1 : 2}
                                             />
                                         </PopoverContent>
                                     </Popover>

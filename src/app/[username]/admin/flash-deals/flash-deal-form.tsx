@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import type { Product, FlashDeal } from '@/types';
 import { format, addDays } from 'date-fns';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -45,6 +46,17 @@ interface FlashDealFormProps {
 
 export default function FlashDealForm({ isNew, initialData, products, deals, onSubmit, isSubmitting }: FlashDealFormProps) {
     const router = useRouter();
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkScreenSize = () => {
+          setIsMobile(window.innerWidth < 768);
+        };
+    
+        checkScreenSize();
+        window.addEventListener("resize", checkScreenSize);
+        return () => window.removeEventListener("resize", checkScreenSize);
+    }, []);
 
     const form = useForm<FlashDealFormData>({
         resolver: zodResolver(flashDealSchema),
@@ -175,7 +187,7 @@ export default function FlashDealForm({ isNew, initialData, products, deals, onS
                                                 defaultMonth={field.value?.from}
                                                 selected={field.value}
                                                 onSelect={field.onChange}
-                                                numberOfMonths={2}
+                                                numberOfMonths={isMobile ? 1 : 2}
                                             />
                                         </PopoverContent>
                                     </Popover>
