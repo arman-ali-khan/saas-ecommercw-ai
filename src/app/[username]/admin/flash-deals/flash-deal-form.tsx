@@ -20,7 +20,6 @@ import Link from 'next/link';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useMediaQuery } from '@/hooks/use-media-query';
 
 
 export const flashDealSchema = z.object({
@@ -31,9 +30,9 @@ export const flashDealSchema = z.object({
     endDate: z.date({ required_error: "End date is required." }),
   }),
   is_active: z.boolean().default(true),
-}).refine(data => data.date_range.startDate && data.date_range.endDate, {
-    message: "Both start and end dates are required.",
-    path: ['date_range']
+}).refine((data) => data.date_range.endDate > data.date_range.startDate, {
+  message: "End date must be after the start date.",
+  path: ["date_range", "endDate"],
 });
 
 type FlashDealFormData = z.infer<typeof flashDealSchema>;
@@ -49,7 +48,6 @@ interface FlashDealFormProps {
 
 export default function FlashDealForm({ isNew, initialData, products, deals, onSubmit, isSubmitting }: FlashDealFormProps) {
     const router = useRouter();
-    const isDesktop = useMediaQuery("(min-width: 768px)");
 
     const form = useForm<FlashDealFormData>({
         resolver: zodResolver(flashDealSchema),
@@ -139,51 +137,61 @@ export default function FlashDealForm({ isNew, initialData, products, deals, onS
                                 </FormItem>
                             )} />
                             <FormField control={form.control} name="discount_price" render={({ field }) => (<FormItem><FormLabel>Discount Price (BDT)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
-
-                            <FormField
-                                control={form.control}
-                                name="date_range"
-                                render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel>Deal Duration</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    id="date"
-                                                    variant={"outline"}
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal",
-                                                        !field.value.startDate && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {field.value.startDate && field.value.endDate ? (
-                                                        <>
-                                                            {format(field.value.startDate, "LLL dd, y")} -{" "}
-                                                            {format(field.value.endDate, "LLL dd, y")}
-                                                        </>
-                                                    ) : (
-                                                        <span>Pick a date range</span>
-                                                    )}
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                initialFocus
-                                                mode="range"
-                                                defaultMonth={field.value.startDate}
-                                                selected={{ from: field.value.startDate, to: field.value.endDate }}
-                                                onSelect={(range) => field.onChange({ startDate: range?.from, endDate: range?.to })}
-                                                numberOfMonths={isDesktop ? 2 : 1}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="date_range.startDate"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Start Date</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant={"outline"}
+                                                            className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
+                                                        >
+                                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="date_range.endDate"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>End Date</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant={"outline"}
+                                                            className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}
+                                                        >
+                                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={(date) => date < (form.getValues("date_range.startDate") || new Date())} />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
                             <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><FormLabel>Activate Deal</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
                             

@@ -49,7 +49,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useMediaQuery } from '@/hooks/use-media-query';
 
 const productFormSchema = z.object({
   id: z
@@ -99,18 +98,32 @@ const productFormSchema = z.object({
 }).superRefine((data, ctx) => {
     if (data.has_flash_deal) {
         if (!data.flash_deal_price || data.flash_deal_price <= 0) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Discount price is required and must be positive.",
-            path: ['flash_deal_price'],
-        });
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Discount price is required and must be positive.",
+                path: ['flash_deal_price'],
+            });
         }
-        if (!data.flash_deal_range?.startDate || !data.flash_deal_range?.endDate) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "A start and end date for the deal are required.",
-            path: ['flash_deal_range'],
-        });
+        if (!data.flash_deal_range?.startDate) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Start date is required for the flash deal.",
+                path: ['flash_deal_range', 'startDate'],
+            });
+        }
+        if (!data.flash_deal_range?.endDate) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "End date is required for the flash deal.",
+                path: ['flash_deal_range', 'endDate'],
+            });
+        }
+        if (data.flash_deal_range?.startDate && data.flash_deal_range?.endDate && data.flash_deal_range.endDate <= data.flash_deal_range.startDate) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "End date must be after the start date.",
+                path: ['flash_deal_range', 'endDate'],
+            });
         }
         if (data.flash_deal_price && data.price && data.flash_deal_price >= data.price) {
             ctx.addIssue({
@@ -129,7 +142,6 @@ export default function ManageProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const productId = params.productId as string;
   const isNew = productId === 'new';
@@ -763,50 +775,66 @@ export default function ManageProductPage() {
                                 </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="flash_deal_range"
-                                render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel>Deal Duration</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    id="date"
-                                                    variant={"outline"}
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal",
-                                                        !field.value?.startDate && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {field.value?.startDate && field.value?.endDate ? (
-                                                        <>
-                                                            {format(field.value.startDate, "LLL dd, y")} -{" "}
-                                                            {format(field.value.endDate, "LLL dd, y")}
-                                                        </>
-                                                    ) : (
-                                                        <span>Pick a date range</span>
-                                                    )}
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                initialFocus
-                                                mode="range"
-                                                defaultMonth={field.value?.startDate}
-                                                selected={{ from: field.value?.startDate, to: field.value?.endDate }}
-                                                onSelect={(range) => field.onChange({ startDate: range?.from, endDate: range?.to })}
-                                                numberOfMonths={isDesktop ? 2 : 1}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="flash_deal_range.startDate"
+                                    render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>Start Date</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant={"outline"}
+                                                        className={cn(
+                                                            "w-full justify-start text-left font-normal",
+                                                            !field.value && "text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="flash_deal_range.endDate"
+                                    render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>End Date</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant={"outline"}
+                                                        className={cn(
+                                                            "w-full justify-start text-left font-normal",
+                                                            !field.value && "text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={(date) => date < (form.getValues("flash_deal_range.startDate") || new Date())} />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                            </div>
                         </div>
                     )}
                 </CardContent>
