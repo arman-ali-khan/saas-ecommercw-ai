@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -14,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2, Search, Package, Truck, CheckCircle, Clock, BadgeCheck, Cog } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/use-translation';
 
 const formSchema = z.object({
   identifier: z.string().min(1, 'অর্ডার বা ট্রানজেকশন আইডি প্রয়োজন।'),
@@ -30,6 +32,9 @@ const ORDER_STATUSES = ['pending', 'approved', 'processing', 'packaging', 'send 
 export default function TrackOrderPage() {
   const params = useParams();
   const username = params.username as string;
+  const t = useTranslation();
+  const { trackOrder: t_track, statuses: t_statuses } = t;
+
 
   const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,7 +62,7 @@ export default function TrackOrderPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'অর্ডার খুঁজে পাওয়া যায়নি।');
+        throw new Error(result.error || t_track.orderNotFound);
       }
       setOrder(result.order);
     } catch (err: any) {
@@ -69,15 +74,7 @@ export default function TrackOrderPage() {
 
   const currentStatusIndex = order ? ORDER_STATUSES.indexOf(order.status.toLowerCase()) : -1;
   
-  const statusLabels: {[key: string]: string} = {
-    pending: 'পেন্ডিং',
-    approved: 'অনুমোদিত',
-    processing: 'প্রসেসিং চলছে',
-    packaging: 'প্যাকেজিং চলছে',
-    'send for delivery': 'ডেলিভারির জন্য পাঠানো হয়েছে',
-    delivered: 'ডেলিভারি সম্পন্ন',
-    canceled: 'বাতিল করা হয়েছে'
-  };
+  const statusLabels: {[key: string]: string} = t_statuses;
 
   const StatusIcon = ({ status, isActive, isCompleted }: { status: string, isActive: boolean, isCompleted: boolean }) => {
     const icons: {[key: string]: React.ElementType} = {
@@ -102,9 +99,9 @@ export default function TrackOrderPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>আপনার অর্ডার ট্র্যাক করুন</CardTitle>
+          <CardTitle>{t_track.title}</CardTitle>
           <CardDescription>
-            আপনার অর্ডার আইডি বা ট্রানজেকশন আইডি ব্যবহার করে বর্তমান অবস্থা জানুন।
+            {t_track.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -117,7 +114,7 @@ export default function TrackOrderPage() {
                   <FormItem className="flex-grow">
                     <FormLabel className="sr-only">Order or Transaction ID</FormLabel>
                     <FormControl>
-                      <Input placeholder="অর্ডার আইডি বা ট্রানজেকশন আইডি" {...field} />
+                      <Input placeholder={t_track.placeholder} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -125,7 +122,7 @@ export default function TrackOrderPage() {
               />
               <Button type="submit" disabled={isLoading} className="mt-0.5">
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                <span className="ml-2 hidden sm:inline">ট্র্যাক</span>
+                <span className="ml-2 hidden sm:inline">{t_track.track}</span>
               </Button>
             </form>
           </Form>
@@ -135,8 +132,8 @@ export default function TrackOrderPage() {
             {order && (
               <Card className="bg-muted/50">
                   <CardHeader>
-                    <CardTitle>অর্ডার #{order.order_number}</CardTitle>
-                    <CardDescription>অর্ডার দেওয়া হয়েছে: {format(new Date(order.created_at), 'PPp', { locale: bn })}</CardDescription>
+                    <CardTitle>{t_track.order} #{order.order_number}</CardTitle>
+                    <CardDescription>{t_track.placedOn} {format(new Date(order.created_at), 'PPp', { locale: bn })}</CardDescription>
                   </CardHeader>
                   <CardContent>
                      {order.status === 'canceled' ? (

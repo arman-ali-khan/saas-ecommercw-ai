@@ -165,5 +165,45 @@
     "newPassword": "New Password",
     "confirmNewPassword": "Confirm New Password",
     "updatePassword": "Update Password"
+  },
+  "productPage": {
+    "origin": "Origin",
+    "story": "Our Story",
+    "addToBag": "Add to Bag",
+    "shareThisProduct": "Share this product:",
+    "aiShare": "AI Share",
+    "productDetails": "Product Details",
+    "customerReviews": "Customer Reviews",
+    "noReviews": "No reviews for this product yet.",
+    "leaveReview": "Leave a Review",
+    "yourRating": "Your Rating",
+    "reviewTitle": "Review Title",
+    "reviewTitlePlaceholder": "e.g., Best mangoes ever!",
+    "yourReview": "Your Review",
+    "reviewPlaceholder": "What did you like or dislike?",
+    "submitReview": "Submit Review",
+    "loginToReview": "Please log in to leave a review.",
+    "qna": "Questions & Answers",
+    "searchQna": "Search questions or answers...",
+    "noQna": "No questions have been asked for this product yet.",
+    "askQuestion": "Ask a Question",
+    "questionPlaceholder": "Write your question about this product here...",
+    "submitQuestion": "Submit Question",
+    "loginToAsk": "Please log in to ask a question.",
+    "relatedProducts": "Related Products",
+    "noRelated": "No related products found."
+  },
+  "trackOrder": {
+    "title": "Track Your Order",
+    "description": "Find out the current status of your order using your Order ID or Transaction ID.",
+    "placeholder": "Order ID or Transaction ID",
+    "track": "Track",
+    "orderNotFound": "No order was found with the ID you provided.",
+    "order": "Order",
+    "placedOn": "Placed on:",
+    "statusCanceled": "Canceled"
+  },
+  "productCard": {
+    "addToBag": "Add to Bag"
   }
 }

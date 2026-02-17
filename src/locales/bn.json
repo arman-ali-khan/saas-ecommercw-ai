@@ -165,5 +165,45 @@
     "newPassword": "নতুন পাসওয়ার্ড",
     "confirmNewPassword": "নতুন পাসওয়ার্ড নিশ্চিত করুন",
     "updatePassword": "পাসওয়ার্ড আপডেট করুন"
+  },
+  "productPage": {
+    "origin": "উৎপত্তি",
+    "story": "আমাদের গল্প",
+    "addToBag": "ব্যাগে যোগ করুন",
+    "shareThisProduct": "এই পণ্যটি শেয়ার করুন:",
+    "aiShare": "এআই শেয়ার",
+    "productDetails": "পণ্যের বিবরণ",
+    "customerReviews": "ক্রেতাদের রিভিউ",
+    "noReviews": "এই পণ্যের জন্য এখনও কোনো রিভিউ নেই।",
+    "leaveReview": "একটি রিভিউ দিন",
+    "yourRating": "আপনার রেটিং",
+    "reviewTitle": "রিভিউ শিরোনাম",
+    "reviewTitlePlaceholder": "যেমন, সেরা আম!",
+    "yourReview": "আপনার রিভিউ",
+    "reviewPlaceholder": "আপনার কী ভালো লেগেছে বা খারাপ লেগেছে?",
+    "submitReview": "রিভিউ জমা দিন",
+    "loginToReview": "রিভিউ দিতে অনুগ্রহ করে লগইন করুন।",
+    "qna": "প্রশ্ন ও উত্তর",
+    "searchQna": "প্রশ্ন বা উত্তর খুঁজুন...",
+    "noQna": "এই পণ্যের জন্য এখনও কোনো প্রশ্ন জিজ্ঞাসা করা হয়নি।",
+    "askQuestion": "প্রশ্ন করুন",
+    "questionPlaceholder": "এই পণ্য সম্পর্কে আপনার প্রশ্ন এখানে লিখুন...",
+    "submitQuestion": "প্রশ্ন জমা দিন",
+    "loginToAsk": "প্রশ্ন করতে অনুগ্রহ করে লগইন করুন।",
+    "relatedProducts": "সম্পর্কিত পণ্য",
+    "noRelated": "কোনো সম্পর্কিত পণ্য পাওয়া যায়নি।"
+  },
+  "trackOrder": {
+    "title": "আপনার অর্ডার ট্র্যাক করুন",
+    "description": "আপনার অর্ডার আইডি বা ট্রানজেকশন আইডি ব্যবহার করে বর্তমান অবস্থা জানুন।",
+    "placeholder": "অর্ডার আইডি বা ট্রানজেকশন আইডি",
+    "track": "ট্র্যাক",
+    "orderNotFound": "আপনার প্রদান করা আইডি দিয়ে কোনো অর্ডার খুঁজে পাওয়া যায়নি।",
+    "order": "অর্ডার",
+    "placedOn": "অর্ডার দেওয়া হয়েছে:",
+    "statusCanceled": "বাতিল করা হয়েছে"
+  },
+  "productCard": {
+    "addToBag": "ব্যাগে যোগ করুন"
   }
 }

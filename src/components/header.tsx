@@ -371,6 +371,10 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
         </nav>
 
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)}>
+            <Search className="h-6 w-6" />
+            <span className="sr-only">Search</span>
+          </Button>
           <div className="hidden md:flex">
             <ShoppingCart />
           </div>

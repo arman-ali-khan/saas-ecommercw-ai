@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -10,7 +11,7 @@ import { useCart } from '@/stores/cart';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import * as z from 'zod';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter, useParams } from 'next/navigation';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -23,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 import Countdown from './countdown';
+import { useTranslation } from '@/hooks/use-translation';
 
 interface ProductCardProps {
   product: Product;
@@ -32,6 +34,8 @@ interface ProductCardProps {
 export default function ProductCard({ product, flashDeal }: ProductCardProps) {
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
+  const t = useTranslation();
+  const { productCard: t_card } = t;
 
   const handleAddToCart = () => {
     const productWithDealPrice = flashDeal
@@ -85,7 +89,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
         </div>
         <Button onClick={handleAddToCart}>
           <ShoppingBag className="w-4 h-4 mr-2" />
-          ব্যাগে যোগ করুন
+          {t_card.addToBag}
         </Button>
       </CardFooter>
     </Card>

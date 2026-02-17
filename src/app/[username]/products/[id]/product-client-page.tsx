@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
@@ -44,6 +45,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useTranslation } from '@/hooks/use-translation';
 
 const TikTokIcon = () => (
   <svg
@@ -76,6 +78,8 @@ const ReviewForm = ({ product, onReviewSubmitted }: { product: Product, onReview
     const { customer } = useCustomerAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const t = useTranslation();
+    const { productPage: t_product } = t;
 
     const form = useForm<ReviewFormData>({
         resolver: zodResolver(reviewSchema),
@@ -83,7 +87,7 @@ const ReviewForm = ({ product, onReviewSubmitted }: { product: Product, onReview
     });
 
     if (!customer) {
-        return <p className="text-sm text-muted-foreground">Please <Link href="/login" className="underline">log in</Link> to leave a review.</p>;
+        return <p className="text-sm text-muted-foreground">{t_product.loginToReview}</p>;
     }
 
     const onSubmit = async (data: ReviewFormData) => {
@@ -108,7 +112,7 @@ const ReviewForm = ({ product, onReviewSubmitted }: { product: Product, onReview
 
     return (
         <Card>
-            <CardHeader><h4 className="font-semibold">Leave a Review</h4></CardHeader>
+            <CardHeader><h4 className="font-semibold">{t_product.leaveReview}</h4></CardHeader>
             <CardContent>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -117,7 +121,7 @@ const ReviewForm = ({ product, onReviewSubmitted }: { product: Product, onReview
                             name="rating"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Your Rating</FormLabel>
+                                <FormLabel>{t_product.yourRating}</FormLabel>
                                 <div className="flex items-center gap-2">
                                 {[1, 2, 3, 4, 5].map((star) => (
                                     <Star
@@ -131,11 +135,11 @@ const ReviewForm = ({ product, onReviewSubmitted }: { product: Product, onReview
                             </FormItem>
                             )}
                         />
-                        <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Review Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Best mangoes ever!" /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="review_text" render={({ field }) => (<FormItem><FormLabel>Your Review</FormLabel><FormControl><Textarea {...field} placeholder="What did you like or dislike?" rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>{t_product.reviewTitle}</FormLabel><FormControl><Input {...field} placeholder={t_product.reviewTitlePlaceholder} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="review_text" render={({ field }) => (<FormItem><FormLabel>{t_product.yourReview}</FormLabel><FormControl><Textarea {...field} placeholder={t_product.reviewPlaceholder} rows={4} /></FormControl><FormMessage /></FormItem>)} />
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Submit Review
+                            {t_product.submitReview}
                         </Button>
                     </form>
                 </Form>
@@ -154,6 +158,8 @@ const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestio
     const { customer } = useCustomerAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const t = useTranslation();
+    const { productPage: t_product } = t;
 
     const form = useForm<QnaFormData>({
         resolver: zodResolver(qnaSchema),
@@ -161,7 +167,7 @@ const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestio
     });
 
     if (!customer) {
-        return <p className="text-sm text-muted-foreground mt-8 text-center">Please <Link href="/login" className="underline font-semibold">log in</Link> to ask a question.</p>;
+        return <p className="text-sm text-muted-foreground mt-8 text-center">{t_product.loginToAsk}</p>;
     }
 
     const onSubmit = async (data: QnaFormData) => {
@@ -187,7 +193,7 @@ const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestio
     return (
          <Card className="mt-8">
             <CardHeader>
-                <h4 className="font-semibold text-lg">প্রশ্ন করুন</h4>
+                <h4 className="font-semibold text-lg">{t_product.askQuestion}</h4>
             </CardHeader>
             <CardContent>
                  <Form {...form}>
@@ -198,7 +204,7 @@ const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestio
                             render={({ field }) => (
                             <FormItem>
                                 <FormControl>
-                                    <Textarea {...field} placeholder="এই পণ্য সম্পর্কে আপনার প্রশ্ন এখানে লিখুন..." rows={3} />
+                                    <Textarea {...field} placeholder={t_product.questionPlaceholder} rows={3} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -206,7 +212,7 @@ const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestio
                         />
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            প্রশ্ন জমা দিন
+                            {t_product.submitQuestion}
                         </Button>
                     </form>
                 </Form>
@@ -220,6 +226,8 @@ export default function ProductClientPage({ product }: { product: Product }) {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
+  const t = useTranslation();
+  const { productPage: t_product } = t;
 
   const [mainApi, setMainApi] = useState<CarouselApi>();
   const [thumbApi, setThumbApi] = useState<CarouselApi>();
@@ -366,7 +374,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
     });
   };
 
-  const shareText = `বাংলা ন্যাচারালস থেকে ${product.name} দেখুন!`;
+  const shareText = `Check out ${product.name} from this store!`;
   const images = product.images || [];
   const displayPrice = flashDeal ? flashDeal.discount_price : product.price;
 
@@ -467,10 +475,10 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
                 <div className="space-y-4">
                 <p>
-                    <span className="font-semibold">উৎপত্তি:</span> {product.origin}
+                    <span className="font-semibold">{t_product.origin}:</span> {product.origin}
                 </p>
                 <p>
-                    <span className="font-semibold">আমাদের গল্প:</span> {product.story}
+                    <span className="font-semibold">{t_product.story}:</span> {product.story}
                 </p>
                 </div>
 
@@ -503,12 +511,12 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     </Button>
                 </div>
                 <Button size="lg" onClick={handleAddToCart} className="flex-grow">
-                    <ShoppingBag className="mr-2 h-5 w-5" /> ব্যাগে যোগ করুন
+                    <ShoppingBag className="mr-2 h-5 w-5" /> {t_product.addToBag}
                 </Button>
                 </div>
 
                 <div className="mt-8">
-                <h3 className="font-semibold mb-2">এই পণ্যটি শেয়ার করুন:</h3>
+                <h3 className="font-semibold mb-2">{t_product.shareThisProduct}</h3>
                 <div className="flex gap-2">
                     <Button asChild variant="outline" size="icon" disabled={!shareUrl}>
                     <a
@@ -517,7 +525,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label="ফেসবুকে শেয়ার করুন"
+                        aria-label="Share on Facebook"
                     >
                         <Facebook className="h-5 w-5" />
                     </a>
@@ -529,7 +537,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                         )}&text=${encodeURIComponent(shareText)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label="টুইটারে শেয়ার করুন"
+                        aria-label="Share on Twitter"
                     >
                         <Twitter className="h-5 w-5" />
                     </a>
@@ -543,14 +551,14 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     className="px-3"
                     >
                     <Wand2 className="h-5 w-5 mr-2" />
-                    এআই শেয়ার
+                    {t_product.aiShare}
                     </Button>
                 </div>
                 </div>
                 
                 {longDescContent && (
                 <div className="mt-8 pt-8 border-t">
-                    <h3 className="text-2xl font-headline font-bold mb-4">পণ্যের বিবরণ</h3>
+                    <h3 className="text-2xl font-headline font-bold mb-4">{t_product.productDetails}</h3>
                     <RichTextRenderer content={longDescContent} />
                 </div>
                 )}
@@ -559,7 +567,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
         </div>
         
         <div className="mt-16">
-            <h2 className="text-3xl font-headline font-bold mb-8">Customer Reviews</h2>
+            <h2 className="text-3xl font-headline font-bold mb-8">{t_product.customerReviews}</h2>
             {isLoadingReviews ? <Skeleton className="h-40 w-full" /> : (
                 reviews.length > 0 ? (
                     <div className="space-y-6">
@@ -580,7 +588,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                             </Card>
                         ))}
                     </div>
-                ) : <p className="text-muted-foreground">No reviews for this product yet.</p>
+                ) : <p className="text-muted-foreground">{t_product.noReviews}</p>
             )}
             <div className="mt-12">
                 <ReviewForm product={product} onReviewSubmitted={fetchReviews} />
@@ -588,11 +596,11 @@ export default function ProductClientPage({ product }: { product: Product }) {
         </div>
 
         <div className="mt-16">
-            <h2 className="text-3xl font-headline font-bold mb-8">প্রশ্ন ও উত্তর</h2>
+            <h2 className="text-3xl font-headline font-bold mb-8">{t_product.qna}</h2>
             {isLoadingQna ? <Skeleton className="h-60 w-full" /> : (
                 <>
                     <Input 
-                        placeholder="প্রশ্ন বা উত্তর খুঁজুন..." 
+                        placeholder={t_product.searchQna}
                         value={qnaSearch}
                         onChange={(e) => setQnaSearch(e.target.value)}
                         className="mb-6"
@@ -619,7 +627,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                             ))}
                         </Accordion>
                     ) : (
-                        <p className="text-muted-foreground text-center py-8">এই পণ্যের জন্য এখনও কোনো প্রশ্ন জিজ্ঞাসা করা হয়নি।</p>
+                        <p className="text-muted-foreground text-center py-8">{t_product.noQna}</p>
                     )}
                 </>
             )}
@@ -627,7 +635,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
         </div>
 
         <div className="mt-16">
-            <h2 className="text-3xl font-headline font-bold mb-8">Related Products</h2>
+            <h2 className="text-3xl font-headline font-bold mb-8">{t_product.relatedProducts}</h2>
             {isLoadingRelated ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
                     {[...Array(4)].map((_, i) => (
@@ -646,7 +654,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     ))}
                 </div>
             ) : (
-                <p className="text-muted-foreground">No related products found.</p>
+                <p className="text-muted-foreground">{t_product.noRelated}</p>
             )}
         </div>
         
