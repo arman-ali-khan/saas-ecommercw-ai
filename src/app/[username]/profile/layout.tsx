@@ -2,7 +2,7 @@
 'use client';
 
 import ProfileSidebar from '@/components/profile-sidebar';
-import { usePathname, useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { Loader2 } from 'lucide-react';
@@ -12,23 +12,17 @@ export default function ProfileLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { customer: user, loading } = useCustomerAuth();
+  const { customer: user, _hasHydrated } = useCustomerAuth();
   const router = useRouter();
-  const params = useParams();
-  const username = params.username as string;
 
   useEffect(() => {
-    if (loading) {
-      return;
+    if (_hasHydrated && !user) {
+      router.replace(`/login`);
     }
+  }, [user, _hasHydrated, router]);
 
-    if (!user) {
-      router.push(`/login`);
-      return;
-    }
-  }, [user, loading, router, username]);
-
-  if (loading || !user) {
+  // Show a loader until hydration is complete or if there is no user (before redirect)
+  if (!_hasHydrated || !user) {
     return (
       <div className="flex h-[60vh] w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

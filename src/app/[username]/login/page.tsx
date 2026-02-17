@@ -36,7 +36,7 @@ const formSchema = z.object({
 });
 
 export default function CustomerLoginPage() {
-  const { customerLogin, customer, loading } = useCustomerAuth();
+  const { customerLogin, customer, _hasHydrated } = useCustomerAuth();
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;
@@ -67,12 +67,12 @@ export default function CustomerLoginPage() {
     },
   });
 
-  // Redirect if already logged in
+  // Redirect if already logged in, after hydration
   useEffect(() => {
-    if (!loading && customer) {
-      window.location.pathname = `/profile`;
+    if (_hasHydrated && customer) {
+      router.replace(`/profile`);
     }
-  }, [customer, router, loading, username]);
+  }, [customer, _hasHydrated, router]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!siteId) {
@@ -81,9 +81,9 @@ export default function CustomerLoginPage() {
     }
     setIsSubmitting(true);
     const { error } = await customerLogin(values.email, values.password, siteId);
-    setIsSubmitting(false);
-
+    
     if (error) {
+      setIsSubmitting(false);
       toast({
         variant: 'destructive',
         title: 'লগইন ব্যর্থ',
@@ -94,11 +94,12 @@ export default function CustomerLoginPage() {
         title: 'লগইন সফল!',
         description: 'আপনাকে আপনার প্রোফাইলে নিয়ে যাওয়া হচ্ছে...',
       });
-      // The redirect is handled by the useEffect hook
+      router.push('/profile');
     }
   }
 
-  if (loading || customer) {
+  // Show a loader while hydrating or if a customer is found (and we're about to redirect).
+  if (!_hasHydrated || customer) {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
