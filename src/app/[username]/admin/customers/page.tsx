@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link'; // Import Link
 import { useAuth } from '@/stores/auth';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Mail, MoreHorizontal } from 'lucide-react';
+import { Loader2, Mail, MoreHorizontal, Eye } from 'lucide-react'; // Import Eye icon
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -129,11 +130,16 @@ export default function CustomersAdminPage() {
                         <TableCell>{customer.email}</TableCell>
                         <TableCell>{format(new Date(customer.created_at), 'PP')}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" asChild>
-                            <a href={`mailto:${customer.email}`}>
-                               <Mail className="mr-2 h-4 w-4" /> ইমেল করুন
-                            </a>
-                          </Button>
+                            <Button variant="ghost" size="sm" asChild>
+                                <Link href={`/admin/customers/${customer.id}`}>
+                                <Eye className="mr-2 h-4 w-4" /> বিস্তারিত
+                                </Link>
+                            </Button>
+                            <Button variant="ghost" size="sm" asChild>
+                                <a href={`mailto:${customer.email}`}>
+                                <Mail className="mr-2 h-4 w-4" /> ইমেল করুন
+                                </a>
+                            </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -172,6 +178,11 @@ export default function CustomersAdminPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                               <Link href={`/admin/customers/${customer.id}`}>
+                                <Eye className="mr-2 h-4 w-4" /> বিস্তারিত
+                               </Link>
+                            </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                                <a href={`mailto:${customer.email}`}>
                                 <Mail className="mr-2 h-4 w-4" /> ইমেল করুন
