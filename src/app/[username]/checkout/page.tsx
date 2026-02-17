@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/stores/cart';
@@ -194,38 +195,52 @@ export default function CheckoutPage() {
       setIsLoadingPaymentSettings(true);
       setIsLoadingShipping(true);
       
-      const paymentPromise = supabase.from('store_settings').select('mobile_banking_enabled, mobile_banking_number, accepted_banking_methods').eq('site_id', siteId).maybeSingle();
-      const shippingPromise = supabase.from('shipping_zones').select('*').eq('site_id', siteId).eq('is_enabled', true).order('price', { ascending: true });
-      
-      const [paymentResult, shippingResult] = await Promise.all([paymentPromise, shippingPromise]);
+      try {
+        const paymentPromise = supabase.from('store_settings').select('mobile_banking_enabled, mobile_banking_number, accepted_banking_methods').eq('site_id', siteId).maybeSingle();
+        
+        const shippingPromise = fetch('/api/get-shipping-zones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId }),
+        }).then(res => res.json());
 
-      if (paymentResult.data) {
-        setPaymentSettings(paymentResult.data);
-        if (!paymentResult.data.mobile_banking_enabled && form.getValues('paymentMethod') === 'mobile_banking') {
-          form.setValue('paymentMethod', 'cod');
-        }
-      }
+        const [paymentResult, shippingResult] = await Promise.all([paymentPromise, shippingPromise]);
 
-      if (shippingResult.data) {
-        setShippingZones(shippingResult.data);
-        if(shippingResult.data.length > 0) {
-            form.setValue('shippingZoneId', shippingResult.data[0].id.toString());
-        }
-      }
-      
-      setIsLoadingPaymentSettings(false);
-      setIsLoadingShipping(false);
+        if (paymentResult.error) throw paymentResult.error;
 
-      if (customer) {
-        const { data: addressesData } = await supabase.from('customer_addresses').select('*').eq('customer_id', customer.id);
-        if (addressesData) {
-            setSavedAddresses(addressesData);
+        if (paymentResult.data) {
+            setPaymentSettings(paymentResult.data);
+            if (!paymentResult.data.mobile_banking_enabled && form.getValues('paymentMethod') === 'mobile_banking') {
+            form.setValue('paymentMethod', 'cod');
+            }
         }
+
+        if (shippingResult.error) throw new Error(shippingResult.error);
+
+        if (shippingResult.zones) {
+            setShippingZones(shippingResult.zones);
+            if(shippingResult.zones.length > 0) {
+                form.setValue('shippingZoneId', shippingResult.zones[0].id.toString());
+            }
+        }
+
+        if (customer) {
+            const { data: addressesData } = await supabase.from('customer_addresses').select('*').eq('customer_id', customer.id);
+            if (addressesData) {
+                setSavedAddresses(addressesData);
+            }
+        }
+
+      } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error loading settings', description: error.message });
+      } finally {
+        setIsLoadingPaymentSettings(false);
+        setIsLoadingShipping(false);
       }
     };
 
     fetchSettingsAndAddresses();
-  }, [siteId, customer, form]);
+  }, [siteId, customer, form, toast]);
 
   useEffect(() => {
     if (customerHasHydrated && customer) {
