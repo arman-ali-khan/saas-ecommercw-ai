@@ -600,43 +600,48 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     </Button>
                 </div>
                 </div>
-                
-                {longDescContent && (
-                <div className="mt-8 pt-8 border-t">
-                    <h3 className="text-2xl font-headline font-bold mb-4">{t_product.productDetails}</h3>
-                    <div className="relative">
-                        <div
-                            className={cn(
-                                'prose dark:prose-invert max-w-full transition-all duration-300 overflow-hidden',
-                                !isDescriptionExpanded ? 'max-h-32' : 'max-h-none'
-                            )}
-                        >
-                            <RichTextRenderer content={longDescContent} />
-                        </div>
-                        {!isDescriptionExpanded && (
-                           <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-background to-transparent pointer-events-none" />
-                        )}
-                    </div>
-                    <Button
-                        variant="link"
-                        className="mt-2 px-0 text-primary hover:text-primary/80"
-                        onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                    >
-                        {isDescriptionExpanded ? (
-                            <>
-                                {t_product.seeLess} <ChevronUp className="ml-1 h-4 w-4" />
-                            </>
-                        ) : (
-                            <>
-                                {t_product.seeMore} <ChevronDown className="ml-1 h-4 w-4" />
-                            </>
-                        )}
-                    </Button>
-                </div>
-                )}
-
             </div>
         </div>
+        
+        {longDescContent && (
+            <div className="mt-16">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl font-headline font-bold">{t_product.productDetails}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="relative">
+                            <div
+                                className={cn(
+                                    'prose dark:prose-invert max-w-full transition-all duration-300 overflow-hidden',
+                                    !isDescriptionExpanded ? 'max-h-32' : 'max-h-none'
+                                )}
+                            >
+                                <RichTextRenderer content={longDescContent} />
+                            </div>
+                            {!isDescriptionExpanded && (
+                               <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                            )}
+                        </div>
+                        <Button
+                            variant="link"
+                            className="mt-2 px-0 text-primary hover:text-primary/80"
+                            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                        >
+                            {isDescriptionExpanded ? (
+                                <>
+                                    {t_product.seeLess} <ChevronUp className="ml-1 h-4 w-4" />
+                                </>
+                            ) : (
+                                <>
+                                    {t_product.seeMore} <ChevronDown className="ml-1 h-4 w-4" />
+                                </>
+                            )}
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )}
         
         <div className="mt-16 grid md:grid-cols-2 gap-12 items-start">
             <div>
