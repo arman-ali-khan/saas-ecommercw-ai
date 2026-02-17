@@ -29,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, PackageCheck, Ban, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, PackageCheck, Ban, CalendarIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -44,11 +44,11 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import RichTextEditor from '@/components/rich-text-editor';
-import { cn } from '@/lib/utils';
-import { format, isBefore } from 'date-fns';
+import { isBefore, format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const productFormSchema = z.object({
   id: z
@@ -92,8 +92,8 @@ const productFormSchema = z.object({
     z.number().positive('Discount price must be a positive number.').optional()
   ),
   flash_deal_range: z.object({
-    from: z.date().optional(),
-    to: z.date().optional(),
+    startDate: z.date().optional(),
+    endDate: z.date().optional(),
   }).optional(),
 }).superRefine((data, ctx) => {
     if (data.has_flash_deal) {
@@ -104,7 +104,7 @@ const productFormSchema = z.object({
             path: ['flash_deal_price'],
         });
         }
-        if (!data.flash_deal_range?.from || !data.flash_deal_range?.to) {
+        if (!data.flash_deal_range?.startDate || !data.flash_deal_range?.endDate) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "A start and end date for the deal are required.",
@@ -138,17 +138,6 @@ export default function ManageProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productCount, setProductCount] = useState(0);
   const [isLoadingProductCount, setIsLoadingProductCount] = useState(!isNew);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
   
   const isSubscriptionPending =
     user?.subscription_status === 'pending' ||
@@ -182,39 +171,24 @@ export default function ManageProductPage() {
       color: [],
       has_flash_deal: false,
       flash_deal_price: undefined,
-      flash_deal_range: { from: undefined, to: undefined },
+      flash_deal_range: { startDate: undefined, endDate: undefined },
     },
   });
 
   const nameValue = form.watch('name');
   
   useEffect(() => {
-    if (!isNew) return;
-
-    const generateSlug = (name: string) => {
-      if (!name) {
-        form.setValue('id', '');
-        return;
-      }
-
-      const baseSlug = name
+    if (isNew && nameValue) {
+      const slug = nameValue
         .toLowerCase()
         .replace(/&/g, 'and')
         .replace(/[^a-z0-9\u0980-\u09FF\s-]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
-        .trim()
-        .slice(0, 40); // Shorter to allow for random part
+        .trim();
       
-      const uniquePart = Math.random().toString(36).substring(2, 7);
-      form.setValue('id', `${baseSlug}-${uniquePart}`, { shouldValidate: true });
-    };
-
-    const handler = setTimeout(() => {
-      generateSlug(nameValue);
-    }, 750);
-
-    return () => clearTimeout(handler);
+      form.setValue('id', `${slug}-${Math.random().toString(36).substring(2, 7)}`, { shouldValidate: true });
+    }
   }, [nameValue, isNew, form]);
 
 
@@ -275,9 +249,9 @@ export default function ManageProductPage() {
       has_flash_deal: !!flashDealData,
       flash_deal_price: flashDealData?.discount_price,
       flash_deal_range: flashDealData ? {
-        from: new Date(flashDealData.start_date),
-        to: new Date(flashDealData.end_date)
-      } : undefined,
+        startDate: new Date(flashDealData.start_date),
+        endDate: new Date(flashDealData.end_date)
+      } : { startDate: undefined, endDate: undefined },
     };
 
     form.reset(sanitizedData);
@@ -408,8 +382,8 @@ export default function ManageProductPage() {
                 site_id: user.id,
                 product_id: isNew ? values.id : decodedProductId,
                 discount_price: flash_deal_price!,
-                start_date: flash_deal_range!.from!.toISOString(),
-                end_date: flash_deal_range!.to!.toISOString(),
+                start_date: flash_deal_range!.startDate!.toISOString(),
+                end_date: flash_deal_range!.endDate!.toISOString(),
                 is_active: true,
             };
             if (existingDeal) {
@@ -797,25 +771,22 @@ export default function ManageProductPage() {
                                         <PopoverTrigger asChild>
                                             <FormControl>
                                                 <Button
+                                                    id="date"
                                                     variant={"outline"}
                                                     className={cn(
-                                                        "w-full pl-3 text-left font-normal",
-                                                        !field.value?.from && "text-muted-foreground"
+                                                        "w-full justify-start text-left font-normal",
+                                                        !field.value?.startDate && "text-muted-foreground"
                                                     )}
                                                 >
-                                                    {field.value?.from ? (
-                                                        field.value.to ? (
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {field.value?.startDate && field.value?.endDate ? (
                                                         <>
-                                                            {format(field.value.from, "PPP")} -{" "}
-                                                            {format(field.value.to, "PPP")}
+                                                            {format(field.value.startDate, "LLL dd, y")} -{" "}
+                                                            {format(field.value.endDate, "LLL dd, y")}
                                                         </>
-                                                        ) : (
-                                                        format(field.value.from, "PPP")
-                                                        )
                                                     ) : (
                                                         <span>Pick a date range</span>
                                                     )}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
                                             </FormControl>
                                         </PopoverTrigger>
@@ -823,10 +794,10 @@ export default function ManageProductPage() {
                                             <Calendar
                                                 initialFocus
                                                 mode="range"
-                                                defaultMonth={field.value?.from}
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                numberOfMonths={isMobile ? 1 : 2}
+                                                defaultMonth={field.value?.startDate}
+                                                selected={{ from: field.value?.startDate, to: field.value?.endDate }}
+                                                onSelect={(range) => field.onChange({ startDate: range?.from, endDate: range?.to })}
+                                                numberOfMonths={1}
                                             />
                                         </PopoverContent>
                                     </Popover>

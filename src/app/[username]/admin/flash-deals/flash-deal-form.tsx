@@ -6,15 +6,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import type { Product, FlashDeal } from '@/types';
-import { format, addDays } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, ArrowLeft, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, CalendarIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
@@ -27,10 +26,13 @@ export const flashDealSchema = z.object({
   product_id: z.string().min(1, "Please select a product."),
   discount_price: z.coerce.number().positive("Discount price must be a positive number."),
   date_range: z.object({
-    from: z.date({ required_error: "Start date is required." }),
-    to: z.date({ required_error: "End date is required." }),
+    startDate: z.date({ required_error: "Start date is required." }),
+    endDate: z.date({ required_error: "End date is required." }),
   }),
   is_active: z.boolean().default(true),
+}).refine(data => data.date_range.startDate && data.date_range.endDate, {
+    message: "Both start and end dates are required.",
+    path: ['date_range']
 });
 
 type FlashDealFormData = z.infer<typeof flashDealSchema>;
@@ -46,17 +48,6 @@ interface FlashDealFormProps {
 
 export default function FlashDealForm({ isNew, initialData, products, deals, onSubmit, isSubmitting }: FlashDealFormProps) {
     const router = useRouter();
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-        const checkScreenSize = () => {
-          setIsMobile(window.innerWidth < 768);
-        };
-    
-        checkScreenSize();
-        window.addEventListener("resize", checkScreenSize);
-        return () => window.removeEventListener("resize", checkScreenSize);
-    }, []);
 
     const form = useForm<FlashDealFormData>({
         resolver: zodResolver(flashDealSchema),
@@ -64,14 +55,14 @@ export default function FlashDealForm({ isNew, initialData, products, deals, onS
             product_id: '',
             discount_price: undefined,
             is_active: true,
-            date_range: { from: new Date(), to: addDays(new Date(), 7) }
+            date_range: { startDate: new Date(), endDate: addDays(new Date(), 7) }
         } : {
             product_id: initialData?.product_id,
             discount_price: initialData?.discount_price,
             is_active: initialData?.is_active,
             date_range: {
-                from: new Date(initialData?.start_date || new Date()),
-                to: new Date(initialData?.end_date || addDays(new Date(), 7))
+                startDate: new Date(initialData?.start_date || new Date()),
+                endDate: new Date(initialData?.end_date || addDays(new Date(), 7))
             }
         },
     });
@@ -160,23 +151,19 @@ export default function FlashDealForm({ isNew, initialData, products, deals, onS
                                                     id="date"
                                                     variant={"outline"}
                                                     className={cn(
-                                                        "w-full pl-3 text-left font-normal",
-                                                        !field.value?.from && "text-muted-foreground"
+                                                        "w-full justify-start text-left font-normal",
+                                                        !field.value.startDate && "text-muted-foreground"
                                                     )}
                                                 >
-                                                    {field.value?.from ? (
-                                                        field.value.to ? (
-                                                            <>
-                                                                {format(field.value.from, "PPP")} -{" "}
-                                                                {format(field.value.to, "PPP")}
-                                                            </>
-                                                        ) : (
-                                                            format(field.value.from, "PPP")
-                                                        )
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {field.value.startDate && field.value.endDate ? (
+                                                        <>
+                                                            {format(field.value.startDate, "LLL dd, y")} -{" "}
+                                                            {format(field.value.endDate, "LLL dd, y")}
+                                                        </>
                                                     ) : (
                                                         <span>Pick a date range</span>
                                                     )}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
                                             </FormControl>
                                         </PopoverTrigger>
@@ -184,10 +171,10 @@ export default function FlashDealForm({ isNew, initialData, products, deals, onS
                                             <Calendar
                                                 initialFocus
                                                 mode="range"
-                                                defaultMonth={field.value?.from}
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                numberOfMonths={isMobile ? 1 : 2}
+                                                defaultMonth={field.value.startDate}
+                                                selected={{ from: field.value.startDate, to: field.value.endDate }}
+                                                onSelect={(range) => field.onChange({ startDate: range?.from, endDate: range?.to })}
+                                                numberOfMonths={1}
                                             />
                                         </PopoverContent>
                                     </Popover>

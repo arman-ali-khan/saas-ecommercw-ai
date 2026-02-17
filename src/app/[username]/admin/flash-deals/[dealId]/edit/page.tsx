@@ -70,8 +70,8 @@ export default function EditFlashDealPage() {
         const payload = {
             product_id: data.product_id, // can't be changed, but schema needs it
             discount_price: data.discount_price,
-            start_date: data.date_range.from.toISOString(),
-            end_date: data.date_range.to.toISOString(),
+            start_date: data.date_range.startDate.toISOString(),
+            end_date: data.date_range.endDate.toISOString(),
             is_active: data.is_active,
         };
 

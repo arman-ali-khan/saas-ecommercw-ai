@@ -56,8 +56,8 @@ export default function NewFlashDealPage() {
             site_id: user.id,
             product_id: data.product_id,
             discount_price: data.discount_price,
-            start_date: data.date_range.from.toISOString(),
-            end_date: data.date_range.to.toISOString(),
+            start_date: data.date_range.startDate.toISOString(),
+            end_date: data.date_range.endDate.toISOString(),
             is_active: data.is_active,
         };
 
