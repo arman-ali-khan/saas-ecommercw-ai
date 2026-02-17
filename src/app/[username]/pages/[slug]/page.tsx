@@ -80,7 +80,7 @@ export default async function CustomPage({ params }: Props) {
       <h1 className="text-4xl md:text-5xl font-headline font-bold mb-8">{page.title}</h1>
       
       {contentBlocks.length > 0 ? (
-        contentBlocks.map((block, index) => <PageBlock key={block.id || index} block={block} username={params.username} />)
+        contentBlocks.map((block, index) => <PageBlock key={block.id || index} block={block} username={params.username} siteId={site.id} />)
       ) : (
         <p className="text-muted-foreground">This page has no content yet.</p>
       )}

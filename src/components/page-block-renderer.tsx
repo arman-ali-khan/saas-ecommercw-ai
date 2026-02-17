@@ -14,7 +14,7 @@ const alignmentClasses = {
     right: 'text-right'
 }
 
-export function PageBlock({ block, username }: { block: any, username: string }) {
+export function PageBlock({ block, username, siteId }: { block: any, username: string, siteId: string }) {
   if (!block || !block.type) {
     return null;
   }
@@ -98,14 +98,14 @@ export function PageBlock({ block, username }: { block: any, username: string })
                 {(block.columns || []).map((column: any) => (
                     <div key={column.id}>
                         {(column.blocks || []).map((innerBlock: any, index: number) => (
-                            <PageBlock key={innerBlock.id || index} block={innerBlock} username={username} />
+                            <PageBlock key={innerBlock.id || index} block={innerBlock} username={username} siteId={siteId} />
                         ))}
                     </div>
                 ))}
             </div>
         );
     case 'product_showcase':
-        return <ShowcaseOrderBlock product_ids={block.product_ids} title={block.title} username={username} />;
+        return <ShowcaseOrderBlock main_product_id={block.main_product_id} optional_product_ids={block.optional_product_ids || []} also_buy_title={block.also_buy_title} username={username} siteId={siteId} />;
     case 'countdown':
         return (
             <div className="my-8 text-center">

@@ -26,12 +26,11 @@ const showcaseOrderSchema = z.object({
 
 type ShowcaseOrderFormData = z.infer<typeof showcaseOrderSchema>;
 
-export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also_buy_title, username }: { main_product_id?: string, optional_product_ids: string[], also_buy_title?: string, username: string }) {
+export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also_buy_title, username, siteId }: { main_product_id?: string, optional_product_ids: string[], also_buy_title?: string, username: string, siteId: string }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [siteId, setSiteId] = useState<string | null>(null);
     const { toast } = useToast();
     const router = useRouter();
 
@@ -41,20 +40,17 @@ export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also
     });
 
     useEffect(() => {
-        const fetchSiteAndProducts = async () => {
+        const fetchProducts = async () => {
             setIsLoading(true);
-            const { data: profileData } = await supabase.from('profiles').select('id').eq('domain', username).single();
-            if (!profileData) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not find site.' });
+            if (!siteId) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not identify the site.' });
                 setIsLoading(false);
                 return;
             }
-            const siteId = profileData.id;
-            setSiteId(siteId);
 
             const all_ids = [main_product_id, ...optional_product_ids].filter(Boolean) as string[];
 
-            if (all_ids && all_ids.length > 0) {
+            if (all_ids.length > 0) {
                 const { data: productsData, error } = await supabase.from('products').select('*').eq('site_id', siteId).in('id', all_ids);
                 if (error) {
                     toast({ variant: 'destructive', title: 'Error fetching products' });
@@ -72,8 +68,8 @@ export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also
             }
             setIsLoading(false);
         };
-        fetchSiteAndProducts();
-    }, [main_product_id, optional_product_ids, username]);
+        fetchProducts();
+    }, [main_product_id, optional_product_ids, siteId, toast]);
 
     const handleQuantityChange = (id: string, newQuantity: number) => {
         const minQuantity = id === main_product_id ? 1 : 0;
