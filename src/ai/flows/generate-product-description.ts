@@ -31,76 +31,42 @@ export async function generateProductDescription(input: GenerateProductDescripti
     
     const categoryString = categories ? categories.join(', ') : 'general';
 
-    const prompt = `You are an expert copywriter for an e-commerce store in Bangladesh that sells natural and organic products. Your task is to write an engaging and detailed product description in Bengali.
+    const prompt = `You are an expert copywriter for an e-commerce store in Bangladesh. Your task is to write an engaging and detailed product description in Bengali, directly in Tiptap/ProseMirror JSON format.
 
-    Product Name: ${name}
-    Short Description: ${description || 'Not provided.'}
-    Categories: ${categoryString}
-    Origin: ${origin || 'Not provided.'}
+Product Information:
+- Name: ${name}
+- Short Description: ${description || 'Not provided.'}
+- Categories: ${categoryString}
+- Origin: ${origin || 'Not provided.'}
 
-    Based on this information, write a compelling, long-form product description. The description should be structured in multiple paragraphs. It should be suitable for a rich text editor, so use markdown for formatting like headings (e.g., ## শিরোনাম), bold text (e.g., **গুরুত্বপূর্ণ**), and bullet points (e.g., * একটি বুলেট).
-
-    Highlight the product's natural origins, benefits, and unique qualities. Make it sound appealing to customers in Bangladesh. Start with an engaging introduction and end with a call to action. Do not include the product name in the description itself, as it's already in the title.`;
+Instructions:
+1.  Generate a JSON object conforming to the Tiptap schema. The root object must be \`{"type": "doc", "content": [...]}\`.
+2.  The content should be an array of nodes (e.g., paragraphs, headings, bullet lists).
+3.  Use paragraphs for the main body text. For example: \`{"type": "paragraph", "content": [{"type": "text", "text": "আপনার লেখা এখানে।"}]}\`.
+4.  Use headings (level 2 or 3) for section titles. For example: \`{"type": "heading", "attrs": {"level": 2}, "content": [{"type": "text", "text": "শিরোনাম"}]}\`.
+5.  Use bullet lists for features or benefits. For example: \`{"type": "bulletList", "content": [{"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "একটি বুলেট পয়েন্ট।"}]}]}]}\`.
+6.  Use marks for bold (\`"marks": [{"type": "bold"}]\`) and italic (\`"marks": [{"type": "italic"}]\`) text.
+7.  The description MUST be in Bengali.
+8.  Highlight the product's natural origins, benefits, and unique qualities.
+9.  Start with an engaging introduction and end with a call to action.
+10. DO NOT include the product name in the description itself.
+11. CRITICAL: Your entire output must be ONLY the JSON object. Do not include any introductory text, explanations, or markdown code fences. The output must be valid JSON that can be parsed directly.`;
 
     const result = await localAi.generate({
       prompt,
       config: { temperature: 0.7 },
     });
 
-    const generatedText = result.text;
+    const generatedJsonString = result.text;
     
-    // Convert markdown-like text to Tiptap/ProseMirror JSON
-    const paragraphs = generatedText.split('\n').filter(p => p.trim() !== '');
-    const content = paragraphs.map(p => {
-        if (p.startsWith('## ')) {
-            return { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: p.substring(3) }] };
-        }
-        if (p.startsWith('* ')) {
-            return { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: p.substring(2) }] }] };
-        }
-        // Basic bold and italic handling
-        const textContent: any[] = [];
-        const parts = p.split(/(\*\*.*?\*\*|\*.*?\*)/g);
-        parts.forEach(part => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-                textContent.push({ type: 'text', text: part.slice(2, -2), marks: [{ type: 'bold' }] });
-            } else if (part.startsWith('*') && part.endsWith('*')) {
-                textContent.push({ type: 'text', text: part.slice(1, -1), marks: [{ type: 'italic' }] });
-            } else {
-                textContent.push({ type: 'text', text: part });
-            }
-        });
-        
-        return { type: 'paragraph', content: textContent };
-    });
-
-    // Group list items
-    const finalContent: any[] = [];
-    let currentList: any = null;
-    content.forEach(item => {
-        if (item.type === 'listItem') {
-            if (!currentList) {
-                currentList = { type: 'bulletList', content: [] };
-            }
-            currentList.content.push(item);
-        } else {
-            if (currentList) {
-                finalContent.push(currentList);
-                currentList = null;
-            }
-            finalContent.push(item);
-        }
-    });
-    if (currentList) {
-        finalContent.push(currentList);
+    try {
+        // Validate if the output is a valid JSON.
+        JSON.parse(generatedJsonString);
+        return { longDescription: generatedJsonString };
+    } catch (jsonError) {
+        console.error("AI returned invalid JSON:", jsonError, "Raw output:", generatedJsonString);
+        throw new Error('AI produced an invalid format. Please try generating again.');
     }
-
-    const tiptapJson = {
-        type: 'doc',
-        content: finalContent,
-    };
-    
-    return { longDescription: JSON.stringify(tiptapJson) };
 
   } catch (e: any) {
     console.error("AI Generation Error:", e);
@@ -110,6 +76,9 @@ export async function generateProductDescription(input: GenerateProductDescripti
     }
     if (e.message.includes('API key not valid')) {
       throw new Error('The provided Gemini API key is not valid. Please check your AI settings.');
+    }
+    if (e.message.includes('AI produced an invalid format')) {
+        throw e;
     }
     throw new Error('Failed to generate description due to an unexpected error.');
   }
