@@ -32,10 +32,23 @@ const showcaseOrderSchema = z.object({
 
 type ShowcaseOrderFormData = z.infer<typeof showcaseOrderSchema>;
 
-export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also_buy_title, username, siteId }: { main_product_id?: string, optional_product_ids: string[], also_buy_title?: string, username: string, siteId: string }) {
-    const [products, setProducts] = useState<Product[]>([]);
+export function ShowcaseOrderBlock({ 
+    main_product_id, 
+    optional_product_ids, 
+    also_buy_title, 
+    username, 
+    siteId,
+    initialProducts
+}: { 
+    main_product_id?: string, 
+    optional_product_ids: string[], 
+    also_buy_title?: string, 
+    username: string, 
+    siteId: string,
+    initialProducts: Product[]
+}) {
+    const [products, setProducts] = useState<Product[]>(initialProducts);
     const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
-    const [isLoading, setIsLoading] = useState(true);
     const [shippingZones, setShippingZones] = useState<ShippingZone[]>([]);
     const [isLoadingShipping, setIsLoadingShipping] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,47 +61,21 @@ export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also
     });
 
     useEffect(() => {
-        const fetchProductsAndShipping = async () => {
-            setIsLoading(true);
+        const fetchShipping = async () => {
             setIsLoadingShipping(true);
             if (!siteId) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not identify the site.' });
-                setIsLoading(false);
                 setIsLoadingShipping(false);
                 return;
             }
 
-            const all_ids = [main_product_id, ...optional_product_ids].filter(Boolean) as string[];
-
-            const productsPromise = all_ids.length > 0 
-                ? supabase.from('products').select('*').eq('site_id', siteId).in('id', all_ids)
-                : Promise.resolve({ data: [], error: null });
-            
-            const shippingPromise = fetch('/api/get-shipping-zones', {
+            const response = await fetch('/api/get-shipping-zones', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ siteId }),
-            }).then(res => res.json());
-
-            const [productsResult, shippingResult] = await Promise.all([productsPromise, shippingPromise]);
-
-            // Handle Products
-            if (productsResult.error) {
-                toast({ variant: 'destructive', title: 'Error fetching products' });
-            } else if (productsResult.data) {
-                const productMap = new Map(productsResult.data.map(p => [p.id, p]));
-                const orderedProducts = all_ids.map(id => productMap.get(id)).filter(Boolean) as Product[];
-                setProducts(orderedProducts);
-                
-                const initialQuantities = orderedProducts.reduce((acc, p) => {
-                    acc[p.id] = p.id === main_product_id ? 1 : 0;
-                    return acc;
-                }, {} as { [key: string]: number });
-                setQuantities(initialQuantities);
-            }
-            setIsLoading(false);
-
-            // Handle Shipping
+            });
+            const shippingResult = await response.json();
+            
             if (shippingResult.error) {
                  toast({ variant: 'destructive', title: 'Error fetching shipping zones', description: shippingResult.error });
             } else if (shippingResult.zones) {
@@ -99,8 +86,18 @@ export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also
             }
             setIsLoadingShipping(false);
         };
-        fetchProductsAndShipping();
-    }, [main_product_id, optional_product_ids, siteId, toast, form]);
+        fetchShipping();
+    }, [siteId, toast, form]);
+
+    useEffect(() => {
+        // Set initial quantities when products are loaded
+        const initialQuantities = initialProducts.reduce((acc, p) => {
+            acc[p.id] = p.id === main_product_id ? 1 : 0;
+            return acc;
+        }, {} as { [key: string]: number });
+        setQuantities(initialQuantities);
+    }, [initialProducts, main_product_id]);
+
 
     const handleQuantityChange = (id: string, newQuantity: number) => {
         const minQuantity = id === main_product_id ? 1 : 0;
@@ -178,7 +175,6 @@ export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also
     const optionalProducts = useMemo(() => products.filter(p => optional_product_ids.includes(p.id)), [products, optional_product_ids]);
 
 
-    if (isLoading) return <Card className="my-8"><CardContent><Loader2 className="mx-auto my-16 h-10 w-10 animate-spin" /></CardContent></Card>;
     if (products.length === 0) return null;
 
     return (
@@ -313,4 +309,3 @@ export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also
     );
 }
 
-    

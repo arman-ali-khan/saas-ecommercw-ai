@@ -7,6 +7,9 @@ import { cn } from '@/lib/utils';
 import RichTextRenderer from '@/components/saas-page-renderer';
 import { CountdownBlock, CarouselBlock } from '@/components/client-blocks';
 import { ShowcaseOrderBlock } from '@/components/showcase-order-block';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import type { Product } from '@/types';
 
 const alignmentClasses = {
     left: 'text-left',
@@ -14,7 +17,7 @@ const alignmentClasses = {
     right: 'text-right'
 }
 
-export function PageBlock({ block, username, siteId }: { block: any, username: string, siteId: string }) {
+export async function PageBlock({ block, username, siteId }: { block: any, username: string, siteId: string }) {
   if (!block || !block.type) {
     return null;
   }
@@ -105,7 +108,47 @@ export function PageBlock({ block, username, siteId }: { block: any, username: s
             </div>
         );
     case 'product_showcase':
-        return <ShowcaseOrderBlock main_product_id={block.main_product_id} optional_product_ids={block.optional_product_ids || []} also_buy_title={block.also_buy_title} username={username} siteId={siteId} />;
+        const cookieStore = cookies();
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+              cookies: {
+                get(name: string) {
+                  return cookieStore.get(name)?.value;
+                },
+              },
+            }
+          );
+        
+        const all_ids = [block.main_product_id, ...(block.optional_product_ids || [])].filter(Boolean) as string[];
+
+        if (all_ids.length === 0) {
+            return null; // Or a placeholder in edit mode
+        }
+
+        const { data: productsData, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('site_id', siteId)
+            .in('id', all_ids);
+        
+        if (error) {
+            console.error("Error fetching products for showcase block:", error.message);
+            return <div className="text-destructive my-4 p-4 border border-destructive/50 rounded-md">Error loading products for showcase.</div>;
+        }
+
+        const productMap = new Map((productsData || []).map(p => [p.id, p]));
+        const orderedProducts = all_ids.map(id => productMap.get(id)).filter(Boolean) as Product[];
+
+        return <ShowcaseOrderBlock 
+            main_product_id={block.main_product_id} 
+            optional_product_ids={block.optional_product_ids || []} 
+            also_buy_title={block.also_buy_title} 
+            username={username} 
+            siteId={siteId}
+            initialProducts={orderedProducts}
+        />;
     case 'countdown':
         return (
             <div className="my-8 text-center">
