@@ -36,30 +36,21 @@ export const useCustomerAuth = create<CustomerAuthState>()(
 
       customerLogin: async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        // The actual user setting will be handled by the central AuthProvider
+        // The actual user setting will be handled by the central AuthProvider, which calls refreshCustomer
         return { error };
       },
 
       refreshCustomer: async () => {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.user) {
+          const response = await fetch('/api/auth/get-customer');
+          
+          if (!response.ok) {
             set({ customer: null });
             return;
           }
 
-          const { data: customerProfile, error: profileError } = await supabase
-              .from('customer_profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-          if (profileError || !customerProfile) {
-              console.error("Failed to refresh customer profile:", profileError);
-              set({ customer: null });
-              return;
-          }
-            
+          const { customerProfile } = await response.json();
+          
           const currentCustomer = get().customer;
           if (
             currentCustomer &&
@@ -72,7 +63,7 @@ export const useCustomerAuth = create<CustomerAuthState>()(
 
           set({ customer: customerProfile });
         } catch (error) {
-            console.error("Failed to refresh customer profile:", error);
+            console.error("Failed to refresh customer profile via API:", error);
             set({ customer: null });
         }
       },
