@@ -17,11 +17,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Special case: Do not rewrite the service worker, as it's a global file.
-  if (url.pathname === '/sw.js') {
-    return NextResponse.next();
-  }
-
   // 2. The Rewrite Rule
   // Current Path: url.pathname (e.g., /admin)
   // Target Path: /[subdomain]/admin
@@ -33,7 +28,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/manifest.json',
-    '/sw.js',
     '/sitemap.xml',
     '/robots.txt',
     /*
