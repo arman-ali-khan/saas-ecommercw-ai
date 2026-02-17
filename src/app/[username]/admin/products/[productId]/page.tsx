@@ -194,9 +194,10 @@ export default function ManageProductPage() {
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .trim()
-        .slice(0, 50);
+        .slice(0, 40); // Shorter to allow for random part
       
-      form.setValue('id', baseSlug, { shouldValidate: true });
+      const uniquePart = Math.random().toString(36).substring(2, 7);
+      form.setValue('id', `${baseSlug}-${uniquePart}`, { shouldValidate: true });
     };
 
     const handler = setTimeout(() => {
@@ -359,36 +360,43 @@ export default function ManageProductPage() {
       productError = insertError;
     } else {
       const { id, ...updateData } = finalProductValues;
+      const decodedProductId = decodeURIComponent(productId);
       const { error: updateError } = await supabase
         .from('products')
         .update(updateData)
-        .match({ id: productId, site_id: user.id });
+        .match({ id: decodedProductId, site_id: user.id });
       productError = updateError;
     }
 
     if (productError) {
       setIsSubmitting(false);
-      toast({
-        variant: 'destructive',
-        title: `Failed to ${isNew ? 'create' : 'update'} product`,
-        description: productError.message,
-      });
+      if (productError.code === '23505') { // Unique constraint violation
+        form.setError('id', { type: 'manual', message: 'This Product ID/Slug is already taken. Please choose another.' });
+        toast({ variant: 'destructive', title: 'Product ID already exists', description: 'Please choose a unique Product ID / Slug.' });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: `Failed to ${isNew ? 'create' : 'update'} product`,
+          description: productError.message,
+        });
+      }
       return;
     }
     
     let flashDealError;
     try {
+        const decodedProductId = decodeURIComponent(productId);
         const { data: existingDeal } = await supabase
             .from('flash_deals')
             .select('id')
-            .eq('product_id', values.id)
+            .eq('product_id', isNew ? values.id : decodedProductId)
             .eq('site_id', user.id)
             .maybeSingle();
 
         if (has_flash_deal) {
             const flashDealPayload = {
                 site_id: user.id,
-                product_id: values.id,
+                product_id: isNew ? values.id : decodedProductId,
                 discount_price: flash_deal_price!,
                 start_date: flash_deal_range!.from!.toISOString(),
                 end_date: flash_deal_range!.to!.toISOString(),
@@ -428,6 +436,15 @@ export default function ManageProductPage() {
   const handleSetFeatured = (fromIndex: number) => {
     if (fromIndex === 0) return;
     swap(0, fromIndex);
+    toast({ title: 'Featured image updated.', description: 'Click "Save Changes" to apply.' });
+  };
+  
+  const handleRemoveImage = (indexToRemove: number) => {
+    if (fields.length <= 1) {
+      form.setError('images', { type: 'manual', message: 'At least one image is required.' });
+      return;
+    }
+    remove(indexToRemove);
   };
 
   const handleImageUpload = (result: any) => {
@@ -883,7 +900,7 @@ export default function ManageProductPage() {
                                                 variant="destructive"
                                                 size="icon"
                                                 className="h-8 w-8"
-                                                onClick={() => remove(index)}
+                                                onClick={() => handleRemoveImage(index)}
                                                 title="Delete image"
                                                 >
                                                 <Trash2 className="h-4 w-4" />
