@@ -87,25 +87,30 @@ export const useCustomerAuth = create<CustomerAuthState>()(
         const { customer } = get();
         if (!customer) return { customer: null, error: "Not logged in" };
 
-        const { data, error } = await supabase
-          .from('customer_profiles')
-          .update({ full_name: updates.full_name })
-          .eq('id', customer.id)
-          .select();
-        
-        if (error) {
-          return { customer: null, error: error.message };
-        }
+        try {
+            const response = await fetch('/api/auth/update-customer-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customerId: customer.id,
+                    siteId: customer.site_id,
+                    updates: { full_name: updates.full_name },
+                }),
+            });
 
-        if (!data || data.length === 0) {
-            return { customer: null, error: "Profile not found after update." };
-        }
-        
-        const updatedProfile = data[0];
+            const result = await response.json();
 
-        const newCustomer = { ...customer, ...updatedProfile } as CustomerUser;
-        set({ customer: newCustomer });
-        return { customer: newCustomer, error: null };
+            if (!response.ok) {
+                return { customer: null, error: result.error || "Failed to update profile." };
+            }
+
+            const newCustomer = result.customer as CustomerUser;
+            set({ customer: newCustomer });
+            return { customer: newCustomer, error: null };
+
+        } catch (e: any) {
+            return { customer: null, error: e.message || "An unknown network error occurred." };
+        }
       },
 
       updateCustomerPassword: async (newPassword: string) => {
