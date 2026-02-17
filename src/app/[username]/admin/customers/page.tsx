@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -40,6 +41,22 @@ export default function CustomersAdminPage() {
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const lang = user?.language || 'bn';
+  const t = {
+    title: { bn: 'কাস্টমার ম্যানেজমেন্ট', en: 'Customer Management' },
+    description: { bn: 'আপনার স্টোরের সব রেজিস্টার্ড কাস্টমারদের লিস্ট।', en: 'List of all registered customers in your store.' },
+    totalCustomers: { bn: `মোট ${customers.length} জন কাস্টমার।`, en: `Total ${customers.length} customers.`},
+    noCustomers: { bn: 'কোনো রেজিস্টার্ড কাস্টমার পাওয়া যায়নি।', en: 'No registered customers found.' },
+    loadingDescription: { bn: 'আপনার স্টোরে রেজিস্টার্ড কাস্টমারদের দেখুন।', en: 'View registered customers in your store.' },
+    customer: { bn: 'কাস্টমার', en: 'Customer' },
+    email: { bn: 'ইমেল', en: 'Email' },
+    registrationDate: { bn: 'রেজিস্ট্রেশন ডেট', en: 'Registration Date' },
+    actions: { bn: 'অ্যাকশনস', en: 'Actions' },
+    viewDetails: { bn: 'বিস্তারিত', en: 'View Details' },
+    sendEmail: { bn: 'ইমেল করুন', en: 'Send Email' },
+    registered: { bn: 'রেজিস্টার্ড', en: 'Registered' },
+  };
+
   const fetchCustomers = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
@@ -75,9 +92,9 @@ export default function CustomersAdminPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>কাস্টমার ম্যানেজমেন্ট</CardTitle>
+          <CardTitle>{t.title[lang]}</CardTitle>
           <CardDescription>
-            আপনার স্টোরে রেজিস্টার্ড কাস্টমারদের দেখুন।
+            {t.loadingDescription[lang]}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-16">
@@ -91,16 +108,16 @@ export default function CustomersAdminPage() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>কাস্টমার ম্যানেজমেন্ট</CardTitle>
+          <CardTitle>{t.title[lang]}</CardTitle>
           <CardDescription>
-            আপনার স্টোরের সব রেজিস্টার্ড কাস্টমারদের লিস্ট। মোট {customers.length} জন কাস্টমার।
+            {t.description[lang]} {t.totalCustomers[lang]}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {customers.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-muted-foreground">
-                কোনো রেজিস্টার্ড কাস্টমার পাওয়া যায়নি।
+                {t.noCustomers[lang]}
               </p>
             </div>
           ) : (
@@ -110,10 +127,10 @@ export default function CustomersAdminPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>কাস্টমার</TableHead>
-                      <TableHead>ইমেল</TableHead>
-                      <TableHead>রেজিস্ট্রেশন ডেট</TableHead>
-                      <TableHead className="text-right">অ্যাকশনস</TableHead>
+                      <TableHead>{t.customer[lang]}</TableHead>
+                      <TableHead>{t.email[lang]}</TableHead>
+                      <TableHead>{t.registrationDate[lang]}</TableHead>
+                      <TableHead className="text-right">{t.actions[lang]}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -132,12 +149,12 @@ export default function CustomersAdminPage() {
                         <TableCell className="text-right">
                             <Button variant="ghost" size="sm" asChild>
                                 <Link href={`/admin/customers/${customer.id}`}>
-                                <Eye className="mr-2 h-4 w-4" /> বিস্তারিত
+                                <Eye className="mr-2 h-4 w-4" /> {t.viewDetails[lang]}
                                 </Link>
                             </Button>
                             <Button variant="ghost" size="sm" asChild>
                                 <a href={`mailto:${customer.email}`}>
-                                <Mail className="mr-2 h-4 w-4" /> ইমেল করুন
+                                <Mail className="mr-2 h-4 w-4" /> {t.sendEmail[lang]}
                                 </a>
                             </Button>
                         </TableCell>
@@ -180,12 +197,12 @@ export default function CustomersAdminPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
                                <Link href={`/admin/customers/${customer.id}`}>
-                                <Eye className="mr-2 h-4 w-4" /> বিস্তারিত
+                                <Eye className="mr-2 h-4 w-4" /> {t.viewDetails[lang]}
                                </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                                <a href={`mailto:${customer.email}`}>
-                                <Mail className="mr-2 h-4 w-4" /> ইমেল করুন
+                                <Mail className="mr-2 h-4 w-4" /> {t.sendEmail[lang]}
                               </a>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -194,7 +211,7 @@ export default function CustomersAdminPage() {
                     </CardHeader>
                     <CardContent>
                        <p className="text-sm text-muted-foreground">
-                        রেজিস্টার্ড: {format(new Date(customer.created_at), 'PP')}
+                        {t.registered[lang]}: {format(new Date(customer.created_at), 'PP')}
                        </p>
                     </CardContent>
                   </Card>

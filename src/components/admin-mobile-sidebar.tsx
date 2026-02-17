@@ -55,12 +55,6 @@ export default function AdminMobileSidebar() {
   const [totalCustomersCount, setTotalCustomersCount] = useState(0);
   const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
   const [pendingQnaCount, setPendingQnaCount] = useState(0);
-  const [siteSettings, setSiteSettings] = useState<{
-    logo_type?: 'icon' | 'image';
-    logo_icon?: string;
-    logo_image_url?: string;
-    language?: string;
-  } | null>(null);
 
   useEffect(() => {
     const siteId = user?.id;
@@ -109,16 +103,6 @@ export default function AdminMobileSidebar() {
         .eq('site_id', siteId)
         .eq('is_approved', false);
       setPendingQnaCount(qnaCount || 0);
-
-      // Fetch site settings
-      const { data: settingsData } = await supabase
-        .from('store_settings')
-        .select('logo_type, logo_icon, logo_image_url, language')
-        .eq('site_id', siteId)
-        .single();
-      if (settingsData) {
-        setSiteSettings(settingsData);
-      }
     };
     
     fetchAllData();
@@ -148,8 +132,8 @@ export default function AdminMobileSidebar() {
 
   const handleLanguageToggle = async () => {
     if(!user) return;
-    const newLang = siteSettings?.language === 'bn' ? 'en' : 'bn';
-    const { error } = await supabase.from('store_settings').update({ language: newLang }).eq('site_id', user.id);
+    const newLang = user.language === 'bn' ? 'en' : 'bn';
+    const { error } = await supabase.from('store_settings').upsert({ site_id: user.id, language: newLang });
     if (error) {
         toast({ title: "Failed to switch language", variant: "destructive" });
     } else {
@@ -177,10 +161,10 @@ export default function AdminMobileSidebar() {
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
   ];
   
-  const logoType = siteSettings?.logo_type || 'icon';
-  const logoIcon = siteSettings?.logo_icon || 'Leaf';
-  const logoImageUrl = siteSettings?.logo_image_url;
-  const language = siteSettings?.language || 'bn';
+  const logoType = user.logo_type || 'icon';
+  const logoIcon = user.logo_icon || 'Leaf';
+  const logoImageUrl = user.logo_image_url;
+  const language = user.language || 'bn';
 
   const NavLink = ({
     href,

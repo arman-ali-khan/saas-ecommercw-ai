@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -56,6 +57,31 @@ export default function OrdersAdminPage() {
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    const lang = user?.language || 'bn';
+    const t = {
+        title: { bn: 'অর্ডার ব্যবস্থাপনা', en: 'Order Management' },
+        description: { bn: 'সমস্ত গ্রাহকের অর্ডার দেখুন এবং পরিচালনা করুন।', en: 'View and manage all customer orders.' },
+        noOrders: { bn: 'কোনো অর্ডার পাওয়া যায়নি।', en: 'No orders found.' },
+        orderId: { bn: 'অর্ডার আইডি', en: 'Order ID' },
+        customer: { bn: 'গ্রাহক', en: 'Customer' },
+        date: { bn: 'তারিখ', en: 'Date' },
+        status: { bn: 'স্ট্যাটাস', en: 'Status' },
+        total: { bn: 'মোট', en: 'Total' },
+        actions: { bn: 'কার্যকলাপ', en: 'Actions' },
+        menu: { bn: 'মেনু', en: 'Menu' },
+        viewOrder: { bn: 'অর্ডার দেখুন', en: 'View Order' },
+        statuses: {
+            pending: { bn: 'পেন্ডিং', en: 'Pending' },
+            approved: { bn: 'অনুমোদিত', en: 'Approved' },
+            processing: { bn: 'প্রক্রিয়াকরণ চলছে', en: 'Processing' },
+            packaging: { bn: 'প্যাকেজিং চলছে', en: 'Packaging' },
+            'send for delivery': { bn: 'ডেলিভারির জন্য পাঠানো হয়েছে', en: 'Sent for Delivery' },
+            shipped: { bn: 'পাঠানো হয়েছে', en: 'Shipped' },
+            delivered: { bn: 'বিতরণ করা হয়েছে', en: 'Delivered' },
+            canceled: { bn: 'বাতিল করা হয়েছে', en: 'Canceled' },
+        }
+    };
     
     const fetchOrders = useCallback(async () => {
         if (!user?.id) return;
@@ -82,17 +108,8 @@ export default function OrdersAdminPage() {
     }, [user, authLoading, fetchOrders]);
     
     const translateStatus = (status: string): string => {
-        switch (status.toLowerCase()) {
-            case 'pending': return 'পেন্ডিং';
-            case 'approved': return 'অনুমোদিত';
-            case 'processing': return 'প্রক্রিয়াকরণ চলছে';
-            case 'packaging': return 'প্যাকেজিং চলছে';
-            case 'send for delivery': return 'ডেলিভারির জন্য পাঠানো হয়েছে';
-            case 'shipped': return 'পাঠানো হয়েছে'; // backwards compatibility
-            case 'delivered': return 'বিতরণ করা হয়েছে';
-            case 'canceled': return 'বাতিল করা হয়েছে';
-            default: return status;
-        }
+        const lowerStatus = status.toLowerCase();
+        return t.statuses[lowerStatus as keyof typeof t.statuses]?.[lang] || status;
     };
 
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
@@ -113,8 +130,8 @@ export default function OrdersAdminPage() {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>অর্ডার ব্যবস্থাপনা</CardTitle>
-                    <CardDescription>সমস্ত গ্রাহকের অর্ডার দেখুন এবং পরিচালনা করুন।</CardDescription>
+                    <CardTitle>{t.title[lang]}</CardTitle>
+                    <CardDescription>{t.description[lang]}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center py-16">
                     <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
@@ -127,8 +144,8 @@ export default function OrdersAdminPage() {
         <>
             <Card>
                 <CardHeader>
-                    <CardTitle>অর্ডার ব্যবস্থাপনা</CardTitle>
-                    <CardDescription>সমস্ত গ্রাহকের অর্ডার দেখুন এবং পরিচালনা করুন।</CardDescription>
+                    <CardTitle>{t.title[lang]}</CardTitle>
+                    <CardDescription>{t.description[lang]}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {orders.length > 0 ? (
@@ -138,12 +155,12 @@ export default function OrdersAdminPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>অর্ডার আইডি</TableHead>
-                                        <TableHead>গ্রাহক</TableHead>
-                                        <TableHead>তারিখ</TableHead>
-                                        <TableHead>স্ট্যাটাস</TableHead>
-                                        <TableHead>মোট</TableHead>
-                                        <TableHead className="text-right">কার্যকলাপ</TableHead>
+                                        <TableHead>{t.orderId[lang]}</TableHead>
+                                        <TableHead>{t.customer[lang]}</TableHead>
+                                        <TableHead>{t.date[lang]}</TableHead>
+                                        <TableHead>{t.status[lang]}</TableHead>
+                                        <TableHead>{t.total[lang]}</TableHead>
+                                        <TableHead className="text-right">{t.actions[lang]}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -164,15 +181,15 @@ export default function OrdersAdminPage() {
                                                     <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" size="icon">
                                                             <MoreHorizontal className="h-4 w-4" />
-                                                            <span className="sr-only">মেনু</span>
+                                                            <span className="sr-only">{t.menu[lang]}</span>
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
+                                                        <DropdownMenuLabel>{t.actions[lang]}</DropdownMenuLabel>
                                                         <DropdownMenuItem asChild>
                                                           <Link href={`/admin/orders/${order.id}`}>
                                                             <Eye className="mr-2 h-4 w-4" />
-                                                            অর্ডার দেখুন
+                                                            {t.viewOrder[lang]}
                                                           </Link>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
@@ -205,7 +222,7 @@ export default function OrdersAdminPage() {
                                                     <DropdownMenuItem asChild>
                                                         <Link href={`/admin/orders/${order.id}`}>
                                                             <Eye className="mr-2 h-4 w-4" />
-                                                            অর্ডার দেখুন
+                                                            {t.viewOrder[lang]}
                                                         </Link>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
@@ -222,7 +239,7 @@ export default function OrdersAdminPage() {
                         </div>
                     </>
                     ) : (
-                        <p className="text-muted-foreground text-center py-8">কোনো অর্ডার পাওয়া যায়নি।</p>
+                        <p className="text-muted-foreground text-center py-8">{t.noOrders[lang]}</p>
                     )}
                 </CardContent>
             </Card>

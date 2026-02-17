@@ -60,6 +60,12 @@ export const useAuth = create<AuthState>()((set, get) => ({
           set({ user: null });
           return;
         }
+        
+        const { data: settingsData } = await supabase
+          .from('store_settings')
+          .select('language, logo_type, logo_icon, logo_image_url')
+          .eq('site_id', adminProfile.id)
+          .single();
 
         let planDetails: Partial<Plan> = {
           product_limit: null,
@@ -95,6 +101,10 @@ export const useAuth = create<AuthState>()((set, get) => ({
           customer_limit: planDetails.customer_limit ?? null,
           order_limit: planDetails.order_limit ?? null,
           subscription_end_date: adminProfile.subscription_end_date,
+          language: settingsData?.language || 'bn',
+          logo_type: settingsData?.logo_type || 'icon',
+          logo_icon: settingsData?.logo_icon || 'Leaf',
+          logo_image_url: settingsData?.logo_image_url || null,
         };
 
         const currentUser = get().user;
@@ -222,27 +232,9 @@ export const useAuth = create<AuthState>()((set, get) => ({
             return { user: null, error: error.message };
         }
         
-        const currentUser = get().user;
-        const updatedUser: User = {
-          id: data.id,
-          username: data.username,
-          fullName: data.full_name,
-          email: currentUser?.email || '', // email doesn't change
-          domain: data.domain,
-          siteName: data.site_name,
-          siteDescription: data.site_description,
-          subscriptionPlan: data.subscription_plan,
-          subscription_status: data.subscription_status,
-          role: data.role,
-          isSaaSAdmin: data.role === 'saas_admin',
-          last_subscription_from: data.last_subscription_from,
-          product_limit: currentUser?.product_limit ?? null,
-          customer_limit: currentUser?.customer_limit ?? null,
-          order_limit: currentUser?.order_limit ?? null,
-          subscription_end_date: data.subscription_end_date,
-        };
+        await get().refreshUser();
+        const updatedUser = get().user;
         
-        set({ user: updatedUser });
         return { user: updatedUser, error: null };
     }
 }));

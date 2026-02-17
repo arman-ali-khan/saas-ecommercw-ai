@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -44,6 +45,26 @@ export default function ProductsAdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+
+  const lang = user?.language || 'bn';
+  const t = {
+    title: { en: 'Product Management', bn: 'পণ্য ব্যবস্থাপনা' },
+    description: { en: 'Add, edit, and manage products for your store.', bn: 'আপনার দোকানের জন্য পণ্য যোগ, সম্পাদনা এবং পরিচালনা করুন।' },
+    addProduct: { en: 'Add New Product', bn: 'নতুন পণ্য যোগ করুন' },
+    noProducts: { en: 'You have no products yet.', bn: 'আপনার কোনো পণ্য নেই।' },
+    image: { en: 'Image', bn: 'ছবি' },
+    name: { en: 'Name', bn: 'নাম' },
+    category: { en: 'Category', bn: 'বিভাগ' },
+    price: { en: 'Price', bn: 'দাম' },
+    actions: { en: 'Actions', bn: 'কার্যকলাপ' },
+    menu: { en: 'Menu', bn: 'মেনু' },
+    view: { en: 'View', bn: 'View' },
+    edit: { en: 'Edit', bn: 'Edit' },
+    delete: { en: 'Delete', bn: 'মুছুন' },
+    deleteConfirmTitle: { en: 'Are you absolutely sure?', bn: 'Are you absolutely sure?' },
+    deleteConfirmDesc: { en: 'This will permanently delete the product "{productName}". This action cannot be undone.', bn: 'This will permanently delete the product "{productName}". This action cannot be undone.'},
+    cancel: { bn: 'Cancel', en: 'Cancel' }
+  };
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
@@ -98,14 +119,14 @@ export default function ProductsAdminPage() {
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">পণ্য ব্যবস্থাপনা</h1>
+          <h1 className="text-2xl font-bold">{t.title[lang]}</h1>
           <p className="text-muted-foreground">
-            আপনার দোকানের জন্য পণ্য যোগ, সম্পাদনা এবং পরিচালনা করুন।
+            {t.description[lang]}
           </p>
         </div>
         <Button asChild>
           <Link href={`/admin/products/new`}>
-            <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
+            <Plus className="mr-2 h-4 w-4" /> {t.addProduct[lang]}
           </Link>
         </Button>
       </div>
@@ -113,10 +134,10 @@ export default function ProductsAdminPage() {
       {products.length === 0 ? (
         <Card>
           <CardContent className="text-center py-16">
-            <p className="text-muted-foreground">আপনার কোনো পণ্য নেই।</p>
+            <p className="text-muted-foreground">{t.noProducts[lang]}</p>
             <Button asChild className="mt-4">
               <Link href={`/admin/products/new`}>
-                <Plus className="mr-2 h-4 w-4" /> নতুন পণ্য যোগ করুন
+                <Plus className="mr-2 h-4 w-4" /> {t.addProduct[lang]}
               </Link>
             </Button>
           </CardContent>
@@ -128,11 +149,11 @@ export default function ProductsAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px]">ছবি</TableHead>
-                    <TableHead>নাম</TableHead>
-                    <TableHead>বিভাগ</TableHead>
-                    <TableHead>দাম</TableHead>
-                    <TableHead className="text-right">কার্যকলাপ</TableHead>
+                    <TableHead className="w-[80px]">{t.image[lang]}</TableHead>
+                    <TableHead>{t.name[lang]}</TableHead>
+                    <TableHead>{t.category[lang]}</TableHead>
+                    <TableHead>{t.price[lang]}</TableHead>
+                    <TableHead className="text-right">{t.actions[lang]}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -171,24 +192,24 @@ export default function ProductsAdminPage() {
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
                               <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">মেনু</span>
+                              <span className="sr-only">{t.menu[lang]}</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>কার্যকলাপ</DropdownMenuLabel>
+                            <DropdownMenuLabel>{t.actions[lang]}</DropdownMenuLabel>
                             <DropdownMenuItem asChild>
                               <Link
                                 href={`/products/${product.id}`}
                                 target="_blank"
                               >
-                                <Eye className="mr-2 h-4 w-4" /> View
+                                <Eye className="mr-2 h-4 w-4" /> {t.view[lang]}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <Link
                                 href={`/admin/products/${product.id}`}
                               >
-                                <Edit className="mr-2 h-4 w-4" /> Edit
+                                <Edit className="mr-2 h-4 w-4" /> {t.edit[lang]}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -196,7 +217,7 @@ export default function ProductsAdminPage() {
                               onClick={() => setProductToDelete(product)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              মুছুন
+                              {t.delete[lang]}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -252,14 +273,14 @@ export default function ProductsAdminPage() {
                             href={`/products/${product.id}`}
                             target="_blank"
                           >
-                            <Eye className="mr-2 h-4 w-4" /> View
+                            <Eye className="mr-2 h-4 w-4" /> {t.view[lang]}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link
                             href={`/admin/products/${product.id}`}
                           >
-                            <Edit className="mr-2 h-4 w-4" /> Edit
+                            <Edit className="mr-2 h-4 w-4" /> {t.edit[lang]}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -267,7 +288,7 @@ export default function ProductsAdminPage() {
                           onClick={() => setProductToDelete(product)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          মুছুন
+                          {t.delete[lang]}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -282,16 +303,16 @@ export default function ProductsAdminPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0">
             <div className="w-full max-w-md p-6 bg-background rounded-lg shadow-xl border animate-in zoom-in-95">
                 <div className="text-center sm:text-left">
-                    <h3 className="text-lg font-semibold text-foreground">Are you absolutely sure?</h3>
+                    <h3 className="text-lg font-semibold text-foreground">{t.deleteConfirmTitle[lang]}</h3>
                     <div className="mt-2">
                         <p className="text-sm text-muted-foreground">
-                            This will permanently delete the product "{productToDelete.name}". This action cannot be undone.
+                            {t.deleteConfirmDesc[lang].replace('{productName}', productToDelete.name)}
                         </p>
                     </div>
                 </div>
                 <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
                     <Button variant="outline" onClick={() => setProductToDelete(null)}>
-                    Cancel
+                    {t.cancel[lang]}
                     </Button>
                     <Button
                         onClick={handleDelete}
@@ -299,7 +320,7 @@ export default function ProductsAdminPage() {
                         className={cn(buttonVariants({ variant: 'destructive' }))}
                     >
                     {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Delete
+                    {t.delete[lang]}
                     </Button>
                 </div>
             </div>

@@ -48,19 +48,13 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, loading, logout: authLogout } = useAuth();
+  const { user, loading, logout: authLogout, refreshUser } = useAuth();
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [unviewedUncompletedCount, setUnviewedUncompletedCount] = useState(0);
   const [totalCustomersCount, setTotalCustomersCount] = useState(0);
   const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
   const [pendingQnaCount, setPendingQnaCount] = useState(0);
-  const [siteSettings, setSiteSettings] = useState<{
-    logo_type?: 'icon' | 'image';
-    logo_icon?: string;
-    logo_image_url?: string;
-    language?: string;
-  } | null>(null);
 
   useEffect(() => {
     const siteId = user?.id;
@@ -109,16 +103,6 @@ export default function AdminSidebar() {
         .eq('site_id', siteId)
         .eq('is_approved', false);
       setPendingQnaCount(qnaCount || 0);
-
-      // Fetch site settings
-      const { data: settingsData } = await supabase
-        .from('store_settings')
-        .select('logo_type, logo_icon, logo_image_url, language')
-        .eq('site_id', siteId)
-        .single();
-      if (settingsData) {
-        setSiteSettings(settingsData);
-      }
     };
     
     fetchAllData();
@@ -144,10 +128,10 @@ export default function AdminSidebar() {
 
   const handleLanguageToggle = async () => {
     if(!user) return;
-    const newLang = siteSettings?.language === 'bn' ? 'en' : 'bn';
-    const { error } = await supabase.from('store_settings').update({ language: newLang }).eq('site_id', user.id);
+    const newLang = user.language === 'bn' ? 'en' : 'bn';
+    const { error } = await supabase.from('store_settings').upsert({ site_id: user.id, language: newLang });
     if (error) {
-        toast({ title: "Failed to switch language", variant: "destructive" });
+        toast({ title: "Failed to switch language", variant: "destructive", description: error.message });
     } else {
         toast({ title: `Language switched to ${newLang === 'en' ? 'English' : 'Bengali'}` });
         window.location.reload();
@@ -155,7 +139,6 @@ export default function AdminSidebar() {
   };
   
   if (loading || !user) {
-    // You can return a loading skeleton here
     return (
       <div className="hidden border-r border-border bg-card md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
@@ -170,10 +153,10 @@ export default function AdminSidebar() {
     )
   }
   
-  const logoType = siteSettings?.logo_type || 'icon';
-  const logoIcon = siteSettings?.logo_icon || 'Leaf';
-  const logoImageUrl = siteSettings?.logo_image_url;
-  const language = siteSettings?.language || 'bn';
+  const logoType = user.logo_type || 'icon';
+  const logoIcon = user.logo_icon || 'Leaf';
+  const logoImageUrl = user.logo_image_url;
+  const language = user.language || 'bn';
 
   const adminNavLinks = [
     { href: `/`, label: 'View Store', icon: Home },

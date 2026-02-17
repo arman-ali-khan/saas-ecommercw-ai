@@ -118,6 +118,10 @@ export interface User {
   customer_limit: number | null;
   order_limit: number | null;
   subscription_end_date: string | null;
+  language?: 'en' | 'bn';
+  logo_type?: 'icon' | 'image';
+  logo_icon?: string;
+  logo_image_url?: string | null;
 }
 
 export interface Plan {

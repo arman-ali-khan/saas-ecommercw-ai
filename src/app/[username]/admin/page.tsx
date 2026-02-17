@@ -82,6 +82,48 @@ export default function AdminDashboard() {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [paymentMethodData, setPaymentMethodData] = useState<any[]>([]);
 
+  const lang = user?.language || 'bn';
+  const t = {
+    dashboard: { en: 'Dashboard', bn: 'ড্যাশবোর্ড' },
+    limitReached: { en: 'Subscription Limit Reached', bn: 'সাবস্ক্রিপশন লিমিট শেষ' },
+    limitDesc: { en: 'You have reached one or more limits of your current plan. Please', bn: 'আপনি আপনার বর্তমান প্ল্যানের এক বা একাধিক লিমিট শেষ করে ফেলেছেন। অনুগ্রহ করে' },
+    upgrade: { en: 'upgrade your subscription', bn: 'আপনার সাবস্ক্রিপশন আপগ্রেড করুন' },
+    limitDesc2: { en: 'to continue adding new products, or accepting new customers/orders.', bn: 'নতুন পণ্য যোগ করা, বা নতুন গ্রাহক/অর্ডার গ্রহণ করা চালিয়ে যেতে।' },
+    totalRevenue: { en: 'Total Revenue', bn: 'মোট আয়' },
+    allTime: { en: 'All-time delivered orders', bn: 'সর্বকালের ডেলিভারিকৃত অর্ডার' },
+    newUncompleted: { en: 'New Uncompleted Orders', bn: 'নতুন অসম্পূর্ণ অর্ডার' },
+    totalAbandoned: { en: 'total abandoned carts', bn: 'মোট পরিত্যক্ত কার্ট' },
+    products: { en: 'Products', bn: 'পণ্য' },
+    customers: { en: 'Customers', bn: 'গ্রাহক' },
+    ordersThisMonth: { en: 'Orders (This Month)', bn: 'এই মাসের অর্ডার' },
+    limitReachedAlert: { en: 'Limit reached. Upgrade plan to add more.', bn: 'লিমিট শেষ। আরও যোগ করতে প্ল্যান আপগ্রেড করুন।' },
+    unlimited: { en: 'Unlimited on your current plan', bn: 'আপনার বর্তমান প্ল্যানে সীমাহীন' },
+    remaining: { en: 'remaining', bn: 'বাকি আছে' },
+    revenue7Days: { en: 'Revenue (Last 7 Days)', bn: 'রাজস্ব (শেষ ৭ দিন)' },
+    salesByPayment: { en: 'Total Sales by Payment Method', bn: 'পেমেন্ট পদ্ধতি অনুসারে মোট বিক্রয়' },
+    salesByPaymentDesc: { en: 'All-time sales distribution by payment method (excludes canceled orders).', bn: 'পেমেন্ট পদ্ধতি অনুসারে সর্বকালের বিক্রয় বণ্টন (বাতিল অর্ডার 제외)।' },
+    noSales: { en: 'No sales data available.', bn: 'কোনো বিক্রয় ডেটা উপলব্ধ নেই।' },
+    totalSales: { en: 'Total Sales', bn: 'মোট বিক্রয়' },
+    orderStatus: { en: 'Order Status', bn: 'অর্ডারের অবস্থা' },
+    orderStatusDesc: { en: 'Order distribution for the selected month.', bn: 'নির্বাচিত মাসের জন্য অর্ডার বণ্টন।' },
+    selectMonth: { en: 'Select Month', bn: 'মাস নির্বাচন করুন' },
+    noOrdersThisMonth: { en: 'No orders this month.', bn: 'এই মাসে কোনো অর্ডার নেই।' },
+    totalOrders: { en: 'Total Orders', bn: 'মোট অর্ডার' },
+    recentPending: { en: 'Recent Pending Orders', bn: 'সাম্প্রতিক পেন্ডিং অর্ডার' },
+    reviewProcess: { en: 'Review and process new orders.', bn: 'নতুন অর্ডার পর্যালোচনা এবং প্রক্রিয়া করুন।' },
+    viewAll: { en: 'View All', bn: 'সব দেখুন' },
+    noPendingOrders: { en: 'No pending orders.', bn: 'কোনো পেন্ডিং অর্ডার নেই।' },
+    details: { en: 'Details', bn: 'বিস্তারিত' },
+    viewOrder: { en: 'View Order', bn: 'অর্ডার দেখুন' },
+    lowStock: { en: 'Low Stock Products', bn: 'কম স্টক পণ্য' },
+    lowStockDesc: { en: 'Products with fewer than 10 items left.', bn: '১০টিরও কম আইটেম বাকি থাকা পণ্য।' },
+    sufficientStock: { en: 'All products have sufficient stock.', bn: 'সমস্ত পণ্যের পর্যাপ্ত স্টক আছে।' },
+    stockLeft: { en: 'Stock Left', bn: 'স্টক বাকি' },
+    action: { en: 'Action', bn: 'কার্যকলাপ' },
+    edit: { en: 'Edit', bn: 'সম্পাদনা' },
+    stock: { en: 'Stock', bn: 'স্টক' },
+  };
+
   const ORDER_STATUSES = {
       pending: { label: 'Pending', color: 'hsl(var(--chart-1))' },
       approved: { label: 'Approved', color: 'hsl(var(--chart-2))' },
@@ -279,7 +321,7 @@ export default function AdminDashboard() {
                             {!isUnlimited && <span className="text-lg text-muted-foreground"> / {limit}</span>}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {isLimitReached ? "Limit reached. Upgrade plan to add more." : isUnlimited ? "Unlimited on your current plan" : `${Math.max(0, limit - value)} remaining`}
+                            {isLimitReached ? t.limitReachedAlert[lang] : isUnlimited ? t.unlimited[lang] : `${Math.max(0, limit - value)} ${t.remaining[lang]}`}
                         </p>
                         {!isUnlimited && <Progress value={percentage} className="mt-2 h-2" />}
                     </>
@@ -295,30 +337,30 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+      <h1 className="text-3xl font-bold tracking-tight">{t.dashboard[lang]}</h1>
       { (isProductLimitReached || isCustomerLimitReached || isOrderLimitReached) && (
         <Alert variant="destructive">
           <Ban className="h-4 w-4" />
-          <AlertTitle>Subscription Limit Reached</AlertTitle>
+          <AlertTitle>{t.limitReached[lang]}</AlertTitle>
           <AlertDescription>
-            You have reached one or more limits of your current plan. Please{' '}
+            {t.limitDesc[lang]}{' '}
             <Link href="/admin/settings" className="font-semibold underline">
-                upgrade your subscription
+                {t.upgrade[lang]}
             </Link>
-            {' '}to continue adding new products, or accepting new customers/orders.
+            {' '}{t.limitDesc2[lang]}
           </AlertDescription>
         </Alert>
       )}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard title="Total Revenue" value={`BDT ${stats.totalRevenue.toFixed(2)}`} icon={DollarSign} isLoading={isLoading} description="All-time delivered orders" />
-        <StatCard title="New Uncompleted Orders" value={stats.uncompletedOrders} icon={FileClock} isLoading={isLoading} description={`${stats.totalUncompletedOrders} total abandoned carts`} />
-        <LimitStatCard title="Products" value={stats.totalProducts} limit={user?.product_limit ?? null} icon={Package} isLoading={isLoading} isLimitReached={isProductLimitReached} />
-        <LimitStatCard title="Customers" value={stats.totalCustomers} limit={user?.customer_limit ?? null} icon={Users} isLoading={isLoading} isLimitReached={isCustomerLimitReached}/>
-        <LimitStatCard title="Orders (This Month)" value={stats.ordersThisMonth} limit={user?.order_limit ?? null} icon={ShoppingBag} isLoading={isLoading} isLimitReached={isOrderLimitReached}/>
+        <StatCard title={t.totalRevenue[lang]} value={`BDT ${stats.totalRevenue.toFixed(2)}`} icon={DollarSign} isLoading={isLoading} description={t.allTime[lang]} />
+        <StatCard title={t.newUncompleted[lang]} value={stats.uncompletedOrders} icon={FileClock} isLoading={isLoading} description={`${stats.totalUncompletedOrders} ${t.totalAbandoned[lang]}`} />
+        <LimitStatCard title={t.products[lang]} value={stats.totalProducts} limit={user?.product_limit ?? null} icon={Package} isLoading={isLoading} isLimitReached={isProductLimitReached} />
+        <LimitStatCard title={t.customers[lang]} value={stats.totalCustomers} limit={user?.customer_limit ?? null} icon={Users} isLoading={isLoading} isLimitReached={isCustomerLimitReached}/>
+        <LimitStatCard title={t.ordersThisMonth[lang]} value={stats.ordersThisMonth} limit={user?.order_limit ?? null} icon={ShoppingBag} isLoading={isLoading} isLimitReached={isOrderLimitReached}/>
       </div>
       <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> Revenue (Last 7 Days)</CardTitle>
+            <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> {t.revenue7Days[lang]}</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             {isLoading ? <Skeleton className="h-full w-full" /> : (
@@ -340,13 +382,13 @@ export default function AdminDashboard() {
        
        <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" /> Total Sales by Payment Method</CardTitle>
-                <CardDescription>All-time sales distribution by payment method (excludes canceled orders).</CardDescription>
+                <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" /> {t.salesByPayment[lang]}</CardTitle>
+                <CardDescription>{t.salesByPaymentDesc[lang]}</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
                 {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : paymentMethodData.length === 0 ? (
                 <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                    No sales data available.
+                    {t.noSales[lang]}
                 </div>
                 ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -395,7 +437,7 @@ export default function AdminDashboard() {
                                 dy="20"
                                 className="fill-muted-foreground text-sm"
                             >
-                                Total Sales
+                                {t.totalSales[lang]}
                             </text>
                         )}
                     </PieChart>
@@ -407,12 +449,12 @@ export default function AdminDashboard() {
         <Card>
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" /> Order Status</CardTitle>
-                    <CardDescription>Order distribution for the selected month.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" /> {t.orderStatus[lang]}</CardTitle>
+                    <CardDescription>{t.orderStatusDesc[lang]}</CardDescription>
                 </div>
                 <Select onValueChange={(value) => setSelectedMonth(new Date(value))} defaultValue={format(selectedMonth, 'yyyy-MM-dd')}>
                     <SelectTrigger className="w-full sm:w-[180px]">
-                        <SelectValue placeholder="Select Month" />
+                        <SelectValue placeholder={t.selectMonth[lang]} />
                     </SelectTrigger>
                     <SelectContent>
                         {monthOptions.map(month => (
@@ -426,7 +468,7 @@ export default function AdminDashboard() {
             <CardContent className="h-80">
                 {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : orderStatusData.length === 0 ? (
                     <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                        No orders this month.
+                        {t.noOrdersThisMonth[lang]}
                     </div>
                 ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -474,7 +516,7 @@ export default function AdminDashboard() {
                              dy="20"
                              className="fill-muted-foreground text-sm"
                            >
-                            Total Orders
+                            {t.totalOrders[lang]}
                           </text>
                          )}
                     </PieChart>
@@ -488,15 +530,15 @@ export default function AdminDashboard() {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                    <CardTitle>Recent Pending Orders</CardTitle>
-                    <CardDescription>Review and process new orders.</CardDescription>
+                    <CardTitle>{t.recentPending[lang]}</CardTitle>
+                    <CardDescription>{t.reviewProcess[lang]}</CardDescription>
                 </div>
                 <Button asChild variant="outline" size="sm">
-                    <Link href={`/admin/orders`}>View All <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    <Link href={`/admin/orders`}>{t.viewAll[lang]} <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
             </CardHeader>
             <CardContent>
-                {isLoading ? <Skeleton className="h-40 w-full" /> : pendingOrders.length === 0 ? <p className="text-muted-foreground text-center py-8">No pending orders.</p> : (
+                {isLoading ? <Skeleton className="h-40 w-full" /> : pendingOrders.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingOrders[lang]}</p> : (
                   <>
                     <div className="hidden md:block">
                       <Table>
@@ -507,7 +549,7 @@ export default function AdminDashboard() {
                               <TableCell className="font-mono text-xs">{order.order_number}</TableCell>
                               <TableCell>{(order as any).shipping_info?.name || 'N/A'}</TableCell>
                               <TableCell>BDT {order.total.toFixed(2)}</TableCell>
-                              <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/orders/${order.id}`}><Eye className="mr-2 h-4 w-4"/>Details</Link></Button></TableCell>
+                              <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/orders/${order.id}`}><Eye className="mr-2 h-4 w-4"/>{t.details[lang]}</Link></Button></TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -517,7 +559,7 @@ export default function AdminDashboard() {
                         {pendingOrders.map(order => (
                             <Card key={order.id}>
                                 <CardHeader><CardTitle className="text-sm">{order.order_number}</CardTitle><CardDescription>{(order as any).shipping_info?.name || 'N/A'}</CardDescription></CardHeader>
-                                <CardContent className="flex justify-between items-center"><p className="font-bold">BDT {order.total.toFixed(2)}</p><Button variant="secondary" size="sm" asChild><Link href={`/admin/orders/${order.id}`}>View Order</Link></Button></CardContent>
+                                <CardContent className="flex justify-between items-center"><p className="font-bold">BDT {order.total.toFixed(2)}</p><Button variant="secondary" size="sm" asChild><Link href={`/admin/orders/${order.id}`}>{t.viewOrder[lang]}</Link></Button></CardContent>
                             </Card>
                         ))}
                     </div>
@@ -528,25 +570,25 @@ export default function AdminDashboard() {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                    <CardTitle>Low Stock Products</CardTitle>
-                    <CardDescription>Products with fewer than 10 items left.</CardDescription>
+                    <CardTitle>{t.lowStock[lang]}</CardTitle>
+                    <CardDescription>{t.lowStockDesc[lang]}</CardDescription>
                 </div>
                 <Button asChild variant="outline" size="sm">
-                    <Link href={`/admin/products`}>View All <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    <Link href={`/admin/products`}>{t.viewAll[lang]} <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
             </CardHeader>
             <CardContent>
-                 {isLoading ? <Skeleton className="h-40 w-full" /> : lowStockProducts.length === 0 ? <p className="text-muted-foreground text-center py-8">All products have sufficient stock.</p> : (
+                 {isLoading ? <Skeleton className="h-40 w-full" /> : lowStockProducts.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.sufficientStock[lang]}</p> : (
                   <>
                      <div className="hidden md:block">
                       <Table>
-                        <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Stock Left</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
+                        <TableHeader><TableRow><TableHead>{t.products[lang]}</TableHead><TableHead>{t.stockLeft[lang]}</TableHead><TableHead className="text-right">{t.action[lang]}</TableHead></TableRow></TableHeader>
                         <TableBody>
                           {lowStockProducts.map(product => (
                             <TableRow key={product.id}>
                               <TableCell className="font-medium">{product.name}</TableCell>
                               <TableCell><Badge variant="destructive">{product.stock}</Badge></TableCell>
-                              <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/products/${product.id}`}><Eye className="mr-2 h-4 w-4"/>Edit</Link></Button></TableCell>
+                              <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/products/${product.id}`}><Eye className="mr-2 h-4 w-4"/>{t.edit[lang]}</Link></Button></TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -556,7 +598,7 @@ export default function AdminDashboard() {
                         {lowStockProducts.map(product => (
                             <Card key={product.id}>
                                 <CardHeader><CardTitle className="text-sm">{product.name}</CardTitle></CardHeader>
-                                <CardContent className="flex justify-between items-center"><Badge variant="destructive">Stock: {product.stock}</Badge><Button variant="secondary" size="sm" asChild><Link href={`/admin/products/${product.id}`}>Edit</Link></Button></CardContent>
+                                <CardContent className="flex justify-between items-center"><Badge variant="destructive">{t.stock[lang]}: {product.stock}</Badge><Button variant="secondary" size="sm" asChild><Link href={`/admin/products/${product.id}`}>{t.edit[lang]}</Link></Button></CardContent>
                             </Card>
                         ))}
                     </div>
