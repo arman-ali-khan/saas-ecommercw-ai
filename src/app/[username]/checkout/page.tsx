@@ -88,7 +88,7 @@ export default function CheckoutPage() {
   });
 
   const { control, register } = form;
-  const phoneValue = form.watch('phone');
+  const watchedFormValues = form.watch();
 
   useEffect(() => {
     let cartSessionId = localStorage.getItem(`cart_session_id_${username}`);
@@ -103,55 +103,69 @@ export default function CheckoutPage() {
     console.log(errors)
   }
 
-  const debouncedSaveUncompletedOrder = useCallback(async () => {
-    if (!uncompletedOrderId || !siteId || !phoneValue || phoneValue.length < 10) {
+  const saveUncompletedOrder = useCallback(async () => {
+    const currentFormValues = form.getValues();
+    
+    // Exit if we don't have the necessary IDs or cart is empty
+    if (!uncompletedOrderId || !siteId || cartItems.length === 0) {
       return;
     }
     
-    const currentFormValues = form.getValues();
+    // Exit if no customer information has been entered yet
+    const hasShippingInfo = 
+        currentFormValues.name || 
+        currentFormValues.email || 
+        currentFormValues.address ||
+        currentFormValues.city ||
+        currentFormValues.phone;
+    
+    if (!hasShippingInfo) {
+      return;
+    }
 
     const uncompletedOrderData = {
-        id: uncompletedOrderId,
-        site_id: siteId,
-        customer_id: customer?.id || null,
-        customer_info: {
-            name: currentFormValues.name,
-            email: currentFormValues.email,
-            address: currentFormValues.address,
-            city: currentFormValues.city,
-            phone: currentFormValues.phone,
-            notes: currentFormValues.notes,
-        },
-        cart_items: cartItems.map(item => ({
-          id: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          imageUrl: item.images[0]?.imageUrl
-        })),
-        cart_total: cartSubtotal,
-        status: 'shipping-info-entered'
+      id: uncompletedOrderId,
+      site_id: siteId,
+      customer_id: customer?.id || null,
+      customer_info: {
+        name: currentFormValues.name,
+        email: currentFormValues.email,
+        address: currentFormValues.address,
+        city: currentFormValues.city,
+        phone: currentFormValues.phone,
+        notes: currentFormValues.notes,
+      },
+      cart_items: cartItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        imageUrl: item.images[0]?.imageUrl
+      })),
+      cart_total: cartSubtotal,
+      status: 'shipping-info-entered'
     };
 
     const { error } = await supabase
-        .from('uncompleted_orders')
-        .upsert(uncompletedOrderData, { onConflict: 'id' });
+      .from('uncompleted_orders')
+      .upsert(uncompletedOrderData, { onConflict: 'id' });
     
     if (error) {
-        console.error("Failed to save uncompleted order:", error);
+      console.error("Failed to save uncompleted order:", error);
     }
-  }, [uncompletedOrderId, siteId, phoneValue, form, customer, cartItems, cartSubtotal]);
+  }, [uncompletedOrderId, siteId, form, customer, cartItems, cartSubtotal]);
 
 
+  // Use a debounced effect to save data as user types in the form
   useEffect(() => {
     const handler = setTimeout(() => {
-      debouncedSaveUncompletedOrder();
-    }, 2000); 
+      saveUncompletedOrder();
+    }, 2000); // Debounce for 2 seconds
 
     return () => {
       clearTimeout(handler);
     };
-  }, [phoneValue, debouncedSaveUncompletedOrder]);
+  }, [JSON.stringify(watchedFormValues), saveUncompletedOrder]);
 
 
   const paymentMethod = form.watch('paymentMethod');
@@ -265,31 +279,8 @@ export default function CheckoutPage() {
         form.setValue('phone', address.phone);
     }
     
-    if (!uncompletedOrderId || !siteId || !customer) return;
-
-    const uncompletedOrderData = {
-        id: uncompletedOrderId,
-        site_id: siteId,
-        customer_id: customer.id,
-        customer_info: {
-            name: customer.full_name || '',
-            email: customer.email || '',
-            address: address.details,
-            city: address.city,
-            phone: address.phone || form.getValues('phone'),
-        },
-        cart_items: cartItems.map(item => ({
-          id: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          imageUrl: item.images[0]?.imageUrl
-        })),
-        cart_total: cartSubtotal,
-        status: 'shipping-info-entered'
-    };
-
-    await supabase.from('uncompleted_orders').upsert(uncompletedOrderData, { onConflict: 'id' });
+    // We don't need to call the save function here anymore, 
+    // as the useEffect watching form values will handle it.
     toast({ title: "Address selected", description: "Shipping information has been filled." });
   }
 
@@ -327,7 +318,6 @@ export default function CheckoutPage() {
       total: cartTotal,
       payment_method: values.paymentMethod,
       transaction_id: values.transactionId || null,
-      status: 'processing',
       uncompletedOrderId: uncompletedOrderId,
       domain: username,
     };
