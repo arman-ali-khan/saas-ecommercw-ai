@@ -95,7 +95,7 @@ export default function OrdersPage() {
       };
       
     const isCancellable = (status: string) => {
-        return ['pending', 'approved', 'processing'].includes(status.toLowerCase());
+        return ['pending'].includes(status.toLowerCase());
     };
 
     const handleCancelOrder = async (orderId: string) => {
