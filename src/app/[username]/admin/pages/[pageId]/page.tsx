@@ -81,8 +81,9 @@ const coloredBoxBlockSchema = blockBaseSchema.extend({
 
 const productShowcaseBlockSchema = blockBaseSchema.extend({
   type: z.literal('product_showcase'),
-  product_ids: z.array(z.string()).default([]),
-  title: z.string().optional(),
+  main_product_id: z.string().optional(),
+  optional_product_ids: z.array(z.string()).default([]),
+  also_buy_title: z.string().optional(),
 });
 
 const countdownBlockSchema = blockBaseSchema.extend({
@@ -181,8 +182,8 @@ export default function ManagePage() {
     defaultValues: { title: '', slug: '', content: [], is_published: false },
   });
 
-  const ProductSelector = ({ control, namePrefix, allProducts }: { control: Control<PageFormData>, namePrefix: string, allProducts: Product[] }) => {
-      const { field } = useController({ control, name: `${namePrefix}.product_ids` as any });
+  const ProductSelector = ({ control, namePrefix, allProducts, productIdsFieldName = "product_ids", label = "Select Products" }: { control: Control<PageFormData>, namePrefix: string, allProducts: Product[], productIdsFieldName?: string, label?: string }) => {
+      const { field } = useController({ control, name: `${namePrefix}.${productIdsFieldName}` as any });
       const selectedIds = field.value || [];
   
       const handleToggle = (productId: string) => {
@@ -194,17 +195,17 @@ export default function ManagePage() {
   
       return (
           <div>
-              <Label>Select Products</Label>
+              <Label>{label}</Label>
               <ScrollArea className="h-48 mt-2 rounded-md border">
                   <div className="p-4 space-y-2">
                       {allProducts.length > 0 ? allProducts.map(product => (
                           <div key={product.id} className="flex items-center space-x-2">
                               <Checkbox
-                                  id={`product-${namePrefix}-${product.id}`}
+                                  id={`product-${namePrefix}-${productIdsFieldName}-${product.id}`}
                                   checked={selectedIds.includes(product.id)}
                                   onCheckedChange={() => handleToggle(product.id)}
                               />
-                              <Label htmlFor={`product-${namePrefix}-${product.id}`} className="font-normal">{product.name}</Label>
+                              <Label htmlFor={`product-${namePrefix}-${productIdsFieldName}-${product.id}`} className="font-normal">{product.name}</Label>
                           </div>
                       )) : <p className="text-sm text-muted-foreground text-center">No products found.</p>}
                   </div>
@@ -265,7 +266,7 @@ export default function ManagePage() {
               case 'youtube': newBlock = { id, type: 'youtube', videoId: 'dQw4w9WgXcQ' }; break;
               case 'coloredBox': newBlock = { id, type: 'coloredBox', color: 'hsl(var(--card))', text: 'This is a colored box.' }; break;
               case 'layout': newBlock = { id, type: 'layout', columnCount, columns: Array.from({ length: columnCount || 1 }, () => ({ id: uuidv4(), blocks: [] })) }; break;
-              case 'product_showcase': newBlock = { id, type: 'product_showcase', product_ids: [], title: 'Special Offer' }; break;
+              case 'product_showcase': newBlock = { id, type: 'product_showcase', optional_product_ids: [], also_buy_title: 'Also Buy' }; break;
               case 'countdown': newBlock = { id, type: 'countdown', title: 'Countdown', endDate: new Date() }; break;
               case 'carousel': newBlock = { id, type: 'carousel', slides: [] }; break;
           }
@@ -355,8 +356,45 @@ export default function ManagePage() {
                               )}
                               {(field as any).type === 'product_showcase' && (
                                   <>
-                                      <FormField control={control} name={`${currentFieldName}.title`} render={({ field: f }) => (<FormItem><FormLabel>Title (Optional)</FormLabel><FormControl><Input {...f} placeholder="Special Offer" /></FormControl><FormMessage /></FormItem>)} />
-                                      <ProductSelector control={control} namePrefix={currentFieldName} allProducts={allProducts} />
+                                      <FormField
+                                        control={control}
+                                        name={`${currentFieldName}.main_product_id`}
+                                        render={({ field: f }) => (
+                                          <FormItem>
+                                            <FormLabel>Main Product</FormLabel>
+                                            <Select onValueChange={f.onChange} defaultValue={f.value}>
+                                              <FormControl>
+                                                <SelectTrigger>
+                                                  <SelectValue placeholder="Select a main product" />
+                                                </SelectTrigger>
+                                              </FormControl>
+                                              <SelectContent>
+                                                {allProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                              </SelectContent>
+                                            </Select>
+                                            <FormDescription>This product will be displayed with a default quantity of 1.</FormDescription>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={control}
+                                        name={`${currentFieldName}.also_buy_title`}
+                                        render={({ field: f }) => (
+                                          <FormItem>
+                                            <FormLabel>"Also Buy" Section Title (Optional)</FormLabel>
+                                            <FormControl><Input {...f} placeholder="Also Buy" /></FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <ProductSelector
+                                        control={control}
+                                        namePrefix={currentFieldName}
+                                        allProducts={allProducts}
+                                        productIdsFieldName="optional_product_ids"
+                                        label="Optional Products"
+                                      />
                                   </>
                               )}
                               {(field as any).type === 'countdown' && (

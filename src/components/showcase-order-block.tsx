@@ -26,7 +26,7 @@ const showcaseOrderSchema = z.object({
 
 type ShowcaseOrderFormData = z.infer<typeof showcaseOrderSchema>;
 
-export function ShowcaseOrderBlock({ product_ids, title, username }: { product_ids: string[], title?: string, username: string }) {
+export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also_buy_title, username }: { main_product_id?: string, optional_product_ids: string[], also_buy_title?: string, username: string }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
     const [isLoading, setIsLoading] = useState(true);
@@ -52,24 +52,32 @@ export function ShowcaseOrderBlock({ product_ids, title, username }: { product_i
             const siteId = profileData.id;
             setSiteId(siteId);
 
-            if (product_ids && product_ids.length > 0) {
-                const { data: productsData, error } = await supabase.from('products').select('*').eq('site_id', siteId).in('id', product_ids);
+            const all_ids = [main_product_id, ...optional_product_ids].filter(Boolean) as string[];
+
+            if (all_ids && all_ids.length > 0) {
+                const { data: productsData, error } = await supabase.from('products').select('*').eq('site_id', siteId).in('id', all_ids);
                 if (error) {
                     toast({ variant: 'destructive', title: 'Error fetching products' });
                 } else {
                     const productMap = new Map(productsData.map(p => [p.id, p]));
-                    const orderedProducts = product_ids.map(id => productMap.get(id)).filter(Boolean) as Product[];
+                    const orderedProducts = all_ids.map(id => productMap.get(id)).filter(Boolean) as Product[];
                     setProducts(orderedProducts);
-                    setQuantities(orderedProducts.reduce((acc, p) => ({ ...acc, [p.id]: 0 }), {}));
+                    
+                    const initialQuantities = orderedProducts.reduce((acc, p) => {
+                        acc[p.id] = p.id === main_product_id ? 1 : 0;
+                        return acc;
+                    }, {} as { [key: string]: number });
+                    setQuantities(initialQuantities);
                 }
             }
             setIsLoading(false);
         };
         fetchSiteAndProducts();
-    }, [product_ids, username, toast]);
+    }, [main_product_id, optional_product_ids, username, toast]);
 
     const handleQuantityChange = (id: string, newQuantity: number) => {
-        setQuantities(prev => ({ ...prev, [id]: Math.max(0, newQuantity) }));
+        const minQuantity = id === main_product_id ? 1 : 0;
+        setQuantities(prev => ({ ...prev, [id]: Math.max(minQuantity, newQuantity) }));
     };
     
     const itemsToOrder = useMemo(() => {
@@ -129,34 +137,57 @@ export function ShowcaseOrderBlock({ product_ids, title, username }: { product_i
         }
     }
 
+    const mainProduct = useMemo(() => products.find(p => p.id === main_product_id), [products, main_product_id]);
+    const optionalProducts = useMemo(() => products.filter(p => optional_product_ids.includes(p.id)), [products, optional_product_ids]);
+
+
     if (isLoading) return <Card className="my-8"><CardContent><Loader2 className="mx-auto my-16 h-10 w-10 animate-spin" /></CardContent></Card>;
     if (products.length === 0) return null;
 
     return (
         <Card className="my-8">
-            <CardHeader><CardTitle>{title || 'Quick Order'}</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{also_buy_title || 'Quick Order'}</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-                <div>
-                    <h3 className="font-semibold mb-2">{title || 'Also Buy'}</h3>
-                    <div className="space-y-4">
-                    {products.map(p => (
-                        <div key={p.id} className="flex gap-4 items-center justify-between p-2 rounded-md hover:bg-muted/50">
-                            <div className="flex gap-4 items-center flex-grow">
-                                <Image src={p.images[0].imageUrl} alt={p.name} width={64} height={64} className="rounded-md object-cover aspect-square" />
-                                <div>
-                                    <p className="font-medium">{p.name}</p>
-                                    <p className="text-sm text-primary font-semibold">{p.price.toFixed(2)} {p.currency}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) - 1)}><Minus className="h-4 w-4" /></Button>
-                                <Input value={quantities[p.id] || 0} onChange={e => handleQuantityChange(p.id, parseInt(e.target.value) || 0)} className="h-7 w-12 text-center" />
-                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) + 1)}><Plus className="h-4 w-4" /></Button>
+                 {mainProduct && (
+                    <div className="flex gap-4 items-center justify-between p-2 rounded-md">
+                        <div className="flex gap-4 items-center flex-grow">
+                            <Image src={mainProduct.images[0].imageUrl} alt={mainProduct.name} width={64} height={64} className="rounded-md object-cover aspect-square" />
+                            <div>
+                                <p className="font-medium">{mainProduct.name}</p>
+                                <p className="text-sm text-primary font-semibold">{mainProduct.price.toFixed(2)} {mainProduct.currency}</p>
                             </div>
                         </div>
-                    ))}
+                        <div className="flex items-center gap-1">
+                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(mainProduct.id, (quantities[mainProduct.id] || 0) - 1)}><Minus className="h-4 w-4" /></Button>
+                            <Input value={quantities[mainProduct.id] || 0} onChange={e => handleQuantityChange(mainProduct.id, parseInt(e.target.value) || 0)} className="h-7 w-12 text-center" />
+                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(mainProduct.id, (quantities[mainProduct.id] || 0) + 1)}><Plus className="h-4 w-4" /></Button>
+                        </div>
                     </div>
-                </div>
+                )}
+                
+                {optionalProducts.length > 0 && (
+                    <div>
+                        <h3 className="font-semibold mb-2">{also_buy_title || 'Also Buy'}</h3>
+                        <div className="space-y-4">
+                        {optionalProducts.map(p => (
+                            <div key={p.id} className="flex gap-4 items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                                <div className="flex gap-4 items-center flex-grow">
+                                    <Image src={p.images[0].imageUrl} alt={p.name} width={64} height={64} className="rounded-md object-cover aspect-square" />
+                                    <div>
+                                        <p className="font-medium">{p.name}</p>
+                                        <p className="text-sm text-primary font-semibold">{p.price.toFixed(2)} {p.currency}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) - 1)}><Minus className="h-4 w-4" /></Button>
+                                    <Input value={quantities[p.id] || 0} onChange={e => handleQuantityChange(p.id, parseInt(e.target.value) || 0)} className="h-7 w-12 text-center" />
+                                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) + 1)}><Plus className="h-4 w-4" /></Button>
+                                </div>
+                            </div>
+                        ))}
+                        </div>
+                    </div>
+                )}
 
                 <Separator />
                 

@@ -70,7 +70,29 @@
     @apply bg-background text-foreground;
     font-family: var(--font-body), sans-serif;
   }
+  
+  /* Add styles for Tiptap task lists */
+  ul[data-type="taskList"] {
+    @apply list-none p-0;
+  }
+
+  ul[data-type="taskList"] > li {
+    @apply flex items-start gap-2 my-2;
+  }
+  
+  ul[data-type="taskList"] > li > label {
+    @apply flex-none mt-1;
+  }
+
+  ul[data-type="taskList"] > li > label > input[type="checkbox"] {
+    @apply w-4 h-4;
+  }
+
+  ul[data-type="taskList"] > li > div {
+    @apply flex-1;
+  }
 }
+
 
 @layer components {
   .chat-view-active .admin-bottom-nav {
