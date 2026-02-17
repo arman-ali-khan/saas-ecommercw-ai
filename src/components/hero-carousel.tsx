@@ -44,7 +44,7 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
       <CarouselContent>
         {slides.map((slide, index) => (
           <CarouselItem key={slide.id}>
-            <div className="relative h-[50vh] md:h-[60vh]">
+            <div className="relative aspect-video">
               {slide.image && (
                 <Image
                   src={slide.image.imageUrl}
