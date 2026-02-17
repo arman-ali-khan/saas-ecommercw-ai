@@ -263,7 +263,7 @@ export default function AdminMobileSidebar() {
         <div className="flex-1 overflow-auto py-2">
           <nav className="grid items-start px-4 text-sm font-medium gap-1">
 
-            {adminNavLinks.slice(0, 3).map((link) => (
+            {adminNavLinks.slice(0, 4).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 
@@ -358,5 +358,3 @@ export default function AdminMobileSidebar() {
       </div>
   );
 }
-
-
