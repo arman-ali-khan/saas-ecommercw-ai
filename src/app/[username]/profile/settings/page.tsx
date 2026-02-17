@@ -21,6 +21,7 @@ import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTranslation } from '@/hooks/use-translation';
 
 const profileSchema = z.object({
   fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
@@ -35,6 +36,8 @@ const passwordSchema = z.object({
 });
 
 export default function SettingsPage() {
+    const t = useTranslation();
+    const { profile: t_profile } = t;
     const { toast } = useToast();
     const { customer, updateCustomerProfile, updateCustomerPassword } = useCustomerAuth();
     const [isProfileLoading, setProfileLoading] = useState(false);
@@ -65,7 +68,7 @@ export default function SettingsPage() {
         if (error) {
             toast({ variant: 'destructive', title: 'Update failed', description: error });
         } else {
-            toast({ title: 'প্রোফাইল আপডেট হয়েছে!' });
+            toast({ title: 'Profile updated!' });
         }
     }
 
@@ -75,9 +78,9 @@ export default function SettingsPage() {
         setPasswordLoading(false);
 
         if (error) {
-            toast({ variant: 'destructive', title: 'পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে', description: `Error: ${error}` });
+            toast({ variant: 'destructive', title: 'Failed to change password', description: `Error: ${error}` });
         } else {
-            toast({ title: 'পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!' });
+            toast({ title: 'Password changed successfully!' });
             passwordForm.reset();
         }
     }
@@ -85,20 +88,20 @@ export default function SettingsPage() {
   return (
     <div>
         <div className="mb-6">
-            <h1 className="text-2xl font-bold">সেটিংস</h1>
-            <p className="text-muted-foreground">আপনার অ্যাকাউন্ট ও ব্যক্তিগত তথ্য ম্যানেজ করুন।</p>
+            <h1 className="text-2xl font-bold">{t_profile.settings}</h1>
+            <p className="text-muted-foreground">{t_profile.settingsDesc}</p>
         </div>
 
         <Tabs defaultValue="profile" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="profile">প্রোফাইল</TabsTrigger>
-                <TabsTrigger value="security">নিরাপত্তা</TabsTrigger>
+                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="security">Security</TabsTrigger>
             </TabsList>
             <TabsContent value="profile">
                 <Card>
                     <CardHeader>
-                        <CardTitle>প্রোফাইল ইনফরমেশন</CardTitle>
-                        <CardDescription>আপনার পাবলিক প্রোফাইলের তথ্য আপডেট করুন।</CardDescription>
+                        <CardTitle>{t_profile.profileInfo}</CardTitle>
+                        <CardDescription>{t_profile.profileInfoDesc}</CardDescription>
                     </CardHeader>
                     <CardContent>
                     <Form {...profileForm}>
@@ -108,7 +111,7 @@ export default function SettingsPage() {
                             name="fullName"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>পুরো নাম</FormLabel>
+                                <FormLabel>{t_profile.fullName}</FormLabel>
                                 <FormControl>
                                 <Input {...field} />
                                 </FormControl>
@@ -117,15 +120,15 @@ export default function SettingsPage() {
                             )}
                         />
                         <FormItem>
-                            <FormLabel>ইমেল</FormLabel>
+                            <FormLabel>{t_profile.email}</FormLabel>
                             <FormControl>
                             <Input value={customer?.email || ''} readOnly disabled />
                             </FormControl>
-                            <FormDescription>ইমেল পরিবর্তন করা যাবে না।</FormDescription>
+                            <FormDescription>{t_profile.emailCannotChange}</FormDescription>
                         </FormItem>
                         <Button type="submit" disabled={isProfileLoading}>
                             {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isProfileLoading ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                            {isProfileLoading ? t_profile.saving : t_profile.save}
                         </Button>
                         </form>
                     </Form>
@@ -135,8 +138,8 @@ export default function SettingsPage() {
             <TabsContent value="security">
                 <Card>
                     <CardHeader>
-                    <CardTitle>পাসওয়ার্ড পরিবর্তন করুন</CardTitle>
-                    <CardDescription>নিরাপত্তার জন্য নিয়মিত আপনার পাসওয়ার্ড পরিবর্তন করুন।</CardDescription>
+                    <CardTitle>{t_profile.changePassword}</CardTitle>
+                    <CardDescription>{t_profile.changePasswordDesc}</CardDescription>
                     </CardHeader>
                     <CardContent>
                     <Form {...passwordForm}>
@@ -146,7 +149,7 @@ export default function SettingsPage() {
                             name="newPassword"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>নতুন পাসওয়ার্ড</FormLabel>
+                                <FormLabel>{t_profile.newPassword}</FormLabel>
                                 <FormControl>
                                 <Input type="password" {...field} />
                                 </FormControl>
@@ -159,7 +162,7 @@ export default function SettingsPage() {
                             name="confirmPassword"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>নতুন পাসওয়ার্ড নিশ্চিত করুন</FormLabel>
+                                <FormLabel>{t_profile.confirmNewPassword}</FormLabel>
                                 <FormControl>
                                 <Input type="password" {...field} />
                                 </FormControl>
@@ -169,7 +172,7 @@ export default function SettingsPage() {
                         />
                         <Button type="submit" disabled={isPasswordLoading}>
                             {isPasswordLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            পাসওয়ার্ড আপডেট করুন
+                            {t_profile.updatePassword}
                         </Button>
                         </form>
                     </Form>

@@ -23,9 +23,12 @@ import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Address } from '@/types';
+import { useTranslation } from '@/hooks/use-translation';
 
 
 export default function AddressesPage() {
+    const t = useTranslation();
+    const { profile: t_profile, dashboard: t_dashboard } = t;
     const { customer, loading: customerLoading } = useCustomerAuth();
     const { toast } = useToast();
     const [addresses, setAddresses] = useState<Address[]>([]);
@@ -107,12 +110,12 @@ export default function AddressesPage() {
     <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div>
-                <h1 className="text-2xl font-bold">আমার ঠিকানা</h1>
-                <p className="text-muted-foreground">আপনার সংরক্ষিত শিপিং ঠিকানাগুলি পরিচালনা করুন।</p>
+                <h1 className="text-2xl font-bold">{t_profile.myAddresses}</h1>
+                <p className="text-muted-foreground">{t_profile.myAddressesDesc}</p>
             </div>
             <Button asChild>
               <Link href="/profile/addresses/new">
-                <Plus className="mr-2 h-4 w-4" /> নতুন ঠিকানা যোগ করুন
+                <Plus className="mr-2 h-4 w-4" /> {t_profile.newAddress}
               </Link>
             </Button>
         </div>
@@ -137,11 +140,11 @@ export default function AddressesPage() {
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem asChild>
                                         <Link href={`/profile/addresses/${address.id}/edit`} className="cursor-pointer">
-                                            <Edit className="mr-2 h-4 w-4" /> সম্পাদনা
+                                            <Edit className="mr-2 h-4 w-4" /> {t_dashboard.edit}
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => openDeleteAlert(address)}>
-                                        <Trash2 className="mr-2 h-4 w-4" /> মুছে ফেলুন
+                                        <Trash2 className="mr-2 h-4 w-4" /> {t_dashboard.delete}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -162,10 +165,10 @@ export default function AddressesPage() {
         ) : (
              <Card>
                 <CardContent className="text-center py-16">
-                    <p className="text-muted-foreground">আপনার কোনো সংরক্ষিত ঠিকানা নেই।</p>
+                    <p className="text-muted-foreground">{t_profile.noSavedAddresses}</p>
                      <Button asChild className="mt-4">
                         <Link href="/profile/addresses/new">
-                            <Plus className="mr-2 h-4 w-4" /> নতুন ঠিকানা যোগ করুন
+                            <Plus className="mr-2 h-4 w-4" /> {t_profile.newAddress}
                         </Link>
                     </Button>
                 </CardContent>
@@ -176,20 +179,20 @@ export default function AddressesPage() {
     <AlertDialog open={!!addressToDelete} onOpenChange={(open) => !open && setAddressToDelete(null)}>
         <AlertDialogContent>
         <AlertDialogHeader>
-            <AlertDialogTitle>আপনি কি নিশ্চিত?</AlertDialogTitle>
+            <AlertDialogTitle>{t_profile.deleteConfirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-                এই ঠিকানাটি স্থায়ীভাবে মুছে ফেলা হবে: "{addressToDelete?.name}". এই কাজটি বাতিল করা যাবে না।
+                {t_profile.deleteAddressConfirm.replace('{addressName}', addressToDelete?.name || '')}
             </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-            <AlertDialogCancel>বাতিল</AlertDialogCancel>
+            <AlertDialogCancel>{t_dashboard.cancel}</AlertDialogCancel>
             <AlertDialogAction 
                 onClick={handleDelete}
                 disabled={isDeleting}
                 className={cn(buttonVariants({ variant: "destructive" }))}
             >
                 {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                মুছে ফেলুন
+                {t_dashboard.delete}
             </AlertDialogAction>
         </AlertDialogFooter>
         </AlertDialogContent>

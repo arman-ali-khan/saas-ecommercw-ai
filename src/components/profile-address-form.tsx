@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import type { Address } from '@/types';
+import { useTranslation } from '@/hooks/use-translation';
 
 export const addressSchema = z.object({
   name: z.string().min(2, 'ঠিকানার একটি নাম দিন (যেমন, বাড়ি)।'),
@@ -32,6 +33,9 @@ interface AddressFormProps {
 }
 
 export default function ProfileAddressForm({ isNew, initialData, onSubmit, isSubmitting }: AddressFormProps) {
+    const t = useTranslation();
+    const { profile: t_profile } = t;
+
     const form = useForm<AddressFormData>({
         resolver: zodResolver(addressSchema),
         defaultValues: isNew ? 
@@ -53,8 +57,8 @@ export default function ProfileAddressForm({ isNew, initialData, onSubmit, isSub
                         <Link href="/profile/addresses"><ArrowLeft /></Link>
                     </Button>
                     <div>
-                        <CardTitle>{isNew ? 'নতুন ঠিকানা যোগ করুন' : 'ঠিকানা সম্পাদনা করুন'}</CardTitle>
-                        <CardDescription>{isNew ? 'চেকআউটের জন্য একটি নতুন ঠিকানা যোগ করুন।' : 'আপনার সংরক্ষিত ঠিকানা আপডেট করুন।'}</CardDescription>
+                        <CardTitle>{isNew ? t_profile.newAddress : t_profile.editAddress}</CardTitle>
+                        <CardDescription>{isNew ? 'Add a new address for faster checkouts.' : 'Update your saved address.'}</CardDescription>
                     </div>
                 </div>
             </CardHeader>
@@ -66,8 +70,8 @@ export default function ProfileAddressForm({ isNew, initialData, onSubmit, isSub
                             name="name"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>ঠিকানার নাম</FormLabel>
-                                <FormControl><Input placeholder="e.g., বাড়ির ঠিকানা" {...field} /></FormControl>
+                                <FormLabel>{t_profile.addressName}</FormLabel>
+                                <FormControl><Input placeholder={t_profile.addressNamePlaceholder} {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -77,8 +81,8 @@ export default function ProfileAddressForm({ isNew, initialData, onSubmit, isSub
                             name="phone"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>ফোন নম্বর</FormLabel>
-                                <FormControl><Input placeholder="01..." {...field} /></FormControl>
+                                <FormLabel>{t_profile.phone}</FormLabel>
+                                <FormControl><Input placeholder={t_profile.phonePlaceholder} {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -88,8 +92,8 @@ export default function ProfileAddressForm({ isNew, initialData, onSubmit, isSub
                             name="details"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>বিস্তারিত ঠিকানা</FormLabel>
-                                <FormControl><Textarea placeholder="বাড়ি #, রাস্তা #, এলাকা" {...field} /></FormControl>
+                                <FormLabel>{t_profile.fullAddress}</FormLabel>
+                                <FormControl><Textarea placeholder={t_profile.fullAddressPlaceholder} {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -99,8 +103,8 @@ export default function ProfileAddressForm({ isNew, initialData, onSubmit, isSub
                             name="city"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>শহর</FormLabel>
-                                <FormControl><Input placeholder="e.g., ঢাকা" {...field} /></FormControl>
+                                <FormLabel>{t_profile.city}</FormLabel>
+                                <FormControl><Input placeholder={t_profile.cityPlaceholder} {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -110,12 +114,12 @@ export default function ProfileAddressForm({ isNew, initialData, onSubmit, isSub
                             name="type"
                             render={({ field }) => (
                             <FormItem className="space-y-3">
-                                <FormLabel>ঠিকানার ধরন</FormLabel>
+                                <FormLabel>{t_profile.addressType}</FormLabel>
                                 <FormControl>
                                     <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="home" /></FormControl><FormLabel className="font-normal">বাড়ি</FormLabel></FormItem>
-                                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="work" /></FormControl><FormLabel className="font-normal">অফিস</FormLabel></FormItem>
-                                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="other" /></FormControl><FormLabel className="font-normal">অন্যান্য</FormLabel></FormItem>
+                                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="home" /></FormControl><FormLabel className="font-normal">{t_profile.home}</FormLabel></FormItem>
+                                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="work" /></FormControl><FormLabel className="font-normal">{t_profile.work}</FormLabel></FormItem>
+                                        <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="other" /></FormControl><FormLabel className="font-normal">{t_profile.other}</FormLabel></FormItem>
                                     </RadioGroup>
                                 </FormControl>
                                 <FormMessage />
@@ -124,7 +128,7 @@ export default function ProfileAddressForm({ isNew, initialData, onSubmit, isSub
                         />
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isSubmitting ? 'সংরক্ষণ করা হচ্ছে...' : 'সংরক্ষণ করুন'}
+                            {isSubmitting ? t_profile.saving : t_profile.save}
                         </Button>
                     </form>
                 </Form>

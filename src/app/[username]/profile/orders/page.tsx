@@ -30,8 +30,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, XCircle, Loader2 } from 'lucide-react';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function OrdersPage() {
+    const t = useTranslation();
+    const { profile: t_profile, statuses: t_statuses } = t;
     const { customer, loading: customerLoading } = useCustomerAuth();
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
@@ -67,17 +70,8 @@ export default function OrdersPage() {
     }, [customer, customerLoading, fetchOrders]);
     
     const translateStatus = (status: string): string => {
-        switch (status.toLowerCase()) {
-            case 'pending': return 'পেন্ডিং';
-            case 'approved': return 'অনুমোদিত';
-            case 'processing': return 'প্রসেসিং চলছে';
-            case 'packaging': return 'প্যাকেজিং চলছে';
-            case 'send for delivery': return 'ডেলিভারির জন্য পাঠানো হয়েছে';
-            case 'shipped': return 'পাঠানো হয়েছে'; // backwards compatibility
-            case 'delivered': return 'বিতরণ করা হয়েছে';
-            case 'canceled': return 'বাতিল করা হয়েছে';
-            default: return status;
-        }
+        const lowerStatus = status.toLowerCase();
+        return t_statuses[lowerStatus as keyof typeof t_statuses] || status;
     };
 
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
@@ -116,8 +110,8 @@ export default function OrdersPage() {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>আমার অর্ডার</CardTitle>
-                    <CardDescription>আপনার সব অর্ডারের একটি তালিকা এখানে দেখুন।</CardDescription>
+                    <CardTitle>{t_profile.myOrders}</CardTitle>
+                    <CardDescription>{t_profile.myOrdersDesc}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-center items-center py-16">
                     <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
@@ -129,8 +123,8 @@ export default function OrdersPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>আমার অর্ডার</CardTitle>
-                <CardDescription>আপনার সব অর্ডারের একটি তালিকা এখানে দেখুন।</CardDescription>
+                <CardTitle>{t_profile.myOrders}</CardTitle>
+                <CardDescription>{t_profile.myOrdersDesc}</CardDescription>
             </CardHeader>
             <CardContent>
                 {orders.length > 0 ? (
@@ -140,11 +134,11 @@ export default function OrdersPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>অর্ডার আইডি</TableHead>
-                                <TableHead>তারিখ</TableHead>
-                                <TableHead>স্ট্যাটাস</TableHead>
-                                <TableHead>মোট</TableHead>
-                                <TableHead className="text-right">অ্যাকশন</TableHead>
+                                <TableHead>{t_profile.orderId}</TableHead>
+                                <TableHead>{t_profile.date}</TableHead>
+                                <TableHead>{t_profile.status}</TableHead>
+                                <TableHead>{t_profile.total}</TableHead>
+                                <TableHead className="text-right">{t_profile.actions}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -160,12 +154,12 @@ export default function OrdersPage() {
                                         <Button variant="outline" size="sm" asChild>
                                             <Link href={`/profile/orders/${order.id}`}>
                                                 <Eye className="mr-2 h-4 w-4" />
-                                                বিস্তারিত
+                                                {t_profile.details}
                                             </Link>
                                         </Button>
                                         <Button variant="destructive" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={!isCancellable(order.status)}>
                                             <XCircle className="mr-2 h-4 w-4" />
-                                            বাতিল
+                                            {t_profile.cancel}
                                         </Button>
                                     </TableCell>
                                 </TableRow>
@@ -192,12 +186,12 @@ export default function OrdersPage() {
                                  <Button variant="outline" size="sm" asChild>
                                     <Link href={`/profile/orders/${order.id}`}>
                                         <Eye className="mr-2 h-4 w-4" />
-                                        বিস্তারিত
+                                        {t_profile.details}
                                     </Link>
                                 </Button>
                                 <Button variant="destructive" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={!isCancellable(order.status)}>
                                     <XCircle className="mr-2 h-4 w-4" />
-                                    বাতিল
+                                    {t_profile.cancel}
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -205,7 +199,7 @@ export default function OrdersPage() {
                 </div>
                 </>
                 ) : (
-                    <p className="text-muted-foreground text-center py-8">আপনার কোনো অর্ডার নেই।</p>
+                    <p className="text-muted-foreground text-center py-8">You have no orders yet.</p>
                 )}
             </CardContent>
         </Card>

@@ -18,6 +18,7 @@ import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { Order } from '@/types';
+import { useTranslation } from '@/hooks/use-translation';
 
 const StatCard = ({ title, value, icon: Icon, isLoading }: { title: string, value: string, icon: React.ElementType, isLoading?: boolean }) => (
     <Card>
@@ -35,6 +36,8 @@ export default function ProfilePage() {
   const { customer: user, customerLogout, loading: customerLoading } = useCustomerAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslation();
+  const { profile: t_profile } = t;
   
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
@@ -68,7 +71,7 @@ export default function ProfilePage() {
 
   const logout = () => {
     customerLogout();
-    toast({ title: 'লগ আউট', description: "আপনি সফলভাবে লগ আউট হয়েছেন।" });
+    toast({ title: t_profile.logout, description: "You have been successfully logged out." });
     router.push(`/login`);
   }
 
@@ -77,10 +80,9 @@ export default function ProfilePage() {
   }
   
   const quickLinks = [
-    { href: `/profile/orders`, label: 'আমার অর্ডার', description: 'আপনার অর্ডারের ইতিহাস এবং স্ট্যাটাস দেখুন।', icon: ShoppingBag },
-    // { href: `/profile/reviews`, label: 'আমার রিভিউ', description: 'আপনার দেওয়া সকল রিভিউ দেখুন।', icon: Star },
-    { href: `/profile/addresses`, label: 'আমার ঠিকানা', description: 'আপনার সংরক্ষিত ঠিকানা পরিচালনা করুন।', icon: MapPin },
-    { href: `/profile/settings`, label: 'সেটিংস', description: 'আপনার অ্যাকাউন্ট সেটিংস পরিচালনা করুন।', icon: SettingsIcon },
+    { href: `/profile/orders`, label: t_profile.myOrders, description: t_profile.myOrdersDesc, icon: ShoppingBag },
+    { href: `/profile/addresses`, label: t_profile.myAddresses, description: t_profile.myAddressesDesc, icon: MapPin },
+    { href: `/profile/settings`, label: t_profile.settings, description: t_profile.settingsDesc, icon: SettingsIcon },
   ];
 
   return (
@@ -92,7 +94,7 @@ export default function ProfilePage() {
                 </Avatar>
                 <div>
                     <h1 className="text-2xl font-bold">
-                    স্বাগতম, {user.full_name}!
+                    {t_profile.welcome}, {user.full_name}!
                     </h1>
                     <p className="text-muted-foreground">{user.email}</p>
                 </div>
@@ -100,21 +102,20 @@ export default function ProfilePage() {
             <div className="flex gap-2">
                 <Button onClick={logout} variant="outline">
                     <LogOut className="mr-2 h-4 w-4" />
-                    লগআউট
+                    {t_profile.logout}
                 </Button>
             </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 grid-cols-2">
-            <StatCard title="মোট অর্ডার" value={stats.totalOrders.toString()} icon={ShoppingBag} isLoading={isLoadingStats} />
-            <StatCard title="মোট খরচ" value={stats.totalSpent} icon={DollarSign} isLoading={isLoadingStats} />
-            {/* <StatCard title="রিভিউ লিখেছেন" value="3" icon={Star} isLoading={isLoadingStats} /> */}
+            <StatCard title={t_profile.totalOrders} value={stats.totalOrders.toString()} icon={ShoppingBag} isLoading={isLoadingStats} />
+            <StatCard title={t_profile.totalSpent} value={stats.totalSpent} icon={DollarSign} isLoading={isLoadingStats} />
         </div>
 
         <Card>
             <CardHeader>
-                <CardTitle>কুইক লিঙ্কস</CardTitle>
-                 <CardDescription>আপনার প্রোফাইলের বিভিন্ন অংশে দ্রুত নেভিগেট করুন।</CardDescription>
+                <CardTitle>{t_profile.quickLinks}</CardTitle>
+                 <CardDescription>Navigate to different parts of your profile quickly.</CardDescription>
             </CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">
                 {quickLinks.map(link => (

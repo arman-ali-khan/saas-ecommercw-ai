@@ -16,9 +16,12 @@ import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function ProfileSidebar() {
   const pathname = usePathname();
+  const t = useTranslation();
+  const { profile: t_profile } = t;
   const { customer:user, loading: customerLoading } = useCustomerAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -50,12 +53,11 @@ export default function ProfileSidebar() {
   }
   
   const navLinks = [
-    { href: `/profile`, label: 'ড্যাশবোর্ড', icon: User },
-    { href: `/profile/notifications`, label: 'নোটিফিকেশন', icon: Bell, count: unreadCount },
-    { href: `/profile/orders`, label: 'আমার অর্ডার', icon: ShoppingBag },
-    // { href: `/profile/reviews`, label: 'আমার রিভিউ', icon: Star },
-    { href: `/profile/addresses`, label: 'ঠিকানা বই', icon: MapPin },
-    { href: `/profile/settings`, label: 'অ্যাকাউন্ট সেটিংস', icon: Settings },
+    { href: `/profile`, label: t_profile.dashboard, icon: User },
+    { href: `/profile/notifications`, label: t_profile.notifications, icon: Bell, count: unreadCount },
+    { href: `/profile/orders`, label: t_profile.myOrders, icon: ShoppingBag },
+    { href: `/profile/addresses`, label: t_profile.myAddresses, icon: MapPin },
+    { href: `/profile/settings`, label: t_profile.settings, icon: Settings },
   ];
 
   const NavLink = ({

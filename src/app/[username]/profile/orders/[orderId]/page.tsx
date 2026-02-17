@@ -23,12 +23,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Package, User, MapPin, Phone, Mail } from 'lucide-react';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import type { Order } from '@/types';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function CustomerOrderDetailsPage() {
     const params = useParams();
     const router = useRouter();
     const { toast } = useToast();
     const { customer, _hasHydrated } = useCustomerAuth();
+    const t = useTranslation();
+    const { profile: t_profile, statuses: t_statuses } = t;
 
     const orderId = params.orderId as string;
 
@@ -62,17 +65,8 @@ export default function CustomerOrderDetailsPage() {
     }, [_hasHydrated, fetchOrder]);
     
     const translateStatus = (status: string): string => {
-        switch (status.toLowerCase()) {
-            case 'pending': return 'পেন্ডিং';
-            case 'approved': return 'অনুমোদিত';
-            case 'processing': return 'প্রক্রিয়াকরণ চলছে';
-            case 'packaging': return 'প্যাকেজিং চলছে';
-            case 'send for delivery': return 'ডেলিভারির জন্য পাঠানো হয়েছে';
-            case 'shipped': return 'পাঠানো হয়েছে'; // backwards compatibility
-            case 'delivered': return 'বিতরণ করা হয়েছে';
-            case 'canceled': return 'বাতিল করা হয়েছে';
-            default: return status;
-        }
+        const lowerStatus = status.toLowerCase();
+        return t_statuses[lowerStatus as keyof typeof t_statuses] || status;
     };
 
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
@@ -132,12 +126,12 @@ export default function CustomerOrderDetailsPage() {
                     <Button variant="ghost" asChild className="-ml-4">
                         <Link href={`/profile/orders`}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        অর্ডারে ফিরে যান
+                        {t_profile.backToOrders}
                         </Link>
                     </Button>
-                    <h1 className="text-2xl font-bold mt-2">অর্ডার #{order.order_number}</h1>
+                    <h1 className="text-2xl font-bold mt-2">{t_profile.order} #{order.order_number}</h1>
                     <p className="text-muted-foreground">
-                        {format(new Date(order.created_at), 'PPp', { locale: bn })} তারিখে দেওয়া হয়েছে।
+                        {t.profile.placedOn} {format(new Date(order.created_at), 'PPp', { locale: bn })}
                     </p>
                 </div>
                 <Badge variant={getStatusBadgeVariant(order.status)} className="h-fit w-fit text-base">
@@ -149,7 +143,7 @@ export default function CustomerOrderDetailsPage() {
                 <div className="lg:col-span-2 grid gap-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> পণ্য সামগ্রী</CardTitle>
+                            <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> {t_profile.items}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
@@ -169,15 +163,15 @@ export default function CustomerOrderDetailsPage() {
                             <Separator className="my-6" />
                             <div className="space-y-2 text-right">
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">উপমোট</span>
+                                    <span className="text-muted-foreground">{t_profile.subtotal}</span>
                                     <span>{subtotal.toFixed(2)} BDT</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">শিপিং ({order.shipping_info.shipping_method_name || 'N/A'})</span>
+                                    <span className="text-muted-foreground">{t_profile.shipping} ({order.shipping_info.shipping_method_name || 'N/A'})</span>
                                     <span>{(order.shipping_info.shipping_cost || 0).toFixed(2)} BDT</span>
                                 </div>
                                 <div className="flex justify-between font-bold text-lg">
-                                    <span>মোট</span>
+                                    <span>{t_profile.total}</span>
                                     <span>{order.total.toFixed(2)} BDT</span>
                                 </div>
                             </div>
@@ -187,7 +181,7 @@ export default function CustomerOrderDetailsPage() {
                  <div className="lg:col-span-1 grid gap-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> গ্রাহক</CardTitle>
+                            <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> {t_profile.customerInfo}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm text-muted-foreground">
                             <div className="flex items-start gap-2">

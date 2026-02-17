@@ -20,9 +20,12 @@ import { Loader2, BellOff } from 'lucide-react';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
+import { useTranslation } from '@/hooks/use-translation';
 
 
 export default function CustomerNotificationsPage() {
+  const t = useTranslation();
+  const { profile: t_profile } = t;
   const { customer, loading: customerLoading } = useCustomerAuth();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -92,8 +95,8 @@ export default function CustomerNotificationsPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold">আমার নোটিফিকেশন</h1>
-                    <p className="text-muted-foreground">আপনার অর্ডার এবং অ্যাকাউন্টের আপডেট এখানে দেখুন।</p>
+                    <h1 className="text-2xl font-bold">{t_profile.notifications}</h1>
+                    <p className="text-muted-foreground">{t_profile.notificationsDesc}</p>
                 </div>
             </div>
             <Card>
@@ -109,17 +112,17 @@ export default function CustomerNotificationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-            <h1 className="text-2xl font-bold">আমার নোটিফিকেশন</h1>
-            <p className="text-muted-foreground">আপনার অর্ডার এবং অ্যাকাউন্টের আপডেট এখানে দেখুন।</p>
+            <h1 className="text-2xl font-bold">{t_profile.notifications}</h1>
+            <p className="text-muted-foreground">{t_profile.notificationsDesc}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>সবগুলো পঠিত হিসেবে চিহ্নিত করুন</Button>
+        <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>{t_profile.markAllAsRead}</Button>
       </div>
       <Card>
         <CardContent className="p-0">
           {notifications.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <BellOff className="mx-auto h-12 w-12 mb-4" />
-              <p>আপনার কোনো নোটিফিকেশন নেই।</p>
+              <p>{t_profile.noNotifications}</p>
             </div>
           ) : (
             <div className="divide-y">
@@ -143,11 +146,11 @@ export default function CustomerNotificationsPage() {
                   </div>
                   {notification.link ? (
                     <Button asChild variant="ghost" size="sm">
-                      <Link href={notification.link} onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}>দেখুন</Link>
+                      <Link href={notification.link} onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}>{t_profile.view}</Link>
                     </Button>
                   ) : !notification.is_read ? (
                     <Button variant="outline" size="sm" onClick={() => handleMarkAsRead(notification.id)}>
-                        পঠিত
+                        {t_profile.markAsRead}
                     </Button>
                   ) : null }
                 </div>
