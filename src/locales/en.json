@@ -75,5 +75,31 @@
     "shipped": "Shipped",
     "delivered": "Delivered",
     "canceled": "Canceled"
+  },
+  "homepage": {
+    "viewAll": "View All",
+    "shopByCategory": "Shop By Category",
+    "whyUs": "Why We Are Different",
+    "customerReviews": "What Our Customers Say"
+  },
+  "productsPage": {
+    "filters": "Filters",
+    "category": "Category",
+    "origin": "Origin",
+    "priceRange": "Price Range",
+    "clearFilters": "Clear All Filters",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page",
+    "of": "of",
+    "searchPlaceholder": "Search for products...",
+    "sortBy": "Sort by",
+    "sort_nameAsc": "Name: A-Z",
+    "sort_nameDesc": "Name: Z-A",
+    "sort_priceAsc": "Price: Low to High",
+    "sort_priceDesc": "Price: High to Low",
+    "noProductsFound": "No Products Found",
+    "noProductsDescription": "Try changing your filters or search term.",
+    "clearFiltersBtn": "Clear Filters"
   }
 }

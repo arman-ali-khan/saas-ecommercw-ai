@@ -75,5 +75,31 @@
     "shipped": "পাঠানো হয়েছে",
     "delivered": "ডেলিভারি সম্পন্ন",
     "canceled": "বাতিল করা হয়েছে"
+  },
+  "homepage": {
+    "viewAll": "সব দেখুন",
+    "shopByCategory": "ক্যাটাগরি অনুযায়ী কেনাকাটা করুন",
+    "whyUs": "কেন আমরা সেরা",
+    "customerReviews": "ক্রেতাদের মতামত"
+  },
+  "productsPage": {
+    "filters": "ফিল্টার",
+    "category": "বিভাগ",
+    "origin": "উৎপত্তি",
+    "priceRange": "মূল্য পরিসীমা",
+    "clearFilters": "সব ফিল্টার মুছুন",
+    "previous": "পূর্ববর্তী",
+    "next": "পরবর্তী",
+    "page": "পৃষ্ঠা",
+    "of": "এর মধ্যে",
+    "searchPlaceholder": "পণ্য খুঁজুন...",
+    "sortBy": "সাজান",
+    "sort_nameAsc": "নাম: ক-ঁ",
+    "sort_nameDesc": "নাম: ঁ-ক",
+    "sort_priceAsc": "দাম: কম থেকে বেশি",
+    "sort_priceDesc": "দাম: বেশি থেকে কম",
+    "noProductsFound": "কোনো পণ্য পাওয়া যায়নি",
+    "noProductsDescription": "আপনার ফিল্টার বা অনুসন্ধানের শব্দ পরিবর্তন করে চেষ্টা করুন।",
+    "clearFiltersBtn": "ফিল্টার মুছুন"
   }
 }

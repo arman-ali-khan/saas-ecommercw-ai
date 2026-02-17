@@ -16,6 +16,7 @@ import FlashDealCarousel from '@/components/flash-deal-carousel';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getTranslations } from '@/lib/get-translations';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,14 +55,14 @@ const WhyUsSkeleton = () => (
 )
 
 // --- Synchronous Presentation Components ---
-function FlashDeals({ deals, section }: { deals: FlashDeal[], section: Section }) {
+function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Section, t: any }) {
   if (deals.length === 0) return null;
 
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
-        <Button asChild variant="ghost"><Link href={`/flash-deals`}>সব দেখুন <ArrowRight className="ml-2" /></Link></Button>
+        <Button asChild variant="ghost"><Link href={`/flash-deals`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
       <FlashDealCarousel deals={deals} />
     </section>
@@ -187,7 +188,7 @@ function CustomerReviews({ reviews, section }: { reviews: ProductReview[], secti
 }
 
 // --- Async Components that remain for scalability ---
-async function CategoryProducts({ siteId, section }: { siteId: string, section: Section }) {
+async function CategoryProducts({ siteId, section, t }: { siteId: string, section: Section, t: any }) {
   if (!section.category) return null;
   const cookieStore = cookies();
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
@@ -205,7 +206,7 @@ async function CategoryProducts({ siteId, section }: { siteId: string, section: 
     <section>
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
-        <Button asChild variant="ghost"><Link href={`/products?category=${encodeURIComponent(section.category)}`}>সব দেখুন <ArrowRight className="ml-2" /></Link></Button>
+        <Button asChild variant="ghost"><Link href={`/products?category=${encodeURIComponent(section.category)}`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {products.map((product) => <ProductCard key={product.id} product={product} />)}
@@ -218,6 +219,8 @@ async function CategoryProducts({ siteId, section }: { siteId: string, section: 
 export default async function UserPage({ params }: { params: { username: string } }) {
   const { username } = params;
   const cookieStore = cookies();
+  const t = await getTranslations(username);
+  
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -284,9 +287,9 @@ export default async function UserPage({ params }: { params: { username: string 
       { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false },
       { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false },
       { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false },
-      { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false },
+      { id: 'why-us', title: t.homepage.whyUs, enabled: true, isCategorySection: false },
       ...allCategories.map((cat) => ({ id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`, title: cat, enabled: true, isCategorySection: true, category: cat })),
-      { id: 'customer-reviews', title: 'What Our Customers Say', enabled: true, isCategorySection: false },
+      { id: 'customer-reviews', title: t.homepage.customerReviews, enabled: true, isCategorySection: false },
     ];
   })();
 
@@ -315,7 +318,7 @@ export default async function UserPage({ params }: { params: { username: string 
 
             {categories.length > 0 && (
               <div>
-                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">Shop By Category</h2>
+                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{t.homepage.shopByCategory}</h2>
                 <Carousel opts={{ align: 'start' }} className="w-full">
                     <CarouselContent className="-ml-4">
                         {categories.map((cat) => (
@@ -347,7 +350,7 @@ export default async function UserPage({ params }: { params: { username: string 
           </section>
         );
       case 'flash_deals':
-        return <FlashDeals key={section.id} deals={flashDeals} section={section} />;
+        return <FlashDeals key={section.id} deals={flashDeals} section={section} t={t} />;
       case 'featured':
         return <FeaturedProducts key={section.id} products={featuredProducts} section={section} />;
       case 'why-us':
@@ -356,7 +359,7 @@ export default async function UserPage({ params }: { params: { username: string 
         return <CustomerReviews key={section.id} reviews={approvedReviews} section={section} />;
       default:
         if (section.isCategorySection && section.category) {
-          return <Suspense key={section.id} fallback={<SectionSkeleton />}><CategoryProducts siteId={siteId} section={section} /></Suspense>;
+          return <Suspense key={section.id} fallback={<SectionSkeleton />}><CategoryProducts siteId={siteId} section={section} t={t} /></Suspense>;
         }
         return null;
     }

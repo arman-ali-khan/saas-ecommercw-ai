@@ -8,6 +8,11 @@ import Footer from '@/components/footer';
 import FixedCartButton from '@/components/fixed-cart-button';
 import BottomNav from '@/components/BottomNav';
 import type { HeaderLink, FooterLinkCategory, SocialLink } from '@/types';
+import LanguageProvider from '@/components/language-provider';
+import en from '@/locales/en.json';
+import bn from '@/locales/bn.json';
+
+const translations = { en, bn };
 
 // This function generates dynamic metadata for the store's pages.
 export async function generateMetadata({
@@ -144,6 +149,9 @@ export default async function UsernameLayout({
 
   const socialLinks = (socialData || []) as SocialLink[];
 
+  const lang = settingsData?.language || 'bn';
+  const t = translations[lang];
+
   let themeStyles = '';
   if (settingsData) {
     const primaryFontVar = settingsData.font_primary ? fontMap[settingsData.font_primary]?.variable : null;
@@ -174,17 +182,19 @@ export default async function UsernameLayout({
   return (
     <>
       {themeStyles && <style>{themeStyles}</style>}
-      <div className="flex flex-col min-h-screen">
-        <Header siteInfo={siteInfo} navLinks={headerLinks} isLoading={false} />
-        <main className="flex-grow container mx-auto px-1 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
-          {children}
-        </main>
-        <Footer siteInfo={siteInfo} footerCategories={footerCategories} socialLinks={socialLinks} isLoading={false} />
-        <BottomNav />
-        <div className="hidden md:block">
-          <FixedCartButton />
+      <LanguageProvider translations={t}>
+        <div className="flex flex-col min-h-screen">
+          <Header siteInfo={siteInfo} navLinks={headerLinks} isLoading={false} />
+          <main className="flex-grow container mx-auto px-1 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
+            {children}
+          </main>
+          <Footer siteInfo={siteInfo} footerCategories={footerCategories} socialLinks={socialLinks} isLoading={false} />
+          <BottomNav />
+          <div className="hidden md:block">
+            <FixedCartButton />
+          </div>
         </div>
-      </div>
+      </LanguageProvider>
     </>
   );
 }
