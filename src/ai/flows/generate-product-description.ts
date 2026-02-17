@@ -26,7 +26,6 @@ export async function generateProductDescription(input: GenerateProductDescripti
 
     const localAi = genkit({
       plugins: [googleAI({ apiKey: apiKey })],
-      model: 'googleai/gemini-2.5-flash',
     });
     
     const categoryString = categories ? categories.join(', ') : 'general';
@@ -53,6 +52,7 @@ Instructions:
 11. CRITICAL: Your entire output must be ONLY the JSON object. Do not include any introductory text, explanations, or markdown code fences. The output must be valid JSON that can be parsed directly.`;
 
     const result = await localAi.generate({
+      model: 'googleai/gemini-2.5-flash',
       prompt,
       config: { temperature: 0.7 },
     });
