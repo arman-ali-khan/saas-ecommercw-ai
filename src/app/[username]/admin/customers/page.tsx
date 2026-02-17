@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -26,6 +25,10 @@ import { Loader2, Mail, MoreHorizontal, Eye } from 'lucide-react'; // Import Eye
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import en from '@/locales/en.json';
+import bn from '@/locales/bn.json';
+
+const translations = { en, bn };
 
 type CustomerProfile = {
   id: string;
@@ -40,22 +43,9 @@ export default function CustomersAdminPage() {
 
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  
   const lang = user?.language || 'bn';
-  const t = {
-    title: { bn: 'কাস্টমার ম্যানেজমেন্ট', en: 'Customer Management' },
-    description: { bn: 'আপনার স্টোরের সব রেজিস্টার্ড কাস্টমারদের লিস্ট।', en: 'List of all registered customers in your store.' },
-    totalCustomers: { bn: `মোট ${customers.length} জন কাস্টমার।`, en: `Total ${customers.length} customers.`},
-    noCustomers: { bn: 'কোনো রেজিস্টার্ড কাস্টমার পাওয়া যায়নি।', en: 'No registered customers found.' },
-    loadingDescription: { bn: 'আপনার স্টোরে রেজিস্টার্ড কাস্টমারদের দেখুন।', en: 'View registered customers in your store.' },
-    customer: { bn: 'কাস্টমার', en: 'Customer' },
-    email: { bn: 'ইমেল', en: 'Email' },
-    registrationDate: { bn: 'রেজিস্ট্রেশন ডেট', en: 'Registration Date' },
-    actions: { bn: 'অ্যাকশনস', en: 'Actions' },
-    viewDetails: { bn: 'বিস্তারিত', en: 'View Details' },
-    sendEmail: { bn: 'ইমেল করুন', en: 'Send Email' },
-    registered: { bn: 'রেজিস্টার্ড', en: 'Registered' },
-  };
+  const t = translations[lang].customers;
 
   const fetchCustomers = useCallback(async () => {
     if (!user) return;
@@ -92,9 +82,9 @@ export default function CustomersAdminPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{t.title[lang]}</CardTitle>
+          <CardTitle>{t.title}</CardTitle>
           <CardDescription>
-            {t.loadingDescription[lang]}
+            {t.loadingDescription}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-16">
@@ -108,16 +98,16 @@ export default function CustomersAdminPage() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>{t.title[lang]}</CardTitle>
+          <CardTitle>{t.title}</CardTitle>
           <CardDescription>
-            {t.description[lang]} {t.totalCustomers[lang]}
+            {t.description} {t.totalCustomers.replace('{count}', customers.length.toString())}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {customers.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-muted-foreground">
-                {t.noCustomers[lang]}
+                {t.noCustomers}
               </p>
             </div>
           ) : (
@@ -127,10 +117,10 @@ export default function CustomersAdminPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{t.customer[lang]}</TableHead>
-                      <TableHead>{t.email[lang]}</TableHead>
-                      <TableHead>{t.registrationDate[lang]}</TableHead>
-                      <TableHead className="text-right">{t.actions[lang]}</TableHead>
+                      <TableHead>{t.customer}</TableHead>
+                      <TableHead>{t.email}</TableHead>
+                      <TableHead>{t.registrationDate}</TableHead>
+                      <TableHead className="text-right">{t.actions}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -149,12 +139,12 @@ export default function CustomersAdminPage() {
                         <TableCell className="text-right">
                             <Button variant="ghost" size="sm" asChild>
                                 <Link href={`/admin/customers/${customer.id}`}>
-                                <Eye className="mr-2 h-4 w-4" /> {t.viewDetails[lang]}
+                                <Eye className="mr-2 h-4 w-4" /> {t.viewDetails}
                                 </Link>
                             </Button>
                             <Button variant="ghost" size="sm" asChild>
                                 <a href={`mailto:${customer.email}`}>
-                                <Mail className="mr-2 h-4 w-4" /> {t.sendEmail[lang]}
+                                <Mail className="mr-2 h-4 w-4" /> {t.sendEmail}
                                 </a>
                             </Button>
                         </TableCell>
@@ -197,12 +187,12 @@ export default function CustomersAdminPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
                                <Link href={`/admin/customers/${customer.id}`}>
-                                <Eye className="mr-2 h-4 w-4" /> {t.viewDetails[lang]}
+                                <Eye className="mr-2 h-4 w-4" /> {t.viewDetails}
                                </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                                <a href={`mailto:${customer.email}`}>
-                                <Mail className="mr-2 h-4 w-4" /> {t.sendEmail[lang]}
+                                <Mail className="mr-2 h-4 w-4" /> {t.sendEmail}
                               </a>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -211,7 +201,7 @@ export default function CustomersAdminPage() {
                     </CardHeader>
                     <CardContent>
                        <p className="text-sm text-muted-foreground">
-                        {t.registered[lang]}: {format(new Date(customer.created_at), 'PP')}
+                        {t.registered}: {format(new Date(customer.created_at), 'PP')}
                        </p>
                     </CardContent>
                   </Card>

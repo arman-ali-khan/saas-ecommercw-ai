@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -8,6 +7,8 @@ import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/stores/auth';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import en from '@/locales/en.json';
+import bn from '@/locales/bn.json';
 
 import {
   Card,
@@ -28,6 +29,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Eye, Loader2 } from 'lucide-react';
+
+const translations = { en, bn };
 
 type Order = {
     id: string;
@@ -57,31 +60,10 @@ export default function OrdersAdminPage() {
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-
+    
     const lang = user?.language || 'bn';
-    const t = {
-        title: { bn: 'অর্ডার ব্যবস্থাপনা', en: 'Order Management' },
-        description: { bn: 'সমস্ত গ্রাহকের অর্ডার দেখুন এবং পরিচালনা করুন।', en: 'View and manage all customer orders.' },
-        noOrders: { bn: 'কোনো অর্ডার পাওয়া যায়নি।', en: 'No orders found.' },
-        orderId: { bn: 'অর্ডার আইডি', en: 'Order ID' },
-        customer: { bn: 'গ্রাহক', en: 'Customer' },
-        date: { bn: 'তারিখ', en: 'Date' },
-        status: { bn: 'স্ট্যাটাস', en: 'Status' },
-        total: { bn: 'মোট', en: 'Total' },
-        actions: { bn: 'কার্যকলাপ', en: 'Actions' },
-        menu: { bn: 'মেনু', en: 'Menu' },
-        viewOrder: { bn: 'অর্ডার দেখুন', en: 'View Order' },
-        statuses: {
-            pending: { bn: 'পেন্ডিং', en: 'Pending' },
-            approved: { bn: 'অনুমোদিত', en: 'Approved' },
-            processing: { bn: 'প্রক্রিয়াকরণ চলছে', en: 'Processing' },
-            packaging: { bn: 'প্যাকেজিং চলছে', en: 'Packaging' },
-            'send for delivery': { bn: 'ডেলিভারির জন্য পাঠানো হয়েছে', en: 'Sent for Delivery' },
-            shipped: { bn: 'পাঠানো হয়েছে', en: 'Shipped' },
-            delivered: { bn: 'বিতরণ করা হয়েছে', en: 'Delivered' },
-            canceled: { bn: 'বাতিল করা হয়েছে', en: 'Canceled' },
-        }
-    };
+    const t = translations[lang].orders;
+    const statusTranslations = translations[lang].statuses;
     
     const fetchOrders = useCallback(async () => {
         if (!user?.id) return;
@@ -109,7 +91,7 @@ export default function OrdersAdminPage() {
     
     const translateStatus = (status: string): string => {
         const lowerStatus = status.toLowerCase();
-        return t.statuses[lowerStatus as keyof typeof t.statuses]?.[lang] || status;
+        return statusTranslations[lowerStatus as keyof typeof statusTranslations] || status;
     };
 
     const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
@@ -130,8 +112,8 @@ export default function OrdersAdminPage() {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>{t.title[lang]}</CardTitle>
-                    <CardDescription>{t.description[lang]}</CardDescription>
+                    <CardTitle>{t.title}</CardTitle>
+                    <CardDescription>{t.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center py-16">
                     <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
@@ -144,8 +126,8 @@ export default function OrdersAdminPage() {
         <>
             <Card>
                 <CardHeader>
-                    <CardTitle>{t.title[lang]}</CardTitle>
-                    <CardDescription>{t.description[lang]}</CardDescription>
+                    <CardTitle>{t.title}</CardTitle>
+                    <CardDescription>{t.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {orders.length > 0 ? (
@@ -155,12 +137,12 @@ export default function OrdersAdminPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>{t.orderId[lang]}</TableHead>
-                                        <TableHead>{t.customer[lang]}</TableHead>
-                                        <TableHead>{t.date[lang]}</TableHead>
-                                        <TableHead>{t.status[lang]}</TableHead>
-                                        <TableHead>{t.total[lang]}</TableHead>
-                                        <TableHead className="text-right">{t.actions[lang]}</TableHead>
+                                        <TableHead>{t.orderId}</TableHead>
+                                        <TableHead>{t.customer}</TableHead>
+                                        <TableHead>{t.date}</TableHead>
+                                        <TableHead>{t.status}</TableHead>
+                                        <TableHead>{t.total}</TableHead>
+                                        <TableHead className="text-right">{t.actions}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -181,15 +163,15 @@ export default function OrdersAdminPage() {
                                                     <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" size="icon">
                                                             <MoreHorizontal className="h-4 w-4" />
-                                                            <span className="sr-only">{t.menu[lang]}</span>
+                                                            <span className="sr-only">{t.menu}</span>
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuLabel>{t.actions[lang]}</DropdownMenuLabel>
+                                                        <DropdownMenuLabel>{t.actions}</DropdownMenuLabel>
                                                         <DropdownMenuItem asChild>
                                                           <Link href={`/admin/orders/${order.id}`}>
                                                             <Eye className="mr-2 h-4 w-4" />
-                                                            {t.viewOrder[lang]}
+                                                            {t.viewOrder}
                                                           </Link>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
@@ -222,7 +204,7 @@ export default function OrdersAdminPage() {
                                                     <DropdownMenuItem asChild>
                                                         <Link href={`/admin/orders/${order.id}`}>
                                                             <Eye className="mr-2 h-4 w-4" />
-                                                            {t.viewOrder[lang]}
+                                                            {t.viewOrder}
                                                         </Link>
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
@@ -239,7 +221,7 @@ export default function OrdersAdminPage() {
                         </div>
                     </>
                     ) : (
-                        <p className="text-muted-foreground text-center py-8">{t.noOrders[lang]}</p>
+                        <p className="text-muted-foreground text-center py-8">{t.noOrders}</p>
                     )}
                 </CardContent>
             </Card>
