@@ -51,14 +51,13 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
       <Link href={productUrl} className="block relative">
         <CardHeader className="p-0">
-          <div className="relative w-full h-36 sm:h-[200px]">
+          <div className="relative w-full aspect-[6/5]">
             <Image
               src={product.images[0].imageUrl}
               alt={product.name}
               data-ai-hint={product.images[0].imageHint}
               fill
               className="object-cover"
-              sizes="(max-width: 767px) 50vw, (max-width: 1023px) 25vw, 20vw"
             />
           </div>
           {flashDeal && <Badge className="absolute top-2 left-2" variant="destructive">Sale</Badge>}
