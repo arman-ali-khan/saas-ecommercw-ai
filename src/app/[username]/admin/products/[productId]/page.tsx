@@ -29,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, Calendar as CalendarIcon, PackageCheck, Ban } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, PackageCheck, Ban } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -44,11 +44,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import RichTextEditor from '@/components/rich-text-editor';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format, isBefore } from 'date-fns';
-import type { DateRange } from 'react-day-picker';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const productFormSchema = z.object({
@@ -781,38 +778,48 @@ export default function ManageProductPage() {
                                 control={form.control}
                                 name="flash_deal_range"
                                 render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel>Deal Duration</FormLabel>
-                                    <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value?.from && "text-muted-foreground")}>
-                                            {field.value?.from ? (
-                                            field.value.to ? (
-                                                <>{format(field.value.from, "LLL dd, y")} - {format(field.value.to, "LLL dd, y")}</>
-                                            ) : (
-                                                format(field.value.from, "LLL dd, y")
-                                            )
-                                            ) : (
-                                            <span>Pick a date range</span>
-                                            )}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            initialFocus
-                                            mode="range"
-                                            defaultMonth={field.value?.from}
-                                            selected={field.value as DateRange}
-                                            onSelect={field.onChange}
-                                            numberOfMonths={2}
-                                        />
-                                    </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
+                                    <FormItem>
+                                        <FormLabel>Deal Duration</FormLabel>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <FormLabel className="text-xs text-muted-foreground">Start Date</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="date"
+                                                        className="mt-1"
+                                                        value={field.value?.from ? format(field.value.from, 'yyyy-MM-dd') : ''}
+                                                        onChange={(e) => {
+                                                            if (e.target.value) {
+                                                                const [y, m, d] = e.target.value.split('-').map(Number);
+                                                                field.onChange({ ...field.value, from: new Date(y, m - 1, d) });
+                                                            } else {
+                                                                field.onChange({ ...field.value, from: undefined });
+                                                            }
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                            </div>
+                                            <div>
+                                                <FormLabel className="text-xs text-muted-foreground">End Date</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="date"
+                                                        className="mt-1"
+                                                        value={field.value?.to ? format(field.value.to, 'yyyy-MM-dd') : ''}
+                                                        onChange={(e) => {
+                                                            if (e.target.value) {
+                                                                const [y, m, d] = e.target.value.split('-').map(Number);
+                                                                field.onChange({ ...field.value, to: new Date(y, m - 1, d) });
+                                                            } else {
+                                                                field.onChange({ ...field.value, to: undefined });
+                                                            }
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                            </div>
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
                                 )}
                             />
                         </div>

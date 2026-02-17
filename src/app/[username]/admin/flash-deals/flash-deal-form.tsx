@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -6,19 +7,15 @@ import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import type { Product, FlashDeal } from '@/types';
 import { format, addDays } from 'date-fns';
-import type { DateRange } from 'react-day-picker';
 import Image from 'next/image';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Calendar as CalendarIcon, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 
@@ -135,40 +132,54 @@ export default function FlashDealForm({ isNew, initialData, products, deals, onS
                             )} />
                             <FormField control={form.control} name="discount_price" render={({ field }) => (<FormItem><FormLabel>Discount Price (BDT)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
 
-                            <FormField control={form.control} name="date_range" render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel>Deal Duration</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value?.from ? (
-                                                field.value.to ? (
-                                                <>{format(field.value.from, "LLL dd, y")} - {format(field.value.to, "LLL dd, y")}</>
-                                                ) : (
-                                                format(field.value.from, "LLL dd, y")
-                                                )
-                                            ) : (
-                                                <span>Pick a date</span>
-                                            )}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            initialFocus
-                                            mode="range"
-                                            defaultMonth={field.value?.from}
-                                            selected={field.value as DateRange}
-                                            onSelect={field.onChange}
-                                            numberOfMonths={2}
-                                        />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+                            <FormField
+                                control={form.control}
+                                name="date_range"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Deal Duration</FormLabel>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <FormLabel className="text-xs text-muted-foreground">Start Date</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="date"
+                                                        className="mt-1"
+                                                        value={field.value?.from ? format(field.value.from, 'yyyy-MM-dd') : ''}
+                                                        onChange={(e) => {
+                                                            if (e.target.value) {
+                                                                const [y, m, d] = e.target.value.split('-').map(Number);
+                                                                field.onChange({ ...field.value, from: new Date(y, m - 1, d) });
+                                                            } else {
+                                                                field.onChange({ ...field.value, from: undefined });
+                                                            }
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                            </div>
+                                            <div>
+                                                <FormLabel className="text-xs text-muted-foreground">End Date</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="date"
+                                                        className="mt-1"
+                                                        value={field.value?.to ? format(field.value.to, 'yyyy-MM-dd') : ''}
+                                                        onChange={(e) => {
+                                                            if (e.target.value) {
+                                                                const [y, m, d] = e.target.value.split('-').map(Number);
+                                                                field.onChange({ ...field.value, to: new Date(y, m - 1, d) });
+                                                            } else {
+                                                                field.onChange({ ...field.value, to: undefined });
+                                                            }
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                            </div>
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
                             <FormField control={form.control} name="is_active" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><FormLabel>Activate Deal</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
                             
