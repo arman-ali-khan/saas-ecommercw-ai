@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -203,7 +204,7 @@ export default function CustomerDetailsPage() {
                             {addresses.length > 0 ? addresses.map(address => (
                                 <div key={address.id} className="border p-3 rounded-md">
                                     <div className="flex items-center gap-2 font-semibold"><AddressIcon type={address.type} />{address.name}</div>
-                                    <p className="text-sm text-muted-foreground pl-7">{address.details}</p>
+                                    <p className="text-sm text-muted-foreground pl-7">{address.details}, {address.city}</p>
                                 </div>
                             )) : <p className="text-muted-foreground text-sm text-center">No saved addresses.</p>}
                         </CardContent>

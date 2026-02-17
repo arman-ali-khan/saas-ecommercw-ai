@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -15,7 +16,8 @@ import type { Address } from '@/types';
 
 export const addressSchema = z.object({
   name: z.string().min(2, 'ঠিকানার একটি নাম দিন (যেমন, বাড়ি)।'),
-  details: z.string().min(10, 'সম্পূর্ণ ঠিকানা লিখুন।'),
+  details: z.string().min(5, 'বিস্তারিত ঠিকানা লিখুন (যেমন, বাড়ির নম্বর, রাস্তা, এলাকা)।'),
+  city: z.string().min(2, 'শহরের নাম লিখুন।'),
   phone: z.string().min(10, 'অনুগ্রহ করে একটি বৈধ ফোন নম্বর লিখুন।'),
   type: z.enum(['home', 'work', 'other']).default('other'),
 });
@@ -33,10 +35,11 @@ export default function ProfileAddressForm({ isNew, initialData, onSubmit, isSub
     const form = useForm<AddressFormData>({
         resolver: zodResolver(addressSchema),
         defaultValues: isNew ? 
-            { name: '', details: '', phone: '', type: 'home' } : 
+            { name: '', details: '', city: '', phone: '', type: 'home' } : 
             {
                 name: initialData?.name || '',
                 details: initialData?.details || '',
+                city: initialData?.city || '',
                 phone: initialData?.phone || '',
                 type: initialData?.type || 'other'
             },
@@ -85,8 +88,19 @@ export default function ProfileAddressForm({ isNew, initialData, onSubmit, isSub
                             name="details"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>সম্পূর্ণ ঠিকানা</FormLabel>
-                                <FormControl><Textarea placeholder="বাড়ি #, রাস্তা #, এলাকা, শহর" {...field} /></FormControl>
+                                <FormLabel>বিস্তারিত ঠিকানা</FormLabel>
+                                <FormControl><Textarea placeholder="বাড়ি #, রাস্তা #, এলাকা" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="city"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>শহর</FormLabel>
+                                <FormControl><Input placeholder="e.g., ঢাকা" {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}

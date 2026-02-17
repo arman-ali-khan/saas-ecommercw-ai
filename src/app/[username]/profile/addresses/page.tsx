@@ -148,7 +148,7 @@ export default function AddressesPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">{address.details}</p>
+                        <p className="text-muted-foreground">{address.details}, {address.city}</p>
                         {address.phone && (
                             <div className="flex items-center gap-2 mt-2">
                                 <Phone className="h-4 w-4 text-muted-foreground" />

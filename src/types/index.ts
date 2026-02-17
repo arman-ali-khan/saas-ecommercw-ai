@@ -318,7 +318,8 @@ export interface Address {
     customer_id: string;
     site_id: string;
     name: string;
-    details: string;
+    details: string; // Street address, etc.
+    city: string;
     phone: string | null;
     type: 'home' | 'work' | 'other' | null;
     created_at: string;

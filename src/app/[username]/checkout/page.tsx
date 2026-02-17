@@ -24,17 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
-
-type Address = {
-    id: string;
-    customer_id: string;
-    site_id: string;
-    name: string;
-    details: string;
-    phone?: string;
-    type: 'home' | 'work' | 'other' | null;
-    created_at: string;
-};
+import type { Address } from '@/types';
 
 const checkoutSchema = z
   .object({
@@ -267,14 +257,10 @@ export default function CheckoutPage() {
 
   const handleSelectAddress = async (address: Address) => {
     setSelectedAddressId(address.id);
-    const details = address.details;
-    const parts = details.split(',');
-    const city = parts.length > 1 ? parts.pop()?.trim() || '' : '';
-    const restOfAddress = parts.join(', ').trim();
-
+    
     form.setValue('name', customer?.full_name || '');
-    form.setValue('address', restOfAddress);
-    form.setValue('city', city);
+    form.setValue('address', address.details);
+    form.setValue('city', address.city);
     if (address.phone) {
         form.setValue('phone', address.phone);
     }
@@ -288,8 +274,8 @@ export default function CheckoutPage() {
         customer_info: {
             name: customer.full_name || '',
             email: customer.email || '',
-            address: restOfAddress,
-            city: city,
+            address: address.details,
+            city: address.city,
             phone: address.phone || form.getValues('phone'),
         },
         cart_items: cartItems.map(item => ({
@@ -479,7 +465,7 @@ export default function CheckoutPage() {
                                         <AddressIcon type={address.type} />
                                         <p className="font-semibold">{address.name}</p>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">{address.details}</p>
+                                    <p className="text-sm text-muted-foreground">{address.details}, {address.city}</p>
                                 </div>
                             </Label>
                         ))}
