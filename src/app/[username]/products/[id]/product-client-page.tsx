@@ -42,10 +42,21 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useTranslation } from '@/hooks/use-translation';
+// Import Dialog components
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+
 
 const TikTokIcon = () => (
   <svg
@@ -74,7 +85,8 @@ const reviewSchema = z.object({
 
 type ReviewFormData = z.infer<typeof reviewSchema>;
 
-const ReviewForm = ({ product, onReviewSubmitted }: { product: Product, onReviewSubmitted: () => void }) => {
+// This component will now be rendered inside a Dialog
+const ReviewForm = ({ product, onReviewSubmitted, setDialogOpen }: { product: Product, onReviewSubmitted: () => void, setDialogOpen: (open: boolean) => void }) => {
     const { customer } = useCustomerAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,7 +99,12 @@ const ReviewForm = ({ product, onReviewSubmitted }: { product: Product, onReview
     });
 
     if (!customer) {
-        return <p className="text-sm text-muted-foreground">{t_product.loginToReview}</p>;
+        return (
+            <div className="text-center p-8">
+                <p className="text-muted-foreground">{t_product.loginToReview}</p>
+                <Button asChild className="mt-4"><Link href="/login">লগইন করুন</Link></Button>
+            </div>
+        );
     }
 
     const onSubmit = async (data: ReviewFormData) => {
@@ -106,45 +123,43 @@ const ReviewForm = ({ product, onReviewSubmitted }: { product: Product, onReview
             toast({ title: 'Review submitted for approval!' });
             form.reset();
             onReviewSubmitted();
+            setDialogOpen(false); // Close dialog on success
         }
         setIsSubmitting(false);
     };
 
     return (
-        <Card>
-            <CardHeader><h4 className="font-semibold">{t_product.leaveReview}</h4></CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                         <FormField
-                            control={form.control}
-                            name="rating"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t_product.yourRating}</FormLabel>
-                                <div className="flex items-center gap-2">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                        key={star}
-                                        className={cn( "h-7 w-7 cursor-pointer transition-colors", field.value >= star ? "text-primary fill-primary" : "text-muted-foreground/30" )}
-                                        onClick={() => field.onChange(star)}
-                                    />
-                                ))}
-                                </div>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>{t_product.reviewTitle}</FormLabel><FormControl><Input {...field} placeholder={t_product.reviewTitlePlaceholder} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="review_text" render={({ field }) => (<FormItem><FormLabel>{t_product.yourReview}</FormLabel><FormControl><Textarea {...field} placeholder={t_product.reviewPlaceholder} rows={4} /></FormControl><FormMessage /></FormItem>)} />
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t_product.submitReview}
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                    control={form.control}
+                    name="rating"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>{t_product.yourRating}</FormLabel>
+                        <div className="flex items-center gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                                key={star}
+                                className={cn( "h-7 w-7 cursor-pointer transition-colors", field.value >= star ? "text-primary fill-primary" : "text-muted-foreground/30" )}
+                                onClick={() => field.onChange(star)}
+                            />
+                        ))}
+                        </div>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>{t_product.reviewTitle}</FormLabel><FormControl><Input {...field} placeholder={t_product.reviewTitlePlaceholder} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="review_text" render={({ field }) => (<FormItem><FormLabel>{t_product.yourReview}</FormLabel><FormControl><Textarea {...field} placeholder={t_product.reviewPlaceholder} rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                <DialogFooter>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {t_product.submitReview}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </Form>
     );
 };
 
@@ -154,7 +169,7 @@ const qnaSchema = z.object({
 
 type QnaFormData = z.infer<typeof qnaSchema>;
 
-const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestionSubmitted: () => void }) => {
+const QnaForm = ({ product, onQuestionSubmitted, setDialogOpen }: { product: Product, onQuestionSubmitted: () => void, setDialogOpen: (open: boolean) => void }) => {
     const { customer } = useCustomerAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,15 +182,11 @@ const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestio
     });
 
     if (!customer) {
-        return (
-             <Card>
-                <CardHeader>
-                    <h4 className="font-semibold text-lg">{t_product.askQuestion}</h4>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground text-center py-8">{t_product.loginToAsk}</p>
-                </CardContent>
-            </Card>
+       return (
+            <div className="text-center p-8">
+                <p className="text-muted-foreground">{t_product.loginToAsk}</p>
+                <Button asChild className="mt-4"><Link href="/login">লগইন করুন</Link></Button>
+            </div>
         );
     }
 
@@ -195,38 +206,34 @@ const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestio
             toast({ title: 'Question submitted!', description: 'Your question will be visible once it has been answered.' });
             form.reset();
             onQuestionSubmitted();
+            setDialogOpen(false); // Close dialog
         }
         setIsSubmitting(false);
     };
     
     return (
-         <Card>
-            <CardHeader>
-                <h4 className="font-semibold text-lg">{t_product.askQuestion}</h4>
-            </CardHeader>
-            <CardContent>
-                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="question"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormControl>
-                                    <Textarea {...field} placeholder={t_product.questionPlaceholder} rows={3} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t_product.submitQuestion}
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                    control={form.control}
+                    name="question"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormControl>
+                            <Textarea {...field} placeholder={t_product.questionPlaceholder} rows={3} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <DialogFooter>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {t_product.submitQuestion}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </Form>
     )
 }
 
@@ -252,6 +259,10 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLoadingRelated, setIsLoadingRelated] = useState(true);
+
+  // State for dialogs
+  const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
+  const [isQnaFormOpen, setIsQnaFormOpen] = useState(false);
 
   const fetchReviews = useCallback(async () => {
     setIsLoadingReviews(true);
@@ -575,73 +586,96 @@ export default function ProductClientPage({ product }: { product: Product }) {
             </div>
         </div>
         
-        <div className="mt-16">
-            <h2 className="text-3xl font-headline font-bold mb-8">{t_product.customerReviews}</h2>
-            {isLoadingReviews ? <Skeleton className="h-40 w-full" /> : (
-                reviews.length > 0 ? (
-                    <div className="space-y-6">
-                        {reviews.map(review => (
-                            <Card key={review.id}>
-                                <CardHeader className="flex flex-row items-center gap-4">
-                                     <div className="flex items-center gap-1">
-                                        {Array.from({ length: 5 }).map((_, i) => (
-                                            <Star key={i} className={cn("h-5 w-5", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
-                                        ))}
-                                    </div>
-                                    <h4 className="font-semibold">{review.title}</h4>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground italic">"{review.review_text}"</p>
-                                    <p className="text-sm font-semibold mt-4">- {review.customer_name}</p>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                ) : <p className="text-muted-foreground">{t_product.noReviews}</p>
-            )}
-        </div>
-
-        <div className="mt-16">
-            <h2 className="text-3xl font-headline font-bold mb-8">{t_product.qna}</h2>
-            {isLoadingQna ? <Skeleton className="h-60 w-full" /> : (
-                <>
-                    <Input 
-                        placeholder={t_product.searchQna}
-                        value={qnaSearch}
-                        onChange={(e) => setQnaSearch(e.target.value)}
-                        className="mb-6"
-                    />
-                    {filteredQna.length > 0 ? (
-                        <Accordion type="single" collapsible className="w-full space-y-4">
-                            {filteredQna.map(item => (
-                                <AccordionItem value={item.id} key={item.id} className="border rounded-lg bg-muted/20">
-                                    <AccordionTrigger className="text-left font-semibold p-4 hover:no-underline">
-                                        <div className="flex items-start gap-3">
-                                            <div className="bg-background rounded-full p-2 mt-1">
-                                                <HelpCircle className="h-5 w-5 text-primary"/>
-                                            </div>
-                                            <div>
-                                                {item.question}
-                                                <p className="text-xs text-muted-foreground font-normal mt-1">Asked by {item.customer_name}</p>
-                                            </div>
+        <div className="mt-16 grid md:grid-cols-2 gap-12 items-start">
+            <div>
+                <div className="flex justify-between items-center mb-8">
+                    <h2 className="text-3xl font-headline font-bold">{t_product.customerReviews}</h2>
+                    <Dialog open={isReviewFormOpen} onOpenChange={setIsReviewFormOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline">{t_product.leaveReview}</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{t_product.leaveReview}</DialogTitle>
+                            </DialogHeader>
+                            <ReviewForm product={product} onReviewSubmitted={fetchReviews} setDialogOpen={setIsReviewFormOpen} />
+                        </DialogContent>
+                    </Dialog>
+                </div>
+                {isLoadingReviews ? <Skeleton className="h-40 w-full" /> : (
+                    reviews.length > 0 ? (
+                        <div className="space-y-6">
+                            {reviews.map(review => (
+                                <Card key={review.id}>
+                                    <CardHeader className="flex flex-row items-center gap-4">
+                                        <div className="flex items-center gap-1">
+                                            {Array.from({ length: 5 }).map((_, i) => (
+                                                <Star key={i} className={cn("h-5 w-5", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                                            ))}
                                         </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="p-4 pt-0 pl-14">
-                                        <p className="text-foreground/80">{item.answer}</p>
-                                    </AccordionContent>
-                                </AccordionItem>
+                                        <h4 className="font-semibold">{review.title}</h4>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-muted-foreground italic">"{review.review_text}"</p>
+                                        <p className="text-sm font-semibold mt-4">- {review.customer_name}</p>
+                                    </CardContent>
+                                </Card>
                             ))}
-                        </Accordion>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-8">{t_product.noQna}</p>
-                    )}
-                </>
-            )}
-        </div>
-        
-        <div className="mt-12 grid md:grid-cols-2 gap-8 items-start">
-            <ReviewForm product={product} onReviewSubmitted={fetchReviews} />
-            <QnaForm product={product} onQuestionSubmitted={fetchQna} />
+                        </div>
+                    ) : <p className="text-muted-foreground text-center py-8">{t_product.noReviews}</p>
+                )}
+            </div>
+
+            <div>
+                 <div className="flex justify-between items-center mb-8">
+                    <h2 className="text-3xl font-headline font-bold">{t_product.qna}</h2>
+                    <Dialog open={isQnaFormOpen} onOpenChange={setIsQnaFormOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline">{t_product.askQuestion}</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                             <DialogHeader>
+                                <DialogTitle>{t_product.askQuestion}</DialogTitle>
+                            </DialogHeader>
+                            <QnaForm product={product} onQuestionSubmitted={fetchQna} setDialogOpen={setIsQnaFormOpen} />
+                        </DialogContent>
+                    </Dialog>
+                </div>
+                 {isLoadingQna ? <Skeleton className="h-60 w-full" /> : (
+                    <>
+                        <Input 
+                            placeholder={t_product.searchQna}
+                            value={qnaSearch}
+                            onChange={(e) => setQnaSearch(e.target.value)}
+                            className="mb-6"
+                        />
+                        {filteredQna.length > 0 ? (
+                            <Accordion type="single" collapsible className="w-full space-y-4">
+                                {filteredQna.map(item => (
+                                    <AccordionItem value={item.id} key={item.id} className="border rounded-lg bg-muted/20">
+                                        <AccordionTrigger className="text-left font-semibold p-4 hover:no-underline">
+                                            <div className="flex items-start gap-3">
+                                                <div className="bg-background rounded-full p-2 mt-1">
+                                                    <HelpCircle className="h-5 w-5 text-primary"/>
+                                                </div>
+                                                <div>
+                                                    {item.question}
+                                                    <p className="text-xs text-muted-foreground font-normal mt-1">Asked by {item.customer_name}</p>
+                                                </div>
+                                            </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent className="p-4 pt-0 pl-14">
+                                            <p className="text-foreground/80">{item.answer}</p>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        ) : (
+                            <p className="text-muted-foreground text-center py-8">{t_product.noQna}</p>
+                        )}
+                    </>
+                )}
+            </div>
         </div>
 
         <div className="mt-16">
@@ -678,3 +712,4 @@ export default function ProductClientPage({ product }: { product: Product }) {
     </div>
   );
 }
+
