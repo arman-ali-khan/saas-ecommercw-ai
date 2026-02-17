@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -23,6 +24,7 @@ import {
 import { ScrollArea } from './ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/hooks/use-translation';
 
 export default function ShoppingCart() {
   const {
@@ -31,6 +33,8 @@ export default function ShoppingCart() {
     removeFromCart,
   } = useCart();
   const { toast } = useToast();
+  const t = useTranslation();
+  const { toast: t_toast } = t;
   
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => {
@@ -45,7 +49,7 @@ export default function ShoppingCart() {
   const handleRemoveFromCart = (productId: string) => {
     removeFromCart(productId);
     toast({
-      title: 'Bag থেকে সরানো হয়েছে',
+      title: t_toast.removedFromBag,
       variant: 'destructive',
     });
   }

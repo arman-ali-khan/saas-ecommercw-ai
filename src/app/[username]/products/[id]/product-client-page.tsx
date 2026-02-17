@@ -167,7 +167,16 @@ const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestio
     });
 
     if (!customer) {
-        return <p className="text-sm text-muted-foreground mt-8 text-center">{t_product.loginToAsk}</p>;
+        return (
+             <Card>
+                <CardHeader>
+                    <h4 className="font-semibold text-lg">{t_product.askQuestion}</h4>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground text-center py-8">{t_product.loginToAsk}</p>
+                </CardContent>
+            </Card>
+        );
     }
 
     const onSubmit = async (data: QnaFormData) => {
@@ -191,7 +200,7 @@ const QnaForm = ({ product, onQuestionSubmitted }: { product: Product, onQuestio
     };
     
     return (
-         <Card className="mt-8">
+         <Card>
             <CardHeader>
                 <h4 className="font-semibold text-lg">{t_product.askQuestion}</h4>
             </CardHeader>
@@ -227,7 +236,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
   const t = useTranslation();
-  const { productPage: t_product } = t;
+  const { productPage: t_product, toast: t_toast } = t;
 
   const [mainApi, setMainApi] = useState<CarouselApi>();
   const [thumbApi, setThumbApi] = useState<CarouselApi>();
@@ -369,8 +378,8 @@ export default function ProductClientPage({ product }: { product: Product }) {
       : product;
     addToCart(productWithDealPrice, quantity);
     toast({
-      title: 'ব্যাগে যোগ করা হয়েছে',
-      description: `${quantity} x ${product.name} আপনার ব্যাগে যোগ করা হয়েছে।`,
+      title: t_toast.addedToBag,
+      description: t_toast.addedToBagDesc.replace('{quantity}', quantity.toString()).replace('{productName}', product.name),
     });
   };
 
@@ -590,9 +599,6 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     </div>
                 ) : <p className="text-muted-foreground">{t_product.noReviews}</p>
             )}
-            <div className="mt-12">
-                <ReviewForm product={product} onReviewSubmitted={fetchReviews} />
-            </div>
         </div>
 
         <div className="mt-16">
@@ -631,6 +637,10 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     )}
                 </>
             )}
+        </div>
+        
+        <div className="mt-12 grid md:grid-cols-2 gap-8 items-start">
+            <ReviewForm product={product} onReviewSubmitted={fetchReviews} />
             <QnaForm product={product} onQuestionSubmitted={fetchQna} />
         </div>
 

@@ -205,5 +205,10 @@
   },
   "productCard": {
     "addToBag": "Add to Bag"
+  },
+  "toast": {
+    "addedToBag": "Added to Bag",
+    "addedToBagDesc": "{quantity} x {productName} has been added to your bag.",
+    "removedFromBag": "Removed from Bag"
   }
 }
