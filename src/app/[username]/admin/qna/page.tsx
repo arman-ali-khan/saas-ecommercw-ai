@@ -74,7 +74,21 @@ export default function QnaAdminPage() {
                     answerer_name: user.fullName
                 })
                 .eq('id', itemToAnswer.id);
+
             if (error) throw error;
+
+            // Create notification for customer
+            if (itemToAnswer.customer_id) {
+                const notificationMessage = `Your question about "${itemToAnswer.products?.name || 'a product'}" has been answered.`;
+                await supabase.from('notifications').insert({
+                    recipient_id: itemToAnswer.customer_id,
+                    recipient_type: 'customer',
+                    site_id: user.id,
+                    message: notificationMessage,
+                    link: `/products/${itemToAnswer.product_id}`,
+                });
+            }
+
             toast({ title: 'Answer submitted and approved!' });
             await fetchData();
             setItemToAnswer(null);
