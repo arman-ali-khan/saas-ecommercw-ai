@@ -70,7 +70,7 @@ export default function OrdersPage() {
         switch (status.toLowerCase()) {
             case 'pending': return 'পেন্ডিং';
             case 'approved': return 'অনুমোদিত';
-            case 'processing': return 'প্রক্রিয়াকরণ চলছে';
+            case 'processing': return 'প্রসেসিং চলছে';
             case 'packaging': return 'প্যাকেজিং চলছে';
             case 'send for delivery': return 'ডেলিভারির জন্য পাঠানো হয়েছে';
             case 'shipped': return 'পাঠানো হয়েছে'; // backwards compatibility
@@ -117,7 +117,7 @@ export default function OrdersPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>আমার অর্ডার</CardTitle>
-                    <CardDescription>আপনার সমস্ত অর্ডারের একটি তালিকা এখানে দেখুন।</CardDescription>
+                    <CardDescription>আপনার সব অর্ডারের একটি তালিকা এখানে দেখুন।</CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-center items-center py-16">
                     <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
@@ -130,7 +130,7 @@ export default function OrdersPage() {
         <Card>
             <CardHeader>
                 <CardTitle>আমার অর্ডার</CardTitle>
-                <CardDescription>আপনার সমস্ত অর্ডারের একটি তালিকা এখানে দেখুন।</CardDescription>
+                <CardDescription>আপনার সব অর্ডারের একটি তালিকা এখানে দেখুন।</CardDescription>
             </CardHeader>
             <CardContent>
                 {orders.length > 0 ? (
@@ -144,7 +144,7 @@ export default function OrdersPage() {
                                 <TableHead>তারিখ</TableHead>
                                 <TableHead>স্ট্যাটাস</TableHead>
                                 <TableHead>মোট</TableHead>
-                                <TableHead className="text-right">কার্যকলাপ</TableHead>
+                                <TableHead className="text-right">অ্যাকশন</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

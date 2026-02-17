@@ -113,7 +113,7 @@ export default function ProfilePage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>দ্রুত কার্যক্রম</CardTitle>
+                <CardTitle>কুইক লিঙ্কস</CardTitle>
                  <CardDescription>আপনার প্রোফাইলের বিভিন্ন অংশে দ্রুত নেভিগেট করুন।</CardDescription>
             </CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">

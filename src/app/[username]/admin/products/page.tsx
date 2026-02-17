@@ -37,6 +37,10 @@ import { useToast } from '@/hooks/use-toast';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useParams } from 'next/navigation';
+import en from '@/locales/en.json';
+import bn from '@/locales/bn.json';
+
+const translations = { en, bn };
 
 export default function ProductsAdminPage() {
   const { user, loading: authLoading } = useAuth();
@@ -48,22 +52,22 @@ export default function ProductsAdminPage() {
 
   const lang = user?.language || 'bn';
   const t = {
-    title: { en: 'Product Management', bn: 'পণ্য ব্যবস্থাপনা' },
-    description: { en: 'Add, edit, and manage products for your store.', bn: 'আপনার দোকানের জন্য পণ্য যোগ, সম্পাদনা এবং পরিচালনা করুন।' },
-    addProduct: { en: 'Add New Product', bn: 'নতুন পণ্য যোগ করুন' },
-    noProducts: { en: 'You have no products yet.', bn: 'আপনার কোনো পণ্য নেই।' },
+    title: { en: 'Product Management', bn: 'প্রোডাক্ট ম্যানেজমেন্ট' },
+    description: { en: 'Add, edit, and manage products for your store.', bn: 'আপনার দোকানের জন্য প্রোডাক্ট যোগ, এডিট এবং ম্যানেজ করুন।' },
+    addProduct: { en: 'Add New Product', bn: 'নতুন প্রোডাক্ট যোগ করুন' },
+    noProducts: { en: 'You have no products yet.', bn: 'আপনার কোনো প্রোডাক্ট নেই।' },
     image: { en: 'Image', bn: 'ছবি' },
     name: { en: 'Name', bn: 'নাম' },
     category: { en: 'Category', bn: 'বিভাগ' },
     price: { en: 'Price', bn: 'দাম' },
-    actions: { en: 'Actions', bn: 'কার্যকলাপ' },
+    actions: { en: 'Actions', bn: 'অ্যাকশন' },
     menu: { en: 'Menu', bn: 'মেনু' },
-    view: { en: 'View', bn: 'View' },
-    edit: { en: 'Edit', bn: 'Edit' },
+    view: { en: 'View', bn: 'দেখুন' },
+    edit: { en: 'Edit', bn: 'এডিট' },
     delete: { en: 'Delete', bn: 'মুছুন' },
-    deleteConfirmTitle: { en: 'Are you absolutely sure?', bn: 'Are you absolutely sure?' },
-    deleteConfirmDesc: { en: 'This will permanently delete the product "{productName}". This action cannot be undone.', bn: 'This will permanently delete the product "{productName}". This action cannot be undone.'},
-    cancel: { bn: 'Cancel', en: 'Cancel' }
+    deleteConfirmTitle: { en: 'Are you absolutely sure?', bn: 'আপনি কি নিশ্চিত?' },
+    deleteConfirmDesc: { en: 'This will permanently delete the product "{productName}". This action cannot be undone.', bn: 'এটি স্থায়ীভাবে "{productName}" প্রোডাক্টটি মুছে ফেলবে। এই কাজটি আর ফেরানো যাবে না।'},
+    cancel: { bn: 'বাতিল', en: 'Cancel' }
   };
 
   const fetchProducts = useCallback(async () => {

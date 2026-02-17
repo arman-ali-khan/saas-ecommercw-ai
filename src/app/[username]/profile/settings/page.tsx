@@ -86,7 +86,7 @@ export default function SettingsPage() {
     <div>
         <div className="mb-6">
             <h1 className="text-2xl font-bold">সেটিংস</h1>
-            <p className="text-muted-foreground">আপনার অ্যাকাউন্ট এবং ব্যক্তিগত তথ্য পরিচালনা করুন।</p>
+            <p className="text-muted-foreground">আপনার অ্যাকাউন্ট ও ব্যক্তিগত তথ্য ম্যানেজ করুন।</p>
         </div>
 
         <Tabs defaultValue="profile" className="w-full">
@@ -97,8 +97,8 @@ export default function SettingsPage() {
             <TabsContent value="profile">
                 <Card>
                     <CardHeader>
-                        <CardTitle>প্রোফাইলের তথ্য</CardTitle>
-                        <CardDescription>আপনার সর্বজনীন প্রোফাইলের তথ্য আপডেট করুন।</CardDescription>
+                        <CardTitle>প্রোফাইল ইনফরমেশন</CardTitle>
+                        <CardDescription>আপনার পাবলিক প্রোফাইলের তথ্য আপডেট করুন।</CardDescription>
                     </CardHeader>
                     <CardContent>
                     <Form {...profileForm}>
@@ -125,7 +125,7 @@ export default function SettingsPage() {
                         </FormItem>
                         <Button type="submit" disabled={isProfileLoading}>
                             {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isProfileLoading ? 'সংরক্ষণ করা হচ্ছে...' : 'পরিবর্তনগুলি সংরক্ষণ করুন'}
+                            {isProfileLoading ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
                         </Button>
                         </form>
                     </Form>
@@ -135,7 +135,7 @@ export default function SettingsPage() {
             <TabsContent value="security">
                 <Card>
                     <CardHeader>
-                    <CardTitle>পাসওয়ার্ড পরিবর্তন</CardTitle>
+                    <CardTitle>পাসওয়ার্ড পরিবর্তন করুন</CardTitle>
                     <CardDescription>নিরাপত্তার জন্য নিয়মিত আপনার পাসওয়ার্ড পরিবর্তন করুন।</CardDescription>
                     </CardHeader>
                     <CardContent>
