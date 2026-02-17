@@ -73,7 +73,7 @@ export function ShowcaseOrderBlock({ main_product_id, optional_product_ids, also
             setIsLoading(false);
         };
         fetchSiteAndProducts();
-    }, [main_product_id, optional_product_ids, username, toast]);
+    }, [main_product_id, optional_product_ids, username]);
 
     const handleQuantityChange = (id: string, newQuantity: number) => {
         const minQuantity = id === main_product_id ? 1 : 0;
