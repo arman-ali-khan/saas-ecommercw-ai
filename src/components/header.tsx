@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -59,6 +60,7 @@ function CustomerNotificationBell() {
   const { customer } = useCustomerAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const { toast } = useToast();
 
   const fetchAndSetNotifications = useCallback(async () => {
     if (!customer) return;
@@ -84,8 +86,32 @@ function CustomerNotificationBell() {
   useEffect(() => {
     if (customer) {
       fetchAndSetNotifications();
+
+      const channel = supabase
+        .channel(`customer-notifications-realtime-${customer.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `recipient_id=eq.${customer.id}`,
+          },
+          (payload) => {
+            const newNotification = payload.new as Notification;
+            setNotifications(prev => [newNotification, ...prev].slice(0, 5));
+            setUnreadCount(prev => prev + 1);
+            toast({ title: 'New Notification!', description: newNotification.message });
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
-  }, [customer, fetchAndSetNotifications]);
+  }, [customer, fetchAndSetNotifications, toast]);
+
 
   const handleMarkAsRead = async (id: string) => {
     if (!customer) return;

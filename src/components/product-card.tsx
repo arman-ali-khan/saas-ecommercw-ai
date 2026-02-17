@@ -7,12 +7,13 @@ import Link from 'next/link';
 import type { Product, FlashDeal } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Button } from './ui/button';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Star } from 'lucide-react';
 import { useCart } from '@/stores/cart';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from './ui/badge';
 import Countdown from './countdown';
 import { useTranslation } from '@/hooks/use-translation';
+import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
   product: Product;
@@ -56,6 +57,24 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
         </CardHeader>
         <CardContent className="p-1 sm:p-4 flex-grow">
           <h3 className="text-sm sm:text-lg font-headline font-semibold">{product.name}</h3>
+           {product.review_count && product.review_count > 0 && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className="flex items-center">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={cn(
+                      "h-4 w-4",
+                      product.avg_rating && i < Math.round(product.avg_rating)
+                        ? "fill-primary text-primary"
+                        : "text-muted-foreground/30"
+                    )}
+                  />
+                ))}
+              </div>
+              <span className="text-xs text-muted-foreground">({product.review_count})</span>
+            </div>
+          )}
           <p className="text-muted-foreground mt-1 text-sm truncate">{product.description}</p>
           {flashDeal && (
             <div className="mt-2">

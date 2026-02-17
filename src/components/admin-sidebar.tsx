@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -32,7 +33,7 @@ import { useAuth } from '@/stores/auth';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
 import DynamicIcon from './dynamic-icon';
@@ -56,57 +57,80 @@ export default function AdminSidebar() {
   const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
   const [pendingQnaCount, setPendingQnaCount] = useState(0);
 
-  useEffect(() => {
+  const fetchAllData = useCallback(async () => {
     const siteId = user?.id;
     if (!siteId) return;
 
-    const fetchAllData = async () => {
-      // Fetch counts
-      const { count: orderCount } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('site_id', siteId)
-        .eq('status', 'approved');
-      setProcessingOrdersCount(orderCount || 0);
-      
-      const { count: notifCount } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('recipient_id', siteId)
-        .eq('recipient_type', 'admin')
-        .eq('is_read', false);
-      setUnreadNotificationsCount(notifCount || 0);
-
-      const { count: uncompletedCount } = await supabase
-        .from('uncompleted_orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('site_id', siteId)
-        .eq('is_viewed', false);
-      setUnviewedUncompletedCount(uncompletedCount || 0);
-
-      const { count: customerCount } = await supabase
-        .from('customer_profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('site_id', siteId);
-      setTotalCustomersCount(customerCount || 0);
-
-      const { count: reviewCount } = await supabase
-        .from('product_reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('site_id', siteId)
-        .eq('is_approved', false);
-      setPendingReviewsCount(reviewCount || 0);
-
-      const { count: qnaCount } = await supabase
-        .from('product_qna')
-        .select('*', { count: 'exact', head: true })
-        .eq('site_id', siteId)
-        .eq('is_approved', false);
-      setPendingQnaCount(qnaCount || 0);
-    };
+    // Fetch counts
+    const { count: orderCount } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('site_id', siteId)
+      .eq('status', 'approved');
+    setProcessingOrdersCount(orderCount || 0);
     
-    fetchAllData();
+    const { count: notifCount } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('recipient_id', siteId)
+      .eq('recipient_type', 'admin')
+      .eq('is_read', false);
+    setUnreadNotificationsCount(notifCount || 0);
+
+    const { count: uncompletedCount } = await supabase
+      .from('uncompleted_orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('site_id', siteId)
+      .eq('is_viewed', false);
+    setUnviewedUncompletedCount(uncompletedCount || 0);
+
+    const { count: customerCount } = await supabase
+      .from('customer_profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('site_id', siteId);
+    setTotalCustomersCount(customerCount || 0);
+
+    const { count: reviewCount } = await supabase
+      .from('product_reviews')
+      .select('*', { count: 'exact', head: true })
+      .eq('site_id', siteId)
+      .eq('is_approved', false);
+    setPendingReviewsCount(reviewCount || 0);
+
+    const { count: qnaCount } = await supabase
+      .from('product_qna')
+      .select('*', { count: 'exact', head: true })
+      .eq('site_id', siteId)
+      .eq('is_approved', false);
+    setPendingQnaCount(qnaCount || 0);
   }, [user?.id]);
+  
+  useEffect(() => {
+    if (user?.id) {
+        fetchAllData();
+
+        const channel = supabase
+          .channel(`admin-sidebar-${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'notifications',
+              filter: `recipient_id=eq.${user.id}`,
+            },
+            (payload) => {
+              toast({ title: 'New Notification', description: (payload.new as any).message });
+              fetchAllData();
+            }
+          )
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
+    }
+  }, [user?.id, fetchAllData, toast]);
 
   const handleLogout = async () => {
     try {

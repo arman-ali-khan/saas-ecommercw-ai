@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -28,6 +29,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/hooks/use-translation';
+import { supabase } from '@/lib/supabase/client';
 
 const PRODUCTS_PER_PAGE = 10;
 
@@ -51,9 +53,38 @@ export default function ProductsPage() {
 
   useEffect(() => {
     if (username) {
-      const fetchProducts = async () => {
+      const fetchProductsAndReviews = async () => {
         setIsLoading(true);
         const products = await getProductsByDomain(username);
+
+        if (products.length > 0) {
+            const productIds = products.map(p => p.id);
+            const { data: reviewsData } = await supabase
+              .from('product_reviews')
+              .select('product_id, rating')
+              .in('product_id', productIds)
+              .eq('is_approved', true);
+
+            if (reviewsData) {
+                const reviewStats = reviewsData.reduce((acc, review) => {
+                    if (!acc[review.product_id]) {
+                        acc[review.product_id] = { totalRating: 0, count: 0 };
+                    }
+                    acc[review.product_id].totalRating += review.rating;
+                    acc[review.product_id].count += 1;
+                    return acc;
+                }, {} as Record<string, { totalRating: number; count: number }>);
+
+                products.forEach(product => {
+                    const stats = reviewStats[product.id];
+                    if (stats) {
+                        product.avg_rating = stats.totalRating / stats.count;
+                        product.review_count = stats.count;
+                    }
+                });
+            }
+        }
+        
         setAllProducts(products);
         const maxProductPrice = Math.ceil(
           Math.max(0, ...products.map((p) => p.price))
@@ -61,7 +92,7 @@ export default function ProductsPage() {
         setPriceRange([0, maxProductPrice]);
         setIsLoading(false);
       };
-      fetchProducts();
+      fetchProductsAndReviews();
     }
   }, [username]);
 

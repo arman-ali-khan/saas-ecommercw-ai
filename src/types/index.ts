@@ -27,6 +27,8 @@ export interface Product {
   has_flash_deal?: boolean;
   flash_deal_price?: number;
   flash_deal_range?: { from?: Date; to?: Date };
+  avg_rating?: number;
+  review_count?: number;
 }
 
 export interface ProductReview {

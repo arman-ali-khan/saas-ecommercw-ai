@@ -1,4 +1,5 @@
 
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -200,6 +201,35 @@ async function CategoryProducts({ siteId, section, t }: { siteId: string, sectio
   });
   const { data } = await supabase.from('products').select('*').eq('site_id', siteId).overlaps('categories', [section.category]).limit(5);
   const products = (data as Product[]) || [];
+
+  if (products.length > 0) {
+    const productIds = products.map(p => p.id);
+    const { data: reviewsData } = await supabase
+        .from('product_reviews')
+        .select('product_id, rating')
+        .in('product_id', productIds)
+        .eq('is_approved', true);
+
+    if (reviewsData) {
+        const reviewStats = reviewsData.reduce((acc, review) => {
+            if (!acc[review.product_id]) {
+                acc[review.product_id] = { totalRating: 0, count: 0 };
+            }
+            acc[review.product_id].totalRating += review.rating;
+            acc[review.product_id].count += 1;
+            return acc;
+        }, {} as Record<string, { totalRating: number; count: number }>);
+
+        products.forEach(product => {
+            const stats = reviewStats[product.id];
+            if (stats) {
+                product.avg_rating = stats.totalRating / stats.count;
+                product.review_count = stats.count;
+            }
+        });
+    }
+  }
+  
   if (products.length === 0) return null;
 
   return (
@@ -269,10 +299,48 @@ export default async function UserPage({ params }: { params: { username: string 
   const settingsData = settingsResult.data;
   const slidesData = slidesResult.data;
   const categories = (categoriesResult.data as Category[]) || [];
-  const flashDeals = (flashDealsResult.data as FlashDeal[]) || [];
   const featuredProducts = (featuredProductsResult.data as Product[]) || [];
   const storeFeatures = (storeFeaturesResult.data as StoreFeature[]) || [];
   const approvedReviews = (reviewsResult.data as ProductReview[]) || [];
+
+  const allProductIdsOnPage = [
+    ...featuredProducts.map(p => p.id),
+    ...((flashDealsResult.data as FlashDeal[]) || []).map(d => d.product_id)
+  ];
+
+  const { data: allReviewsData } = await supabase
+    .from('product_reviews')
+    .select('product_id, rating')
+    .in('product_id', allProductIdsOnPage)
+    .eq('is_approved', true);
+
+  const reviewStatsMap = new Map<string, { totalRating: number, count: number }>();
+
+  if (allReviewsData) {
+      for (const review of allReviewsData) {
+          if (!reviewStatsMap.has(review.product_id)) {
+              reviewStatsMap.set(review.product_id, { totalRating: 0, count: 0 });
+          }
+          const stats = reviewStatsMap.get(review.product_id)!;
+          stats.totalRating += review.rating;
+          stats.count += 1;
+      }
+  }
+
+  const addReviewStats = (product: Product) => {
+      const stats = reviewStatsMap.get(product.id);
+      if (stats) {
+          product.avg_rating = stats.totalRating / stats.count;
+          product.review_count = stats.count;
+      }
+      return product;
+  }
+
+  featuredProducts.forEach(addReviewStats);
+  const flashDeals = ((flashDealsResult.data as FlashDeal[]) || []).map(deal => {
+    addReviewStats(deal.products);
+    return deal;
+  });
 
   const sectionsToRender: Section[] = (() => {
     const dbSections = settingsData?.homepage_sections;
