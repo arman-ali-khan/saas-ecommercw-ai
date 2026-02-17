@@ -91,14 +91,19 @@ export const useCustomerAuth = create<CustomerAuthState>()(
           .from('customer_profiles')
           .update({ full_name: updates.full_name })
           .eq('id', customer.id)
-          .select()
-          .single();
+          .select();
         
         if (error) {
           return { customer: null, error: error.message };
         }
 
-        const newCustomer = { ...customer, ...data } as CustomerUser;
+        if (!data || data.length === 0) {
+            return { customer: null, error: "Profile not found after update." };
+        }
+        
+        const updatedProfile = data[0];
+
+        const newCustomer = { ...customer, ...updatedProfile } as CustomerUser;
         set({ customer: newCustomer });
         return { customer: newCustomer, error: null };
       },
