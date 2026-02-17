@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -15,66 +16,72 @@ interface CustomerUser {
 interface CustomerAuthState {
   customer: CustomerUser | null;
   loading: boolean;
-  _hasHydrated: boolean; 
-  setHasHydrated: (state: boolean) => void; 
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
   setCustomerLoading: (loading: boolean) => void;
-  customerLogin: (email: string, password: string) => Promise<{ error: { message: string } | null }>;
-  refreshCustomer: () => Promise<void>;
+  registerCustomer: (fullName: string, email: string, password: string, siteId: string) => Promise<{ user: any, error: string | null }>;
+  customerLogin: (email: string, password: string, siteId: string) => Promise<{ error: { message: string } | null }>;
   customerLogout: () => Promise<void>;
   setCustomer: (customer: CustomerUser | null) => void;
   updateCustomerProfile: (updates: Partial<CustomerUser>) => Promise<{ customer: CustomerUser | null; error: string | null }>;
+  updateCustomerPassword: (newPassword: string) => Promise<{ error: string | null }>;
 }
 
 export const useCustomerAuth = create<CustomerAuthState>()(
   persist(
     (set, get) => ({
       customer: null,
-      loading: true,
+      loading: false,
       _hasHydrated: false,
 
       setHasHydrated: (state: boolean) => set({ _hasHydrated: state }),
       setCustomerLoading: (loading) => set({ loading }),
+      setCustomer: (customer) => set({ customer }),
 
-      customerLogin: async (email, password) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        // The actual user setting will be handled by the central AuthProvider, which calls refreshCustomer
-        return { error };
+      registerCustomer: async (fullName, email, password, siteId) => {
+        try {
+            const response = await fetch('/api/auth/register-customer', {
+                method: 'POST',
+                body: JSON.stringify({ fullName, email, password, siteId }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+    
+            const result = await response.json();
+    
+            if (!response.ok) {
+                return { user: null, error: result.error };
+            }
+    
+            return { user: result.user, error: null };
+        } catch (err) {
+            return { user: null, error: 'Connection failed' };
+        }
       },
 
-      refreshCustomer: async () => {
+      customerLogin: async (email, password, siteId) => {
+        set({ loading: true });
         try {
-          const response = await fetch('/api/auth/get-customer');
-          
+          const response = await fetch('/api/auth/login-customer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, siteId }),
+          });
+          const result = await response.json();
           if (!response.ok) {
-            set({ customer: null });
-            return;
+            return { error: { message: result.error } };
           }
-
-          const { customerProfile } = await response.json();
-          
-          const currentCustomer = get().customer;
-          if (
-            currentCustomer &&
-            currentCustomer.id === customerProfile.id &&
-            currentCustomer.full_name === customerProfile.full_name &&
-            currentCustomer.email === customerProfile.email
-          ) {
-            return;
-          }
-
-          set({ customer: customerProfile });
-        } catch (error) {
-            console.error("Failed to refresh customer profile via API:", error);
-            set({ customer: null });
+          set({ customer: result.user as CustomerUser });
+          return { error: null };
+        } catch (e: any) {
+          return { error: { message: e.message || 'Login request failed.' }};
+        } finally {
+          set({ loading: false });
         }
       },
 
       customerLogout: async () => {
-        await supabase.auth.signOut();
         set({ customer: null });
       },
-
-      setCustomer: (customer) => set({ customer }),
       
       updateCustomerProfile: async (updates) => {
         const { customer } = get();
@@ -95,6 +102,28 @@ export const useCustomerAuth = create<CustomerAuthState>()(
         set({ customer: newCustomer });
         return { customer: newCustomer, error: null };
       },
+
+      updateCustomerPassword: async (newPassword: string) => {
+        const { customer } = get();
+        if (!customer) return { error: "Not logged in" };
+        
+        try {
+            const response = await fetch('/api/auth/update-customer-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id, newPassword }),
+            });
+
+            if (!response.ok) {
+                const { error } = await response.json();
+                return { error };
+            }
+
+            return { error: null };
+        } catch (e: any) {
+            return { error: e.message || 'Request to update password failed' };
+        }
+      }
     }),
     {
       name: 'customer-auth-storage',

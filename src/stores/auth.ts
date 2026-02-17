@@ -24,12 +24,6 @@ interface AuthState {
     paymentMethod: string | null,
     transactionId: string | null
   ) => Promise<{ user: any | null, error: string | null }>;
-  registerCustomer: (
-    fullName: string,
-    email: string,
-    password: string,
-    siteId: string,
-  ) => Promise<{ user: any | null, error: string | null }>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
@@ -200,27 +194,6 @@ export const useAuth = create<AuthState>()((set, get) => ({
         return { user: null, error: error.message || 'Network error, please try again.' };
       }
     },
-
-    registerCustomer: async (fullName, email, password, siteId) => {
-      try {
-          // We call a server-side function to handle the sensitive hashing
-          const response = await fetch('/api/auth/register-customer', {
-              method: 'POST',
-              body: JSON.stringify({ fullName, email, password, siteId }),
-              headers: { 'Content-Type': 'application/json' }
-          });
-  
-          const result = await response.json();
-  
-          if (!response.ok) {
-              return { user: null, error: result.error };
-          }
-  
-          return { user: result.user, error: null };
-      } catch (err) {
-          return { user: null, error: 'Connection failed' };
-      }
-  },
     
     logout: async () => {
       const { error } = await supabase.auth.signOut();

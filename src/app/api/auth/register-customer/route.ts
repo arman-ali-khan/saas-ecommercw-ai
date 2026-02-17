@@ -1,58 +1,68 @@
 // src/app/api/auth/register-customer/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: Request) {
   try {
     const { fullName, email, password, siteId } = await request.json();
+
+    // 1. Validate input
+    if (!fullName || !email || !password || !siteId) {
+        return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+    }
 
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
     
-    // 1. Create the user in Supabase Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true, // Set to true to send a confirmation email
-        user_metadata: {
-            full_name: fullName,
-            role: 'customer',
-            site_id: siteId,
-        }
-    });
+    // 2. Check if user already exists for this site
+    const { data: existingUser, error: findError } = await supabaseAdmin
+        .from('customer_profiles')
+        .select('id')
+        .eq('email', email)
+        .eq('site_id', siteId)
+        .single();
 
-    if (authError) {
-        console.error("Auth Error:", authError);
-        return NextResponse.json({ error: `Authentication error: ${authError.message}` }, { status: 400 });
+    if (findError && findError.code !== 'PGRST116') { // PGRST116 means no rows found
+         return NextResponse.json({ error: `Database error: ${findError.message}` }, { status: 500 });
     }
+    
+    if (existingUser) {
+        return NextResponse.json({ error: 'A customer with this email already exists on this site.' }, { status: 409 });
+    }
+    
+    // 3. Hash the password
+    const password_hash = await bcrypt.hash(password, 10);
+    const userId = uuidv4();
 
-    const userId = authData.user.id;
-
-    // 2. Insert into customer_profiles
-    const { data, error: profileError } = await supabaseAdmin
+    // 4. Insert the new customer
+    const { data, error: insertError } = await supabaseAdmin
       .from('customer_profiles')
       .insert([{
         id: userId,
         full_name: fullName,
         email: email,
         site_id: siteId,
-        role: 'customer'
+        role: 'customer',
+        password_hash: password_hash
       }])
       .select()
       .single();
 
-    if (profileError) {
-      console.error("DB Error:", profileError);
-      // If profile creation fails, we should delete the auth user to avoid orphans
-      await supabaseAdmin.auth.admin.deleteUser(userId);
-      return NextResponse.json({ error: profileError.message }, { status: 400 });
+    if (insertError) {
+      console.error("DB Error on customer insert:", insertError);
+      return NextResponse.json({ error: `Database error: ${insertError.message}` }, { status: 500 });
     }
 
-    return NextResponse.json({ user: data }, { status: 200 });
+    const { password_hash: removed, ...safeUser } = data;
+
+    return NextResponse.json({ user: safeUser }, { status: 201 });
 
   } catch (err: any) {
+    console.error("Customer Registration API Error:", err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -12,27 +13,23 @@ export default function AuthProvider({
   children: React.ReactNode;
 }) {
   const { setUser, setSession, setLoading, refreshUser } = useAuth();
-  const { setCustomer, refreshCustomer, setCustomerLoading } = useCustomerAuth();
+  const { setCustomer } = useCustomerAuth();
 
   useEffect(() => {
     setLoading(true);
-    setCustomerLoading(true);
 
     // Initial check on mount
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
         const role = session.user.user_metadata?.role;
+        // This provider now ONLY handles admin/saas_admin
         if (role === 'admin' || role === 'saas_admin') {
           await refreshUser();
-          setCustomer(null);
-        } else if (role === 'customer') {
-          await refreshCustomer();
-          setUser(null);
+          setCustomer(null); // Ensure customer is logged out
         }
       }
       setLoading(false);
-      setCustomerLoading(false);
     });
 
     // Listen for subsequent changes
@@ -45,23 +42,20 @@ export default function AuthProvider({
         if (role === 'admin' || role === 'saas_admin') {
           await refreshUser();
           setCustomer(null);
-        } else if (role === 'customer') {
-          await refreshCustomer();
-          setUser(null);
         } else {
+          // If a non-admin logs in via Supabase, clear our admin state
           setUser(null);
-          setCustomer(null);
         }
       } else {
+        // If logged out from Supabase, clear admin state
         setUser(null);
-        setCustomer(null);
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [setUser, setSession, setLoading, refreshUser, setCustomer, refreshCustomer, setCustomerLoading]);
+  }, [setUser, setSession, setLoading, refreshUser, setCustomer]);
 
   return <>{children}</>;
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -17,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
-import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -36,7 +36,7 @@ const passwordSchema = z.object({
 
 export default function SettingsPage() {
     const { toast } = useToast();
-    const { customer, updateCustomerProfile } = useCustomerAuth();
+    const { customer, updateCustomerProfile, updateCustomerPassword } = useCustomerAuth();
     const [isProfileLoading, setProfileLoading] = useState(false);
     const [isPasswordLoading, setPasswordLoading] = useState(false);
     
@@ -71,11 +71,11 @@ export default function SettingsPage() {
 
     async function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
         setPasswordLoading(true);
-        const { error } = await supabase.auth.updateUser({ password: values.newPassword });
+        const { error } = await updateCustomerPassword(values.newPassword);
         setPasswordLoading(false);
 
         if (error) {
-            toast({ variant: 'destructive', title: 'পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে', description: `Error: ${error.message}` });
+            toast({ variant: 'destructive', title: 'পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে', description: `Error: ${error}` });
         } else {
             toast({ title: 'পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!' });
             passwordForm.reset();

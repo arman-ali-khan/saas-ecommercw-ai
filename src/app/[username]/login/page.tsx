@@ -28,6 +28,7 @@ import {
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
@@ -42,6 +43,21 @@ export default function CustomerLoginPage() {
   const { toast } = useToast();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [siteId, setSiteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getSiteId = async () => {
+        if (username) {
+            const { data } = await supabase.from('profiles').select('id').eq('domain', username).single();
+            if (data) {
+                setSiteId(data.id);
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Store not found.' });
+            }
+        }
+    }
+    getSiteId();
+  }, [username, toast]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -59,8 +75,12 @@ export default function CustomerLoginPage() {
   }, [customer, router, loading, username]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!siteId) {
+        toast({ variant: 'destructive', title: 'Login Failed', description: 'Could not identify the store.' });
+        return;
+    }
     setIsSubmitting(true);
-    const { error } = await customerLogin(values.email, values.password);
+    const { error } = await customerLogin(values.email, values.password, siteId);
     setIsSubmitting(false);
 
     if (error) {
@@ -123,7 +143,7 @@ export default function CustomerLoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" className="w-full" disabled={isSubmitting || !siteId}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isSubmitting ? 'সাইন ইন করা হচ্ছে...' : 'সাইন ইন'}
               </Button>

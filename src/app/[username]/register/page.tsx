@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -24,7 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useAuth } from '@/stores/auth';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
@@ -41,7 +42,7 @@ export default function CustomerRegisterPage() {
   const username = params.username as string;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const { registerCustomer } = useAuth();
+  const { registerCustomer } = useCustomerAuth();
   const [siteId, setSiteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -91,9 +92,9 @@ export default function CustomerRegisterPage() {
 
     if (result.user) {
       toast({
-        title: 'নিবন্ধন প্রায় সম্পন্ন!',
+        title: 'নিবন্ধন সফল হয়েছে!',
         description:
-          'আপনার নিবন্ধন নিশ্চিত করতে দয়া করে আপনার ইমেল পরীক্ষা করুন।',
+          'দয়া করে এখন লগ ইন করুন।',
         duration: 10000,
       });
       router.push(`/login`);
@@ -101,7 +102,7 @@ export default function CustomerRegisterPage() {
       toast({
         variant: 'destructive',
         title: 'নিবন্ধন ব্যর্থ',
-        description: result.error,
+        description: result.error || "An unknown error occurred.",
       });
     }
   }
@@ -171,10 +172,7 @@ export default function CustomerRegisterPage() {
           </Form>
           <div className="mt-6 text-center text-sm">
             ইতিমধ্যে একটি অ্যাকাউন্ট আছে?{' '}
-            <Link
-              href={`/login`}
-              className="font-medium text-primary hover:underline"
-            >
+            <Link href={`/login`} className="font-medium text-primary hover:underline">
               সাইন ইন
             </Link>
           </div>
