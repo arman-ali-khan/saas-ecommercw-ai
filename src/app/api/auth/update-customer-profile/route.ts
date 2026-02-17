@@ -28,17 +28,28 @@ export async function POST(request: Request) {
             updatePayload.password_hash = await bcrypt.hash(newPassword, 10);
         }
 
-        const { data: updatedProfile, error: updateError } = await supabaseAdmin
+        // Step 1: Perform the update
+        const { error: updateError } = await supabaseAdmin
             .from('customer_profiles')
             .update(updatePayload)
             .eq('id', customerId)
-            .eq('site_id', siteId)
-            .select()
-            .single();
+            .eq('site_id', siteId);
 
         if (updateError) {
             console.error("Update profile API - Update Error:", updateError);
             return NextResponse.json({ error: updateError.message }, { status: 500 });
+        }
+
+        // Step 2: Fetch the updated profile in a separate, reliable query
+        const { data: updatedProfile, error: selectError } = await supabaseAdmin
+            .from('customer_profiles')
+            .select('*')
+            .eq('id', customerId)
+            .single();
+        
+        if (selectError || !updatedProfile) {
+            console.error("Update profile API - Select Error:", selectError);
+            return NextResponse.json({ error: "Profile not found after update." }, { status: 404 });
         }
         
         const { password_hash, ...safeUser } = updatedProfile;
