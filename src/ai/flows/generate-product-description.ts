@@ -24,6 +24,10 @@ export async function generateProductDescription(input: GenerateProductDescripti
   try {
     const { apiKey, name, description, categories, origin } = input;
 
+    if (!apiKey) {
+      throw new Error('The Gemini API key is not configured. Please add it in your AI settings.');
+    }
+
     const localAi = genkit({
       plugins: [googleAI({ apiKey: apiKey })],
     });
@@ -52,7 +56,7 @@ Instructions:
 11. CRITICAL: Your entire output must be ONLY the JSON object. Do not include any introductory text, explanations, or markdown code fences. The output must be valid JSON that can be parsed directly.`;
 
     const result = await localAi.generate({
-      model: 'googleai/gemini-2.5-flash',
+      model: 'googleai/gemini-pro',
       prompt,
       config: { temperature: 0.7 },
     });
