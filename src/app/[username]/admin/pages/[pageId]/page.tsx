@@ -85,6 +85,12 @@ const productShowcaseBlockSchema = blockBaseSchema.extend({
   title: z.string().optional(),
 });
 
+const alsoBuyBlockSchema = blockBaseSchema.extend({
+  type: z.literal('also_buy'),
+  product_ids: z.array(z.string()).default([]),
+  title: z.string().optional(),
+});
+
 const countdownBlockSchema = blockBaseSchema.extend({
     type: z.literal('countdown'),
     title: z.string().optional(),
@@ -128,6 +134,7 @@ const blockSchema = z.discriminatedUnion('type', [
   productShowcaseBlockSchema,
   countdownBlockSchema,
   carouselBlockSchema,
+  alsoBuyBlockSchema,
 ]);
 
 const pageFormSchema = z.object({
@@ -253,7 +260,7 @@ export default function ManagePage() {
           name: namePrefix as any,
       });
   
-      const addBlock = (type: 'heading' | 'paragraph' | 'image' | 'button' | 'youtube' | 'coloredBox' | 'layout' | 'product_showcase' | 'countdown' | 'carousel', columnCount?: number) => {
+      const addBlock = (type: 'heading' | 'paragraph' | 'image' | 'button' | 'youtube' | 'coloredBox' | 'layout' | 'product_showcase' | 'countdown' | 'carousel' | 'also_buy', columnCount?: number) => {
           const id = uuidv4();
           let newBlock: any;
   
@@ -266,6 +273,7 @@ export default function ManagePage() {
               case 'coloredBox': newBlock = { id, type: 'coloredBox', color: 'hsl(var(--card))', text: 'This is a colored box.' }; break;
               case 'layout': newBlock = { id, type: 'layout', columnCount, columns: Array.from({ length: columnCount || 1 }, () => ({ id: uuidv4(), blocks: [] })) }; break;
               case 'product_showcase': newBlock = { id, type: 'product_showcase', product_ids: [], title: 'Special Offer' }; break;
+              case 'also_buy': newBlock = { id, type: 'also_buy', product_ids: [], title: 'Also Buy' }; break;
               case 'countdown': newBlock = { id, type: 'countdown', title: 'Countdown', endDate: new Date() }; break;
               case 'carousel': newBlock = { id, type: 'carousel', slides: [] }; break;
           }
@@ -359,6 +367,12 @@ export default function ManagePage() {
                                       <ProductSelector control={control} namePrefix={currentFieldName} allProducts={allProducts} />
                                   </>
                               )}
+                               {(field as any).type === 'also_buy' && (
+                                  <>
+                                      <FormField control={control} name={`${currentFieldName}.title`} render={({ field: f }) => (<FormItem><FormLabel>Title (Optional)</FormLabel><FormControl><Input {...f} placeholder="Also Buy" /></FormControl><FormMessage /></FormItem>)} />
+                                      <ProductSelector control={control} namePrefix={currentFieldName} allProducts={allProducts} />
+                                  </>
+                              )}
                               {(field as any).type === 'countdown' && (
                                   <>
                                       <FormField control={control} name={`${currentFieldName}.title`} render={({ field: f }) => (<FormItem><FormLabel>Title (Optional)</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
@@ -412,6 +426,7 @@ export default function ManagePage() {
                       <DropdownMenuItem onSelect={() => addBlock('youtube')}><Youtube className="mr-2" /> YouTube Video</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => addBlock('coloredBox')}><Palette className="mr-2" /> Colored Box</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => addBlock('product_showcase')}><ShoppingBag className="mr-2" /> Product Showcase</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => addBlock('also_buy')}><ShoppingBag className="mr-2" /> Also Buy</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => addBlock('countdown')}><Clock className="mr-2" /> Countdown</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => addBlock('carousel')}><GalleryHorizontal className="mr-2" /> Carousel</DropdownMenuItem>
                       <DropdownMenuSub>

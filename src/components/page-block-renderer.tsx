@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ProductShowcaseBlock } from '@/components/product-card';
+import { ProductShowcaseBlock, AlsoBuyBlock } from '@/components/product-card';
 import RichTextRenderer from '@/components/saas-page-renderer';
 import { CountdownBlock, CarouselBlock } from '@/components/client-blocks';
 
@@ -106,6 +106,8 @@ export function PageBlock({ block, username }: { block: any, username: string })
         );
     case 'product_showcase':
         return <ProductShowcaseBlock product_ids={block.product_ids} title={block.title} username={username} />;
+    case 'also_buy':
+        return <AlsoBuyBlock product_ids={block.product_ids} title={block.title} username={username} />;
     case 'countdown':
         return (
             <div className="my-8 text-center">
