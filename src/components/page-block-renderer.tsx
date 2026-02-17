@@ -4,9 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ProductShowcaseBlock } from '@/components/product-card';
 import RichTextRenderer from '@/components/saas-page-renderer';
 import { CountdownBlock, CarouselBlock } from '@/components/client-blocks';
+import { ShowcaseOrderBlock } from '@/components/showcase-order-block';
 
 const alignmentClasses = {
     left: 'text-left',
@@ -105,7 +105,7 @@ export function PageBlock({ block, username }: { block: any, username: string })
             </div>
         );
     case 'product_showcase':
-        return <ProductShowcaseBlock product_ids={block.product_ids} title={block.title} username={username} />;
+        return <ShowcaseOrderBlock product_ids={block.product_ids} title={block.title} username={username} />;
     case 'countdown':
         return (
             <div className="my-8 text-center">
