@@ -1,8 +1,9 @@
-
 'use client';
 
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import {
   Bold,
   Italic,
@@ -14,6 +15,7 @@ import {
   Quote,
   Undo,
   Redo,
+  CheckSquare,
 } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
 
@@ -75,6 +77,13 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
       </Toggle>
       <Toggle
         size="sm"
+        pressed={editor.isActive('taskList')}
+        onPressedChange={() => editor.chain().focus().toggleTaskList().run()}
+      >
+        <CheckSquare className="h-4 w-4" />
+      </Toggle>
+      <Toggle
+        size="sm"
         pressed={editor.isActive('blockquote')}
         onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
       >
@@ -110,7 +119,13 @@ export default function RichTextEditor({ value, onChange, isEditable = true }: R
   }
   
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+    ],
     content: content,
     editable: isEditable,
     onUpdate: ({ editor }) => {
