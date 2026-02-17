@@ -248,7 +248,7 @@ export default function AdminSidebar() {
         <div className="flex-1 overflow-auto py-2">
           <nav className="grid items-start px-4 text-sm font-medium gap-1">
           
-            {adminNavLinks.slice(0, 2).map((link) => (
+            {adminNavLinks.slice(0, 3).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 
@@ -270,7 +270,7 @@ export default function AdminSidebar() {
               </CollapsibleContent>
             </Collapsible>
             
-            {adminNavLinks.slice(3, 16).map((link) => (
+            {adminNavLinks.slice(4, 17).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 
@@ -337,4 +337,3 @@ export default function AdminSidebar() {
   );
 }
 
-    
