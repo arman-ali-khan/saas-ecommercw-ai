@@ -49,6 +49,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 const productFormSchema = z.object({
   id: z
@@ -128,6 +129,7 @@ export default function ManageProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const productId = params.productId as string;
   const isNew = productId === 'new';
@@ -797,7 +799,7 @@ export default function ManageProductPage() {
                                                 defaultMonth={field.value?.startDate}
                                                 selected={{ from: field.value?.startDate, to: field.value?.endDate }}
                                                 onSelect={(range) => field.onChange({ startDate: range?.from, endDate: range?.to })}
-                                                numberOfMonths={1}
+                                                numberOfMonths={isDesktop ? 2 : 1}
                                             />
                                         </PopoverContent>
                                     </Popover>

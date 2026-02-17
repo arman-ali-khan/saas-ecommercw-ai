@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 
 export const flashDealSchema = z.object({
@@ -48,6 +49,7 @@ interface FlashDealFormProps {
 
 export default function FlashDealForm({ isNew, initialData, products, deals, onSubmit, isSubmitting }: FlashDealFormProps) {
     const router = useRouter();
+    const isDesktop = useMediaQuery("(min-width: 768px)");
 
     const form = useForm<FlashDealFormData>({
         resolver: zodResolver(flashDealSchema),
@@ -174,7 +176,7 @@ export default function FlashDealForm({ isNew, initialData, products, deals, onS
                                                 defaultMonth={field.value.startDate}
                                                 selected={{ from: field.value.startDate, to: field.value.endDate }}
                                                 onSelect={(range) => field.onChange({ startDate: range?.from, endDate: range?.to })}
-                                                numberOfMonths={1}
+                                                numberOfMonths={isDesktop ? 2 : 1}
                                             />
                                         </PopoverContent>
                                     </Popover>
