@@ -16,7 +16,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/stores/auth';
+import { useCustomerAuth } from '@/stores/useCustomerAuth';
+import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,7 +27,6 @@ const profileSchema = z.object({
 });
 
 const passwordSchema = z.object({
-    currentPassword: z.string().min(1, { message: 'বর্তমান পাসওয়ার্ড প্রয়োজন।' }),
     newPassword: z.string().min(6, { message: 'নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' }),
     confirmPassword: z.string().min(6, { message: 'অনুগ্রহ করে আপনার নতুন পাসওয়ার্ড নিশ্চিত করুন।' }),
 }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -36,7 +36,7 @@ const passwordSchema = z.object({
 
 export default function SettingsPage() {
     const { toast } = useToast();
-    const { user, updateUserProfile } = useAuth();
+    const { customer, updateCustomerProfile } = useCustomerAuth();
     const [isProfileLoading, setProfileLoading] = useState(false);
     const [isPasswordLoading, setPasswordLoading] = useState(false);
     
@@ -46,20 +46,20 @@ export default function SettingsPage() {
     });
 
     useEffect(() => {
-        if(user) {
-            profileForm.reset({ fullName: user.fullName });
+        if(customer) {
+            profileForm.reset({ fullName: customer.full_name });
         }
-    }, [user, profileForm]);
+    }, [customer, profileForm]);
 
     const passwordForm = useForm<z.infer<typeof passwordSchema>>({
         resolver: zodResolver(passwordSchema),
-        defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
+        defaultValues: { newPassword: '', confirmPassword: '' },
     });
 
     async function onProfileSubmit(values: z.infer<typeof profileSchema>) {
-        if (!user) return;
+        if (!customer) return;
         setProfileLoading(true);
-        const { error } = await updateUserProfile(user.id, { fullName: values.fullName });
+        const { error } = await updateCustomerProfile({ full_name: values.fullName });
         setProfileLoading(false);
 
         if (error) {
@@ -69,16 +69,17 @@ export default function SettingsPage() {
         }
     }
 
-    function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
+    async function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
         setPasswordLoading(true);
-        // In a real app, you would call supabase.auth.updateUser({ password: values.newPassword })
-        // and handle current password verification on the server.
-        setTimeout(() => {
-            console.log(values);
-            toast({ title: 'পাসওয়ার্ড পরিবর্তন হয়েছে! (সিমুলেটেড)' });
+        const { error } = await supabase.auth.updateUser({ password: values.newPassword });
+        setPasswordLoading(false);
+
+        if (error) {
+            toast({ variant: 'destructive', title: 'পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে', description: `Error: ${error.message}` });
+        } else {
+            toast({ title: 'পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!' });
             passwordForm.reset();
-            setPasswordLoading(false);
-        }, 1000);
+        }
     }
 
   return (
@@ -118,7 +119,7 @@ export default function SettingsPage() {
                         <FormItem>
                             <FormLabel>ইমেল</FormLabel>
                             <FormControl>
-                            <Input value={user?.email || ''} readOnly disabled />
+                            <Input value={customer?.email || ''} readOnly disabled />
                             </FormControl>
                             <FormDescription>ইমেল পরিবর্তন করা যাবে না।</FormDescription>
                         </FormItem>
@@ -140,19 +141,6 @@ export default function SettingsPage() {
                     <CardContent>
                     <Form {...passwordForm}>
                         <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
-                        <FormField
-                            control={passwordForm.control}
-                            name="currentPassword"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>বর্তমান পাসওয়ার্ড</FormLabel>
-                                <FormControl>
-                                <Input type="password" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
                         <FormField
                             control={passwordForm.control}
                             name="newPassword"

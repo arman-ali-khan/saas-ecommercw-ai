@@ -22,6 +22,7 @@ interface CustomerAuthState {
   refreshCustomer: () => Promise<void>;
   customerLogout: () => Promise<void>;
   setCustomer: (customer: CustomerUser | null) => void;
+  updateCustomerProfile: (updates: Partial<CustomerUser>) => Promise<{ customer: CustomerUser | null; error: string | null }>;
 }
 
 export const useCustomerAuth = create<CustomerAuthState>()(
@@ -74,6 +75,26 @@ export const useCustomerAuth = create<CustomerAuthState>()(
       },
 
       setCustomer: (customer) => set({ customer }),
+      
+      updateCustomerProfile: async (updates) => {
+        const { customer } = get();
+        if (!customer) return { customer: null, error: "Not logged in" };
+
+        const { data, error } = await supabase
+          .from('customer_profiles')
+          .update({ full_name: updates.full_name })
+          .eq('id', customer.id)
+          .select()
+          .single();
+        
+        if (error) {
+          return { customer: null, error: error.message };
+        }
+
+        const newCustomer = { ...customer, ...data } as CustomerUser;
+        set({ customer: newCustomer });
+        return { customer: newCustomer, error: null };
+      },
     }),
     {
       name: 'customer-auth-storage',
