@@ -66,7 +66,7 @@ const translations = { en, bn };
 
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [stats, setStats] = useState({
     totalRevenue: 0,
@@ -105,15 +105,15 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    const siteId = user?.id;
-    if (!siteId) {
+    const fetchData = async () => {
+      if (!user) {
         setIsLoading(false);
         return;
-    }
-
-    const fetchData = async () => {
+      }
+      
       setIsLoading(true);
       try {
+        const siteId = user.id;
         const sevenDaysAgo = subDays(new Date(), 7).toISOString();
         const startOfCurrentMonth = startOfMonth(new Date()).toISOString();
 
@@ -234,9 +234,11 @@ export default function AdminDashboard() {
         setIsLoading(false);
       }
     };
-
-    fetchData();
-  }, [user?.id, selectedMonth, toast]);
+    
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [user, authLoading, selectedMonth, toast]);
 
   const StatCard = ({ title, value, icon: Icon, isLoading, description }: { title: string, value: string | number, icon: React.ElementType, isLoading: boolean, description?: string }) => (
     <Card>
