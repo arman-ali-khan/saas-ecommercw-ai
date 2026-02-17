@@ -106,12 +106,10 @@ export default function CheckoutPage() {
   const saveUncompletedOrder = useCallback(async () => {
     const currentFormValues = form.getValues();
     
-    // Exit if we don't have the necessary IDs or cart is empty
     if (!uncompletedOrderId || !siteId || cartItems.length === 0) {
       return;
     }
     
-    // Exit if no customer information has been entered yet
     const hasShippingInfo = 
         currentFormValues.name || 
         currentFormValues.email || 
@@ -156,11 +154,10 @@ export default function CheckoutPage() {
   }, [uncompletedOrderId, siteId, form, customer, cartItems, cartSubtotal]);
 
 
-  // Use a debounced effect to save data as user types in the form
   useEffect(() => {
     const handler = setTimeout(() => {
       saveUncompletedOrder();
-    }, 2000); // Debounce for 2 seconds
+    }, 2000); 
 
     return () => {
       clearTimeout(handler);
@@ -279,8 +276,6 @@ export default function CheckoutPage() {
         form.setValue('phone', address.phone);
     }
     
-    // We don't need to call the save function here anymore, 
-    // as the useEffect watching form values will handle it.
     toast({ title: "Address selected", description: "Shipping information has been filled." });
   }
 

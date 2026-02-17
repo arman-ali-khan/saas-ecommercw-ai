@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
+import { v4 as uuidv4 } from 'uuid';
 
 
 const showcaseOrderSchema = z.object({
@@ -54,11 +55,75 @@ export function ShowcaseOrderBlock({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const [uncompletedOrderId, setUncompletedOrderId] = useState<string | null>(null);
 
     const form = useForm<ShowcaseOrderFormData>({
         resolver: zodResolver(showcaseOrderSchema),
         defaultValues: { name: '', phone: '', address: '', city: '' },
     });
+    
+    const watchedFormValues = form.watch();
+
+    useEffect(() => {
+        let cartSessionId = localStorage.getItem(`cart_session_id_${username}`);
+        if (!cartSessionId) {
+            cartSessionId = uuidv4();
+            localStorage.setItem(`cart_session_id_${username}`, cartSessionId);
+        }
+        setUncompletedOrderId(cartSessionId);
+    }, [username]);
+
+    const saveUncompletedOrder = useCallback(async () => {
+        const currentFormValues = form.getValues();
+        const itemsToOrder = products.filter(p => quantities[p.id] > 0);
+        const subtotal = itemsToOrder.reduce((acc, p) => acc + (p.price * (quantities[p.id] || 0)), 0);
+
+        if (!uncompletedOrderId || !siteId || itemsToOrder.length === 0) {
+          return;
+        }
+        
+        const hasShippingInfo = currentFormValues.name || currentFormValues.phone || currentFormValues.address || currentFormValues.city;
+        if (!hasShippingInfo) return;
+
+        const uncompletedOrderData = {
+          id: uncompletedOrderId,
+          site_id: siteId,
+          customer_info: {
+            name: currentFormValues.name,
+            phone: currentFormValues.phone,
+            address: currentFormValues.address,
+            city: currentFormValues.city,
+          },
+          cart_items: itemsToOrder.map(product => ({
+            id: product.id,
+            name: product.name,
+            quantity: quantities[product.id],
+            price: product.price,
+            imageUrl: product.images[0]?.imageUrl,
+          })),
+          cart_total: subtotal,
+          status: 'shipping-info-entered'
+        };
+
+        const { error } = await supabase
+          .from('uncompleted_orders')
+          .upsert(uncompletedOrderData, { onConflict: 'id' });
+        
+        if (error) {
+          console.error("Failed to save uncompleted order from showcase:", error);
+        }
+    }, [uncompletedOrderId, siteId, form, products, quantities]);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+          saveUncompletedOrder();
+        }, 2000);
+
+        return () => {
+          clearTimeout(handler);
+        };
+    }, [JSON.stringify(watchedFormValues), quantities, saveUncompletedOrder]);
+
 
     useEffect(() => {
         const fetchShipping = async () => {
@@ -153,6 +218,7 @@ export function ShowcaseOrderBlock({
             })),
             total: total,
             payment_method: 'cod', // Default to COD for this simple form
+            uncompletedOrderId: uncompletedOrderId,
             domain: username,
         };
 
@@ -164,6 +230,9 @@ export function ShowcaseOrderBlock({
             });
             const newOrder = await response.json();
             if (!response.ok) throw new Error(newOrder.error || 'Failed to create order');
+            if (uncompletedOrderId) {
+                localStorage.removeItem(`cart_session_id_${username}`);
+            }
             router.push(`/checkout/success?order_id=${newOrder.id}`);
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Order Failed', description: error.message });
@@ -308,4 +377,3 @@ export function ShowcaseOrderBlock({
         </Card>
     );
 }
-
