@@ -75,6 +75,11 @@
   ul[data-type="taskList"] {
     @apply list-none p-0;
   }
+  
+  ul[data-type=taskList] li {
+    display: flex;
+    align-items: center;
+}
 
   ul[data-type="taskList"] > li {
     @apply flex items-start gap-2 my-2;
