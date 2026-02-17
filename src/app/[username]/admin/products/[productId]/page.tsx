@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -466,6 +465,7 @@ export default function ManageProductPage() {
           
           if (settingsError || !settingsData?.gemini_api_key) {
               toast({ variant: 'destructive', title: 'AI Error', description: 'Gemini API key is not configured. Please add it in Settings > AI Settings.' });
+              setIsGenerating(false);
               return;
           }
 
@@ -1020,3 +1020,5 @@ export default function ManageProductPage() {
     </div>
   );
 }
+
+    
