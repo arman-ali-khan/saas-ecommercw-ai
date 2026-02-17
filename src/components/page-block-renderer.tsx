@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ProductShowcaseBlock } from '@/components/product-card';
 import RichTextRenderer from '@/components/saas-page-renderer';
+import { CountdownBlock, CarouselBlock } from '@/components/client-blocks';
 
 const alignmentClasses = {
     left: 'text-left',
@@ -105,6 +106,19 @@ export function PageBlock({ block, username }: { block: any, username: string })
         );
     case 'product_showcase':
         return <ProductShowcaseBlock product_ids={block.product_ids} title={block.title} username={username} />;
+    case 'countdown':
+        return (
+            <div className="my-8 text-center">
+                {block.title && <h2 className="text-3xl font-bold mb-4">{block.title}</h2>}
+                <CountdownBlock endDate={block.endDate} />
+            </div>
+        );
+    case 'carousel':
+        return (
+            <div className="my-8">
+                <CarouselBlock slides={block.slides} />
+            </div>
+        );
     default:
       return (
         <pre className="bg-muted p-4 rounded-md my-4 text-xs overflow-x-auto">

@@ -12,13 +12,14 @@ import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
 import type { Page, Product } from '@/types';
+import { format } from 'date-fns';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette, Columns, AlignLeft, AlignCenter, AlignRight, Plus, ShoppingBag } from 'lucide-react';
+import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette, Columns, AlignLeft, AlignCenter, AlignRight, Plus, ShoppingBag, Clock, GalleryHorizontal, CalendarIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
@@ -29,6 +30,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import RichTextEditor from '@/components/rich-text-editor';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const generateSlug = (title: string) => {
   return title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
@@ -81,6 +85,24 @@ const productShowcaseBlockSchema = blockBaseSchema.extend({
   title: z.string().optional(),
 });
 
+const countdownBlockSchema = blockBaseSchema.extend({
+    type: z.literal('countdown'),
+    title: z.string().optional(),
+    endDate: z.date({ required_error: "End date is required." }),
+});
+
+const carouselSlideSchema = z.object({
+    id: z.string(),
+    image: z.string().url('A valid image URL is required.'),
+    title: z.string().min(1, 'Title is required.'),
+    subtitle: z.string().optional(),
+});
+
+const carouselBlockSchema = blockBaseSchema.extend({
+    type: z.literal('carousel'),
+    slides: z.array(carouselSlideSchema).default([]),
+});
+
 // Recursive schema definitions for layout blocks
 const baseBlockSchema: z.ZodType<any> = z.lazy(() => blockSchema);
 
@@ -104,6 +126,8 @@ const blockSchema = z.discriminatedUnion('type', [
   coloredBoxBlockSchema,
   layoutBlockSchema,
   productShowcaseBlockSchema,
+  countdownBlockSchema,
+  carouselBlockSchema,
 ]);
 
 const pageFormSchema = z.object({
@@ -189,13 +213,47 @@ export default function ManagePage() {
       );
   };
   
+    const CarouselBlockEditor = ({ namePrefix, control }: { namePrefix: string, control: Control<PageFormData> }) => {
+        const { fields, append, remove, move } = useFieldArray({
+            control,
+            name: `${namePrefix}.slides` as 'content.0.slides',
+        });
+
+        const addSlide = () => {
+            append({ id: uuidv4(), image: 'https://placehold.co/1200x600?text=New+Slide', title: 'New Slide Title', subtitle: 'New slide subtitle' });
+        }
+
+        return (
+            <div className="space-y-4">
+                {fields.map((slide, index) => (
+                    <Card key={slide.id} className="p-3 bg-background/50">
+                        <div className="flex justify-between items-center mb-3">
+                            <p className="font-semibold text-sm">Slide {index + 1}</p>
+                            <div className="flex items-center gap-1">
+                                <Button type="button" variant="ghost" size="icon" onClick={() => move(index, index - 1)} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
+                                <Button type="button" variant="ghost" size="icon" onClick={() => move(index, index + 1)} disabled={index === fields.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <FormField control={control} name={`${namePrefix}.slides.${index}.image`} render={({ field: f }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...f} /></FormControl><ImageUploader onUpload={(res) => form.setValue(`${namePrefix}.slides.${index}.image` as any, res.info.secure_url)} /><FormMessage /></FormItem>)} />
+                            <FormField control={control} name={`${namePrefix}.slides.${index}.title`} render={({ field: f }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={control} name={`${namePrefix}.slides.${index}.subtitle`} render={({ field: f }) => (<FormItem><FormLabel>Subtitle (Optional)</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
+                        </div>
+                    </Card>
+                ))}
+                <Button type="button" variant="outline" onClick={addSlide} className="w-full"><Plus className="mr-2" /> Add Slide</Button>
+            </div>
+        )
+    }
+
   const BlockEditor = ({ control, namePrefix, allProducts }: { control: Control<PageFormData>, namePrefix: string, allProducts: Product[] }) => {
       const { fields, append, remove, move } = useFieldArray({
           control,
           name: namePrefix as any,
       });
   
-      const addBlock = (type: 'heading' | 'paragraph' | 'image' | 'button' | 'youtube' | 'coloredBox' | 'layout' | 'product_showcase', columnCount?: number) => {
+      const addBlock = (type: 'heading' | 'paragraph' | 'image' | 'button' | 'youtube' | 'coloredBox' | 'layout' | 'product_showcase' | 'countdown' | 'carousel', columnCount?: number) => {
           const id = uuidv4();
           let newBlock: any;
   
@@ -208,6 +266,8 @@ export default function ManagePage() {
               case 'coloredBox': newBlock = { id, type: 'coloredBox', color: 'hsl(var(--card))', text: 'This is a colored box.' }; break;
               case 'layout': newBlock = { id, type: 'layout', columnCount, columns: Array.from({ length: columnCount || 1 }, () => ({ id: uuidv4(), blocks: [] })) }; break;
               case 'product_showcase': newBlock = { id, type: 'product_showcase', product_ids: [], title: 'Special Offer' }; break;
+              case 'countdown': newBlock = { id, type: 'countdown', title: 'Countdown', endDate: new Date() }; break;
+              case 'carousel': newBlock = { id, type: 'carousel', slides: [] }; break;
           }
           append(newBlock);
       };
@@ -299,6 +359,40 @@ export default function ManagePage() {
                                       <ProductSelector control={control} namePrefix={currentFieldName} allProducts={allProducts} />
                                   </>
                               )}
+                              {(field as any).type === 'countdown' && (
+                                  <>
+                                      <FormField control={control} name={`${currentFieldName}.title`} render={({ field: f }) => (<FormItem><FormLabel>Title (Optional)</FormLabel><FormControl><Input {...f} /></FormControl><FormMessage /></FormItem>)} />
+                                      <FormField
+                                          control={control}
+                                          name={`${currentFieldName}.endDate`}
+                                          render={({ field: f }) => (
+                                              <FormItem className="flex flex-col">
+                                                  <FormLabel>End Date</FormLabel>
+                                                  <Popover>
+                                                      <PopoverTrigger asChild>
+                                                          <FormControl>
+                                                              <Button
+                                                                  variant={"outline"}
+                                                                  className={cn("w-[240px] pl-3 text-left font-normal", !f.value && "text-muted-foreground")}
+                                                              >
+                                                                  {f.value ? format(f.value, "PPP") : <span>Pick a date</span>}
+                                                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                              </Button>
+                                                          </FormControl>
+                                                      </PopoverTrigger>
+                                                      <PopoverContent className="w-auto p-0" align="start">
+                                                          <Calendar mode="single" selected={f.value} onSelect={f.onChange} initialFocus />
+                                                      </PopoverContent>
+                                                  </Popover>
+                                                  <FormMessage />
+                                              </FormItem>
+                                          )}
+                                      />
+                                  </>
+                              )}
+                              {(field as any).type === 'carousel' && (
+                                  <CarouselBlockEditor namePrefix={currentFieldName} control={control} />
+                              )}
                           </div>
                       </Card>
                   )
@@ -318,6 +412,8 @@ export default function ManagePage() {
                       <DropdownMenuItem onSelect={() => addBlock('youtube')}><Youtube className="mr-2" /> YouTube Video</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => addBlock('coloredBox')}><Palette className="mr-2" /> Colored Box</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => addBlock('product_showcase')}><ShoppingBag className="mr-2" /> Product Showcase</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => addBlock('countdown')}><Clock className="mr-2" /> Countdown</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => addBlock('carousel')}><GalleryHorizontal className="mr-2" /> Carousel</DropdownMenuItem>
                       <DropdownMenuSub>
                           <DropdownMenuSubTrigger><Columns className="mr-2" /> Layout</DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
@@ -352,10 +448,19 @@ export default function ManagePage() {
             return;
         }
         const pageData = data as Page;
+        
+        // Ensure endDate is a Date object if it exists
+        const contentWithDates = (pageData.content || []).map((block: any) => {
+            if (block.type === 'countdown' && block.endDate && typeof block.endDate === 'string') {
+                return { ...block, endDate: new Date(block.endDate) };
+            }
+            return { ...block, id: block.id || uuidv4() };
+        });
+
         form.reset({
             title: pageData.title,
             slug: pageData.slug,
-            content: (pageData.content || []).map((block: any) => ({ ...block, id: block.id || uuidv4() })),
+            content: contentWithDates,
             is_published: pageData.is_published,
         });
     }
