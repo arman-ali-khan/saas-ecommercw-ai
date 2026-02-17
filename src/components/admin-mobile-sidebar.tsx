@@ -109,8 +109,8 @@ export default function AdminMobileSidebar() {
     if (user?.id) {
         fetchAllData();
 
-        const channel = supabase
-          .channel(`admin-sidebar-mobile-${user.id}`)
+        const notificationsChannel = supabase
+          .channel(`admin-mobile-sidebar-notifications-${user.id}`)
           .on(
             'postgres_changes',
             {
@@ -126,8 +126,25 @@ export default function AdminMobileSidebar() {
           )
           .subscribe();
 
+        const uncompletedOrdersChannel = supabase
+          .channel(`admin-mobile-sidebar-uncompleted-${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'uncompleted_orders',
+              filter: `site_id=eq.${user.id}`,
+            },
+            () => {
+              fetchAllData();
+            }
+          )
+          .subscribe();
+
         return () => {
-          supabase.removeChannel(channel);
+          supabase.removeChannel(notificationsChannel);
+          supabase.removeChannel(uncompletedOrdersChannel);
         };
     }
   }, [user?.id, fetchAllData, toast]);
@@ -341,4 +358,5 @@ export default function AdminMobileSidebar() {
       </div>
   );
 }
+
 

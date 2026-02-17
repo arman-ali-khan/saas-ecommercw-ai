@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import Link from 'next/link';
@@ -109,8 +107,8 @@ export default function AdminSidebar() {
     if (user?.id) {
         fetchAllData();
 
-        const channel = supabase
-          .channel(`admin-sidebar-${user.id}`)
+        const notificationsChannel = supabase
+          .channel(`admin-sidebar-notifications-${user.id}`)
           .on(
             'postgres_changes',
             {
@@ -125,9 +123,27 @@ export default function AdminSidebar() {
             }
           )
           .subscribe();
+        
+        const uncompletedOrdersChannel = supabase
+            .channel(`admin-sidebar-uncompleted-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                  event: '*', // Listen to all changes
+                  schema: 'public',
+                  table: 'uncompleted_orders',
+                  filter: `site_id=eq.${user.id}`,
+                },
+                () => {
+                    fetchAllData();
+                }
+            )
+            .subscribe();
+
 
         return () => {
-          supabase.removeChannel(channel);
+          supabase.removeChannel(notificationsChannel);
+          supabase.removeChannel(uncompletedOrdersChannel);
         };
     }
   }, [user?.id, fetchAllData, toast]);
@@ -343,4 +359,3 @@ export default function AdminSidebar() {
     </div>
   );
 }
-
