@@ -76,7 +76,7 @@
     @apply list-none p-0;
   }
   .tiptap {
-    font-size: 12px;
+    font-size: 12px!important;
 }
   ul[data-type=taskList] li {
     display: flex;
