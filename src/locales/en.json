@@ -191,7 +191,9 @@
     "submitQuestion": "Submit Question",
     "loginToAsk": "Please log in to ask a question.",
     "relatedProducts": "Related Products",
-    "noRelated": "No related products found."
+    "noRelated": "No related products found.",
+    "seeMore": "See More",
+    "seeLess": "See Less"
   },
   "trackOrder": {
     "title": "Track Your Order",

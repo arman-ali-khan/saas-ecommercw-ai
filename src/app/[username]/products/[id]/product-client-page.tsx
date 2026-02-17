@@ -25,6 +25,8 @@ import {
   CheckCircle,
   Loader2,
   HelpCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
@@ -278,6 +280,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
   const [isLoadingQna, setIsLoadingQna] = useState(true);
   const [qnaSearch, setQnaSearch] = useState('');
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLoadingRelated, setIsLoadingRelated] = useState(true);
@@ -601,7 +604,34 @@ export default function ProductClientPage({ product }: { product: Product }) {
                 {longDescContent && (
                 <div className="mt-8 pt-8 border-t">
                     <h3 className="text-2xl font-headline font-bold mb-4">{t_product.productDetails}</h3>
-                    <RichTextRenderer content={longDescContent} />
+                    <div className="relative">
+                        <div
+                            className={cn(
+                                'prose dark:prose-invert max-w-full transition-all duration-300 overflow-hidden',
+                                !isDescriptionExpanded ? 'max-h-32' : 'max-h-none'
+                            )}
+                        >
+                            <RichTextRenderer content={longDescContent} />
+                        </div>
+                        {!isDescriptionExpanded && (
+                           <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                        )}
+                    </div>
+                    <Button
+                        variant="link"
+                        className="mt-2 px-0 text-primary hover:text-primary/80"
+                        onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    >
+                        {isDescriptionExpanded ? (
+                            <>
+                                {t_product.seeLess} <ChevronUp className="ml-1 h-4 w-4" />
+                            </>
+                        ) : (
+                            <>
+                                {t_product.seeMore} <ChevronDown className="ml-1 h-4 w-4" />
+                            </>
+                        )}
+                    </Button>
                 </div>
                 )}
 
