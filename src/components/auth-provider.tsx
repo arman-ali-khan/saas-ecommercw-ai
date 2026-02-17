@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -18,32 +17,45 @@ export default function AuthProvider({
   useEffect(() => {
     setLoading(true);
     setCustomerLoading(true);
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session: Session | null) => {
-      setSession(session);
 
+    // Initial check on mount
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
       if (session?.user) {
         const role = session.user.user_metadata?.role;
-        
         if (role === 'admin' || role === 'saas_admin') {
           await refreshUser();
-          setCustomer(null); // Ensure other user type is cleared
+          setCustomer(null);
         } else if (role === 'customer') {
           await refreshCustomer();
-          setUser(null); // Ensure other user type is cleared
+          setUser(null);
+        }
+      }
+      setLoading(false);
+      setCustomerLoading(false);
+    });
+
+    // Listen for subsequent changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      if (session?.user) {
+        const role = session.user.user_metadata?.role;
+        if (role === 'admin' || role === 'saas_admin') {
+          await refreshUser();
+          setCustomer(null);
+        } else if (role === 'customer') {
+          await refreshCustomer();
+          setUser(null);
         } else {
-          // If role is unknown, clear everything
           setUser(null);
           setCustomer(null);
         }
       } else {
-        // No session, user is logged out, clear both user states.
         setUser(null);
         setCustomer(null);
       }
-      setLoading(false); // Set loading to false only after all async operations are complete
-      setCustomerLoading(false);
     });
 
     return () => {
