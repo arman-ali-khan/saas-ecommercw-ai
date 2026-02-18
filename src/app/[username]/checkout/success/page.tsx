@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -15,11 +16,14 @@ import {
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/stores/cart';
+import { useTranslation } from '@/hooks/use-translation';
 
 function SuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('order_id');
+  const t = useTranslation();
+  const { success: s } = t;
 
   const { setLastOrder } = useCart();
   const [order, setOrder] = useState<any | null>(null);
@@ -27,7 +31,6 @@ function SuccessPageContent() {
 
   useEffect(() => {
     if (!orderId) {
-      // If there's no order_id, we can't show anything. Redirect home.
       router.replace(`/`);
       return;
     }
@@ -35,7 +38,6 @@ function SuccessPageContent() {
     const fetchOrder = async () => {
       setIsLoading(true);
       try {
-        // Use the secure API instead of direct supabase client to handle decryption server-side
         const response = await fetch('/api/orders/get', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -60,8 +62,6 @@ function SuccessPageContent() {
 
     fetchOrder();
 
-    // Cleanup the lastOrder in the cart store when the component unmounts
-    // to prevent showing old data on a future checkout.
     return () => {
       setLastOrder(null);
     };
@@ -71,7 +71,7 @@ function SuccessPageContent() {
     return (
       <div className="flex flex-col justify-center items-center h-64 text-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg text-muted-foreground">আপনার অর্ডার নিশ্চিত করা হচ্ছে...</p>
+        <p className="text-lg text-muted-foreground">{t.common.loading}</p>
       </div>
     );
   }
@@ -85,17 +85,19 @@ function SuccessPageContent() {
             <div className="absolute inset-0 -z-10 bg-green-500 rounded-full animate-pulse blur-xl opacity-30"></div>
           </div>
           <CardTitle className="text-3xl">
-            আপনার অর্ডার সম্পন্ন হয়েছে!
+            {s.title}
           </CardTitle>
           <CardDescription>
-            আপনার অর্ডারের জন্য ধন্যবাদ। আমরা আপনার পার্সেল প্রস্তুত করছি।
+            {s.description}
           </CardDescription>
-          <p className="font-bold pt-2">অর্ডার #{order.order_number}</p>
-          <p className='font-bold pt-2'>{order.payment_method === 'cod' ? 'টাকা হাতে পেয়ে মূল্য পরিশোধ করুন।':''}</p>
+          <p className="font-bold pt-2">{s.orderNumber}{order.order_number}</p>
+          {order.payment_method === 'cod' && (
+            <p className='font-bold pt-2 text-primary'>{s.paymentNote}</p>
+          )}
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">অর্ডার সারাংশ</h3>
+            <h3 className="font-semibold text-lg">{s.summary}</h3>
             {order.cart_items.map((item: any) => (
               <div key={item.id} className="flex items-center gap-4 text-sm">
                 <div className="relative h-14 w-14 rounded-md overflow-hidden border">
@@ -122,22 +124,22 @@ function SuccessPageContent() {
           <Separator className="my-4" />
           <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-              <span className="text-muted-foreground">শিপিং</span>
+              <span className="text-muted-foreground">{s.shipping}</span>
               <span>{(order.shipping_info?.shipping_cost || 0).toFixed(2)} BDT</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">উপমোট</span>
+              <span className="text-muted-foreground">{s.subtotal}</span>
               <span>{(order.total - (order.shipping_info?.shipping_cost || 0)).toFixed(2)} BDT</span>
             </div>
            
             <div className="flex justify-between font-bold text-base">
-              <span>মোট</span>
+              <span>{s.total}</span>
               <span>{order.total.toFixed(2)} BDT</span>
             </div>
           </div>
           <Separator className="my-4" />
           <div className="space-y-2 text-sm">
-            <h3 className="font-semibold text-base">যোগাযোগ ও শিপিং</h3>
+            <h3 className="font-semibold text-base">{s.contactInfo}</h3>
             <address className="text-muted-foreground not-italic">
               {order.shipping_info.name}
               <br />
@@ -151,7 +153,7 @@ function SuccessPageContent() {
             </address>
           </div>
           <Button asChild className="w-full mt-6">
-            <Link href={`/products`}>কেনাকাটা চালিয়ে যান</Link>
+            <Link href={`/products`}>{s.continueShopping}</Link>
           </Button>
         </CardContent>
       </Card>

@@ -62,7 +62,10 @@ import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
 import ImageUploader from '@/components/image-uploader';
+import en from '@/locales/en.json';
+import bn from '@/locales/bn.json';
 
+const translations = { en, bn };
 
 const categorySchema = z.object({
     name: z.string().min(1, 'Category name is required.'),
@@ -83,6 +86,10 @@ export default function CategoriesAdminPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+
+    const lang = user?.language || 'bn';
+    const t = translations[lang].categories;
+    const common = translations[lang].common;
 
     const form = useForm<CategoryFormData>({
         resolver: zodResolver(categorySchema),
@@ -219,13 +226,13 @@ export default function CategoriesAdminPage() {
         <>
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold">Category Manager</h1>
+                    <h1 className="text-2xl font-bold">{t.title}</h1>
                     <p className="text-muted-foreground">
-                        Add, edit, and manage categories for your products.
+                        {t.description}
                     </p>
                 </div>
                 <Button onClick={() => openForm(null)}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Category
+                    <Plus className="mr-2 h-4 w-4" /> {t.addCategory}
                 </Button>
             </div>
 
@@ -233,9 +240,9 @@ export default function CategoriesAdminPage() {
                 <CardContent className="p-0">
                     {categories.length === 0 ? (
                         <div className="text-center py-16">
-                             <p className="text-muted-foreground">You have no categories yet.</p>
+                             <p className="text-muted-foreground">{t.noCategories}</p>
                              <Button className="mt-4" onClick={() => openForm(null)}>
-                                <Plus className="mr-2 h-4 w-4" /> Add Category
+                                <Plus className="mr-2 h-4 w-4" /> {t.addCategory}
                             </Button>
                         </div>
                     ) : (
@@ -245,10 +252,10 @@ export default function CategoriesAdminPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="w-[80px]">Image/Icon</TableHead>
-                                            <TableHead>Name</TableHead>
+                                            <TableHead className="w-[80px]">{t.image}/{t.icon}</TableHead>
+                                            <TableHead>{t.name}</TableHead>
                                             <TableHead>Description</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
+                                            <TableHead className="text-right">{common.actions}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -269,10 +276,10 @@ export default function CategoriesAdminPage() {
                                                 <TableCell className="text-muted-foreground">{category.description}</TableCell>
                                                 <TableCell className="text-right">
                                                     <Button variant="ghost" size="sm" onClick={() => openForm(category)} className="mr-2">
-                                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                                        <Edit className="mr-2 h-4 w-4" /> {common.edit}
                                                     </Button>
                                                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => openDeleteAlert(category)}>
-                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                        <Trash2 className="mr-2 h-4 w-4" /> {common.delete}
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>
@@ -307,10 +314,10 @@ export default function CategoriesAdminPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem onClick={() => openForm(category)}>
-                                                            <Edit className="mr-2 h-4 w-4" /> Edit
+                                                            <Edit className="mr-2 h-4 w-4" /> {common.edit}
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(category)}>
-                                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                            <Trash2 className="mr-2 h-4 w-4" /> {common.delete}
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -332,19 +339,19 @@ export default function CategoriesAdminPage() {
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>{selectedCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
+                        <DialogTitle>{selectedCategory ? common.edit : common.add} {t.name}</DialogTitle>
                         <DialogDescription>
-                            {selectedCategory ? 'Update the details for your category.' : 'Fill in the details for your new category.'}
+                            {selectedCategory ? 'Update category details.' : 'Create a new category.'}
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)}>
                             <div className="max-h-[70vh] overflow-y-auto pr-6 pl-1 space-y-4">
-                                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Category Name</FormLabel><FormControl><Input placeholder="e.g., ফল" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>{t.name}</FormLabel><FormControl><Input placeholder="e.g., ফল" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="A short description of the category." {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="image_url" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Category Image</FormLabel>
+                                        <FormLabel>{t.image}</FormLabel>
                                         <div className="flex items-start gap-4">
                                             <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
                                                 {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
@@ -354,25 +361,16 @@ export default function CategoriesAdminPage() {
                                                 <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} />
                                             </div>
                                         </div>
-                                        <FormDescription>Recommended for homepage category carousel.</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>Fallback Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormDescription>This icon will be shown if no image is uploaded.</FormDescription><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="card_color" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Card Background Color</FormLabel>
-                                        <FormControl><Input placeholder="e.g., #1A2B3C or hsl(224, 71%, 4%)" {...field} /></FormControl>
-                                        <FormDescription>Optionally set a background color for the category card on the homepage.</FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
+                                <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>{t.icon}</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormDescription>Shown if no image is uploaded.</FormDescription><FormMessage /></FormItem>)} />
                             </div>
 
                             <DialogFooter className="pt-4">
                                 <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isSubmitting ? 'Saving...' : 'Save Category'}
+                                {common.save}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -383,20 +381,20 @@ export default function CategoriesAdminPage() {
             <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                 <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogTitle>{common.confirmDelete}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This will permanently delete the category "{selectedCategory?.name}". This action cannot be undone.
+                        {common.deleteWarning} "{selectedCategory?.name}" মুছে ফেলা হবে।
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{common.cancel}</AlertDialogCancel>
                     <AlertDialogAction 
                         onClick={handleDelete}
                         disabled={isSubmitting}
                         className={cn(buttonVariants({ variant: "destructive" }))}
                     >
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Delete
+                        {common.delete}
                     </AlertDialogAction>
                 </AlertDialogFooter>
                 </AlertDialogContent>

@@ -48,24 +48,8 @@ export default function ProductsAdminPage() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const lang = user?.language || 'bn';
-  const t = {
-    title: { en: 'Product Management', bn: 'প্রোডাক্ট ম্যানেজমেন্ট' },
-    description: { en: 'Add, edit, and manage products for your store.', bn: 'আপনার দোকানের জন্য প্রোডাক্ট যোগ, এডিট এবং ম্যানেজ করুন।' },
-    addProduct: { en: 'Add New Product', bn: 'নতুন প্রোডাক্ট যোগ করুন' },
-    noProducts: { en: 'You have no products yet.', bn: 'আপনার কোনো প্রোডাক্ট নেই।' },
-    image: { en: 'Image', bn: 'ছবি' },
-    name: { en: 'Name', bn: 'নাম' },
-    category: { en: 'Category', bn: 'বিভাগ' },
-    price: { en: 'Price', bn: 'দাম' },
-    actions: { en: 'Actions', bn: 'অ্যাকশন' },
-    menu: { en: 'Menu', bn: 'মেনু' },
-    view: { en: 'View', bn: 'দেখুন' },
-    edit: { en: 'Edit', bn: 'এডিট' },
-    delete: { en: 'Delete', bn: 'মুছুন' },
-    deleteConfirmTitle: { en: 'Are you absolutely sure?', bn: 'আপনি কি নিশ্চিত?' },
-    deleteConfirmDesc: { en: 'This will permanently delete the product "{productName}". This action cannot be undone.', bn: 'এটি স্থায়ীভাবে "{productName}" প্রোডাক্টটি মুছে ফেলবে। এই কাজটি আর ফেরানো যাবে না।'},
-    cancel: { bn: 'বাতিল', en: 'Cancel' }
-  };
+  const t = translations[lang].products;
+  const common = translations[lang].common;
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
@@ -122,7 +106,7 @@ export default function ProductsAdminPage() {
         }
 
       toast({ title: 'Product deleted' });
-      await fetchProducts(); // Refetch products
+      await fetchProducts();
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -147,14 +131,14 @@ export default function ProductsAdminPage() {
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{t.title[lang]}</h1>
+          <h1 className="text-2xl font-bold">{t.title}</h1>
           <p className="text-muted-foreground">
-            {t.description[lang]}
+            {t.description}
           </p>
         </div>
         <Button asChild>
           <Link href={`/admin/products/new`}>
-            <Plus className="mr-2 h-4 w-4" /> {t.addProduct[lang]}
+            <Plus className="mr-2 h-4 w-4" /> {t.addProduct}
           </Link>
         </Button>
       </div>
@@ -162,10 +146,10 @@ export default function ProductsAdminPage() {
       {products.length === 0 ? (
         <Card>
           <CardContent className="text-center py-16">
-            <p className="text-muted-foreground">{t.noProducts[lang]}</p>
+            <p className="text-muted-foreground">{t.noProducts}</p>
             <Button asChild className="mt-4">
               <Link href={`/admin/products/new`}>
-                <Plus className="mr-2 h-4 w-4" /> {t.addProduct[lang]}
+                <Plus className="mr-2 h-4 w-4" /> {t.addProduct}
               </Link>
             </Button>
           </CardContent>
@@ -177,11 +161,11 @@ export default function ProductsAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px]">{t.image[lang]}</TableHead>
-                    <TableHead>{t.name[lang]}</TableHead>
-                    <TableHead>{t.category[lang]}</TableHead>
-                    <TableHead>{t.price[lang]}</TableHead>
-                    <TableHead className="text-right">{t.actions[lang]}</TableHead>
+                    <TableHead className="w-[80px]">{t.image}</TableHead>
+                    <TableHead>{t.name}</TableHead>
+                    <TableHead>{t.category}</TableHead>
+                    <TableHead>{t.price}</TableHead>
+                    <TableHead className="text-right">{t.actions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -220,24 +204,24 @@ export default function ProductsAdminPage() {
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
                               <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">{t.menu[lang]}</span>
+                              <span className="sr-only">Menu</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{t.actions[lang]}</DropdownMenuLabel>
+                            <DropdownMenuLabel>{t.actions}</DropdownMenuLabel>
                             <DropdownMenuItem asChild>
                               <Link
                                 href={`/products/${product.id}`}
                                 target="_blank"
                               >
-                                <Eye className="mr-2 h-4 w-4" /> {t.view[lang]}
+                                <Eye className="mr-2 h-4 w-4" /> {t.view}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <Link
                                 href={`/admin/products/${product.id}`}
                               >
-                                <Edit className="mr-2 h-4 w-4" /> {t.edit[lang]}
+                                <Edit className="mr-2 h-4 w-4" /> {t.edit}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -245,7 +229,7 @@ export default function ProductsAdminPage() {
                               onClick={() => setProductToDelete(product)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              {t.delete[lang]}
+                              {t.delete}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -291,7 +275,7 @@ export default function ProductsAdminPage() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -301,14 +285,14 @@ export default function ProductsAdminPage() {
                             href={`/products/${product.id}`}
                             target="_blank"
                           >
-                            <Eye className="mr-2 h-4 w-4" /> {t.view[lang]}
+                            <Eye className="mr-2 h-4 w-4" /> {t.view}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link
                             href={`/admin/products/${product.id}`}
                           >
-                            <Edit className="mr-2 h-4 w-4" /> {t.edit[lang]}
+                            <Edit className="mr-2 h-4 w-4" /> {t.edit}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -316,7 +300,7 @@ export default function ProductsAdminPage() {
                           onClick={() => setProductToDelete(product)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          {t.delete[lang]}
+                          {t.delete}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -331,16 +315,16 @@ export default function ProductsAdminPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0">
             <div className="w-full max-w-md p-6 bg-background rounded-lg shadow-xl border animate-in zoom-in-95">
                 <div className="text-center sm:text-left">
-                    <h3 className="text-lg font-semibold text-foreground">{t.deleteConfirmTitle[lang]}</h3>
+                    <h3 className="text-lg font-semibold text-foreground">{common.confirmDelete}</h3>
                     <div className="mt-2">
                         <p className="text-sm text-muted-foreground">
-                            {t.deleteConfirmDesc[lang].replace('{productName}', productToDelete.name)}
+                            {common.deleteWarning} "{productToDelete.name}" মুছে ফেলা হবে।
                         </p>
                     </div>
                 </div>
                 <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
                     <Button variant="outline" onClick={() => setProductToDelete(null)}>
-                    {t.cancel[lang]}
+                    {common.cancel}
                     </Button>
                     <Button
                         onClick={handleDelete}
@@ -348,7 +332,7 @@ export default function ProductsAdminPage() {
                         className={cn(buttonVariants({ variant: 'destructive' }))}
                     >
                     {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {t.delete[lang]}
+                    {common.delete}
                     </Button>
                 </div>
             </div>

@@ -1,4 +1,19 @@
+
 {
+  "common": {
+    "save": "Save",
+    "saving": "Saving...",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "view": "View",
+    "add": "Add",
+    "actions": "Actions",
+    "status": "Status",
+    "loading": "Loading...",
+    "confirmDelete": "Are you sure?",
+    "deleteWarning": "This action cannot be undone."
+  },
   "orders": {
     "title": "Order Management",
     "description": "View and manage all customer orders.",
@@ -66,6 +81,44 @@
     "edit": "Edit",
     "delete": "Delete",
     "stock": "Stock"
+  },
+  "products": {
+    "title": "Product Management",
+    "description": "Add, edit, and manage products for your store.",
+    "addProduct": "Add New Product",
+    "noProducts": "No products found.",
+    "image": "Image",
+    "name": "Name",
+    "category": "Category",
+    "price": "Price",
+    "stock": "Stock",
+    "actions": "Actions",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "featured": "Featured",
+    "activeDeals": "Active Deal"
+  },
+  "categories": {
+    "title": "Category Manager",
+    "description": "Manage categories for your products.",
+    "addCategory": "Add Category",
+    "noCategories": "No categories found.",
+    "name": "Name",
+    "icon": "Icon",
+    "image": "Image"
+  },
+  "success": {
+    "title": "Your order has been placed!",
+    "description": "Thank you for your order. We are preparing your parcel.",
+    "orderNumber": "Order #",
+    "paymentNote": "Pay upon receiving the goods.",
+    "summary": "Order Summary",
+    "shipping": "Shipping",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "contactInfo": "Contact & Shipping",
+    "continueShopping": "Continue Shopping"
   },
   "statuses": {
     "pending": "Pending",
