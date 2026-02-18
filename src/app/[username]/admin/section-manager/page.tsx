@@ -28,12 +28,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { getProductsBySiteId } from '@/lib/products';
 import { useAuth } from '@/stores/auth';
 import type { Product, Section } from '@/types';
 import { ArrowUp, ArrowDown, Loader2, GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/lib/supabase/client';
 
 export default function SectionManagerPage() {
   const { toast } = useToast();
@@ -53,76 +51,83 @@ export default function SectionManagerPage() {
     if (!user) return;
     setIsLoading(true);
 
-    const productsPromise = getProductsBySiteId(user.id);
-    const settingsPromise = supabase
-      .from('store_settings')
-      .select('homepage_sections')
-      .eq('site_id', user.id)
-      .single();
-    
-    const [fetchedProducts, { data: settingsData, error: settingsError }] = await Promise.all([productsPromise, settingsPromise]);
+    try {
+        // Fetch products via API
+        const productsResponse = await fetch('/api/products/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        const productsResult = await productsResponse.json();
+        const fetchedProducts = productsResult.products || [];
+        setProducts(fetchedProducts);
 
-    if (settingsError && settingsError.code !== 'PGRST116') {
-        toast({ variant: 'destructive', title: 'Error fetching settings', description: settingsError.message });
-    }
-    
-    setProducts(fetchedProducts);
+        // Fetch sections via API
+        const sectionsResponse = await fetch('/api/sections/get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        const sectionsResult = await sectionsResponse.json();
+        
+        let currentSections: Section[] = [];
+        if (sectionsResult.sections) {
+            currentSections = (sectionsResult.sections as Section[]) || [];
+        } else {
+            const categories = [
+              ...new Set(fetchedProducts.flatMap((p: Product) => p.categories || [])),
+            ];
+            currentSections = [
+              {
+                id: 'hero',
+                title: 'Hero Carousel',
+                enabled: true,
+                isCategorySection: false,
+              },
+              {
+                id: 'flash_deals',
+                title: 'Flash Deals',
+                enabled: true,
+                isCategorySection: false,
+              },
+              {
+                id: 'featured',
+                title: 'Featured Products',
+                enabled: true,
+                isCategorySection: false,
+              },
+              {
+                id: 'why-us',
+                title: 'Why We Are Different',
+                enabled: true,
+                isCategorySection: false,
+              },
+              ...categories.map((cat) => ({
+                id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
+                title: `${cat} Section`,
+                enabled: true,
+                isCategorySection: true,
+                category: cat,
+              })),
+            ];
+        }
+        
+        // --- Backwards compatibility checks ---
+        if (!currentSections.some(s => s.id === 'flash_deals')) {
+            const heroIndex = currentSections.findIndex(s => s.id === 'hero');
+            currentSections.splice(heroIndex !== -1 ? heroIndex + 1 : 0, 0, { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false });
+        }
+        if (!currentSections.some(s => s.id === 'customer-reviews')) {
+            currentSections.push({ id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false });
+        }
+        // --- End backwards compatibility ---
 
-    let currentSections: Section[] = [];
-    if (settingsData && settingsData.homepage_sections) {
-        currentSections = (settingsData.homepage_sections as Section[]) || [];
-    } else {
-        const categories = [
-          ...new Set(fetchedProducts.flatMap((p) => p.categories || [])),
-        ];
-        currentSections = [
-          {
-            id: 'hero',
-            title: 'Hero Carousel',
-            enabled: true,
-            isCategorySection: false,
-          },
-          {
-            id: 'flash_deals',
-            title: 'Flash Deals',
-            enabled: true,
-            isCategorySection: false,
-          },
-          {
-            id: 'featured',
-            title: 'Featured Products',
-            enabled: true,
-            isCategorySection: false,
-          },
-          {
-            id: 'why-us',
-            title: 'Why We Are Different',
-            enabled: true,
-            isCategorySection: false,
-          },
-          ...categories.map((cat) => ({
-            id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
-            title: `${cat} Section`,
-            enabled: true,
-            isCategorySection: true,
-            category: cat,
-          })),
-        ];
+        setSections(currentSections);
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error fetching data', description: error.message });
+    } finally {
+        setIsLoading(false);
     }
-    
-    // --- Backwards compatibility checks ---
-    if (!currentSections.some(s => s.id === 'flash_deals')) {
-        const heroIndex = currentSections.findIndex(s => s.id === 'hero');
-        currentSections.splice(heroIndex !== -1 ? heroIndex + 1 : 0, 0, { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false });
-    }
-    if (!currentSections.some(s => s.id === 'customer-reviews')) {
-        currentSections.push({ id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false });
-    }
-    // --- End backwards compatibility ---
-
-
-    setSections(currentSections);
-    setIsLoading(false);
   }, [user, toast]);
 
   useEffect(() => {
@@ -169,18 +174,26 @@ export default function SectionManagerPage() {
     if (!user) return;
     setIsSaving(true);
     
-    const { error } = await supabase
-        .from('store_settings')
-        .upsert({ site_id: user.id, homepage_sections: sections });
-
-    setIsSaving(false);
-    if (error) {
-        toast({ variant: 'destructive', title: 'Error Saving Changes', description: error.message });
-    } else {
-        toast({
-        title: 'Success!',
-        description: 'Homepage sections have been updated.',
+    try {
+        const response = await fetch('/api/sections/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id, sections }),
         });
+
+        if (response.ok) {
+            toast({
+                title: 'Success!',
+                description: 'Homepage sections have been updated.',
+            });
+        } else {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to save sections');
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error Saving Changes', description: error.message });
+    } finally {
+        setIsSaving(false);
     }
   };
 
