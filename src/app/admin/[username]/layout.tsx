@@ -52,7 +52,7 @@ export default function AdminLayout({
     <div className="fixed inset-0 bg-background z-50">
       <div className="grid w-full h-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <AdminSidebar username={username} />
-        <main className="overflow-auto p-4 lg:p-6 pb-20 md:pb-6">
+        <main className="overflow-auto p-1 lg:p-6 pb-20 md:pb-6">
           {isPending && (
              <Alert variant="destructive" className="mb-6">
                 <Terminal className="h-4 w-4" />
