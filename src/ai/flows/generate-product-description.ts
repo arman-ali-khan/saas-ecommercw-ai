@@ -1,14 +1,14 @@
 
 'use server';
 
-import { genkit, type GenkitError } from 'genkit';
+import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
 
 /**
  * @fileOverview Product description generation flow.
  * 
- * - generateProductDescription - Wrapper function to call the AI generation flow.
+ * - generateProductDescription - Wrapper function to call the AI generation logic.
  * - GenerateProductDescriptionInput - Input schema for the flow.
  * - GenerateProductDescriptionOutput - Output schema for the flow.
  */
@@ -28,8 +28,8 @@ const GenerateProductDescriptionOutputSchema = z.object({
 export type GenerateProductDescriptionOutput = z.infer<typeof GenerateProductDescriptionOutputSchema>;
 
 /**
- * Generates a detailed product description in Bengali using Gemini AI.
- * This function uses the user-provided API key from the database.
+ * Generates a DETAILED and LONG product description in Bengali using Gemini AI.
+ * This function handles dynamic API keys and ensures valid Tiptap JSON output.
  */
 export async function generateProductDescription(input: GenerateProductDescriptionInput): Promise<GenerateProductDescriptionOutput> {
   try {
@@ -46,63 +46,69 @@ export async function generateProductDescription(input: GenerateProductDescripti
     
     const categoryString = categories && categories.length > 0 ? categories.join(', ') : 'সাধারণ';
 
-    const prompt = `You are an expert copywriter for an e-commerce store in Bangladesh called "Bangla Naturals". 
-Your task is to write an engaging and detailed product description in Bengali, directly in Tiptap/ProseMirror JSON format.
+    const prompt = `You are a premium e-commerce copywriter for "Bangla Naturals", a high-end organic brand in Bangladesh.
+Your task is to write an EXTENSIVE, DETAILED, and ENGAGING product description in Bengali.
 
 Product Information:
 - Name: ${name}
-- Short Description: ${description || 'Not provided.'}
+- Short Summary: ${description || 'A pure natural product.'}
 - Categories: ${categoryString}
-- Origin: ${origin || 'Not provided.'}
+- Sourcing/Origin: ${origin || 'Bangladesh'}
 
-Instructions:
-1. Generate a JSON object conforming to the Tiptap schema. The root object must be {"type": "doc", "content": [...]}.
-2. Use paragraphs for the main body text.
-3. Use headings (level 2 or 3) for section titles like "উপকারিতা" (Benefits), "কেন আমাদের পণ্যটি সেরা?" (Why us?), etc.
-4. Use bullet lists for features or benefits.
-5. The description MUST be entirely in Bengali.
-6. Highlight natural origins, purity, and health benefits.
-7. CRITICAL: Output ONLY valid JSON. No markdown code blocks, no preamble, no chatter.`;
+WRITING INSTRUCTIONS:
+1. TONE: Persuasive, trustworthy, and informative.
+2. LENGTH: The description must be LONG and thorough (at least 500-700 words).
+3. STRUCTURE: You MUST include the following sections with headings:
+   - "পণ্য পরিচিতি" (Detailed Introduction): Talk about the heritage and purity.
+   - "প্রাকৃতিক বৈশিষ্ট্য ও গুণাগুণ" (Natural Features): Describe why this is unique.
+   - "স্বাস্থ্য উপকারিতা" (Detailed Health Benefits): Provide at least 6-8 bullet points explaining the benefits.
+   - "কেন আমাদের পণ্যটি সেরা?" (Our Quality Commitment): Focus on "direct from farmer" and "no chemicals".
+   - "সংরক্ষণ পদ্ধতি ও ব্যবহারের নিয়ম" (Usage & Storage Tips).
+4. FORMAT: Return the response ONLY as a valid Tiptap/ProseMirror JSON object.
+   - Root MUST be: {"type": "doc", "content": [...]}.
+   - Use headings (level 2) for section titles.
+   - Use paragraphs for body text.
+   - Use bulleted lists for benefits.
+   - Use Bold marks for emphasis within text.
+
+CRITICAL: Output ONLY the raw JSON. Do NOT include markdown code fences (like \`\`\`json), no preamble, and no conversational filler. Start with { and end with }.`;
 
     const response = await ai.generate({
       model: 'googleai/gemini-1.5-flash',
       prompt,
       config: { 
-        temperature: 0.7,
-        maxOutputTokens: 2500,
+        temperature: 0.8,
+        maxOutputTokens: 4096, // Increased for longer descriptions
       },
     });
 
-    let text = response.text;
+    const text = response.text;
     
-    // Robust JSON extraction: look for the first '{' and last '}'
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-        console.error("AI output did not contain valid JSON object:", text);
+    // Robust JSON extraction: handle markdown fences or accidental text
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    
+    if (firstBrace === -1 || lastBrace === -1) {
+        console.error("AI output did not contain valid braces:", text);
         throw new Error('AI produced an invalid response format.');
     }
     
-    const jsonString = jsonMatch[0];
+    const jsonString = text.substring(firstBrace, lastBrace + 1);
     
     try {
         // Validate if the output is a valid JSON.
         JSON.parse(jsonString);
         return { longDescription: jsonString };
     } catch (parseError) {
-        console.error("Failed to parse AI JSON:", jsonString);
+        console.error("Failed to parse AI JSON. Raw response length:", text.length);
         throw new Error('AI generated content was not in a valid JSON format. Please try again.');
     }
 
   } catch (e: any) {
-    console.error("AI Generation Error:", e);
+    console.error("AI Generation Error (Flow):", e);
     
     if (e.message.includes('API key not valid') || e.message.includes('API_KEY_INVALID')) {
         throw new Error('The provided Gemini API key is not valid. Please check your AI settings.');
-    }
-    
-    const genkitError = e as GenkitError;
-    if (genkitError.code) {
-        throw new Error(`AI Service Error: ${genkitError.message}`);
     }
 
     throw new Error(e.message || 'An unexpected error occurred during AI generation.');
