@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, LayoutDashboard } from 'lucide-react';
+import { Menu, LayoutDashboard, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { Button } from './ui/button';
@@ -13,6 +13,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
+  SheetClose,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -21,9 +22,9 @@ import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
 
 const navLinks = [
-  { href: '#features', label: 'বৈশিষ্ট্য' },
-  { href: '#pricing', label: 'মূল্য' },
-  { href: '#testimonial', label: 'প্রশংসাপত্র' },
+  { href: '#features', label: 'ফিচারসমূহ' },
+  { href: '#pricing', label: 'প্ল্যান' },
+  { href: '#testimonial', label: 'রিভিউ' },
 ];
 
 export default function SaasHeader() {
@@ -36,10 +37,15 @@ export default function SaasHeader() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
+
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
 
     const fetchInfo = async () => {
       setIsLoading(true);
@@ -54,177 +60,140 @@ export default function SaasHeader() {
           name: data.platform_name || 'Your SaaS',
           logoUrl: data.logo_url || null,
         });
-      } else {
-        setSiteInfo({
-          name: 'Your SaaS',
-          logoUrl: null,
-        })
       }
       setIsLoading(false);
     };
     fetchInfo();
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const NavLink = ({
-    href,
-    label,
-    className,
-    onClick,
-  }: {
-    href: string;
-    label: string;
-    className?: string;
-    onClick?: () => void;
-  }) => {
-    return (
-      <Link
-        href={href}
-        className={cn(
-          'text-sm font-medium text-foreground/80 transition-colors hover:text-foreground',
-          className
-        )}
-        onClick={onClick}
-      >
-        {label}
-      </Link>
-    );
-  };
-  
-  const HeaderLogo = () => {
-    if (isLoading || !siteInfo) {
-      return (
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10" />
-          <Skeleton className="h-6 w-32" />
-        </div>
-      );
-    }
-
-    return (
-      <Link href="/" className="flex items-center gap-3">
+  const HeaderLogo = () => (
+    isLoading || !siteInfo ? (
+      <Skeleton className="h-10 w-32 rounded-lg" />
+    ) : (
+      <Link href="/" className="flex items-center gap-2.5">
         {siteInfo.logoUrl ? (
-            <div className="relative h-10 w-10">
+            <div className="relative h-9 w-9">
               <Image src={siteInfo.logoUrl} alt={siteInfo.name} fill className="object-contain" />
             </div>
         ) : (
-            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center font-bold text-lg">
+            <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center font-bold text-lg text-primary-foreground shadow-lg shadow-primary/20">
                 {siteInfo.name.charAt(0)}
             </div>
         )}
-        <span className="text-xl font-bold font-headline">{siteInfo.name}</span>
+        <span className="text-xl font-bold font-headline tracking-tight">{siteInfo.name}</span>
       </Link>
-    );
-  };
-  
-  const AuthNavMobile = () => {
-    if (!isHydrated) return null;
-    
-    if (user?.isSaaSAdmin) {
-        return (
-            <div className="border-t pt-6 mt-6 space-y-4">
-                <Button asChild className="w-full" onClick={() => setIsSheetOpen(false)}>
-                    <Link href="/dashboard">SaaS Dashboard</Link>
-                </Button>
-            </div>
-        )
-    }
-
-    if (user && user.domain) {
-      return (
-        <div className="border-t pt-6 mt-6 space-y-4">
-          <Button asChild className="w-full" onClick={() => setIsSheetOpen(false)}>
-            <Link href={`/${user.domain}/admin`}>ড্যাশবোর্ড</Link>
-          </Button>
-        </div>
-      );
-    }
-    return (
-      <div className="border-t pt-6 mt-6 space-y-4">
-        <Link
-            href="/login"
-            className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground"
-            onClick={() => setIsSheetOpen(false)}
-          >
-            লগ ইন
-        </Link>
-        <Button asChild className="w-full" onClick={() => setIsSheetOpen(false)}>
-          <Link href="/get-started">শুরু করুন</Link>
-        </Button>
-      </div>
-    );
-  };
+    )
+  );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4">
-          <div className="md:hidden">
-            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
-                  <span className="sr-only">মেনু খুলুন</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="flex flex-col">
-                <SheetHeader>
-                  <SheetTitle className="sr-only">Menu</SheetTitle>
-                  <SheetDescription className="sr-only">
-                    Site navigation
-                  </SheetDescription>
-                </SheetHeader>
-                <Link href="/" className="mb-8" onClick={() => setIsSheetOpen(false)}>
-                  <HeaderLogo />
-                </Link>
-                <nav className="flex flex-col gap-6">
-                  {navLinks.map((link) => (
-                      <NavLink {...link} className="text-lg" onClick={() => setIsSheetOpen(false)} key={link.href}/>
-                  ))}
-                </nav>
-                <div className="mt-auto">
-                  <AuthNavMobile />
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-          <div className="hidden md:flex">
-            <HeaderLogo />
-          </div>
-        </div>
+    <header className={cn(
+      "fixed top-0 z-50 w-full transition-all duration-300 px-4 md:px-0",
+      scrolled 
+        ? "py-3 bg-background/80 backdrop-blur-md border-b border-border/50 shadow-sm" 
+        : "py-6 bg-transparent"
+    )}>
+      <div className="container mx-auto flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8 bg-card/30 md:bg-transparent rounded-full border border-border/50 md:border-none backdrop-blur-sm md:backdrop-blur-none shadow-lg md:shadow-none">
+        <HeaderLogo />
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-10">
           {navLinks.map((link) => (
-            <NavLink key={link.href} {...link} />
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-sm font-medium text-foreground/70 transition-colors hover:text-primary"
+            >
+              {link.label}
+            </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {!isHydrated ? (
-            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24 rounded-full" />
           ) : user?.isSaaSAdmin ? (
-             <Button asChild>
+             <Button asChild className="rounded-full shadow-lg shadow-primary/10">
                 <Link href="/dashboard">
                   <LayoutDashboard className="mr-2 h-4 w-4" />
-                  SaaS Dashboard
+                  SaaS ড্যাশবোর্ড
                 </Link>
               </Button>
           ) : user && user.domain ? (
-            <Button asChild>
+            <Button asChild className="rounded-full shadow-lg shadow-primary/10">
               <Link href={`/${user.domain}/admin`}>
-                <LayoutDashboard className="mr-2 h-4 w-4" />
                 ড্যাশবোর্ড
               </Link>
             </Button>
           ) : (
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" asChild>
+            <div className="hidden md:flex items-center gap-3">
+              <Button variant="ghost" asChild className="rounded-full hover:bg-primary/10">
                 <Link href="/login">লগ ইন</Link>
               </Button>
-              <Button asChild>
+              <Button asChild className="rounded-full px-6 shadow-lg shadow-primary/10">
                 <Link href="/get-started">শুরু করুন</Link>
               </Button>
             </div>
           )}
+
+          <div className="md:hidden">
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-primary/10">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[80vh] rounded-t-[2.5rem] border-t-2 border-primary/20 bg-background/95 backdrop-blur-xl p-0 overflow-hidden">
+                <div className="p-8 flex flex-col h-full">
+                  <SheetHeader className="mb-10 text-left">
+                    <SheetTitle className="text-3xl font-headline font-bold flex items-center gap-3">
+                       <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center font-bold text-primary-foreground">
+                          {siteInfo?.name.charAt(0)}
+                       </div>
+                       {siteInfo?.name}
+                    </SheetTitle>
+                    <SheetDescription>আপনার অনলাইন স্টোর ম্যানেজমেন্ট হাব</SheetDescription>
+                  </SheetHeader>
+                  
+                  <nav className="flex flex-col gap-2">
+                    {navLinks.map((link) => (
+                        <SheetClose asChild key={link.href}>
+                          <Link
+                            href={link.href}
+                            className="flex items-center justify-between p-4 rounded-2xl bg-muted/50 text-xl font-medium transition-all active:scale-95"
+                          >
+                            {link.label}
+                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                          </Link>
+                        </SheetClose>
+                    ))}
+                  </nav>
+
+                  <div className="mt-auto space-y-4 pb-8">
+                    {!user ? (
+                      <>
+                        <SheetClose asChild>
+                          <Button asChild variant="outline" className="w-full h-14 rounded-2xl text-lg">
+                            <Link href="/login">লগ ইন</Link>
+                          </Button>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Button asChild className="w-full h-14 rounded-2xl text-lg shadow-lg shadow-primary/20">
+                            <Link href="/get-started">ফ্রি অ্যাকাউন্ট তৈরি করুন</Link>
+                          </Button>
+                        </SheetClose>
+                      </>
+                    ) : (
+                      <SheetClose asChild>
+                        <Button asChild className="w-full h-14 rounded-2xl text-lg">
+                          <Link href={user.isSaaSAdmin ? "/dashboard" : `/${user.domain}/admin`}>ড্যাশবোর্ডে প্রবেশ করুন</Link>
+                        </Button>
+                      </SheetClose>
+                    )}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>

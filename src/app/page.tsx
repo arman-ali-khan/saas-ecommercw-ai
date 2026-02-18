@@ -22,6 +22,11 @@ import {
 import {
   ArrowRight,
   CheckCircle,
+  Star,
+  Zap,
+  ShieldCheck,
+  Smartphone,
+  Globe,
 } from 'lucide-react';
 import SaasHeader from '@/components/saas-header';
 import SaasFooter from '@/components/saas-footer';
@@ -31,7 +36,7 @@ import { type Plan, type SaasFeature, type SaaSReview, type SaasShowcaseItem } f
 import { Skeleton } from '@/components/ui/skeleton';
 import DynamicIcon from '@/components/dynamic-icon';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Star } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function SaasLandingPage() {
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
@@ -77,7 +82,7 @@ export default function SaasLandingPage() {
         const tiers = plans.map((plan: Plan) => ({
           name: plan.name,
           id: plan.id,
-          price: plan.price === 0 ? 'বিনামূল্যে' : `৳ ${plan.price}`,
+          price: plan.price === 0 ? 'Free' : `৳${plan.price}`,
           period: plan.period,
           description: plan.description,
           features: plan.features,
@@ -109,265 +114,307 @@ export default function SaasLandingPage() {
     fetchData();
   }, []);
 
+  const fadeIn = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+  };
+
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
   return (
-    <>
+    <div className="min-h-screen bg-background selection:bg-primary/30">
       <SaasHeader />
+      
+      {/* Background blobs for modern feel */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
+      </div>
+
       <main className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="space-y-24 md:space-y-32 py-8">
+        <div className="space-y-24 md:space-y-40 py-12 md:py-24">
+          
           {/* Hero Section */}
-          <section className="text-center pt-16">
-            <h1 className="text-4xl md:text-6xl font-headline font-bold">
-              আপনার নিজের ই-কমার্স প্ল্যাটফর্ম তৈরি করুন
+          <motion.section 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeIn}
+            className="text-center relative pt-10"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-6 animate-pulse">
+              <Zap className="w-3 h-3" />
+              <span>নতুন: এআই প্রোডাক্ট ডেসক্রিপশন জেনারেটর এখন লাইভ!</span>
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-headline font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 mb-6">
+              আপনার স্বপ্নের স্টোর <br className="hidden md:block" /> এখন বাস্তবের পথে
             </h1>
-            <p className="mt-6 max-w-3xl mx-auto text-lg md:text-xl text-muted-foreground">
-              আমাদের প্ল্যাটফর্ম আপনাকে একটি শক্তিশালী,
-              পার্সোনালাইজড এবং এআই-চালিত অনলাইন স্টোর চালু করার ক্ষমতা দেয়।
-              আজই আপনার ব্র্যান্ড তৈরি শুরু করুন।
+            
+            <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground leading-relaxed">
+              বাংলা ন্যাচারালস-এর মাধ্যমে কয়েক মিনিটের মধ্যেই শুরু করুন আপনার নিজস্ব ই-কমার্স প্ল্যাটফর্ম। এআই-চালিত টুলস এবং কাস্টমাইজযোগ্য ডিজাইন নিয়ে আজই আপনার ব্র্যান্ড চালু করুন।
             </p>
-            <div className="mt-8 flex justify-center gap-4">
-              <Button asChild size="lg">
+            
+            <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4 px-4 sm:px-0">
+              <Button asChild size="lg" className="h-12 px-8 rounded-full text-lg shadow-lg shadow-primary/20 transition-transform hover:scale-105 active:scale-95">
                 <Link href="/get-started">
-                  বিনামূল্যে শুরু করুন <ArrowRight className="ml-2" />
+                  ফ্রি ট্রায়াল শুরু করুন <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="secondary">
-                <Link href="#pricing">প্রাইসিং দেখুন</Link>
+              <Button asChild size="lg" variant="outline" className="h-12 px-8 rounded-full text-lg backdrop-blur-sm bg-background/50 transition-transform hover:scale-105 active:scale-95">
+                <Link href="#pricing">প্ল্যানগুলো দেখুন</Link>
               </Button>
             </div>
-            <div className="mt-12 -mx-4 sm:-mx-6 lg:-mx-8">
-                <div className="relative h-[50vh] w-full shadow-2xl shadow-primary/20 rounded-lg overflow-hidden">
+
+            {/* Mockup Preview */}
+            <motion.div 
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+              viewport={{ once: true }}
+              className="mt-20 relative group"
+            >
+              <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full scale-75 group-hover:scale-100 transition-transform duration-700 opacity-50" />
+              <div className="relative border border-border/50 bg-card/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-2xl mx-auto max-w-5xl">
+                <div className="flex items-center gap-1.5 px-4 py-3 border-b border-border/50 bg-muted/30">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
+                </div>
+                <div className="aspect-[16/9] relative">
                   <Image
-                    src="https://images.unsplash.com/photo-1628882139032-a1314387532f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxlY29tbWVyY2UlMjB3ZWJzaXRlJTIwaGVybyUyMGltYWdlfGVufDB8fHx8MTc3MTA0MzgwNnww&ixlib=rb-4.1.0&q=80&w=1080"
-                    alt="SaaS Platform Showcase"
-                    data-ai-hint="ecommerce website"
+                    src="https://images.unsplash.com/photo-1628882139032-a1314387532f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxlY29tbWVyY2UlMjBhcHB8ZW58MHx8fHwxNzcxMDQzODA2fDA&ixlib=rb-4.1.0&q=80&w=1200"
+                    alt="Platform Dashboard"
                     fill
                     className="object-cover"
                     priority
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent"></div>
                 </div>
-            </div>
-          </section>
+              </div>
+            </motion.div>
+          </motion.section>
 
-          {/* Showcase Section */}
-          {showcaseItems.length > 0 && (
-            <section id="showcase">
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {isLoading ? (
-                        [...Array(3)].map((_, index) => (
-                            <div key={index} className="flex items-center gap-6">
-                                <Skeleton className="h-20 w-20 rounded-lg" />
-                                <div className="space-y-2 flex-1">
-                                    <Skeleton className="h-6 w-3/4" />
-                                    <Skeleton className="h-4 w-full" />
-                                    <Skeleton className="h-4 w-5/6" />
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        showcaseItems.map((item) => (
-                            <div key={item.id} className="flex items-center gap-6">
-                                <div className="relative h-20 w-20 shrink-0">
-                                    {item.image_url ? (
-                                        <Image src={item.image_url} alt={item.title} fill className="object-cover rounded-lg" />
-                                    ) : (
-                                        <div className="bg-primary/10 p-4 rounded-lg h-full w-full flex items-center justify-center">
-                                            <DynamicIcon name={item.icon} className="w-10 h-10 text-primary" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold">{item.title}</h3>
-                                    <p className="text-muted-foreground mt-1">{item.description}</p>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </section>
-          )}
-
-          {/* Features Section */}
-          <section id="features">
-            <div className="text-center">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold">
-                আপনার সাফল্যের জন্য নির্মিত
-              </h2>
-              <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-                আপনার অনলাইন ব্যবসাকে পরবর্তী লেভেলে নিয়ে যাওয়ার জন্য প্রয়োজনীয়
-                সমস্ত টুলস।
-              </p>
+          {/* Features Section - Bento Grid Style */}
+          <section id="features" className="relative">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4">সবকিছু যা আপনার প্রয়োজন</h2>
+              <p className="text-muted-foreground text-lg">আধুনিক ই-কমার্স ব্যবসার জন্য প্রয়োজনীয় সকল ফিচার এখন এক জায়গায়।</p>
             </div>
-            <div className="mt-12 grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            
+            <motion.div 
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            >
               {isLoading ? (
-                [...Array(4)].map((_, index) => (
-                  <Card key={index}>
-                    <CardHeader className="items-center text-center">
-                      <Skeleton className="h-20 w-20 rounded-full" />
-                      <Skeleton className="h-6 w-3/4 mt-4" />
-                    </CardHeader>
-                    <CardContent className="text-center">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-5/6 mt-2" />
-                    </CardContent>
-                  </Card>
-                ))
+                [...Array(6)].map((_, i) => <Skeleton key={i} className="h-64 rounded-2xl" />)
               ) : (
-                features.map((feature) => (
-                  <Card key={feature.id} className="text-center">
-                    <CardHeader className="items-center">
-                      <div className="bg-primary/10 p-4 rounded-full">
-                        <DynamicIcon name={feature.icon} className="w-8 h-8 text-primary" />
-                      </div>
-                      <CardTitle className="mt-4">{feature.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">
-                        {feature.description}
-                      </p>
-                    </CardContent>
-                  </Card>
+                features.map((feature, idx) => (
+                  <motion.div key={feature.id} variants={fadeIn}>
+                    <Card className="h-full rounded-2xl border-border/50 bg-card/30 backdrop-blur-sm hover:bg-card/50 transition-all group overflow-hidden border-2 hover:border-primary/20">
+                      <CardHeader>
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                          <DynamicIcon name={feature.icon} className="w-6 h-6 text-primary" />
+                        </div>
+                        <CardTitle className="text-xl font-bold">{feature.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 ))
               )}
+            </motion.div>
+          </section>
+
+          {/* Quick Stats / Highlights */}
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-8 py-12 border-y border-border/50">
+            <div className="text-center">
+              <div className="text-4xl font-bold font-headline mb-2">১০০০+</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-widest">সক্রিয় স্টোর</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold font-headline mb-2">৯৯.৯%</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-widest">আপটাইম</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold font-headline mb-2">৫মিনিট</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-widest">সেটআপ টাইম</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold font-headline mb-2">২৪/৭</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-widest">সাপোর্ট</div>
             </div>
           </section>
 
           {/* Pricing Section */}
-          <section id="pricing">
-            <div className="text-center">
-              <h2 className="text-3xl md:text-4xl font-headline font-bold">
-                আপনার জন্য সঠিক প্ল্যান
-              </h2>
-              <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-                সহজ এবং স্বচ্ছ প্রাইসিং। যেকোনো সময় বাতিল করুন।
-              </p>
+          <section id="pricing" className="relative scroll-mt-24">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4">স্বচ্ছ এবং সহজ প্রাইসিং</h2>
+              <p className="text-muted-foreground text-lg">আপনার ব্যবসার আকার অনুযায়ী সেরা প্ল্যানটি বেছে নিন। কোনো লুকানো চার্জ নেই।</p>
             </div>
-            <div className="mt-12 grid md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
+            
+            <div className="grid md:grid-cols-3 gap-8 items-stretch">
               {isLoading ? (
-                <>
-                  <Skeleton className="h-96 w-full" />
-                  <Skeleton className="h-96 w-full" />
-                  <Skeleton className="h-96 w-full" />
-                </>
+                [...Array(3)].map((_, i) => <Skeleton key={i} className="h-[500px] rounded-3xl" />)
               ) : (
                 pricingTiers.map((tier) => (
-                  <Card
+                  <motion.div 
                     key={tier.id}
-                    className={
-                      tier.isFeatured ? 'border-primary ring-2 ring-primary' : ''
-                    }
+                    whileHover={{ y: -10 }}
+                    className="h-full"
                   >
-                    <CardHeader>
-                      <CardTitle>{tier.name}</CardTitle>
-                      <CardDescription>{tier.description}</CardDescription>
-                      <div className="pt-4">
-                        <span className="text-4xl font-bold font-headline">
-                          {tier.price}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {tier.period}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <ul className="space-y-3">
-                        {tier.features.map((feature: string, index: number) => (
-                          <li key={index} className="flex items-center gap-2">
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                    <CardFooter>
-                      <Button
-                        asChild
-                        className="w-full"
-                        variant={tier.isFeatured ? 'default' : 'secondary'}
-                      >
-                        <Link
-                          href={`/get-started?step=subscription&plan=${tier.id}`}
+                    <Card
+                      className={cn(
+                        "h-full rounded-3xl flex flex-col transition-all border-2",
+                        tier.isFeatured 
+                          ? "border-primary bg-primary/[0.02] shadow-xl shadow-primary/10 relative" 
+                          : "border-border/50 bg-card/30 backdrop-blur-sm"
+                      )}
+                    >
+                      {tier.isFeatured && (
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold tracking-widest uppercase">
+                          Most Popular
+                        </div>
+                      )}
+                      <CardHeader className="p-8 pb-0">
+                        <CardTitle className="text-2xl font-bold">{tier.name}</CardTitle>
+                        <CardDescription className="text-base mt-2">{tier.description}</CardDescription>
+                        <div className="mt-6 flex items-baseline gap-1">
+                          <span className="text-5xl font-bold font-headline">
+                            {tier.price}
+                          </span>
+                          <span className="text-muted-foreground text-lg">
+                            {tier.period}
+                          </span>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-8 flex-grow">
+                        <ul className="space-y-4">
+                          {tier.features.map((feature: string, index: number) => (
+                            <li key={index} className="flex items-start gap-3">
+                              <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                              <span className="text-muted-foreground">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                      <CardFooter className="p-8 pt-0">
+                        <Button
+                          asChild
+                          size="lg"
+                          className={cn(
+                            "w-full rounded-2xl h-14 text-lg",
+                            tier.isFeatured ? "bg-primary" : "bg-muted hover:bg-muted/80 text-foreground"
+                          )}
                         >
-                          {tier.cta}
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
+                          <Link href={`/get-started?step=subscription&plan=${tier.id}`}>
+                            {tier.cta}
+                          </Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </motion.div>
                 ))
               )}
             </div>
           </section>
 
-          {/* Testimonial Section */}
-          <section
-            id="testimonial"
-            className="bg-secondary/30 rounded-xl py-16 px-8"
-          >
-            {isLoading ? <Skeleton className="h-48 w-full max-w-3xl mx-auto" /> : (
-                reviews.length > 0 ? (
+          {/* Testimonials */}
+          <section id="testimonial" className="relative py-24 rounded-[3rem] bg-secondary/20 overflow-hidden border border-border/50">
+            <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.02] pointer-events-none" />
+            
+            <div className="text-center mb-16 relative z-10">
+              <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4">ইউজাররা যা বলছেন</h2>
+              <div className="flex justify-center gap-1 mb-2">
+                {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
+              </div>
+            </div>
+
+            <div className="px-4 md:px-12 relative z-10">
+              {isLoading ? (
+                <Skeleton className="h-64 w-full max-w-3xl mx-auto rounded-3xl" />
+              ) : reviews.length > 0 ? (
                 <Carousel
                     opts={{ align: 'start', loop: true }}
-                    className="w-full max-w-3xl mx-auto"
+                    className="w-full max-w-4xl mx-auto"
                 >
                     <CarouselContent>
                     {reviews.map((review) => (
-                        <CarouselItem key={review.id}>
-                        <div className="text-center">
-                            <Avatar className="w-20 h-20 mx-auto mb-4">
-                                <AvatarFallback>{review.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex justify-center gap-1 mb-2">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                    <Star key={i} className={i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30"} />
-                                ))}
-                            </div>
-                            <blockquote className="text-xl md:text-2xl font-light text-foreground">
-                            "{review.review_text}"
-                            </blockquote>
-                            <p className="mt-6 font-semibold text-primary">— {review.name} <span className="text-muted-foreground font-normal">{review.company && `, ${review.company}`}</span></p>
-                        </div>
+                        <CarouselItem key={review.id} className="basis-full">
+                          <div className="text-center px-4 md:px-16">
+                              <Avatar className="w-24 h-24 mx-auto mb-8 border-4 border-background shadow-xl">
+                                  <AvatarFallback className="text-2xl">{review.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <blockquote className="text-2xl md:text-3xl font-light italic leading-relaxed text-foreground">
+                              "{review.review_text}"
+                              </blockquote>
+                              <div className="mt-8">
+                                <p className="text-xl font-bold text-primary">{review.name}</p>
+                                <p className="text-muted-foreground">{review.company}</p>
+                              </div>
+                          </div>
                         </CarouselItem>
                     ))}
                     </CarouselContent>
-                    <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2" />
-                    <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2" />
+                    <CarouselPrevious className="hidden md:flex -left-12" />
+                    <CarouselNext className="hidden md:flex -right-12" />
                 </Carousel>
-                ) : (
+              ) : (
                 <div className="max-w-3xl mx-auto text-center">
-                    <Avatar className="w-20 h-20 mx-auto mb-4">
-                        <AvatarFallback>স</AvatarFallback>
-                    </Avatar>
-                    <blockquote className="text-xl md:text-2xl font-light text-foreground">
-                    "এই প্ল্যাটফর্মটি আমাদের ব্যবসাকে পুরোপুরি বদলে
-                    দিয়েছে। এটি ব্যবহার করা সহজ, এবং এআই সরঞ্জামগুলি আমাদের অনেক
-                    সময় বাঁচিয়েছে। অত্যন্ত সুপারিশযোগ্য!"
+                    <blockquote className="text-2xl md:text-3xl font-light italic leading-relaxed">
+                    "এই প্ল্যাটফর্মটি আমাদের ব্যবসাকে অবিশ্বাস্যভাবে সহজ করে দিয়েছে। এআই টুলস ব্যবহার করে আমরা মাত্র কয়েক ঘন্টায় আমাদের পুরো ইনভেন্টরি রেডি করতে পেরেছি।"
                     </blockquote>
-                    <p className="mt-6 font-semibold text-primary">— একজন সুখী গ্রাহক</p>
+                    <div className="mt-8">
+                      <p className="text-xl font-bold text-primary">একজন সফল উদ্যোক্তা</p>
+                    </div>
                 </div>
-                )
-            )}
-          </section>
-
-          {/* Final CTA */}
-          <section className="text-center">
-            <h2 className="text-3xl md:text-4xl font-headline font-bold">
-              আজই আপনার অনলাইন স্টোর তৈরি করতে প্রস্তুত?
-            </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
-              হাজার হাজার উদ্যোক্তার সাথে যোগ দিন যারা এই প্ল্যাটফর্মকে তাদের
-              ব্র্যান্ড তৈরি এবং ব্যবসা বাড়াতে বিশ্বাস করে।
-            </p>
-            <div className="mt-8">
-              <Button asChild size="lg">
-                <Link href="/get-started">
-                  বিনামূল্যে শুরু করুন <ArrowRight className="ml-2" />
-                </Link>
-              </Button>
+              )}
             </div>
           </section>
+
+          {/* Call to Action */}
+          <motion.section 
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="relative rounded-[3rem] bg-primary overflow-hidden py-20 px-8 text-center text-primary-foreground shadow-2xl shadow-primary/20"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] rounded-full -mr-32 -mt-32" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 blur-[80px] rounded-full -ml-32 -mb-32" />
+            
+            <div className="relative z-10">
+              <h2 className="text-4xl md:text-6xl font-headline font-bold mb-6">আপনার অনলাইন যাত্রা আজই শুরু হোক</h2>
+              <p className="max-w-2xl mx-auto text-lg md:text-xl opacity-90 mb-10 leading-relaxed">
+                হাজার হাজার উদ্যোক্তার সাথে যোগ দিন যারা বাংলা ন্যাচারালস ব্যবহার করে তাদের ব্র্যান্ডকে সফলভাবে গড়ে তুলছেন।
+              </p>
+              <Button asChild size="lg" variant="secondary" className="h-14 px-10 rounded-full text-lg shadow-xl transition-transform hover:scale-105 active:scale-95">
+                <Link href="/get-started">
+                  এখনই শুরু করুন (সম্পূর্ণ ফ্রি)
+                </Link>
+              </Button>
+              <p className="mt-6 text-sm opacity-70 flex items-center justify-center gap-4">
+                <span className="flex items-center gap-1"><ShieldCheck className="w-4 h-4" /> ক্রেডিট কার্ড লাগবে না</span>
+                <span className="flex items-center gap-1"><Smartphone className="w-4 h-4" /> মোবাইল অ্যাপ এক্সপেরিয়েন্স</span>
+                <span className="flex items-center gap-1"><Globe className="w-4 h-4" /> কাস্টম ডোমেইন</span>
+              </p>
+            </div>
+          </motion.section>
+
         </div>
       </main>
       <SaasFooter />
-    </>
+    </div>
   );
 }

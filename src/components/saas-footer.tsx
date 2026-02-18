@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Facebook, Twitter } from 'lucide-react';
+import { Facebook, Twitter, Shield, Heart } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
@@ -20,7 +20,7 @@ const TikTokIcon = () => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className="h-6 w-6"
+    className="h-5 w-5"
   >
     <path d="M12.52.02c1.31-.02 2.61.01 3.91.02.08 1.53.01 3.07.01 4.6 0 1.1.35 2.21 1.22 3.01.91.82 2.1 1.25 3.32 1.19.08 1.5.01 3 .01 4.5a5.42 5.42 0 0 1-5.12 5.14c-1.53.08-3.07.01-4.6.01-1.1 0-2.21-.35-3.01-1.22-.82-.91-1.25-2.1-1.19-3.32-.08-1.5-.01-3-.01-4.5a5.42 5.42 0 0 1 5.12-5.14Z" />
     <path d="M9 8.5h4" />
@@ -60,7 +60,7 @@ export default function SaasFooter() {
             });
             setSiteInfo({
               name: data.platform_name || 'Your SaaS',
-              description: data.platform_description || 'Your platform description.',
+              description: data.platform_description || 'আপনার স্বপ্নের অনলাইন স্টোর তৈরির ডিজিটাল কারিগর।',
               logoUrl: data.logo_url || null,
             });
         }
@@ -69,152 +69,89 @@ export default function SaasFooter() {
     fetchData();
   }, []);
   
-  const FooterLogo = () => {
-    if (isLoading || !siteInfo) {
-      return (
-        <div className="flex items-center gap-3 mb-4">
-          <Skeleton className="h-10 w-10" />
-          <Skeleton className="h-6 w-32" />
-        </div>
-      );
-    }
-
-    return (
-       <Link href="/" className="mb-4 flex items-center gap-3">
+  const FooterLogo = () => (
+    isLoading || !siteInfo ? (
+      <Skeleton className="h-10 w-32 mb-4" />
+    ) : (
+       <Link href="/" className="mb-6 flex items-center gap-2.5">
         {siteInfo.logoUrl ? (
              <div className="relative h-10 w-10">
               <Image src={siteInfo.logoUrl} alt={siteInfo.name} fill className="object-contain" />
             </div>
         ) : (
-            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center font-bold text-lg">
+            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center font-bold text-lg text-primary-foreground shadow-lg shadow-primary/20">
                 {siteInfo.name.charAt(0)}
             </div>
         )}
-        <span className="text-xl font-bold font-headline">{siteInfo.name}</span>
+        <span className="text-xl font-bold font-headline tracking-tight">{siteInfo.name}</span>
       </Link>
-    );
-  };
+    )
+  );
   
   return (
-    <footer className="bg-secondary text-secondary-foreground">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="flex flex-col items-start">
+    <footer className="bg-card border-t border-border/50 pt-20 pb-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
+          <div className="md:col-span-5 lg:col-span-4">
             <FooterLogo />
              {isLoading ? <Skeleton className="h-12 w-full max-w-xs" /> : (
-                <p className="max-w-xs text-secondary-foreground/80">
-                  {siteInfo?.description || 'আপনার নিজস্ব ই-কমার্স সাম্রাজ্য তৈরি করার প্ল্যাটফর্ম।'}
+                <p className="text-muted-foreground text-lg leading-relaxed max-w-sm">
+                  {siteInfo?.description || 'আমরা আপনাকে সাহায্য করছি আপনার স্টোরকে ডিজিটাল করার জন্য। আজই শুরু করুন নতুন পথচলা।'}
                 </p>
             )}
+            <div className="mt-8 flex space-x-4">
+                {(socials.facebook || socials.twitter || socials.tiktok) && (
+                  <>
+                    {socials.facebook && (
+                      <Link href={socials.facebook} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all">
+                        <Facebook className="w-5 h-5" />
+                      </Link>
+                    )}
+                    {socials.twitter && (
+                      <Link href={socials.twitter} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all">
+                        <Twitter className="w-5 h-5" />
+                      </Link>
+                    )}
+                    {socials.tiktok && (
+                      <Link href={socials.tiktok} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all">
+                        <TikTokIcon />
+                      </Link>
+                    )}
+                  </>
+                )}
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <h3 className="font-headline font-semibold mb-4">প্ল্যাটফর্ম</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link
-                    href="/#features"
-                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
-                  >
-                    বৈশিষ্ট্য
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/#pricing"
-                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
-                  >
-                    মূল্য
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/get-started"
-                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
-                  >
-                    বিনামূল্যে শুরু করুন
-                  </Link>
-                </li>
+
+          <div className="grid grid-cols-2 gap-8 md:col-span-7 lg:col-span-8">
+            <div className="lg:col-start-3">
+              <h3 className="font-bold text-lg mb-6 uppercase tracking-wider text-primary">প্ল্যাটফর্ম</h3>
+              <ul className="space-y-4">
+                <li><Link href="/#features" className="text-muted-foreground hover:text-foreground transition-colors">ফিচারসমূহ</Link></li>
+                <li><Link href="/#pricing" className="text-muted-foreground hover:text-foreground transition-colors">প্ল্যান ও মূল্য</Link></li>
+                <li><Link href="/get-started" className="text-muted-foreground hover:text-foreground transition-colors">ফ্রি অ্যাকাউন্ট</Link></li>
+                <li><Link href="/login" className="text-muted-foreground hover:text-foreground transition-colors">লগ ইন</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-headline font-semibold mb-4">কোম্পানি</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link
-                    href="/about"
-                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
-                  >
-                    আমাদের সম্পর্কে
-                  </Link>
-                </li>
-                 <li>
-                  <Link
-                    href="/leave-a-review"
-                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
-                  >
-                    রিভিউ দিন
-                  </Link>
-                </li>
-                 <li>
-                  <Link
-                    href="/login"
-                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
-                  >
-                    অ্যাডমিন লগইন
-                  </Link>
-                </li>
+              <h3 className="font-bold text-lg mb-6 uppercase tracking-wider text-primary">কোম্পানি</h3>
+              <ul className="space-y-4">
+                <li><Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">আমাদের গল্প</Link></li>
+                <li><Link href="/leave-a-review" className="text-muted-foreground hover:text-foreground transition-colors">রিভিউ দিন</Link></li>
+                <li><Link href="/p/privacy" className="text-muted-foreground hover:text-foreground transition-colors">প্রাইভেসি পলিসি</Link></li>
+                <li><Link href="/p/terms" className="text-muted-foreground hover:text-foreground transition-colors">শর্তাবলি</Link></li>
               </ul>
             </div>
-          </div>
-          <div>
-            <h3 className="font-headline font-semibold mb-4">
-              আমাদের অনুসরণ করুন
-            </h3>
-            {(socials.facebook || socials.twitter || socials.tiktok) && (
-              <div className="flex space-x-4">
-                {socials.facebook && (
-                  <Link
-                    href={socials.facebook}
-                    aria-label="Facebook"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
-                  >
-                    <Facebook />
-                  </Link>
-                )}
-                {socials.twitter && (
-                  <Link
-                    href={socials.twitter}
-                    aria-label="Twitter"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
-                  >
-                    <Twitter />
-                  </Link>
-                )}
-                {socials.tiktok && (
-                  <Link
-                    href={socials.tiktok}
-                    aria-label="TikTok"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-secondary-foreground/80 hover:text-primary transition-colors"
-                  >
-                    <TikTokIcon />
-                  </Link>
-                )}
-              </div>
-            )}
           </div>
         </div>
-        <div className="mt-8 border-t border-border pt-8 text-center text-sm text-secondary-foreground/60">
-          <p>
-            &copy; {new Date().getFullYear()} {siteInfo?.name || 'বাংলা ন্যাচারালস'}। সর্বস্বত্ব
-            সংরক্ষিত।
+
+        <div className="pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-muted-foreground text-sm">
+            &copy; {new Date().getFullYear()} {siteInfo?.name || 'বাংলা ন্যাচারালস'}। সর্বস্বত্ব সংরক্ষিত।
           </p>
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5"><Shield className="w-4 h-4" /> সুরক্ষিত পেমেন্ট</span>
+            <span className="flex items-center gap-1.5"><Heart className="w-4 h-4 text-red-500" /> বাংলাদেশে তৈরি</span>
+          </div>
         </div>
       </div>
     </footer>
