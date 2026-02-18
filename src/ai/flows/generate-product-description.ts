@@ -28,13 +28,15 @@ export async function generateProductDescription(input: GenerateProductDescripti
       throw new Error('The Gemini API key is not configured. Please add it in your AI settings.');
     }
 
+    // Initialize Genkit dynamically with the user's API key
     const dynamicGenerationFlow = genkit({
       plugins: [googleAI({ apiKey })],
     });
     
-    const categoryString = categories ? categories.join(', ') : 'general';
+    const categoryString = categories && categories.length > 0 ? categories.join(', ') : 'general';
 
-    const prompt = `You are an expert copywriter for an e-commerce store in Bangladesh. Your task is to write an engaging and detailed product description in Bengali, directly in Tiptap/ProseMirror JSON format.
+    const prompt = `You are an expert copywriter for an e-commerce store in Bangladesh called "Bangla Naturals". 
+Your task is to write an engaging and detailed product description in Bengali, directly in Tiptap/ProseMirror JSON format.
 
 Product Information:
 - Name: ${name}
@@ -43,30 +45,40 @@ Product Information:
 - Origin: ${origin || 'Not provided.'}
 
 Instructions:
-1.  Generate a JSON object conforming to the Tiptap schema. The root object must be \`{"type": "doc", "content": [...]}\`.
+1.  Generate a JSON object conforming to the Tiptap schema. The root object must be {"type": "doc", "content": [...]}.
 2.  The content should be an array of nodes (e.g., paragraphs, headings, bullet lists).
-3.  Use paragraphs for the main body text. For example: \`{"type": "paragraph", "content": [{"type": "text", "text": "আপনার লেখা এখানে।"}]}\`.
-4.  Use headings (level 2 or 3) for section titles. For example: \`{"type": "heading", "attrs": {"level": 2}, "content": [{"type": "text", "text": "শিরোনাম"}]}\`.
-5.  Use bullet lists for features or benefits. For example: \`{"type": "bulletList", "content": [{"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "একটি বুলেট পয়েন্ট।"}]}]}]}\`.
-6.  Use marks for bold (\`"marks": [{"type": "bold"}]\`) and italic (\`"marks": [{"type": "italic"}]\`) text.
-7.  The description MUST be in Bengali.
-8.  Highlight the product's natural origins, benefits, and unique qualities.
-9.  Start with an engaging introduction and end with a call to action.
-10. DO NOT include the product name in the description itself.
-11. CRITICAL: Your entire output must be ONLY the JSON object. Do not include any introductory text, explanations, or markdown code fences. The output must be valid JSON that can be parsed directly.`;
+3.  Use paragraphs for the main body text.
+4.  Use headings (level 2 or 3) for section titles like "উপকারিতা" (Benefits), "কেন আমাদের পণ্যটি সেরা?" (Why us?), etc.
+5.  Use bullet lists for features or benefits.
+6.  The description MUST be entirely in Bengali.
+7.  Highlight the product's natural origins, purity, and health benefits.
+8.  Start with an engaging introduction and end with a call to action.
+9.  CRITICAL: Your entire output must be ONLY the valid JSON object. Do not include any introductory text, explanations, or markdown code blocks (like \`\`\`json). The output must be valid JSON that can be parsed directly.`;
 
     const result = await dynamicGenerationFlow.generate({
-      model: 'googleai/gemini-pro',
+      model: 'googleai/gemini-1.5-flash',
       prompt,
-      config: { temperature: 0.7 },
+      config: { 
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      },
     });
 
-    const generatedJsonString = result.text;
+    let generatedJsonString = result.text;
     
-    // Validate if the output is a valid JSON.
-    JSON.parse(generatedJsonString);
+    // Clean up potentially included markdown code blocks
+    if (generatedJsonString.includes('```')) {
+        generatedJsonString = generatedJsonString.replace(/```json/g, '').replace(/```/g, '').trim();
+    }
     
-    return { longDescription: generatedJsonString };
+    try {
+        // Validate if the output is a valid JSON.
+        JSON.parse(generatedJsonString);
+        return { longDescription: generatedJsonString };
+    } catch (parseError) {
+        console.error("AI returned non-JSON text:", result.text);
+        throw new Error('AI produced an invalid format. Please try generating again.');
+    }
 
   } catch (e: any) {
     console.error("AI Generation Error:", e);
@@ -74,15 +86,12 @@ Instructions:
     if (e.message.includes('API key not valid')) {
         throw new Error('The provided Gemini API key is not valid. Please check your AI settings.');
     }
-    if (e instanceof SyntaxError) { // This will catch JSON.parse errors
-        console.error("AI returned invalid JSON:", e, "Raw output was:", (e as any).source);
-        throw new Error('AI produced an invalid format. Please try generating again.');
-    }
+    
     const genkitError = e as GenkitError;
     if (genkitError.code) {
-        throw new Error(`AI Error: ${genkitError.message} (Code: ${genkitError.code})`);
+        throw new Error(`AI Error: ${genkitError.message}`);
     }
 
-    throw new Error('Failed to generate description due to an unexpected error.');
+    throw e;
   }
 }
