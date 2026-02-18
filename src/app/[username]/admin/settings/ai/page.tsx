@@ -18,8 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Loader2, Wand2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -31,7 +30,7 @@ type AiSettingsFormData = z.infer<typeof aiSettingsSchema>;
 
 export default function AiSettingsPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,40 +39,66 @@ export default function AiSettingsPage() {
     defaultValues: { gemini_api_key: '' },
   });
 
-  useEffect(() => {
-    if (user) {
-      setIsLoading(true);
-      supabase
-        .from('store_settings')
-        .select('gemini_api_key')
-        .eq('site_id', user.id)
-        .single()
-        .then(({ data, error }) => {
-          if (data && data.gemini_api_key) {
-            form.reset({ gemini_api_key: data.gemini_api_key });
-          }
-          setIsLoading(false);
+  const fetchSettings = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+        const response = await fetch('/api/ai-settings/get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
         });
+        const result = await response.json();
+        
+        if (response.ok) {
+            form.reset({ gemini_api_key: result.gemini_api_key || '' });
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error loading settings', description: error.message });
+    } finally {
+        setIsLoading(false);
     }
-  }, [user, form]);
+  }, [user, form, toast]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      fetchSettings();
+    } else if (!authLoading && !user) {
+        setIsLoading(false);
+    }
+  }, [user, authLoading, fetchSettings]);
 
   async function onSubmit(values: AiSettingsFormData) {
     if (!user) return;
     setIsSubmitting(true);
-    const { error } = await supabase.from('store_settings').upsert({
-      site_id: user.id,
-      gemini_api_key: values.gemini_api_key,
-    });
     
-    setIsSubmitting(false);
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error saving AI settings', description: error.message });
-    } else {
-      toast({ title: 'AI settings saved!' });
+    try {
+        const response = await fetch('/api/ai-settings/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                siteId: user.id, 
+                gemini_api_key: values.gemini_api_key 
+            }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            toast({ title: 'AI settings saved!' });
+        } else {
+            throw new Error(result.error || 'Failed to save settings');
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error saving settings', description: error.message });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
         <Card>
             <CardHeader>
@@ -113,7 +138,7 @@ export default function AiSettingsPage() {
                   </FormControl>
                   <FormDescription>
                     You can get your key from{' '}
-                    <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">
                       Google AI Studio
                     </a>.
                   </FormDescription>
@@ -131,5 +156,3 @@ export default function AiSettingsPage() {
     </Card>
   );
 }
-
-    
