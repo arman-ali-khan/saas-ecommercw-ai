@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import { encrypt, decryptObject } from '@/lib/encryption';
 
 export async function POST(request: Request) {
     try {
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
         
         const updatePayload: { [key: string]: any } = {};
         if (updates?.full_name) {
-            updatePayload.full_name = updates.full_name;
+            updatePayload.full_name = encrypt(updates.full_name);
         }
         if (newPassword) {
             updatePayload.password_hash = await bcrypt.hash(newPassword, 10);
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: updateError.message }, { status: 500 });
         }
 
-        // Step 2: Fetch the updated profile in a separate, reliable query
+        // Step 2: Fetch the updated profile
         const { data: updatedProfile, error: selectError } = await supabaseAdmin
             .from('customer_profiles')
             .select('*')
@@ -52,7 +53,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Profile not found after update." }, { status: 404 });
         }
         
-        const { password_hash, ...safeUser } = updatedProfile;
+        // Decrypt before returning
+        const decryptedProfile = decryptObject(updatedProfile);
+        const { password_hash, ...safeUser } = decryptedProfile;
 
         return NextResponse.json({ customer: safeUser }, { status: 200 });
 

@@ -1,5 +1,4 @@
 
-// src/app/api/auth/register-customer/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
@@ -19,8 +18,9 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
     
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check if user already exists
-    // Since we use random IV for encryption, we must fetch and decrypt to verify uniqueness
     const { data: existingUsers, error: fetchError } = await supabaseAdmin
         .from('customer_profiles')
         .select('email')
@@ -31,7 +31,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'ডাটাবেস সংযোগে সমস্যা হয়েছে।' }, { status: 500 });
     }
 
-    const isDuplicate = existingUsers?.some(u => decrypt(u.email) === email);
+    const isDuplicate = existingUsers?.some(u => {
+        try {
+            return decrypt(u.email).toLowerCase() === normalizedEmail;
+        } catch (e) {
+            return false;
+        }
+    });
+
     if (isDuplicate) {
         return NextResponse.json({ error: 'এই ইমেলটি দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা হয়েছে।' }, { status: 409 });
     }
@@ -44,7 +51,7 @@ export async function POST(request: Request) {
       .insert([{
         id: userId,
         full_name: encrypt(fullName),
-        email: encrypt(email),
+        email: encrypt(normalizedEmail),
         site_id: siteId,
         role: 'customer',
         password_hash: password_hash

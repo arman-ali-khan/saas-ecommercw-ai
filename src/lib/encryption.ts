@@ -14,7 +14,9 @@ Buffer.from(RAW_KEY).copy(ENCRYPTION_KEY);
  * Encrypts a string. Returns original if already encrypted or empty.
  */
 export function encrypt(text: string | null | undefined): string {
-  if (!text || text.startsWith(PREFIX)) return text || '';
+  if (text === null || text === undefined || text === '') return '';
+  if (typeof text !== 'string') return String(text);
+  if (text.startsWith(PREFIX)) return text;
 
   try {
     const iv = crypto.randomBytes(IV_LENGTH);
@@ -33,7 +35,7 @@ export function encrypt(text: string | null | undefined): string {
  * Decrypts a string. Returns original if not encrypted with our prefix.
  */
 export function decrypt(text: string | null | undefined): string {
-  if (!text || !text.startsWith(PREFIX)) return text || '';
+  if (!text || typeof text !== 'string' || !text.startsWith(PREFIX)) return text || '';
 
   try {
     const textParts = text.substring(PREFIX.length).split(':');
