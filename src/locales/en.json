@@ -272,5 +272,17 @@
     "addedToBag": "Added to Bag",
     "addedToBagDesc": "{quantity} x {productName} has been added to your bag.",
     "removedFromBag": "Removed from Bag"
+  },
+  "aiShare": {
+    "title": "AI Social Share",
+    "description": "Let our AI create an engaging social media post for you to share {productName} with friends.",
+    "labelInterests": "Interests",
+    "placeholderInterests": "e.g. healthy food, sweets, organic",
+    "generateBtn": "Generate Post",
+    "generating": "Generating...",
+    "generatedLabel": "Generated Post:",
+    "copyBtn": "Copy Text",
+    "copied": "Copied to clipboard!",
+    "disclaimer": "AI can make mistakes. Verify important info before sharing."
   }
 }

@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import {
@@ -11,10 +12,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Wand2, Copy } from 'lucide-react';
+import { Wand2, Copy, Sparkles } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { Product } from '@/types';
+import { useTranslation } from '@/hooks/use-translation';
 
 interface AiShareToolProps {
   product: Product;
@@ -31,13 +33,27 @@ export function AiShareTool({
   const [generatedPost, setGeneratedPost] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const t = useTranslation();
+  const { aiShare: t_ai } = t;
 
   const handleGenerate = () => {
     setIsLoading(true);
-    // This is a mock generation for demonstration purposes.
-    // In a real application, you would call your GenAI flow here.
+    // Simulation of AI generation logic
     setTimeout(() => {
-      const post = `${interests} ভালোবাসেন? তাহলে আপনি বাংলা ন্যাচারালস এর ${product.name} এর প্রতি আসক্ত হয়ে যাবেন! 🌿 এটি ${product.origin} থেকে আসা বিশুদ্ধ, প্রাকৃতিক ভালোর স্বাদ। ${product.description} এখনই আপনারটি সংগ্রহ করুন! #BanglaNaturals #${product.name.replace(/\s+/g, '')}`;
+      const interestsPart = interests ? `${interests} ভালোবাসেন? ` : 'প্রাকৃতিক পণ্যের খোঁজে আছেন? ';
+      const post = `${interestsPart}তাহলে আপনি বাংলা ন্যাচারালস-এর "${product.name}" এর প্রতি আসক্ত হয়ে যাবেন! 🌿 
+
+এটি ${product.origin || 'বাংলাদেশের সেরা উৎস'} থেকে আসা বিশুদ্ধ এবং প্রাকৃতিক স্বাদের এক অনন্য সম্ভার। 
+
+✨ কেন কিনবেন?
+- ${product.description}
+- ১০০% প্রাকৃতিক ও স্বাস্থ্যসম্মত
+- সরাসরি কৃষক থেকে সংগৃহীত
+
+এখনই আপনারটি সংগ্রহ করতে ভিজিট করুন আমাদের ওয়েবসাইট। 
+
+#BanglaNaturals #OrganicFood #HealthyLiving #${product.name.replace(/\s+/g, '')} #NatureLover`;
+      
       setGeneratedPost(post);
       setIsLoading(false);
     }, 1500);
@@ -46,53 +62,101 @@ export function AiShareTool({
   const handleCopy = () => {
     navigator.clipboard.writeText(generatedPost);
     toast({
-      title: 'ক্লিপবোর্ডে কপি করা হয়েছে!',
+      title: t_ai.copied,
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wand2 className="text-primary" /> এআই-চালিত শেয়ার টুল
+          <DialogTitle className="flex items-center gap-2 text-2xl">
+            <Wand2 className="text-primary h-6 w-6" /> {t_ai.title}
           </DialogTitle>
-          <DialogDescription>
-            আমাদের এআই-কে আপনার বন্ধুদের সাথে {product.name} শেয়ার করার জন্য নিখুঁত সোশ্যাল মিডিয়া পোস্ট তৈরি করতে দিন।
+          <DialogDescription className="text-base pt-2">
+            {t_ai.description.replace('{productName}', product.name)}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="interests" className="text-right">
-              আগ্রহ
+        <div className="grid gap-6 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="interests" className="text-sm font-semibold">
+              {t_ai.labelInterests}
             </Label>
             <Input
               id="interests"
               value={interests}
               onChange={(e) => setInterests(e.target.value)}
-              className="col-span-3"
-              placeholder="যেমন, স্বাস্থ্যকর খাবার, মিষ্টি"
+              placeholder={t_ai.placeholderInterests}
+              className="h-11"
             />
           </div>
-          <Button onClick={handleGenerate} disabled={isLoading}>
-            {isLoading ? 'তৈরি হচ্ছে...' : 'পোস্ট তৈরি করুন'}
+          <Button 
+            onClick={handleGenerate} 
+            disabled={isLoading}
+            className="w-full h-11 text-lg font-bold shadow-lg shadow-primary/20"
+          >
+            {isLoading ? (
+                <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {t_ai.generating}
+                </>
+            ) : (
+                <>
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    {t_ai.generateBtn}
+                </>
+            )}
           </Button>
           {generatedPost && (
-            <div className="space-y-2">
-              <Label>তৈরি করা পোস্ট:</Label>
-              <Textarea value={generatedPost} readOnly rows={5} />
-              <Button onClick={handleCopy} variant="outline" className="w-full">
-                <Copy className="mr-2 h-4 w-4" /> লেখা কপি করুন
-              </Button>
+            <div className="space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-bold text-primary flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" /> {t_ai.generatedLabel}
+                </Label>
+              </div>
+              <div className="relative group">
+                <Textarea 
+                    value={generatedPost} 
+                    readOnly 
+                    rows={8} 
+                    className="resize-none bg-muted/30 border-2 focus-visible:ring-0 p-4 text-sm leading-relaxed"
+                />
+                <Button 
+                    onClick={handleCopy} 
+                    variant="secondary" 
+                    size="sm"
+                    className="absolute bottom-3 right-3 shadow-md border"
+                >
+                    <Copy className="mr-2 h-4 w-4" /> {t_ai.copyBtn}
+                </Button>
+              </div>
             </div>
           )}
         </div>
-        <DialogFooter>
-          <p className="text-xs text-muted-foreground text-center w-full">
-            এআই ভুল করতে পারে। গুরুত্বপূর্ণ তথ্য যাচাই করুন।
+        <DialogFooter className="flex-col sm:flex-col items-center gap-2">
+          <Separator />
+          <p className="text-[10px] text-muted-foreground text-center mt-2">
+            {t_ai.disclaimer}
           </p>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+const Loader2 = ({ className }: { className?: string }) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn("animate-spin", className)}
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  );

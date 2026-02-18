@@ -231,7 +231,7 @@
     "story": "আমাদের গল্প",
     "addToBag": "ব্যাগে যোগ করুন",
     "shareThisProduct": "এই পণ্যটি শেয়ার করুন:",
-    "aiShare": "এআই শেয়ার",
+    "aiShare": "এআই শেয়ার",
     "productDetails": "পণ্যের বিবরণ",
     "customerReviews": "ক্রেতাদের রিভিউ",
     "noReviews": "এই পণ্যের জন্য এখনও কোনো রিভিউ নেই।",
@@ -268,9 +268,21 @@
   "productCard": {
     "addToBag": "ব্যাগে যোগ করুন"
   },
-   "toast": {
+  "toast": {
     "addedToBag": "ব্যাগে যোগ করা হয়েছে",
     "addedToBagDesc": "{quantity} x {productName} আপনার ব্যাগে যোগ করা হয়েছে।",
     "removedFromBag": "ব্যাগ থেকে সরানো হয়েছে"
+  },
+  "aiShare": {
+    "title": "এআই সোশ্যাল শেয়ার",
+    "description": "আমাদের এআই-কে আপনার বন্ধুদের সাথে {productName} শেয়ার করার জন্য নিখুঁত সোশ্যাল মিডিয়া পোস্ট তৈরি করতে দিন।",
+    "labelInterests": "আগ্রহ",
+    "placeholderInterests": "যেমন: স্বাস্থ্যকর খাবার, মিষ্টি, অর্গানিক",
+    "generateBtn": "পোস্ট তৈরি করুন",
+    "generating": "তৈরি হচ্ছে...",
+    "generatedLabel": "তৈরি করা পোস্ট:",
+    "copyBtn": "লেখা কপি করুন",
+    "copied": "ক্লিপবোর্ডে কপি করা হয়েছে!",
+    "disclaimer": "এআই ভুল করতে পারে। গুরুত্বপূর্ণ তথ্য যাচাই করুন।"
   }
 }
