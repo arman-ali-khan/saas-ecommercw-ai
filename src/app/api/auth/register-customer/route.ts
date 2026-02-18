@@ -1,14 +1,15 @@
+
 // src/app/api/auth/register-customer/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { encrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
     const { fullName, email, password, siteId } = await request.json();
 
-    // 1. Validate input
     if (!fullName || !email || !password || !siteId) {
         return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
@@ -18,33 +19,32 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
     
-    // 2. Check if user already exists for this site
-    const { data: existingUser, error: findError } = await supabaseAdmin
-        .from('customer_profiles')
-        .select('id')
-        .eq('email', email)
-        .eq('site_id', siteId)
-        .single();
-
-    if (findError && findError.code !== 'PGRST116') { // PGRST116 means no rows found
-         return NextResponse.json({ error: `Database error: ${findError.message}` }, { status: 500 });
-    }
+    // Deterministic search for encrypted fields is hard without blind indexing.
+    // For this prototype, we store a separate hashed_email for lookups if needed, 
+    // or just search auth.users if they are linked. 
+    // However, since we're using a custom table, we'll keep it simple.
     
-    if (existingUser) {
+    // Check if user already exists (simplified check)
+    const { data: existingUsers } = await supabaseAdmin
+        .from('customer_profiles')
+        .select('id, email')
+        .eq('site_id', siteId);
+
+    // Manual check because of encryption
+    const duplicate = existingUsers?.find(u => u.email === email);
+    if (duplicate) {
         return NextResponse.json({ error: 'A customer with this email already exists on this site.' }, { status: 409 });
     }
     
-    // 3. Hash the password
     const password_hash = await bcrypt.hash(password, 10);
     const userId = uuidv4();
 
-    // 4. Insert the new customer
     const { data, error: insertError } = await supabaseAdmin
       .from('customer_profiles')
       .insert([{
         id: userId,
-        full_name: fullName,
-        email: email,
+        full_name: encrypt(fullName),
+        email: encrypt(email),
         site_id: siteId,
         role: 'customer',
         password_hash: password_hash

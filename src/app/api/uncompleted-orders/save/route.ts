@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { encrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -16,13 +17,24 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Encrypt sensitive visitor info
+    const encryptedCustomerInfo = customer_info ? {
+        ...customer_info,
+        name: encrypt(customer_info.name),
+        email: encrypt(customer_info.email),
+        address: encrypt(customer_info.address),
+        city: encrypt(customer_info.city),
+        phone: encrypt(customer_info.phone),
+        notes: encrypt(customer_info.notes)
+    } : null;
+
     const { data, error } = await supabaseAdmin
       .from('uncompleted_orders')
       .upsert({
         id,
         site_id,
         customer_id: customer_id || null,
-        customer_info,
+        customer_info: encryptedCustomerInfo,
         cart_items,
         cart_total,
         status: status || 'shipping-info-entered',

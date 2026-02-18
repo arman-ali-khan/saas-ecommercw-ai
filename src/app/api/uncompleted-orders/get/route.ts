@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { decryptObject } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +24,13 @@ export async function POST(request: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json({ order: data }, { status: 200 });
+    // Decrypt data
+    const decryptedOrder = {
+        ...data,
+        customer_info: decryptObject(data.customer_info)
+    };
+
+    return NextResponse.json({ order: decryptedOrder }, { status: 200 });
   } catch (err: any) {
     console.error('Get Uncompleted Order API Error:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });

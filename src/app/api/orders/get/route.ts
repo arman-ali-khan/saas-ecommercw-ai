@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { decrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +19,22 @@ export async function POST(request: Request) {
     const { data, error } = await query.single();
 
     if (error) throw error;
-    return NextResponse.json({ order: data }, { status: 200 });
+
+    // Decrypt single order
+    const decryptedOrder = {
+        ...data,
+        customer_email: decrypt(data.customer_email),
+        shipping_info: {
+            ...data.shipping_info,
+            name: decrypt(data.shipping_info.name),
+            address: decrypt(data.shipping_info.address),
+            city: decrypt(data.shipping_info.city),
+            phone: decrypt(data.shipping_info.phone),
+            notes: decrypt(data.shipping_info.notes)
+        }
+    };
+
+    return NextResponse.json({ order: decryptedOrder }, { status: 200 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

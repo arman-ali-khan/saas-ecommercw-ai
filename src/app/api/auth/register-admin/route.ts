@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import { encrypt } from '@/lib/encryption';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -27,11 +28,11 @@ export async function POST(request: Request) {
   let userId: string | undefined;
 
   try {
-    // Step 1: Create the auth user.
+    // Step 1: Create the auth user. (Auth email stays plain for login)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm user as we are in a server environment
+      email_confirm: true,
       user_metadata: {
         full_name: fullName,
         role: 'admin', 
@@ -45,19 +46,20 @@ export async function POST(request: Request) {
 
     userId = authData.user.id;
 
-    // Step 2: Update the newly created profile row.
+    // Step 2: Update the profile with ENCRYPTED sensitive data
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
-        username,
-        full_name: fullName,
-        email,
+        username: encrypt(username),
+        full_name: encrypt(fullName),
+        email: encrypt(email),
         domain,
         site_name: siteName,
         site_description: siteDescription,
         subscription_plan: planId,
-        subscription_status: planId === 'free' ? 'active' : 'pending',
-        role: 'admin'
+        subscription_status: planId === 'free' ? 'active' : 'pending_verification',
+        role: 'admin',
+        last_subscription_from: 'get-started'
       })
       .eq('id', userId); 
 
@@ -90,7 +92,8 @@ export async function POST(request: Request) {
           amount: priceNumber,
           payment_method: paymentMethod || 'manual',
           transaction_id: finalTransactionId,
-          status: 'pending',
+          status: 'pending_verification',
+          subscription_from: 'get-started',
         });
       
       if (paymentError) {
@@ -98,7 +101,7 @@ export async function POST(request: Request) {
             await supabaseAdmin.auth.admin.deleteUser(userId);
         }
         
-        if (paymentError.code === '23505' || paymentError.message.includes('subscription_payments_transaction_id_key')) { // Unique constraint violation
+        if (paymentError.code === '23505' || paymentError.message.includes('subscription_payments_transaction_id_key')) {
             return NextResponse.json({ error: 'This payment transaction ID has already been used. Please start the registration process again with a new payment.' }, { status: 409 });
         }
         

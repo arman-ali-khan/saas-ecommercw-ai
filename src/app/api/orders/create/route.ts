@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { encrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -16,9 +17,23 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Encrypt sensitive order data
+    const encryptedOrderData = {
+        ...dbOrderData,
+        customer_email: encrypt(dbOrderData.customer_email),
+        shipping_info: {
+            ...dbOrderData.shipping_info,
+            name: encrypt(dbOrderData.shipping_info.name),
+            address: encrypt(dbOrderData.shipping_info.address),
+            city: encrypt(dbOrderData.shipping_info.city),
+            phone: encrypt(dbOrderData.shipping_info.phone),
+            notes: dbOrderData.shipping_info.notes ? encrypt(dbOrderData.shipping_info.notes) : null
+        }
+    };
+
     const { data: newOrder, error: orderError } = await supabaseAdmin
       .from('orders')
-      .insert({ ...dbOrderData, status: 'pending' })
+      .insert({ ...encryptedOrderData, status: 'pending' })
       .select()
       .single();
 
@@ -29,30 +44,6 @@ export async function POST(request: Request) {
     
     if (uncompletedOrderId) {
         await supabaseAdmin.from('uncompleted_orders').delete().eq('id', uncompletedOrderId);
-    }
-
-    if (newOrder) {
-      // Notification for admin
-      await supabaseAdmin.from('notifications').insert({
-        recipient_id: newOrder.site_id,
-        recipient_type: 'admin',
-        site_id: newOrder.site_id,
-        order_id: newOrder.id,
-        message: `New order #${newOrder.order_number} has been placed for ${newOrder.total.toFixed(2)} BDT.`,
-        link: `/admin/orders/${newOrder.id}`,
-      });
-
-      // Notification for customer
-      if (newOrder.customer_id) {
-        await supabaseAdmin.from('notifications').insert({
-            recipient_id: newOrder.customer_id,
-            recipient_type: 'customer',
-            site_id: newOrder.site_id,
-            order_id: newOrder.id,
-            message: `Your order #${newOrder.order_number} has been placed successfully.`,
-            link: `/profile/orders/${newOrder.id}`
-        });
-      }
     }
 
     return NextResponse.json({ order: newOrder }, { status: 200 });
