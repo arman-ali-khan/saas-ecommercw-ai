@@ -12,11 +12,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Wand2, Copy, Sparkles } from 'lucide-react';
+import { Wand2, Copy, Sparkles, CheckCircle } from 'lucide-react';
 import { Textarea } from './ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { Product } from '@/types';
 import { useTranslation } from '@/hooks/use-translation';
+import { Separator } from './ui/separator';
+import { cn } from '@/lib/utils';
 
 interface AiShareToolProps {
   product: Product;
