@@ -552,7 +552,7 @@ export default function SettingsAdminPage() {
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>লোগো ছবি</FormLabel>
-                                    <div className="flex items-start gap-4">
+                                    <div className="flex flex-col items-start gap-4">
                                         <div className="relative h-24 w-24 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
                                             {isLogoUrlValid ? (
                                                 <Image src={logoImageUrl!} alt="Logo Preview" fill className="object-contain p-2" />
@@ -581,7 +581,7 @@ export default function SettingsAdminPage() {
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Favicon</FormLabel>
-                                <div className="flex items-start gap-4">
+                                <div className="flex flex-col items-start gap-4">
                                     <div className="relative h-16 w-16 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
                                         {isFaviconUrlValid ? (
                                             <Image src={faviconUrl!} alt="Favicon Preview" fill className="object-contain p-1" />
@@ -607,7 +607,7 @@ export default function SettingsAdminPage() {
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Social Share Image</FormLabel>
-                                <div className="flex items-start gap-4">
+                                <div className="flex flex-col items-start gap-4">
                                     <div className="relative h-24 sm:w-48 w-28 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
                                         {isSocialShareUrlValid ? (
                                             <Image src={socialShareImageUrl!} alt="Social Share Preview" fill className="object-contain p-1" />
