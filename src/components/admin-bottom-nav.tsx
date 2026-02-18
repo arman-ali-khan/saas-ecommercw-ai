@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -20,7 +21,7 @@ import {
 } from '@/components/ui/sheet';
 import AdminMobileSidebar from './admin-mobile-sidebar';
 import { useAuth } from '@/stores/auth';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
 export default function AdminBottomNav() {
@@ -29,30 +30,31 @@ export default function AdminBottomNav() {
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
+  const fetchCounts = useCallback(async () => {
+    const siteId = user?.id;
+    if (!siteId) return;
+
+    try {
+        const response = await fetch('/api/admin/dashboard-counts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId }),
+        });
+        const result = await response.json();
+        
+        if (response.ok && result.counts) {
+            setProcessingOrdersCount(result.counts.processingOrders);
+            setUnreadNotificationsCount(result.counts.unreadNotifications);
+        }
+    } catch (error) {
+        console.error("Failed to fetch dashboard counts (bottom nav):", error);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user) return;
-
-    const fetchCounts = async () => {
-      // Fetch processing orders count
-      const { count: orderCount } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('site_id', user.id)
-        .eq('status', 'processing');
-      setProcessingOrdersCount(orderCount || 0);
-
-      // Fetch unread notifications count
-      const { count: notifCount } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('recipient_id', user.id)
-        .eq('recipient_type', 'admin')
-        .eq('is_read', false);
-      setUnreadNotificationsCount(notifCount || 0);
-    };
-    
     fetchCounts();
-  }, [user]);
+  }, [user, fetchCounts]);
 
   const navLinks = [
     {

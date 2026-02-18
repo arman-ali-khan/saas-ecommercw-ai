@@ -48,7 +48,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, loading, logout: authLogout, refreshUser } = useAuth();
+  const { user, loading, logout: authLogout } = useAuth();
   const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [unviewedUncompletedCount, setUnviewedUncompletedCount] = useState(0);
@@ -60,48 +60,26 @@ export default function AdminSidebar() {
     const siteId = user?.id;
     if (!siteId) return;
 
-    // Fetch counts
-    const { count: orderCount } = await supabase
-      .from('orders')
-      .select('*', { count: 'exact', head: true })
-      .eq('site_id', siteId)
-      .eq('status', 'approved');
-    setProcessingOrdersCount(orderCount || 0);
-    
-    const { count: notifCount } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('recipient_id', siteId)
-      .eq('recipient_type', 'admin')
-      .eq('is_read', false);
-    setUnreadNotificationsCount(notifCount || 0);
-
-    const { count: uncompletedCount } = await supabase
-      .from('uncompleted_orders')
-      .select('*', { count: 'exact', head: true })
-      .eq('site_id', siteId)
-      .eq('is_viewed', false);
-    setUnviewedUncompletedCount(uncompletedCount || 0);
-
-    const { count: customerCount } = await supabase
-      .from('customer_profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('site_id', siteId);
-    setTotalCustomersCount(customerCount || 0);
-
-    const { count: reviewCount } = await supabase
-      .from('product_reviews')
-      .select('*', { count: 'exact', head: true })
-      .eq('site_id', siteId)
-      .eq('is_approved', false);
-    setPendingReviewsCount(reviewCount || 0);
-
-    const { count: qnaCount } = await supabase
-      .from('product_qna')
-      .select('*', { count: 'exact', head: true })
-      .eq('site_id', siteId)
-      .eq('is_approved', false);
-    setPendingQnaCount(qnaCount || 0);
+    try {
+        const response = await fetch('/api/admin/dashboard-counts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId }),
+        });
+        const result = await response.json();
+        
+        if (response.ok && result.counts) {
+            const { counts } = result;
+            setProcessingOrdersCount(counts.processingOrders);
+            setUnreadNotificationsCount(counts.unreadNotifications);
+            setUnviewedUncompletedCount(counts.unviewedUncompleted);
+            setTotalCustomersCount(counts.totalCustomers);
+            setPendingReviewsCount(counts.pendingReviews);
+            setPendingQnaCount(counts.pendingQna);
+        }
+    } catch (error) {
+        console.error("Failed to fetch dashboard counts:", error);
+    }
   }, [user?.id]);
   
   useEffect(() => {
@@ -184,10 +162,8 @@ export default function AdminSidebar() {
       <div className="hidden border-r border-border bg-card md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
             <div className="flex h-20 items-center border-b border-border px-6">
-                {/* Skeleton for logo */}
             </div>
             <div className="flex-1 overflow-auto py-2">
-                {/* Skeleton for nav */}
             </div>
         </div>
       </div>
