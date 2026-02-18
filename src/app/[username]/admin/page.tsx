@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
-import type { Order, Product, FlashDeal } from '@/types';
+import type { Order, Product, FlashDeal, ProductReview, ProductQna } from '@/types';
 import Link from 'next/link';
 import { format, subDays, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import {
@@ -42,6 +42,8 @@ import {
   Users,
   Ban,
   Flame,
+  Star,
+  HelpCircle,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -80,6 +82,8 @@ export default function AdminDashboard() {
   });
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
+  const [pendingReviews, setPendingReviews] = useState<ProductReview[]>([]);
+  const [unansweredQuestions, setPendingQuestions] = useState<ProductQna[]>([]);
   const [revenueChartData, setRevenueChartData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -120,7 +124,7 @@ export default function AdminDashboard() {
         const startOfCurrentMonth = startOfMonth(new Date());
 
         // Fetch using created secure APIs
-        const [ordersRes, productsRes, uncompletedRes, customersRes, flashDealsRes] = await Promise.all([
+        const [ordersRes, productsRes, uncompletedRes, customersRes, flashDealsRes, reviewsRes, qnaRes] = await Promise.all([
             fetch('/api/orders/list', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -146,14 +150,26 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ siteId }),
             }),
+            fetch('/api/reviews/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId }),
+            }),
+            fetch('/api/qna/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId }),
+            }),
         ]);
 
-        const [ordersResult, productsResult, uncompletedResult, customersResult, flashDealsResult] = await Promise.all([
+        const [ordersResult, productsResult, uncompletedResult, customersResult, flashDealsResult, reviewsResult, qnaResult] = await Promise.all([
             ordersRes.json(),
             productsRes.json(),
             uncompletedRes.json(),
             customersRes.json(),
             flashDealsRes.json(),
+            reviewsRes.json(),
+            qnaRes.json(),
         ]);
 
         if (!ordersRes.ok) throw new Error(ordersResult.error || 'Failed to fetch orders');
@@ -161,12 +177,16 @@ export default function AdminDashboard() {
         if (!uncompletedRes.ok) throw new Error(uncompletedResult.error || 'Failed to fetch uncompleted orders');
         if (!customersRes.ok) throw new Error(customersResult.error || 'Failed to fetch customers');
         if (!flashDealsRes.ok) throw new Error(flashDealsResult.error || 'Failed to fetch flash deals');
+        if (!reviewsRes.ok) throw new Error(reviewsResult.error || 'Failed to fetch reviews');
+        if (!qnaRes.ok) throw new Error(qnaResult.error || 'Failed to fetch Q&A');
 
         const allOrders: any[] = ordersResult.orders || [];
         const allProducts: any[] = productsResult.products || [];
         const uncompletedData: any[] = uncompletedResult.orders || [];
         const customersData: any[] = customersResult.customers || [];
         const allDeals: FlashDeal[] = flashDealsResult.deals || [];
+        const allReviews: ProductReview[] = reviewsResult.reviews || [];
+        const allQna: ProductQna[] = qnaResult.qna || [];
 
         // --- Calculate Stats ---
         const totalRevenue = allOrders
@@ -174,6 +194,8 @@ export default function AdminDashboard() {
             .reduce((acc, o) => acc + o.total, 0);
 
         setPendingOrders(allOrders.filter(o => o.status === 'pending').slice(0, 5));
+        setPendingReviews(allReviews.filter(r => !r.is_approved).slice(0, 5));
+        setPendingQuestions(allQna.filter(q => !q.is_approved).slice(0, 5));
 
         // Revenue Chart (Last 7 days)
         const dailyRevenue: { [key: string]: number } = {};
@@ -594,6 +616,107 @@ export default function AdminDashboard() {
                             <Card key={product.id}>
                                 <CardHeader><CardTitle className="text-sm">{product.name}</CardTitle></CardHeader>
                                 <CardContent className="flex justify-between items-center"><Badge variant="destructive">{t.stock}: {product.stock}</Badge><Button variant="secondary" size="sm" asChild><Link href={`/admin/products/${product.id}`}>{t.edit}</Link></Button></CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                  </>
+                )}
+            </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>{t.pendingReviews}</CardTitle>
+                    <CardDescription>{t.reviewDesc}</CardDescription>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                    <Link href={`/admin/reviews`}>{t.viewAll} <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                </Button>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-40 w-full" /> : pendingReviews.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingReviews}</p> : (
+                  <>
+                    <div className="hidden md:block">
+                      <Table>
+                        <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Rating</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                          {pendingReviews.map(review => (
+                            <TableRow key={review.id}>
+                              <TableCell className="font-medium">{review.customer_name}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star key={i} className={cn("h-3 w-3", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                                    ))}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/reviews`}><Eye className="mr-2 h-4 w-4"/>{t.view}</Link></Button></TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <div className="grid gap-4 md:hidden">
+                        {pendingReviews.map(review => (
+                            <Card key={review.id}>
+                                <CardHeader className="p-4 flex flex-row items-center justify-between">
+                                    <CardTitle className="text-sm">{review.customer_name}</CardTitle>
+                                    <div className="flex items-center">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} className={cn("h-3 w-3", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                                        ))}
+                                    </div>
+                                </CardHeader>
+                                <CardFooter className="p-4 pt-0 justify-end">
+                                    <Button variant="secondary" size="sm" asChild><Link href={`/admin/reviews`}>{t.view}</Link></Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                  </>
+                )}
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>{t.unansweredQna}</CardTitle>
+                    <CardDescription>{t.qnaDesc}</CardDescription>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                    <Link href={`/admin/qna`}>{t.viewAll} <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                </Button>
+            </CardHeader>
+            <CardContent>
+                 {isLoading ? <Skeleton className="h-40 w-full" /> : unansweredQuestions.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noUnansweredQna}</p> : (
+                  <>
+                     <div className="hidden md:block">
+                      <Table>
+                        <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Question</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                          {unansweredQuestions.map(q => (
+                            <TableRow key={q.id}>
+                              <TableCell className="font-medium text-xs">{q.customer_name}</TableCell>
+                              <TableCell className="max-w-[200px] truncate text-xs">"{q.question}"</TableCell>
+                              <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/qna`}><Eye className="mr-2 h-4 w-4"/>{t.view}</Link></Button></TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                     <div className="grid gap-4 md:hidden">
+                        {unansweredQuestions.map(q => (
+                            <Card key={q.id}>
+                                <CardHeader className="p-4 pb-2"><CardTitle className="text-sm">{q.customer_name}</CardTitle></CardHeader>
+                                <CardContent className="p-4 pt-0">
+                                    <p className="text-xs text-muted-foreground truncate">"{q.question}"</p>
+                                </CardContent>
+                                <CardFooter className="p-4 pt-0 justify-end">
+                                    <Button variant="secondary" size="sm" asChild><Link href={`/admin/qna`}>{t.view}</Link></Button>
+                                </CardFooter>
                             </Card>
                         ))}
                     </div>

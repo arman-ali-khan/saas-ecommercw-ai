@@ -81,7 +81,13 @@
     "action": "Action",
     "edit": "Edit",
     "delete": "Delete",
-    "stock": "Stock"
+    "stock": "Stock",
+    "pendingReviews": "Pending Reviews",
+    "unansweredQna": "Unanswered Questions",
+    "noPendingReviews": "No pending reviews.",
+    "noUnansweredQna": "No unanswered questions.",
+    "reviewDesc": "Approve new customer reviews.",
+    "qnaDesc": "Answer customer questions and publish them."
   },
   "products": {
     "title": "Product Management",
