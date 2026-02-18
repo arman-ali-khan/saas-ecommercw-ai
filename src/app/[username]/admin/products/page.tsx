@@ -27,16 +27,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2 } from 'lucide-react';
-import { getProductsBySiteId } from '@/lib/products';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/stores/auth';
 import { useEffect, useState, useCallback } from 'react';
 import type { Product } from '@/types';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useParams } from 'next/navigation';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 
@@ -72,10 +69,29 @@ export default function ProductsAdminPage() {
 
   const fetchProducts = useCallback(async () => {
     if (!user) return;
-    const fetchedProducts = await getProductsBySiteId(user.id);
-    setProducts(fetchedProducts);
-    setIsLoading(false);
-  }, [user]);
+    setIsLoading(true);
+    try {
+        const response = await fetch('/api/products/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            setProducts(result.products || []);
+        } else {
+            throw new Error(result.error || 'Failed to fetch products');
+        }
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Error loading products',
+            description: error.message,
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [user, toast]);
 
   useEffect(() => {
     if (!authLoading && user) {
