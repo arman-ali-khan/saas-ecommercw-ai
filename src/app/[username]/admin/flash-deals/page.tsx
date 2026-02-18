@@ -1,9 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { FlashDeal } from '@/types';
 import { format } from 'date-fns';
@@ -30,12 +30,23 @@ export default function FlashDealsAdminPage() {
         if (!user) return;
         setIsLoading(true);
 
-        const { data: dealsData, error: dealsError } = await supabase.from('flash_deals').select('*, products(*)').eq('site_id', user.id);
-
-        if (dealsError) toast({ variant: 'destructive', title: 'Error fetching deals', description: dealsError.message });
-        else setDeals(dealsData as any[] || []);
-        
-        setIsLoading(false);
+        try {
+            const response = await fetch('/api/flash-deals/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setDeals(result.deals as FlashDeal[]);
+            } else {
+                throw new Error(result.error || 'Failed to fetch deals');
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error fetching deals', description: error.message });
+        } finally {
+            setIsLoading(false);
+        }
     }, [user, toast]);
 
     useEffect(() => {
@@ -47,19 +58,31 @@ export default function FlashDealsAdminPage() {
     }, [user, authLoading, fetchDeals]);
 
     const handleDelete = async () => {
-        if (!dealToDelete) return;
+        if (!dealToDelete || !user) return;
         setIsDeleting(true);
-        const { error } = await supabase.from('flash_deals').delete().eq('id', dealToDelete.id);
-        
-        if (error) {
+        try {
+            const response = await fetch('/api/flash-deals/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: dealToDelete.id,
+                    siteId: user.id
+                }),
+            });
+
+            if (response.ok) {
+                toast({ title: 'Deal Deleted' });
+                await fetchDeals();
+            } else {
+                const result = await response.json();
+                throw new Error(result.error || 'Failed to delete deal');
+            }
+        } catch (error: any) {
             toast({ title: 'Error Deleting Deal', variant: 'destructive', description: error.message });
-        } else {
-            toast({ title: 'Deal Deleted' });
-            await fetchDeals();
+        } finally {
+            setIsDeleting(false);
+            setDealToDelete(null);
         }
-        
-        setIsDeleting(false);
-        setDealToDelete(null);
     };
     
     if (isLoading) {

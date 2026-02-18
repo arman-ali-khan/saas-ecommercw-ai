@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, FlashDeal } from '@/types';
 import FlashDealForm, { flashDealSchema } from '../../flash-deal-form';
@@ -22,7 +21,7 @@ export default function EditFlashDealPage() {
     const dealId = params.dealId as string;
 
     const [products, setProducts] = useState<Product[]>([]);
-    const [deals, setDeals] = useState<FlashDeal[]>([]); // All deals for validation
+    const [deals, setDeals] = useState<FlashDeal[]>([]); 
     const [initialData, setInitialData] = useState<FlashDeal | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,29 +30,41 @@ export default function EditFlashDealPage() {
         if (!user || !dealId) return;
         setIsLoading(true);
 
-        const dealPromise = supabase.from('flash_deals').select('*').eq('id', dealId).single();
-        const productsPromise = supabase.from('products').select('*').eq('site_id', user.id);
-        const allDealsPromise = supabase.from('flash_deals').select('id, product_id').eq('site_id', user.id);
+        try {
+            const dealRes = await fetch('/api/flash-deals/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: dealId, siteId: user.id }),
+            });
+            const dealResult = await dealRes.json();
 
-        const [
-            { data: dealData, error: dealError }, 
-            { data: productsData, error: productsError }, 
-            { data: allDealsData, error: allDealsError }
-        ] = await Promise.all([dealPromise, productsPromise, allDealsPromise]);
+            const productsRes = await fetch('/api/products/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const productsResult = await productsRes.json();
 
-        if (dealError || !dealData) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Flash deal not found.' });
+            const dealsRes = await fetch('/api/flash-deals/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const dealsResult = await dealsRes.json();
+
+            if (!dealRes.ok) throw new Error(dealResult.error || 'Flash deal not found.');
+            if (!productsRes.ok) throw new Error(productsResult.error || 'Error fetching products.');
+            if (!dealsRes.ok) throw new Error(dealsResult.error || 'Error fetching deals.');
+
+            setInitialData(dealResult.deal as FlashDeal);
+            setProducts(productsResult.products || []);
+            setDeals(dealsResult.deals || []);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
             router.push('/admin/flash-deals');
-            return;
+        } finally {
+            setIsLoading(false);
         }
-
-        if (productsError) toast({ variant: 'destructive', title: 'Error fetching products', description: productsError.message });
-        if (allDealsError) toast({ variant: 'destructive', title: 'Error fetching deals', description: allDealsError.message });
-
-        setInitialData(dealData as FlashDeal);
-        setProducts(productsData || []);
-        setDeals(allDealsData as FlashDeal[] || []);
-        setIsLoading(false);
     }, [user, dealId, toast, router]);
 
     useEffect(() => {
@@ -68,22 +79,32 @@ export default function EditFlashDealPage() {
         if (!user || !initialData) return;
         setIsSubmitting(true);
         const payload = {
-            product_id: data.product_id, // can't be changed, but schema needs it
+            id: initialData.id,
+            siteId: user.id,
+            product_id: data.product_id,
             discount_price: data.discount_price,
             start_date: data.date_range.startDate.toISOString(),
             end_date: data.date_range.endDate.toISOString(),
             is_active: data.is_active,
         };
 
-        const { error } = await supabase.from('flash_deals').update(payload).eq('id', initialData.id);
+        try {
+            const response = await fetch('/api/flash-deals/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json();
 
-        if (error) {
+            if (response.ok) {
+                toast({ title: 'Deal Updated' });
+                router.push('/admin/flash-deals');
+            } else {
+                throw new Error(result.error || 'Failed to update deal');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
             setIsSubmitting(false);
-        } else {
-            toast({ title: 'Deal Updated' });
-            router.push('/admin/flash-deals');
-            router.refresh();
         }
     };
     

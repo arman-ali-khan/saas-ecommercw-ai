@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, FlashDeal } from '@/types';
 import FlashDealForm, { flashDealSchema } from '../flash-deal-form';
@@ -22,38 +21,54 @@ export default function NewFlashDealPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const fetchProductsAndDeals = useCallback(async () => {
+    const fetchData = useCallback(async () => {
         if (!user) return;
         setIsLoading(true);
 
-        const productsPromise = supabase.from('products').select('*').eq('site_id', user.id);
-        const dealsPromise = supabase.from('flash_deals').select('id, product_id').eq('site_id', user.id);
+        try {
+            // Fetch products via API
+            const productsRes = await fetch('/api/products/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const productsResult = await productsRes.json();
+            
+            // Fetch deals via API
+            const dealsRes = await fetch('/api/flash-deals/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const dealsResult = await dealsRes.json();
 
-        const [{ data: productsData, error: productsError }, { data: dealsData, error: dealsError }] = await Promise.all([productsPromise, dealsPromise]);
+            if (productsRes.ok) setProducts(productsResult.products || []);
+            else throw new Error(productsResult.error);
 
-        if (productsError) toast({ variant: 'destructive', title: 'Error fetching products', description: productsError.message });
-        else setProducts(productsData || []);
-        
-        if (dealsError) toast({ variant: 'destructive', title: 'Error fetching existing deals', description: dealsError.message });
-        else setDeals(dealsData as FlashDeal[]);
+            if (dealsRes.ok) setDeals(dealsResult.deals || []);
+            else throw new Error(dealsResult.error);
 
-        setIsLoading(false);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error fetching data', description: error.message });
+        } finally {
+            setIsLoading(false);
+        }
     }, [user, toast]);
 
     useEffect(() => {
         if (!authLoading && user) {
-            fetchProductsAndDeals();
+            fetchData();
         } else if (!authLoading && !user) {
             setIsLoading(false);
         }
-    }, [user, authLoading, fetchProductsAndDeals]);
+    }, [user, authLoading, fetchData]);
 
     const onSubmit = async (data: FlashDealFormData) => {
         if (!user) return;
 
         setIsSubmitting(true);
         const payload = {
-            site_id: user.id,
+            siteId: user.id,
             product_id: data.product_id,
             discount_price: data.discount_price,
             start_date: data.date_range.startDate.toISOString(),
@@ -61,18 +76,23 @@ export default function NewFlashDealPage() {
             is_active: data.is_active,
         };
 
-        const { error } = await supabase.from('flash_deals').insert(payload);
+        try {
+            const response = await fetch('/api/flash-deals/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json();
 
-        if (error) {
-            if (error.code === '23505') { // unique constraint violation
-                toast({ variant: 'destructive', title: 'Product already has a deal', description: 'A product can only have one flash deal at a time. Please edit the existing one.' });
+            if (response.ok) {
+                toast({ title: 'Deal Created' });
+                router.push('/admin/flash-deals');
             } else {
-                 toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
+                throw new Error(result.error);
             }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
             setIsSubmitting(false);
-        } else {
-            toast({ title: 'Deal Created' });
-            router.push('/admin/flash-deals');
         }
     };
 
