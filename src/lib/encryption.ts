@@ -55,11 +55,14 @@ export function decrypt(text: string | null | undefined): string {
 }
 
 /**
- * Recursively decrypts object fields
+ * Recursively decrypts object fields. Safely handles non-object values.
  */
 export function decryptObject(obj: any): any {
   if (!obj || typeof obj !== 'object') return obj;
   
+  // Handle Dates which are technically objects
+  if (obj instanceof Date) return obj;
+
   if (Array.isArray(obj)) {
     return obj.map(item => decryptObject(item));
   }
@@ -68,7 +71,7 @@ export function decryptObject(obj: any): any {
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string' && value.startsWith(PREFIX)) {
       decrypted[key] = decrypt(value);
-    } else if (typeof value === 'object' && value !== null) {
+    } else if (value !== null && typeof value === 'object') {
       decrypted[key] = decryptObject(value);
     } else {
       decrypted[key] = value;

@@ -6,87 +6,110 @@ import { cookies } from 'next/headers'
 import { decryptObject } from '@/lib/encryption';
 
 export async function GET(request: Request) {
-  const cookieStore = await cookies()
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {}
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {}
-        },
-      },
-    }
-  )
-
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            try {
+              cookieStore.set({ name, value, ...options })
+            } catch (error) {}
+          },
+          remove(name: string, options: CookieOptions) {
+            try {
+              cookieStore.set({ name, value: '', ...options })
+            } catch (error) {}
+          },
+        },
+      }
+    );
+
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+        console.error('Session verification error:', sessionError);
+        return NextResponse.json({ error: 'Session verification failed' }, { status: 401 });
+    }
 
     if (!session) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
     
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) {
+        console.error('Critical Error: SUPABASE_SERVICE_ROLE_KEY is missing in env.');
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        serviceKey,
         { auth: { persistSession: false } }
-    )
+    );
 
-    // Fetch profile along with settings and plan details
-    // We use a simpler select to avoid complex join failures if some tables are empty
-    const { data: profile, error } = await supabaseAdmin
+    // 1. Fetch main profile
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select(`
-        *,
-        store_settings(*),
-        plans(*)
-      `)
+      .select('*')
       .eq('id', session.user.id)
       .maybeSingle();
 
-    if (error) {
-      console.error('Database query error in get-profile:', error);
-      return NextResponse.json({ error: 'Internal database error' }, { status: 500 });
+    if (profileError) {
+      console.error('Database query error (profile):', profileError);
+      return NextResponse.json({ error: 'Profile query failed' }, { status: 500 });
     }
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile record not found' }, { status: 404 });
     }
     
-    // Decrypt sensitive fields using recursive decryption
-    const decryptedProfile = decryptObject(profile);
+    // 2. Fetch related store settings
+    const { data: settings, error: settingsError } = await supabaseAdmin
+        .from('store_settings')
+        .select('*')
+        .eq('site_id', profile.id)
+        .maybeSingle();
     
-    // Domain authorization check (optional but recommended)
-    const hostname = request.headers.get('host') || '';
-    const hostWithoutPort = hostname.split(':')[0];
-    const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
-    
-    const isMainDomain = (hostWithoutPort === rootDomain || hostWithoutPort === `www.${rootDomain}`);
-    const requestSubdomain = isMainDomain ? null : hostWithoutPort.split('.')[0];
-    
-    // Basic verification: Admins should match their registered domain if on a subdomain
-    if (decryptedProfile.role === 'admin' && !isMainDomain && requestSubdomain) {
-        if (decryptedProfile.domain !== requestSubdomain && !hostname.includes('localhost') && !hostname.includes('cloudworkstations.dev')) {
-            console.warn(`Domain mismatch: User ${decryptedProfile.domain} accessed via ${requestSubdomain}`);
-            // We allow it for now to prevent lockout, but log the warning.
-        }
+    if (settingsError) {
+        console.error('Database query error (settings):', settingsError);
     }
 
+    // 3. Fetch plan details
+    let plan = null;
+    if (profile.subscription_plan) {
+        const { data: planData, error: planError } = await supabaseAdmin
+            .from('plans')
+            .select('*')
+            .eq('id', profile.subscription_plan)
+            .maybeSingle();
+        
+        if (planError) console.error('Database query error (plans):', planError);
+        plan = planData;
+    }
+
+    // Assemble combined object for decryption
+    const combinedProfile = {
+        ...profile,
+        store_settings: settings ? [settings] : [],
+        plans: plan ? [plan] : []
+    };
+    
+    // Decrypt sensitive fields
+    const decryptedProfile = decryptObject(combinedProfile);
+    
     return NextResponse.json({ profile: decryptedProfile });
 
   } catch (e: any) {
-    console.error('Catch block error in get-profile API:', e);
-    return NextResponse.json({ error: 'Internal Server Error', details: e.message }, { status: 500 });
+    console.error('Unhandled exception in get-profile API:', e);
+    return NextResponse.json({ 
+        error: 'Internal Server Error', 
+        message: e.message 
+    }, { status: 500 });
   }
 }
