@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { createClient } from '@supabase/supabase-js';
+import { decrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -16,31 +17,44 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 1. Find customer by email and siteId
-    const { data: user, error } = await supabaseAdmin
+    // 1. Fetch all customers for this site
+    // Since email is encrypted with a random IV, we cannot search directly by equality.
+    // We fetch users for the site and find the matching one in memory.
+    const { data: users, error } = await supabaseAdmin
       .from('customer_profiles')
       .select('*')
-      .eq('email', email)
-      .eq('site_id', siteId)
-      .single();
+      .eq('site_id', siteId);
 
-    if (error || !user || !user.password_hash) {
+    if (error || !users || users.length === 0) {
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
-    // 2. Compare password
+    // 2. Find the user with matching decrypted email
+    const user = users.find(u => decrypt(u.email) === email);
+
+    if (!user || !user.password_hash) {
+      return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
+    }
+
+    // 3. Compare password
     const isMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!isMatch) {
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
-    // 3. Return safe user object
+    // 4. Return safe user object (decrypted)
     const { password_hash, ...safeUser } = user;
-    return NextResponse.json({ user: safeUser }, { status: 200 });
+    const decryptedUser = {
+        ...safeUser,
+        full_name: decrypt(user.full_name),
+        email: decrypt(user.email)
+    };
+
+    return NextResponse.json({ user: decryptedUser }, { status: 200 });
 
   } catch (err: any) {
-    console.error("Login API Error:", err);
+    console.error("Customer Login API Error:", err);
     return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
   }
 }

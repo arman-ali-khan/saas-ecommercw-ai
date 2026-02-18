@@ -1,5 +1,7 @@
+
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { decrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -14,15 +16,22 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { data, error } = await supabaseAdmin
+    // 1. Fetch admins for this domain
+    // We fetch by domain first as it is not encrypted and unique per site.
+    const { data: profiles, error } = await supabaseAdmin
       .from('profiles')
-      .select('id')
-      .eq('email', email)
+      .select('id, email, role')
       .eq('domain', domain)
-      .eq('role', 'admin') // Also check for admin role
-      .single();
+      .eq('role', 'admin');
 
-    if (error || !data) {
+    if (error || !profiles || profiles.length === 0) {
+      return NextResponse.json({ error: 'This user is not a valid administrator for this site.' }, { status: 401 });
+    }
+
+    // 2. Find the profile with matching decrypted email
+    const profile = profiles.find(p => decrypt(p.email) === email);
+
+    if (!profile) {
       return NextResponse.json({ error: 'This user is not a valid administrator for this site.' }, { status: 401 });
     }
 
