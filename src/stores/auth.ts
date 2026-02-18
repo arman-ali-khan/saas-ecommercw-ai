@@ -35,7 +35,7 @@ interface AuthState {
 export const useAuth = create<AuthState>()((set, get) => ({
     user: null,
     session: null,
-    loading: true, // Initially loading until auth state is checked
+    loading: true, 
     
     setUser: (user) => set({ user }),
     setSession: (session) => set({ session }),
@@ -45,44 +45,27 @@ export const useAuth = create<AuthState>()((set, get) => ({
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          set({ user: null });
+          set({ user: null, loading: false });
           return;
         }
 
-        const { data: adminProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        // Use the secure API to fetch decrypted profile data
+        const response = await fetch('/api/auth/get-profile');
+        if (!response.ok) {
+            set({ user: null, loading: false });
+            return;
+        }
+        
+        const { profile: adminProfile } = await response.json();
 
-        if (profileError || !adminProfile) {
-          console.error("Error fetching profile directly:", profileError);
-          set({ user: null });
+        if (!adminProfile) {
+          set({ user: null, loading: false });
           return;
         }
         
-        const { data: settingsData } = await supabase
-          .from('store_settings')
-          .select('language, logo_type, logo_icon, logo_image_url')
-          .eq('site_id', adminProfile.id)
-          .single();
-
-        let planDetails: Partial<Plan> = {
-          product_limit: null,
-          customer_limit: null,
-          order_limit: null,
-        };
-
-        if (adminProfile.subscription_plan) {
-          const { data: planData } = await supabase
-            .from('plans')
-            .select('product_limit, customer_limit, order_limit')
-            .eq('id', adminProfile.subscription_plan)
-            .single();
-          if (planData) {
-            planDetails = planData;
-          }
-        }
+        // Extract nested data from API response
+        const settingsData = adminProfile.store_settings?.[0] || adminProfile.store_settings;
+        const planData = adminProfile.plans?.[0] || adminProfile.plans;
 
         const newUser: User = {
           id: adminProfile.id,
@@ -97,9 +80,9 @@ export const useAuth = create<AuthState>()((set, get) => ({
           role: adminProfile.role,
           isSaaSAdmin: adminProfile.role === 'saas_admin',
           last_subscription_from: adminProfile.last_subscription_from,
-          product_limit: planDetails.product_limit ?? null,
-          customer_limit: planDetails.customer_limit ?? null,
-          order_limit: planDetails.order_limit ?? null,
+          product_limit: planData?.product_limit ?? null,
+          customer_limit: planData?.customer_limit ?? null,
+          order_limit: planData?.order_limit ?? null,
           subscription_end_date: adminProfile.subscription_end_date,
           language: settingsData?.language || 'bn',
           logo_type: settingsData?.logo_type || 'icon',
@@ -115,13 +98,14 @@ export const useAuth = create<AuthState>()((set, get) => ({
           currentUser.subscription_end_date === newUser.subscription_end_date &&
           currentUser.fullName === newUser.fullName
         ) {
+          set({ loading: false });
           return;
         }
         
-        set({ user: newUser });
+        set({ user: newUser, loading: false });
       } catch (e) {
-        console.error('Error fetching profile directly:', e);
-        set({ user: null });
+        console.error('Error refreshing admin profile via API:', e);
+        set({ user: null, loading: false });
       }
     },
 
@@ -157,7 +141,6 @@ export const useAuth = create<AuthState>()((set, get) => ({
         set({ loading: false });
         return { user: null, error: error.message };
       }
-      // onAuthStateChange will trigger refreshUser and set the user state
       return { user: data.user, error: null };
     },
 
@@ -206,12 +189,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
     },
     
     logout: async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        throw error;
-      }
-      // The onAuthStateChange listener in AuthProvider will handle setting the state.
+      await supabase.auth.signOut();
     },
     
     updateUserProfile: async (userId: string, updates: Partial<User>) => {
@@ -221,20 +199,16 @@ export const useAuth = create<AuthState>()((set, get) => ({
         if (fullName) supabaseUpdates.full_name = fullName;
         if (username) supabaseUpdates.username = username;
 
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('profiles')
             .update(supabaseUpdates)
-            .eq('id', userId)
-            .select()
-            .single();
+            .eq('id', userId);
 
         if (error) {
             return { user: null, error: error.message };
         }
         
         await get().refreshUser();
-        const updatedUser = get().user;
-        
-        return { user: updatedUser, error: null };
+        return { user: get().user, error: null };
     }
 }));
