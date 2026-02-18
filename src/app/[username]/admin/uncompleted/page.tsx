@@ -3,8 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -32,8 +30,6 @@ import { MoreHorizontal, Mail, Eye, Loader2 } from 'lucide-react';
 
 
 export default function UncompletedOrdersPage() {
-    const params = useParams();
-    const username = params.username as string;
     const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const [uncompletedOrders, setUncompletedOrders] = useState<UncompletedOrder[]>([]);
@@ -42,31 +38,40 @@ export default function UncompletedOrdersPage() {
     const fetchUncompletedOrders = useCallback(async () => {
         if (!user) return;
 
-        const { data, error } = await supabase
-            .from('uncompleted_orders')
-            .select('*')
-            .eq('site_id', user.id)
-            .order('created_at', { ascending: false });
-
-        if (error) {
+        try {
+            const response = await fetch('/api/uncompleted-orders/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setUncompletedOrders(result.orders || []);
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
             toast({
                 variant: 'destructive',
                 title: 'Error fetching data',
                 description: error.message,
             });
-        } else if (data) {
-            setUncompletedOrders(data as UncompletedOrder[]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [user, toast]);
 
     const markAsViewed = useCallback(async () => {
         if (!user) return;
-        await supabase
-            .from('uncompleted_orders')
-            .update({ is_viewed: true })
-            .eq('site_id', user.id)
-            .eq('is_viewed', false);
+        try {
+            await fetch('/api/uncompleted-orders/mark-viewed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+        } catch (error) {
+            console.error('Failed to mark as viewed:', error);
+        }
     }, [user]);
 
     useEffect(() => {

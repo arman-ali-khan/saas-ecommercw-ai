@@ -1,10 +1,10 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -29,7 +29,6 @@ export default function UncompletedOrderDetailsPage() {
     const { user, loading: authLoading } = useAuth();
 
     const id = params.id as string;
-    const username = params.username as string;
 
     const [order, setOrder] = useState<UncompletedOrder | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -37,20 +36,25 @@ export default function UncompletedOrderDetailsPage() {
     const fetchOrder = useCallback(async () => {
         if (!id || !user) return;
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from('uncompleted_orders')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error || !data) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Uncompleted order not found.' });
+        try {
+            const response = await fetch('/api/uncompleted-orders/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setOrder(result.order as UncompletedOrder);
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Uncompleted order not found.' });
             router.push(`/admin/uncompleted`);
-            return;
+        } finally {
+            setIsLoading(false);
         }
-        setOrder(data as UncompletedOrder);
-        setIsLoading(false);
-    }, [id, user, router, toast, username]);
+    }, [id, user, router, toast]);
 
     useEffect(() => {
         if(!authLoading) {
@@ -104,9 +108,7 @@ export default function UncompletedOrderDetailsPage() {
         )
     }
 
-    if (!order) {
-        return null;
-    }
+    if (!order) return null;
 
     const cartId = order.id.split('-')[0].toUpperCase();
 

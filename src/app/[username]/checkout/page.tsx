@@ -19,12 +19,11 @@ import { supabase } from '@/lib/supabase/client';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { Loader2, Truck, Home, Briefcase, Building } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { ShippingZone } from '@/types';
+import type { ShippingZone, Address } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
-import type { Address } from '@/types';
 
 const checkoutSchema = z
   .object({
@@ -129,7 +128,15 @@ export default function CheckoutPage() {
       status: 'shipping-info-entered'
     };
 
-    await supabase.from('uncompleted_orders').upsert(uncompletedOrderData, { onConflict: 'id' });
+    try {
+        await fetch('/api/uncompleted-orders/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(uncompletedOrderData),
+        });
+    } catch (err) {
+        console.error('Failed to auto-save uncompleted order:', err);
+    }
   }, [uncompletedOrderId, siteId, form, customer, cartItems, cartSubtotal]);
 
 
@@ -138,7 +145,7 @@ export default function CheckoutPage() {
       saveUncompletedOrder();
     }, 2000); 
     return () => clearTimeout(handler);
-  }, [JSON.stringify(watchedFormValues), saveUncompletedOrder]);
+  }, [watchedFormValues.name, watchedFormValues.email, watchedFormValues.address, watchedFormValues.city, watchedFormValues.phone, watchedFormValues.notes, saveUncompletedOrder]);
 
 
   const paymentMethod = form.watch('paymentMethod');

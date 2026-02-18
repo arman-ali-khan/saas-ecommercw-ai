@@ -103,7 +103,15 @@ export function ShowcaseOrderBlock({
           status: 'shipping-info-entered'
         };
 
-        await supabase.from('uncompleted_orders').upsert(uncompletedOrderData, { onConflict: 'id' });
+        try {
+            await fetch('/api/uncompleted-orders/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(uncompletedOrderData),
+            });
+        } catch (err) {
+            console.error('Failed to auto-save uncompleted order in showcase:', err);
+        }
     }, [uncompletedOrderId, siteId, form, products, quantities]);
 
     useEffect(() => {
@@ -111,7 +119,7 @@ export function ShowcaseOrderBlock({
           saveUncompletedOrder();
         }, 2000);
         return () => clearTimeout(handler);
-    }, [JSON.stringify(watchedFormValues), quantities, saveUncompletedOrder]);
+    }, [watchedFormValues.name, watchedFormValues.phone, watchedFormValues.address, watchedFormValues.city, quantities, saveUncompletedOrder]);
 
 
     useEffect(() => {
