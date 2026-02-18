@@ -81,6 +81,25 @@
   }
 }
 
+ul[data-type="taskList"] li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+ul[data-type="taskList"] input {
+  outline-style: dashed;
+  mix-blend-mode: color-dodge;
+}
+ul[data-type="taskList"] {
+  display: flex;
+  align-items: center;
+  margin: 0 !important;
+  list-style-type: none;
+  overflow: hidden;
+  padding: 0 !important;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
