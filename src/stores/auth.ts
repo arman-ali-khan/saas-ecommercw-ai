@@ -49,23 +49,35 @@ export const useAuth = create<AuthState>()((set, get) => ({
           return;
         }
 
-        // Use the secure API to fetch decrypted profile data
-        const response = await fetch('/api/auth/get-profile');
+        // Call our internal API to get the full profile. 
+        // We use an absolute path starting with / to ensure it hits the correct domain root.
+        const response = await fetch('/api/auth/get-profile', {
+            method: 'GET',
+            cache: 'no-store'
+        });
+
         if (!response.ok) {
-            set({ user: null, loading: false });
+            if (response.status === 401) {
+                // Not authenticated or session expired
+                set({ user: null, loading: false });
+            } else {
+                console.error(`Profile fetch failed with status: ${response.status}`);
+                set({ loading: false });
+            }
             return;
         }
         
-        const { profile: adminProfile } = await response.json();
+        const data = await response.json();
+        const adminProfile = data.profile;
 
         if (!adminProfile) {
           set({ user: null, loading: false });
           return;
         }
         
-        // Extract nested data from API response
-        const settingsData = adminProfile.store_settings?.[0] || adminProfile.store_settings;
-        const planData = adminProfile.plans?.[0] || adminProfile.plans;
+        // Extract nested data from API response safely
+        const settingsData = Array.isArray(adminProfile.store_settings) ? adminProfile.store_settings[0] : adminProfile.store_settings;
+        const planData = Array.isArray(adminProfile.plans) ? adminProfile.plans[0] : adminProfile.plans;
 
         const newUser: User = {
           id: adminProfile.id,
@@ -90,22 +102,10 @@ export const useAuth = create<AuthState>()((set, get) => ({
           logo_image_url: settingsData?.logo_image_url || null,
         };
 
-        const currentUser = get().user;
-        if (
-          currentUser &&
-          currentUser.id === newUser.id &&
-          currentUser.subscription_status === newUser.subscription_status &&
-          currentUser.subscription_end_date === newUser.subscription_end_date &&
-          currentUser.fullName === newUser.fullName
-        ) {
-          set({ loading: false });
-          return;
-        }
-        
         set({ user: newUser, loading: false });
       } catch (e) {
         console.error('Error refreshing admin profile via API:', e);
-        set({ user: null, loading: false });
+        set({ loading: false });
       }
     },
 
@@ -127,9 +127,9 @@ export const useAuth = create<AuthState>()((set, get) => ({
         });
 
         if (!response.ok) {
-          const { error } = await response.json();
+          const result = await response.json();
           set({ loading: false });
-          return { user: null, error: error || 'Invalid credentials for this store.' };
+          return { user: null, error: result.error || 'Invalid credentials for this store.' };
         }
       } catch (e: any) {
         set({ loading: false });
@@ -190,6 +190,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
     
     logout: async () => {
       await supabase.auth.signOut();
+      set({ user: null, session: null });
     },
     
     updateUserProfile: async (userId: string, updates: Partial<User>) => {
