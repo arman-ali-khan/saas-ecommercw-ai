@@ -59,14 +59,13 @@ export default function SaasNotificationsPage() {
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
+        // Fetch using service role admin client directly for SaaS admin since they see everything
         const { data: notificationsData, error: notificationsError } = await supabase
             .from('notifications')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (notificationsError) {
-            throw notificationsError;
-        }
+        if (notificationsError) throw notificationsError;
 
         if (!notificationsData || notificationsData.length === 0) {
             setNotifications([]);
@@ -74,44 +73,30 @@ export default function SaasNotificationsPage() {
             return;
         }
 
-        const adminRecipientIds = notificationsData
-            .filter(n => n.recipient_type === 'admin')
-            .map(n => n.recipient_id);
-        
-        const customerRecipientIds = notificationsData
-            .filter(n => n.recipient_type === 'customer')
-            .map(n => n.recipient_id);
+        // Manually join profiles for the list
+        const adminRecipientIds = [...new Set(notificationsData.filter(n => n.recipient_type === 'admin').map(n => n.recipient_id))];
+        const customerRecipientIds = [...new Set(notificationsData.filter(n => n.recipient_type === 'customer').map(n => n.recipient_id))];
 
-        const profilesPromise = adminRecipientIds.length > 0 
+        const adminProfilesPromise = adminRecipientIds.length > 0 
             ? supabase.from('profiles').select('id, full_name, username').in('id', adminRecipientIds)
-            : Promise.resolve({ data: [], error: null });
+            : Promise.resolve({ data: [] });
 
         const customerProfilesPromise = customerRecipientIds.length > 0
             ? supabase.from('customer_profiles').select('id, full_name, email').in('id', customerRecipientIds)
-            : Promise.resolve({ data: [], error: null });
+            : Promise.resolve({ data: [] });
         
-        const [
-            { data: profilesData, error: profilesError },
-            { data: customerProfilesData, error: customerProfilesError }
-        ] = await Promise.all([profilesPromise, customerProfilesPromise]);
+        const [adminProfilesRes, customerProfilesRes] = await Promise.all([adminProfilesPromise, customerProfilesPromise]);
 
-
-        if (profilesError) throw profilesError;
-        if (customerProfilesError) throw customerProfilesError;
-
-        const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
-        const customerProfilesMap = new Map((customerProfilesData || []).map(p => [p.id, { ...p, username: p.email.split('@')[0] }]));
+        const profilesMap = new Map((adminProfilesRes.data || []).map((p: any) => [p.id, p]));
+        const customerProfilesMap = new Map((customerProfilesRes.data || []).map((p: any) => [p.id, { full_name: p.full_name, username: p.email.split('@')[0] }]));
 
         const combinedData = notificationsData.map(notification => {
-            let profileInfo = null;
-            if (notification.recipient_type === 'admin') {
-                profileInfo = profilesMap.get(notification.recipient_id) || null;
-            } else {
-                profileInfo = customerProfilesMap.get(notification.recipient_id) || null;
-            }
+            const profileInfo = notification.recipient_type === 'admin' 
+                ? profilesMap.get(notification.recipient_id) 
+                : customerProfilesMap.get(notification.recipient_id);
             return {
                 ...notification,
-                profiles: profileInfo,
+                profiles: profileInfo || null,
             };
         });
 

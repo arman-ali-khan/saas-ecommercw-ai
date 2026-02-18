@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -31,60 +30,69 @@ export default function AdminNotificationsPage() {
     if (!user) return;
     setIsLoading(true);
 
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('recipient_id', user.id)
-      .eq('recipient_type', 'admin')
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+        const response = await fetch('/api/notifications/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                recipientId: user.id,
+                recipientType: 'admin',
+                siteId: user.id
+            }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            setNotifications(result.notifications || []);
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error fetching notifications',
         description: error.message,
       });
-    } else if (data) {
-      setNotifications(data as Notification[]);
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, [user, toast]);
 
   useEffect(() => {
     if (!authLoading && user) {
       fetchNotifications();
-    } else if (!authLoading && !user) {
-      setIsLoading(false);
     }
   }, [user, authLoading, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId: string) => {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', notificationId);
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
-      );
+    try {
+        setNotifications((prev) =>
+            prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+        );
+        const response = await fetch('/api/notifications/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notificationId, recipientId: user?.id }),
+        });
+        if (!response.ok) throw new Error('Failed to update');
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+        fetchNotifications();
     }
   };
   
   const handleMarkAllAsRead = async () => {
     if(!user) return;
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('recipient_id', user.id)
-      .eq('is_read', false);
-
-    if (error) {
-        toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
+    try {
         setNotifications(prev => prev.map(n => ({...n, is_read: true})));
+        const response = await fetch('/api/notifications/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recipientId: user.id, all: true }),
+        });
+        if (!response.ok) throw new Error('Failed to update');
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+        fetchNotifications();
     }
   }
 
@@ -109,7 +117,7 @@ export default function AdminNotificationsPage() {
             <CardTitle>Notifications</CardTitle>
             <CardDescription>View all your site notifications.</CardDescription>
         </div>
-        <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>Mark all as read</Button>
+        <Button variant="outline" size="sm" onClick={handleMarkAllAsRead} disabled={notifications.every(n => n.is_read)}>Mark all as read</Button>
       </CardHeader>
       <CardContent>
         {notifications.length === 0 ? (

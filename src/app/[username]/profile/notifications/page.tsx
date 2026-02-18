@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import { Loader2, BellOff } from 'lucide-react';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase/client';
 import { useTranslation } from '@/hooks/use-translation';
 
 
@@ -35,16 +34,19 @@ export default function CustomerNotificationsPage() {
     if (!customer) return;
     setIsLoading(true);
     try {
-      const response = await fetch('/api/get-customer-notifications', {
+      const response = await fetch('/api/notifications/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id }),
+        body: JSON.stringify({ 
+            recipientId: customer.id, 
+            recipientType: 'customer',
+            siteId: customer.site_id 
+        }),
       });
-      if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
-      }
-      const { notifications: data } = await response.json();
-      setNotifications(data || []);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to fetch');
+      
+      setNotifications(result.notifications || []);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -56,36 +58,40 @@ export default function CustomerNotificationsPage() {
     }
   }, [customer, toast]);
 
-
-
   useEffect(() => {
     if (!customerLoading && customer) {
       fetchNotifications();
-    } else if (!customerLoading && !customer) {
-      setIsLoading(false);
     }
   }, [customer, customerLoading, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     if (!customer) return;
-    setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
-    await fetch('/api/mark-notification-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notificationId, customerId: customer.id }),
-    });
+    try {
+        setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
+        const response = await fetch('/api/notifications/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notificationId, recipientId: customer.id }),
+        });
+        if (!response.ok) throw new Error('Failed to update');
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+        fetchNotifications();
+    }
   };
 
   const handleMarkAllAsRead = async () => {
     if(!customer) return;
-    setNotifications(prev => prev.map(n => ({...n, is_read: true})));
-    const response = await fetch('/api/mark-all-notifications-read', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id }),
-    });
-    if (!response.ok) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to mark all as read.' });
+    try {
+        setNotifications(prev => prev.map(n => ({...n, is_read: true})));
+        const response = await fetch('/api/notifications/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recipientId: customer.id, all: true }),
+        });
+        if (!response.ok) throw new Error('Failed to update');
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
         fetchNotifications();
     }
   }
@@ -115,7 +121,7 @@ export default function CustomerNotificationsPage() {
             <h1 className="text-2xl font-bold">{t_profile.notifications}</h1>
             <p className="text-muted-foreground">{t_profile.notificationsDesc}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>{t_profile.markAllAsRead}</Button>
+        <Button variant="outline" size="sm" onClick={handleMarkAllAsRead} disabled={notifications.every(n => n.is_read)}>{t_profile.markAllAsRead}</Button>
       </div>
       <Card>
         <CardContent className="p-0">
