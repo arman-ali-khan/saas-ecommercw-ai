@@ -30,8 +30,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Loader2, Palette } from 'lucide-react';
 import { fontMap } from '@/lib/fonts';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -154,16 +153,19 @@ export default function AppearanceManagerPage() {
     },
   });
 
-  useEffect(() => {
-    if (user && !authLoading) {
-      setIsLoading(true);
-      supabase
-        .from('store_settings')
-        .select('*')
-        .eq('site_id', user.id)
-        .single()
-        .then(({ data, error }) => {
-          if (data) {
+  const fetchAppearance = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+        const response = await fetch('/api/appearance/get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        const result = await response.json();
+        
+        if (response.ok && result.appearance) {
+            const data = result.appearance;
             form.reset({
                 theme_primary: data.theme_primary || '207 90% 61%',
                 theme_secondary: data.theme_secondary || '217 33% 17%',
@@ -174,25 +176,44 @@ export default function AppearanceManagerPage() {
                 font_primary: data.font_primary || 'Hind Siliguri',
                 font_secondary: data.font_secondary || 'Orbitron',
             });
-          }
-          setIsLoading(false);
-        });
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error fetching appearance', description: error.message });
+    } finally {
+        setIsLoading(false);
     }
-  }, [user, authLoading, form]);
+  }, [user, form, toast]);
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      fetchAppearance();
+    }
+  }, [user, authLoading, fetchAppearance]);
 
   async function onSubmit(values: AppearanceFormData) {
     if (!user) return;
     setIsSubmitting(true);
-    const { error } = await supabase.from('store_settings').upsert({
-      site_id: user.id,
-      ...values,
-    });
     
-    setIsSubmitting(false);
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error saving appearance', description: error.message });
-    } else {
-      toast({ title: 'Appearance settings saved!', description: "Changes will be visible after reloading the store page." });
+    try {
+        const response = await fetch('/api/appearance/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                siteId: user.id,
+                ...values,
+            }),
+        });
+
+        if (response.ok) {
+            toast({ title: 'Appearance settings saved!', description: "Changes will be visible after reloading the store page." });
+        } else {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to save settings');
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error saving appearance', description: error.message });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
