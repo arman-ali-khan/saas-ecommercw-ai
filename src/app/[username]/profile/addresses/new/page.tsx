@@ -1,9 +1,9 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ProfileAddressForm, { type AddressFormData } from '@/components/profile-address-form';
 
@@ -20,22 +20,24 @@ export default function NewAddressPage() {
         }
         setIsSubmitting(true);
 
-        const payload = {
-            ...data,
-            customer_id: customer.id,
-            site_id: customer.site_id,
-        };
-
-        const { error } = await supabase.from('customer_addresses').insert(payload);
-        
-        setIsSubmitting(false);
-
-        if (error) {
+        try {
+            const response = await fetch('/api/customers/addresses/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...data, customerId: customer.id, siteId: customer.site_id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                toast({ title: 'New address added!' });
+                router.push('/profile/addresses');
+                router.refresh();
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
-        } else {
-            toast({ title: 'New address added!' });
-            router.push('/profile/addresses');
-            router.refresh();
+        } finally {
+            setIsSubmitting(false);
         }
     };
 

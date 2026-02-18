@@ -3,7 +3,6 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { supabase } from '@/lib/supabase/client';
 
 interface CustomerUser {
   id: string;
@@ -23,6 +22,7 @@ interface CustomerAuthState {
   customerLogin: (email: string, password: string, siteId: string) => Promise<{ error: { message: string } | null }>;
   customerLogout: () => Promise<void>;
   setCustomer: (customer: CustomerUser | null) => void;
+  refreshCustomer: () => Promise<void>;
   updateCustomerProfile: (updates: Partial<CustomerUser>) => Promise<{ customer: CustomerUser | null; error: string | null }>;
   updateCustomerPassword: (newPassword: string) => Promise<{ error: string | null }>;
 }
@@ -37,6 +37,25 @@ export const useCustomerAuth = create<CustomerAuthState>()(
       setHasHydrated: (state: boolean) => set({ _hasHydrated: state }),
       setCustomerLoading: (loading) => set({ loading }),
       setCustomer: (customer) => set({ customer }),
+
+      refreshCustomer: async () => {
+        const { customer } = get();
+        if (!customer) return;
+
+        try {
+            const response = await fetch('/api/customers/get-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                set({ customer: result.customer });
+            }
+        } catch (error) {
+            console.error("Failed to refresh customer profile:", error);
+        }
+      },
 
       registerCustomer: async (fullName, email, password, siteId) => {
         try {
@@ -140,6 +159,10 @@ export const useCustomerAuth = create<CustomerAuthState>()(
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
+        // Refresh customer data on page load if logged in
+        if (state?.customer) {
+            state.refreshCustomer();
+        }
       },
        partialize: (state) => ({ customer: state.customer }),
     }

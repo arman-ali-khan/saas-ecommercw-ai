@@ -11,12 +11,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, ShoppingBag, DollarSign, Star, MapPin, Settings as SettingsIcon } from 'lucide-react';
+import { LogOut, ShoppingBag, DollarSign, MapPin, Settings as SettingsIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import type { Order } from '@/types';
 import { useTranslation } from '@/hooks/use-translation';
 
@@ -45,19 +44,26 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!customerLoading && user) {
         setIsLoadingStats(true);
-        supabase.from('orders').select('*').eq('customer_id', user.id)
-            .then(({ data, error }) => {
-                if (error) {
-                    toast({ variant: 'destructive', title: 'Error fetching stats', description: error.message });
-                } else {
-                    setOrders(data as Order[]);
-                }
-                setIsLoadingStats(false);
-            });
+        fetch('/api/customers/get-orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId: user.id, siteId: user.site_id }),
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.orders) {
+                setOrders(data.orders);
+            }
+            setIsLoadingStats(false);
+        })
+        .catch(err => {
+            console.error("Failed to fetch orders for profile stats:", err);
+            setIsLoadingStats(false);
+        });
     } else if (!customerLoading && !user) {
         setIsLoadingStats(false);
     }
-  }, [user, customerLoading, toast]);
+  }, [user, customerLoading]);
 
   const stats = useMemo(() => {
     const totalSpent = orders.reduce((acc, order) => acc + (order.status !== 'canceled' ? order.total : 0), 0);

@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { format } from 'date-fns';
@@ -47,18 +46,23 @@ export default function OrdersPage() {
         };
 
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('customer_id', customer.id)
-            .order('created_at', { ascending: false });
-
-        if (error) {
+        try {
+            const response = await fetch('/api/customers/get-orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setOrders(result.orders || []);
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching orders', description: error.message });
-        } else {
-            setOrders(data as Order[]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [customer, toast]);
 
     useEffect(() => {
@@ -93,16 +97,24 @@ export default function OrdersPage() {
     };
 
     const handleCancelOrder = async (orderId: string) => {
-        const { error } = await supabase
-            .from('orders')
-            .update({ status: 'canceled' })
-            .eq('id', orderId);
-        
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error canceling order', description: error.message });
-        } else {
-            toast({ title: 'অর্ডার বাতিল করা হয়েছে' });
-            fetchOrders(); // Refresh orders
+        // We still use an API for cancellation or direct Supabase if policy allows.
+        // For security, let's use the update-status API if possible or create a new cancel API.
+        // For now, I'll use the existing update-status API which is robust.
+        try {
+            const response = await fetch('/api/orders/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, newStatus: 'canceled' }),
+            });
+            if (response.ok) {
+                toast({ title: 'অর্ডার বাতিল করা হয়েছে' });
+                fetchOrders();
+            } else {
+                const res = await response.json();
+                throw new Error(res.error);
+            }
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Error canceling order', description: err.message });
         }
     };
     

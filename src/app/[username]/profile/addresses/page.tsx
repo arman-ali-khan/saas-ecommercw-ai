@@ -19,7 +19,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Address } from '@/types';
@@ -39,18 +38,23 @@ export default function AddressesPage() {
     const fetchAddresses = useCallback(async () => {
         if (!customer) return;
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from('customer_addresses')
-            .select('*')
-            .eq('customer_id', customer.id)
-            .order('created_at', { ascending: false });
-        
-        if (error) {
+        try {
+            const response = await fetch('/api/customers/addresses/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setAddresses(result.addresses || []);
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching addresses', description: error.message });
-        } else {
-            setAddresses(data as Address[]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [customer, toast]);
 
     useEffect(() => {
@@ -66,19 +70,28 @@ export default function AddressesPage() {
     };
 
     const handleDelete = async () => {
-        if (!addressToDelete) return;
+        if (!addressToDelete || !customer) return;
         setIsDeleting(true);
-        const { error } = await supabase.from('customer_addresses').delete().eq('id', addressToDelete.id);
-        setIsDeleting(false);
-
-        if (error) {
+        
+        try {
+            const response = await fetch('/api/customers/addresses/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: addressToDelete.id, customerId: customer.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                toast({ title: 'ঠিকানা মুছে ফেলা হয়েছে' });
+                await fetchAddresses();
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
             toast({ title: 'ঠিকানা মুছতে সমস্যা হয়েছে', variant: 'destructive', description: error.message });
-        } else {
-            toast({ title: 'ঠিকানা মুছে ফেলা হয়েছে' });
-            await fetchAddresses();
+        } finally {
+            setIsDeleting(false);
+            setAddressToDelete(null);
         }
-
-        setAddressToDelete(null);
     };
 
   const AddressIcon = ({type}: {type: string | null}) => {

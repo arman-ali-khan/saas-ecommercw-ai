@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { format } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -41,20 +40,25 @@ export default function CustomerOrderDetailsPage() {
     const fetchOrder = useCallback(async () => {
         if (!orderId || !customer) return;
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('id', orderId)
-            .eq('customer_id', customer.id) // Security check
-            .single();
-
-        if (error || !data) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Order not found or you do not have permission to view it.' });
+        
+        try {
+            const response = await fetch('/api/customers/get-order-details', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, customerId: customer.id, siteId: customer.site_id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setOrder(result.order);
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
             router.push(`/profile/orders`);
-            return;
+        } finally {
+            setIsLoading(false);
         }
-        setOrder(data as Order);
-        setIsLoading(false);
     }, [orderId, customer, router, toast]);
 
 

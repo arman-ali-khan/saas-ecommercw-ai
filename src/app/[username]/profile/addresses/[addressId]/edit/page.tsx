@@ -25,6 +25,9 @@ export default function EditAddressPage() {
         if (!customer || !addressId) return;
         setIsLoading(true);
 
+        // For single item fetch, we can still use Supabase or create a get-address API.
+        // Let's use the list API and filter locally for simplicity, or just a direct call if allowed.
+        // Actually, let's use direct supabase for single fetch as it's safe if filtered by customer_id.
         const { data, error } = await supabase
             .from('customer_addresses')
             .select('*')
@@ -53,15 +56,25 @@ export default function EditAddressPage() {
     const onSubmit = async (data: AddressFormData) => {
         if (!customer || !initialData) return;
         setIsSubmitting(true);
-        const { error } = await supabase.from('customer_addresses').update(data).eq('id', initialData.id);
-
-        if (error) {
+        
+        try {
+            const response = await fetch('/api/customers/addresses/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...data, id: initialData.id, customerId: customer.id, siteId: customer.site_id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                toast({ title: 'Address Updated' });
+                router.push('/profile/addresses');
+                router.refresh();
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
+        } finally {
             setIsSubmitting(false);
-        } else {
-            toast({ title: 'Address Updated' });
-            router.push('/profile/addresses');
-            router.refresh();
         }
     };
     
