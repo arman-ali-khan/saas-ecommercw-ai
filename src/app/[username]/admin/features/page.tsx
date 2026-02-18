@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -5,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { StoreFeature } from '@/types';
 import Image from 'next/image';
@@ -52,18 +52,23 @@ export default function FeaturesAdminPage() {
     const fetchFeatures = useCallback(async () => {
         if (!user) return;
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from('store_features')
-            .select('*')
-            .eq('site_id', user.id)
-            .order('order', { ascending: true });
-        
-        if (error) {
+        try {
+            const response = await fetch('/api/store-features/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setFeatures(result.features as StoreFeature[]);
+            } else {
+                throw new Error(result.error || 'Failed to fetch features');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching features', description: error.message });
-        } else {
-            setFeatures(data as StoreFeature[]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [user, toast]);
 
     useEffect(() => {
@@ -93,31 +98,32 @@ export default function FeaturesAdminPage() {
         if (!user) return;
         setIsSubmitting(true);
         
-        let error;
+        try {
+            const response = await fetch('/api/store-features/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedFeature?.id,
+                    siteId: user.id,
+                    ...data 
+                }),
+            });
 
-        if (selectedFeature) {
-            const payload = { ...data };
-            const { error: updateError } = await supabase
-                .from('store_features')
-                .update(payload)
-                .eq('id', selectedFeature.id);
-            error = updateError;
-            if (!error) toast({ title: 'Feature Updated' });
-        } else {
-            const payload = { ...data, site_id: user.id, order: features.length };
-            const { error: insertError } = await supabase.from('store_features').insert(payload);
-            error = insertError;
-            if (!error) toast({ title: 'Feature Created' });
-        }
+            const result = await response.json();
 
-        if (error) {
+            if (response.ok) {
+                toast({ title: `Feature ${selectedFeature ? 'Updated' : 'Created'}` });
+                await fetchFeatures();
+                setIsFormOpen(false);
+                setSelectedFeature(null);
+            } else {
+                throw new Error(result.error || 'Failed to save feature');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
-        } else {
-            await fetchFeatures();
-            setIsFormOpen(false);
-            setSelectedFeature(null);
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     const openForm = (feature: StoreFeature | null) => {
@@ -131,25 +137,37 @@ export default function FeaturesAdminPage() {
     };
 
     const handleDelete = async () => {
-        if (!selectedFeature) return;
+        if (!selectedFeature || !user) return;
         setIsSubmitting(true);
-        const { error } = await supabase.from('store_features').delete().eq('id', selectedFeature.id);
-        
-        if (error) {
+        try {
+            const response = await fetch('/api/store-features/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedFeature.id,
+                    siteId: user.id
+                }),
+            });
+
+            if (response.ok) {
+                toast({ title: 'Feature Deleted' });
+                await fetchFeatures();
+            } else {
+                const result = await response.json();
+                throw new Error(result.error || 'Failed to delete feature');
+            }
+        } catch (error: any) {
             toast({ title: 'Error Deleting Feature', variant: 'destructive', description: error.message });
-        } else {
-            toast({ title: 'Feature Deleted' });
-            await fetchFeatures();
+        } finally {
+            setIsSubmitting(false);
+            setIsAlertOpen(false);
+            setSelectedFeature(null);
         }
-        
-        setIsSubmitting(false);
-        setIsAlertOpen(false);
-        setSelectedFeature(null);
     };
     
     const handleMove = async (index: number, direction: 'up' | 'down') => {
         const newIndex = direction === 'up' ? index - 1 : index + 1;
-        if (newIndex < 0 || newIndex >= features.length) return;
+        if (newIndex < 0 || newIndex >= features.length || !user) return;
         
         const newFeatures = [...features];
         const [movedItem] = newFeatures.splice(index, 1);
@@ -161,14 +179,24 @@ export default function FeaturesAdminPage() {
         }));
         
         setIsLoading(true);
-        const { error } = await supabase.from('store_features').upsert(updates);
-        if (error) {
+        try {
+            const response = await fetch('/api/store-features/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id, updates }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error);
+            setFeatures(newFeatures);
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Failed to reorder features', description: error.message });
+            await fetchFeatures();
+        } finally {
+            setIsLoading(false);
         }
-        await fetchFeatures();
     };
     
-    if (isLoading) {
+    if (isLoading && features.length === 0) {
         return <div className="flex items-center justify-center p-16"><Loader2 className="h-10 w-10 animate-spin text-muted-foreground" /></div>;
     }
     
