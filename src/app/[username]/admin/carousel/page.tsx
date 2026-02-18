@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -6,7 +7,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { CarouselSlide } from '@/types';
 
@@ -59,18 +59,24 @@ export default function CarouselAdminPage() {
 
     const fetchSlides = useCallback(async () => {
         if (!user) return;
-        const { data, error } = await supabase
-            .from('carousel_slides')
-            .select('*')
-            .eq('site_id', user.id)
-            .order('order', { ascending: true });
-        
-        if (error) {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/carousel/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setSlides(result.slides as CarouselSlide[]);
+            } else {
+                throw new Error(result.error || 'Failed to fetch slides');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching slides', description: error.message });
-        } else {
-            setSlides(data as CarouselSlide[]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [user, toast]);
 
     useEffect(() => {
@@ -84,7 +90,14 @@ export default function CarouselAdminPage() {
     useEffect(() => {
         if (isFormOpen) {
             if (selectedSlide) {
-                form.reset(selectedSlide);
+                form.reset({
+                    image_url: selectedSlide.image_url,
+                    title: selectedSlide.title,
+                    description: selectedSlide.description || '',
+                    link: selectedSlide.link || '',
+                    link_text: selectedSlide.link_text || '',
+                    is_enabled: selectedSlide.is_enabled,
+                });
             } else {
                 form.reset({ image_url: '', title: '', description: '', link: '', link_text: '', is_enabled: true });
             }
@@ -94,32 +107,33 @@ export default function CarouselAdminPage() {
     const onSubmit = async (data: SlideFormData) => {
         if (!user) return;
         setIsSubmitting(true);
-        let error;
 
-        if (selectedSlide) {
-            // Update
-            const { error: updateError } = await supabase
-                .from('carousel_slides')
-                .update(data)
-                .eq('id', selectedSlide.id);
-            error = updateError;
-            if (!error) toast({ title: 'Slide Updated' });
-        } else {
-            // Create
-            const payload = { ...data, site_id: user.id, order: slides.length };
-            const { error: insertError } = await supabase.from('carousel_slides').insert(payload);
-            error = insertError;
-            if (!error) toast({ title: 'Slide Created' });
-        }
+        try {
+            const response = await fetch('/api/carousel/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedSlide?.id,
+                    siteId: user.id,
+                    ...data 
+                }),
+            });
 
-        if (error) {
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: `Slide ${selectedSlide ? 'Updated' : 'Created'}` });
+                await fetchSlides();
+                setIsFormOpen(false);
+                setSelectedSlide(null);
+            } else {
+                throw new Error(result.error || 'Failed to save slide');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
-        } else {
-            await fetchSlides();
-            setIsFormOpen(false);
-            setSelectedSlide(null);
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     const openForm = (slide: CarouselSlide | null) => {
@@ -133,25 +147,38 @@ export default function CarouselAdminPage() {
     };
 
     const handleDelete = async () => {
-        if (!selectedSlide) return;
+        if (!selectedSlide || !user) return;
         setIsSubmitting(true);
-        const { error } = await supabase.from('carousel_slides').delete().eq('id', selectedSlide.id);
-        
-        if (error) {
+        try {
+            const response = await fetch('/api/carousel/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedSlide.id,
+                    siteId: user.id
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: 'Slide Deleted' });
+                await fetchSlides();
+            } else {
+                throw new Error(result.error || 'Failed to delete slide');
+            }
+        } catch (error: any) {
             toast({ title: 'Error Deleting Slide', variant: 'destructive', description: error.message });
-        } else {
-            toast({ title: 'Slide Deleted' });
-            await fetchSlides();
+        } finally {
+            setIsSubmitting(false);
+            setIsAlertOpen(false);
+            setSelectedSlide(null);
         }
-        
-        setIsSubmitting(false);
-        setIsAlertOpen(false);
-        setSelectedSlide(null);
     };
     
     const handleMove = async (index: number, direction: 'up' | 'down') => {
         const newIndex = direction === 'up' ? index - 1 : index + 1;
-        if (newIndex < 0 || newIndex >= slides.length) return;
+        if (newIndex < 0 || newIndex >= slides.length || !user) return;
         
         const newSlides = [...slides];
         const [movedItem] = newSlides.splice(index, 1);
@@ -163,14 +190,24 @@ export default function CarouselAdminPage() {
         }));
         
         setIsLoading(true);
-        const { error } = await supabase.from('carousel_slides').upsert(updates);
-        if (error) {
+        try {
+            const response = await fetch('/api/carousel/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id, updates }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error);
+            setSlides(newSlides);
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Failed to reorder slides', description: error.message });
+            await fetchSlides();
+        } finally {
+            setIsLoading(false);
         }
-        await fetchSlides();
     };
     
-    if (isLoading) {
+    if (isLoading && slides.length === 0) {
         return <div className="flex items-center justify-center p-16"><Loader2 className="h-10 w-10 animate-spin text-muted-foreground" /></div>;
     }
     
