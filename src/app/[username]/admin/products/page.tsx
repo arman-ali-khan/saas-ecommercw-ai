@@ -86,16 +86,24 @@ export default function ProductsAdminPage() {
   }, [user, authLoading, fetchProducts]);
 
   const handleDelete = async () => {
-    if (!productToDelete) return;
+    if (!productToDelete || !user) return;
     
     setIsDeleting(true);
     try {
-        const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productToDelete.id);
-        
-      if (error) throw error;
+        const response = await fetch('/api/products/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                productId: productToDelete.id,
+                siteId: user.id,
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to delete product');
+        }
 
       toast({ title: 'Product deleted' });
       await fetchProducts(); // Refetch products

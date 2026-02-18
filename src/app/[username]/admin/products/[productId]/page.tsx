@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -350,87 +351,41 @@ export default function ManageProductPage() {
       images: productValues.images.filter((img) => img.imageUrl),
     };
 
-    let productError;
-
-    if (isNew) {
-      const payload = { ...finalProductValues, site_id: user.id };
-      const { error: insertError } = await supabase
-        .from('products')
-        .insert(payload);
-      productError = insertError;
-    } else {
-      const { id, ...updateData } = finalProductValues;
-      const decodedProductId = decodeURIComponent(productId);
-      const { error: updateError } = await supabase
-        .from('products')
-        .update(updateData)
-        .match({ id: decodedProductId, site_id: user.id });
-      productError = updateError;
-    }
-
-    if (productError) {
-      setIsSubmitting(false);
-      if (productError.code === '23505') { // Unique constraint violation
-        form.setError('id', { type: 'manual', message: 'This Product ID/Slug is already taken. Please choose another.' });
-        toast({ variant: 'destructive', title: 'Product ID already exists', description: 'Please choose a unique Product ID / Slug.' });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: `Failed to ${isNew ? 'create' : 'update'} product`,
-          description: productError.message,
-        });
-      }
-      return;
-    }
-    
-    let flashDealError;
     try {
-        const decodedProductId = decodeURIComponent(productId);
-        const { data: existingDeal } = await supabase
-            .from('flash_deals')
-            .select('id')
-            .eq('product_id', isNew ? values.id : decodedProductId)
-            .eq('site_id', user.id)
-            .maybeSingle();
+        const response = await fetch('/api/products/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                isNew,
+                siteId: user.id,
+                productId: isNew ? undefined : decodeURIComponent(productId),
+                productData: finalProductValues,
+                flashDealData: has_flash_deal ? {
+                    discount_price: flash_deal_price,
+                    start_date: flash_deal_range?.startDate?.toISOString(),
+                    end_date: flash_deal_range?.endDate?.toISOString(),
+                } : null
+            })
+        });
 
-        if (has_flash_deal) {
-            const flashDealPayload = {
-                site_id: user.id,
-                product_id: isNew ? values.id : decodedProductId,
-                discount_price: flash_deal_price!,
-                start_date: flash_deal_range!.startDate!.toISOString(),
-                end_date: flash_deal_range!.endDate!.toISOString(),
-                is_active: true,
-            };
-            if (existingDeal) {
-                const { error } = await supabase.from('flash_deals').update(flashDealPayload).eq('id', existingDeal.id);
-                flashDealError = error;
-            } else {
-                const { error } = await supabase.from('flash_deals').insert(flashDealPayload);
-                flashDealError = error;
-            }
-        } else if (existingDeal) {
-            const { error } = await supabase.from('flash_deals').delete().eq('id', existingDeal.id);
-            flashDealError = error;
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to save product');
         }
 
-    } catch (e: any) {
-        flashDealError = e;
-    }
+        toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
+        router.push(`/admin/products`);
+        router.refresh();
 
-    if (flashDealError) {
+    } catch (error: any) {
         setIsSubmitting(false);
         toast({
             variant: 'destructive',
-            title: `Failed to update flash deal`,
-            description: flashDealError.message,
+            title: `Error`,
+            description: error.message,
         });
-        return;
     }
-
-    toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
-    router.push(`/admin/products`);
-    router.refresh();
   };
 
   const handleSetFeatured = (fromIndex: number) => {
@@ -1020,5 +975,3 @@ export default function ManageProductPage() {
     </div>
   );
 }
-
-    
