@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/stores/auth';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -47,18 +46,23 @@ export default function PagesAdminPage() {
   const fetchPages = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('pages')
-      .select('*')
-      .eq('site_id', user.id)
-      .order('title', { ascending: true });
-
-    if (error) {
+    try {
+        const response = await fetch('/api/pages/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            setPages(result.pages || []);
+        } else {
+            throw new Error(result.error || 'Failed to fetch pages');
+        }
+    } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error fetching pages', description: error.message });
-    } else {
-      setPages(data as Page[]);
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, [user, toast]);
 
   useEffect(() => {
@@ -70,13 +74,22 @@ export default function PagesAdminPage() {
   }, [user, authLoading, fetchPages]);
 
   const handleDelete = async () => {
-    if (!pageToDelete) return;
+    if (!pageToDelete || !user) return;
     setIsDeleting(true);
     try {
-        const { error } = await supabase.from('pages').delete().eq('id', pageToDelete.id);
-        if (error) throw error;
-        toast({ title: 'Page Deleted' });
-        await fetchPages();
+        const response = await fetch('/api/pages/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: pageToDelete.id, siteId: user.id }),
+        });
+        const result = await response.json();
+        
+        if (response.ok) {
+            toast({ title: 'Page Deleted' });
+            await fetchPages();
+        } else {
+            throw new Error(result.error || 'Failed to delete page');
+        }
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error deleting page', description: error.message });
     } finally {

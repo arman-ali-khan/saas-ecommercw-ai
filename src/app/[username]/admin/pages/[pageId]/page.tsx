@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState, useCallback, useTransition } from 'react';
@@ -479,28 +478,37 @@ export default function ManagePage() {
     if (!user) return;
 
     if (!isNew) {
-        const { data, error } = await supabase.from('pages').select('*').eq('id', pageId).eq('site_id', user.id).single();
-        if (error || !data) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Page not found.' });
+        try {
+            const response = await fetch('/api/pages/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: pageId, siteId: user.id }),
+            });
+            const result = await response.json();
+            
+            if (response.ok && result.page) {
+                const pageData = result.page as Page;
+                const contentWithDates = (pageData.content || []).map((block: any) => {
+                    if (block.type === 'countdown' && block.endDate && typeof block.endDate === 'string') {
+                        return { ...block, endDate: new Date(block.endDate) };
+                    }
+                    return { ...block, id: block.id || uuidv4() };
+                });
+
+                form.reset({
+                    title: pageData.title,
+                    slug: pageData.slug,
+                    content: contentWithDates,
+                    is_published: pageData.is_published,
+                });
+            } else {
+                throw new Error(result.error || 'Page not found');
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
             router.push(`/admin/pages`);
             return;
         }
-        const pageData = data as Page;
-        
-        // Ensure endDate is a Date object if it exists
-        const contentWithDates = (pageData.content || []).map((block: any) => {
-            if (block.type === 'countdown' && block.endDate && typeof block.endDate === 'string') {
-                return { ...block, endDate: new Date(block.endDate) };
-            }
-            return { ...block, id: block.id || uuidv4() };
-        });
-
-        form.reset({
-            title: pageData.title,
-            slug: pageData.slug,
-            content: contentWithDates,
-            is_published: pageData.is_published,
-        });
     }
 
     const { data: productsData, error: productsError } = await supabase.from('products').select('*').eq('site_id', user.id);
@@ -526,29 +534,34 @@ export default function ManagePage() {
       return;
     }
     setIsSubmitting(true);
-    const payload = { ...values, site_id: user.id };
-    let error;
-    if (isNew) {
-      const { error: insertError } = await supabase.from('pages').insert(payload);
-      error = insertError;
-    } else {
-      const { error: updateError } = await supabase.from('pages').update(payload).eq('id', pageId);
-      error = updateError;
+    
+    try {
+        const payload = { ...values, site_id: user.id, id: isNew ? undefined : pageId };
+        const response = await fetch('/api/pages/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+            toast({ title: `Page ${isNew ? 'created' : 'updated'} successfully!` });
+            startTransition(() => {
+                router.push(`/admin/pages`);
+                router.refresh();
+            });
+        } else {
+            if (response.status === 409) {
+                form.setError('slug', { type: 'manual', message: result.error });
+            } else {
+                throw new Error(result.error || `Failed to ${isNew ? 'create' : 'update'} page`);
+            }
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } finally {
+        setIsSubmitting(false);
     }
-    if (error) {
-      if (error.code === '23505') {
-        form.setError('slug', { type: 'manual', message: 'This slug is already in use. Please choose another.' });
-      } else {
-        toast({ variant: 'destructive', title: `Failed to ${isNew ? 'create' : 'update'} page`, description: error.message });
-      }
-    } else {
-      toast({ title: `Page ${isNew ? 'created' : 'updated'} successfully!` });
-      startTransition(() => {
-        router.push(`/admin/pages`);
-        router.refresh();
-      });
-    }
-    setIsSubmitting(false);
   };
 
   if (isLoading) {
