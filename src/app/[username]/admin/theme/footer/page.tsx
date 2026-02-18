@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { FooterLinkCategory, FooterLink } from '@/types';
 
@@ -17,7 +16,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const categorySchema = z.object({ title: z.string().min(1, 'Title is required') });
 const linkSchema = z.object({ label: z.string().min(1, 'Label is required'), href: z.string().min(1, 'URL is required') });
@@ -36,18 +34,23 @@ export default function FooterManagerPage() {
     const fetchFooterData = useCallback(async () => {
         if (!user) return;
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from('footer_link_categories')
-            .select('*, footer_links(*)')
-            .eq('site_id', user.id)
-            .order('order');
-        
-        if (error) {
+        try {
+            const response = await fetch('/api/footer/categories/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setCategories(result.categories || []);
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching footer data', description: error.message });
-        } else {
-            setCategories((data as any[]) || []);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [user, toast]);
 
     useEffect(() => {
@@ -65,42 +68,67 @@ export default function FooterManagerPage() {
         if (!user) return;
         setIsSubmitting(true);
         try {
+            let endpoint = '';
+            let payload = { ...formData, siteId: user.id };
+
             if (dialog?.type === 'category') {
-                const payload = { ...formData, site_id: user.id, order: dialog.data ? dialog.data.order : categories.length };
-                const { error } = dialog.data
-                    ? await supabase.from('footer_link_categories').update(payload).eq('id', dialog.data.id)
-                    : await supabase.from('footer_link_categories').insert(payload);
-                if (error) throw error;
-                toast({ title: `Category ${dialog.data ? 'updated' : 'created'}.` });
+                endpoint = '/api/footer/categories/save';
+                payload.id = dialog.data?.id;
+                payload.order = dialog.data ? dialog.data.order : categories.length;
             } else if (dialog?.type === 'link') {
-                const payload = { ...formData, site_id: user.id, category_id: dialog.categoryId, order: dialog.data ? dialog.data.order : 0 };
-                const { error } = dialog.data
-                    ? await supabase.from('footer_links').update(payload).eq('id', dialog.data.id)
-                    : await supabase.from('footer_links').insert(payload);
-                if (error) throw error;
-                toast({ title: `Link ${dialog.data ? 'updated' : 'created'}.` });
+                endpoint = '/api/footer/links/save';
+                payload.id = dialog.data?.id;
+                payload.categoryId = dialog.categoryId;
+                payload.order = dialog.data ? dialog.data.order : 0;
             }
-            setDialog(null);
-            await fetchFooterData();
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: `${dialog?.type === 'category' ? 'Category' : 'Link'} ${dialog?.data ? 'updated' : 'created'}.` });
+                setDialog(null);
+                await fetchFooterData();
+            } else {
+                throw new Error(result.error);
+            }
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: e.message });
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     const handleDelete = async (type: 'category' | 'link', id: string) => {
-        const table = type === 'category' ? 'footer_link_categories' : 'footer_links';
-        const { error } = await supabase.from(table).delete().eq('id', id);
-        if (error) {
+        if (!user) return;
+        const endpoint = type === 'category' ? '/api/footer/categories/delete' : '/api/footer/links/delete';
+        
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, siteId: user.id }),
+            });
+
+            if (response.ok) {
+                toast({ title: `${type.charAt(0).toUpperCase() + type.slice(1)} deleted.` });
+                await fetchFooterData();
+            } else {
+                const result = await response.json();
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: `Failed to delete ${type}`, description: error.message });
-        } else {
-            toast({ title: `${type.charAt(0).toUpperCase() + type.slice(1)} deleted.` });
-            await fetchFooterData();
         }
     };
     
-    if (isLoading) {
-        return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8" /></div>;
+    if (isLoading && categories.length === 0) {
+        return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-muted-foreground" /></div>;
     }
 
     return (
@@ -117,7 +145,7 @@ export default function FooterManagerPage() {
                             {categories.map(cat => (
                                 <AccordionItem value={cat.id} key={cat.id}>
                                     <AccordionTrigger className="hover:no-underline">
-                                        <div className="flex items-center justify-between w-full pr-4">
+                                        <div className="flex items-center justify-between w-full pr-4 text-left">
                                             <span>{cat.title}</span>
                                             <div className="flex items-center gap-1">
                                                 <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDialog({ type: 'category', data: cat }); }}><Edit className="h-4 w-4"/></Button>
@@ -126,18 +154,24 @@ export default function FooterManagerPage() {
                                         </div>
                                     </AccordionTrigger>
                                     <AccordionContent className="pl-4">
-                                        {(cat.footer_links || []).map(link => (
-                                            <div key={link.id} className="flex items-center justify-between py-2 border-b">
-                                                <div>
-                                                    <p className="font-medium">{link.label}</p>
-                                                    <p className="text-xs text-muted-foreground font-mono">{link.href}</p>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => setDialog({ type: 'link', data: link, categoryId: cat.id })}><Edit className="h-4 w-4"/></Button>
-                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete('link', link.id)}><Trash2 className="h-4 w-4"/></Button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        <div className="space-y-2">
+                                            {(cat.footer_links || []).length > 0 ? (
+                                                cat.footer_links?.map(link => (
+                                                    <div key={link.id} className="flex items-center justify-between py-2 border-b">
+                                                        <div className="truncate pr-4">
+                                                            <p className="font-medium">{link.label}</p>
+                                                            <p className="text-xs text-muted-foreground font-mono truncate">{link.href}</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                            <Button variant="ghost" size="icon" onClick={() => setDialog({ type: 'link', data: link, categoryId: cat.id })}><Edit className="h-4 w-4"/></Button>
+                                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete('link', link.id)}><Trash2 className="h-4 w-4"/></Button>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground py-2 italic">No links in this category.</p>
+                                            )}
+                                        </div>
                                         <Button className="mt-4" size="sm" variant="secondary" onClick={() => setDialog({ type: 'link', categoryId: cat.id })}><Plus className="mr-2 h-4 w-4"/> Add Link</Button>
                                     </AccordionContent>
                                 </AccordionItem>
@@ -152,21 +186,21 @@ export default function FooterManagerPage() {
             <Dialog open={!!dialog} onOpenChange={() => setDialog(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{dialog?.data ? 'Edit' : 'Add'} {dialog?.type}</DialogTitle>
+                        <DialogTitle>{dialog?.data ? 'Edit' : 'Add'} {dialog?.type === 'category' ? 'Category' : 'Link'}</DialogTitle>
                     </DialogHeader>
                     {dialog?.type === 'category' ? (
                         <Form {...catForm}>
-                            <form onSubmit={catForm.handleSubmit(handleDialogSubmit)} className="space-y-4">
-                                <FormField control={catForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Category Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <DialogFooter><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2" />} Save</Button></DialogFooter>
+                            <form onSubmit={catForm.handleSubmit(handleDialogSubmit)} className="space-y-4 pt-2">
+                                <FormField control={catForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Category Title</FormLabel><FormControl><Input placeholder="e.g., Shop" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <DialogFooter><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2 h-4 w-4" />} Save Category</Button></DialogFooter>
                             </form>
                         </Form>
                     ) : (
                         <Form {...linkForm}>
-                            <form onSubmit={linkForm.handleSubmit(handleDialogSubmit)} className="space-y-4">
-                                <FormField control={linkForm.control} name="label" render={({ field }) => (<FormItem><FormLabel>Link Label</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={linkForm.control} name="href" render={({ field }) => (<FormItem><FormLabel>Link URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <DialogFooter><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2" />} Save</Button></DialogFooter>
+                            <form onSubmit={linkForm.handleSubmit(handleDialogSubmit)} className="space-y-4 pt-2">
+                                <FormField control={linkForm.control} name="label" render={({ field }) => (<FormItem><FormLabel>Link Label</FormLabel><FormControl><Input placeholder="e.g., All Products" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={linkForm.control} name="href" render={({ field }) => (<FormItem><FormLabel>Link URL</FormLabel><FormControl><Input placeholder="e.g., /products" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <DialogFooter><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2 h-4 w-4" />} Save Link</Button></DialogFooter>
                             </form>
                         </Form>
                     )}
@@ -175,5 +209,3 @@ export default function FooterManagerPage() {
         </>
     );
 }
-
-    
