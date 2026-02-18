@@ -1,5 +1,6 @@
 
 
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTranslations } from '@/lib/get-translations';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,9 +88,9 @@ function FeaturedProducts({ products, section }: { products: Product[], section:
 function WhyUs({ features, section }: { features: StoreFeature[], section: Section }) {
     if (features.length === 0) {
          const fallbackFeatures = [
-            { image: { imageUrl: 'https://picsum.photos/seed/about1/800/600', description: 'Traceability', imageHint: 'farmer field' }, icon: Leaf, title: 'আমাদের ভূমি থেকে, আপনার ঘরে', description: 'আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।' },
-            { image: { imageUrl: 'https://picsum.photos/seed/about2/800/600', description: 'Community', imageHint: 'community farmers' }, icon: Users, title: 'কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব', description: 'আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।' },
-            { image: { imageUrl: 'https://picsum.photos/seed/about3/800/600', description: 'Quality', imageHint: 'quality product' }, icon: Heart, title: 'বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি', description: 'প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।' }
+            { image: PlaceHolderImages.find(img => img.imageHint === 'farm landscape') || PlaceHolderImages[10], icon: Leaf, title: 'আমাদের ভূমি থেকে, আপনার ঘরে', description: 'আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।' },
+            { image: PlaceHolderImages.find(img => img.imageHint === 'farmer smiling') || PlaceHolderImages[10], icon: Users, title: 'কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব', description: 'আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।' },
+            { image: PlaceHolderImages.find(img => img.imageHint === 'quality inspection') || PlaceHolderImages[12], icon: Heart, title: 'বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি', description: 'প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।' }
         ];
 
         return (
@@ -100,7 +102,7 @@ function WhyUs({ features, section }: { features: StoreFeature[], section: Secti
                             <CarouselItem key={index} className="pl-6 basis-1/2 md:basis-1/4 lg:basis-1/5">
                                 <Card className="overflow-hidden flex flex-col h-full">
                                     <div className="relative h-64 w-full">
-                                        <Image src={feature.image.imageUrl} alt={feature.image.description} data-ai-hint={feature.image.imageHint} fill className="object-cover" />
+                                        <Image src={feature.image.imageUrl} alt={feature.title} data-ai-hint={feature.image.imageHint} fill className="object-cover" />
                                     </div>
                                     <div className="p-6 flex flex-col flex-grow">
                                         <CardHeader className="p-0">

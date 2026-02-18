@@ -1,0 +1,69 @@
+
+{
+  "placeholderImages": [
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1755842546386-b689d6a3e84c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxtYW5nbyUyMG9yY2hhcmR8ZW58MHx8fHwxNzcwNDY0MjYzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mango orchard"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1759162339512-c2e0f23d4dff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxyaXBlJTIwbWFuZ29lc3xlbnwwfHx8fDE3NzA0NjQyNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ripe mangoes"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1722942469918-a8726909b540?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzbGljZWQlMjBtYW5nb3xlbnwwfHx8fDE3NzA0NjQyNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sliced mango"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1692102972494-7852d3e21d3f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtYW5nbyUyMHRyZWV8ZW58MHx8fHwxNzcwNDY0MjYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mango tree"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1648288719097-a47aceb942bc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZnJlc2glMjBkYXRlc3xlbnwwfHx8fDE3NzA0NjQyNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fresh dates"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1511725842588-c6f9e48b7a3e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxkYXRlcyUyMHdvb2R8ZW58MHx8fHwxNzcwNDY0MjYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dates wood"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1660728684136-0cdf1a0c2e02?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cG91cmluZyUyMG1vbGFzc2VzfGVufDB8fHx8MTc3MDQ2NDI2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pouring molasses"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxob25leSUyMGRpcHBlcnxlbnwwfHx8fDE3NzA0NjQyNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "honey dipper"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1587049352824-f7e128d4ebe5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxob25leSUyMGphcnxlbnwwfHx8fDE3NzA0NTQwNDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "honey jar"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1510583085145-1b347ee019ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmYXJtZXIlMjBzbWlsaW5nfGVufDB8fHx8MTc3MDQ2NDI2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "farmer smiling"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1622664040213-006e17dd7207?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxoYW5kJTIwaG9sZGluZyUyMG1hbmdvfGVufDB8fHx8MTc3MDQ2NDI2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "hand holding mango"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1571771894828-34f3cc154b52?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmcnVpdCUyMGluc3BlY3Rpb258ZW58MHx8fHwxNzcwNDgxNTM1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "quality inspection"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1628882194944-7839358a5e39?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxkaWdpdGFsJTIwc3RvcmV8ZW58MHx8fHwxNzcwNTM1ODg3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "digital store"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1554151228-14d9def656e4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzbWlsaW5nJTIwY3VzdG9tZXJ8ZW58MHx8fHwxNzcwNTM1OTQyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "smiling customer"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxmYXJtJTIwbGFuZHNjYXBlfGVufDB8fHx8MTc3MDUzNjAyNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "farm landscape"
+    },
+    {
+      "imageUrl": "https://images.unsplash.com/photo-1595841055312-517df463081d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxvcmdhbmljJTIwZm9vZHxlbnwwfHx8fDE3NzA1MzYwNTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "organic food"
+    }
+  ]
+}
