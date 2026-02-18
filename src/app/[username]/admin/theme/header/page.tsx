@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { HeaderLink } from '@/types';
 
@@ -42,13 +41,23 @@ export default function HeaderManagerPage() {
     const fetchData = useCallback(async () => {
         if (!user) return;
         setIsLoading(true);
-        const { data, error } = await supabase.from('header_links').select('*').eq('site_id', user.id).order('order');
-        if(error) {
+        try {
+            const response = await fetch('/api/header-links/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setLinks(result.links as HeaderLink[]);
+            } else {
+                throw new Error(result.error || 'Failed to fetch header links');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching header links', description: error.message });
-        } else {
-            setLinks((data as HeaderLink[]) || []);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [user, toast]);
     
     useEffect(() => {
@@ -72,61 +81,102 @@ export default function HeaderManagerPage() {
         if (!user) return;
         setIsSubmitting(true);
         
-        let error;
-        const isEditing = !!selectedLink;
-
         try {
-            const payload = { ...formData, site_id: user.id, order: isEditing ? selectedLink.order : links.length };
-            if (isEditing) {
-                ({ error } = await supabase.from('header_links').update(payload).eq('id', selectedLink.id));
+            const response = await fetch('/api/header-links/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedLink?.id,
+                    siteId: user.id,
+                    ...formData 
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: `Link ${selectedLink ? 'updated' : 'created'}!` });
+                setIsFormOpen(false);
+                setSelectedLink(null);
+                await fetchData();
             } else {
-                ({ error } = await supabase.from('header_links').insert(payload));
+                throw new Error(result.error || 'Failed to save link');
             }
-            if (error) throw error;
-            toast({ title: `Link ${isEditing ? 'updated' : 'created'}!` });
-            setIsFormOpen(false);
-            await fetchData();
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Failed to save link', description: e.message });
+            toast({ variant: 'destructive', title: 'An error occurred', description: e.message });
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleDelete = async () => {
-        if (!selectedLink) return;
+        if (!selectedLink || !user) return;
         setIsSubmitting(true);
-        const { error } = await supabase.from('header_links').delete().eq('id', selectedLink.id);
-        if (error) {
+        try {
+            const response = await fetch('/api/header-links/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedLink.id,
+                    siteId: user.id
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: 'Link deleted.' });
+                await fetchData();
+            } else {
+                throw new Error(result.error || 'Failed to delete link');
+            }
+        } catch (error: any) {
             toast({ title: 'Error Deleting Link', variant: 'destructive', description: error.message });
-        } else {
-            toast({ title: 'Link deleted.' });
-            await fetchData();
+        } finally {
+            setIsSubmitting(false);
+            setIsAlertOpen(false);
+            setSelectedLink(null);
         }
-        setIsSubmitting(false);
-        setIsAlertOpen(false);
     };
     
     const handleReorder = async (index: number, direction: 'up' | 'down') => {
         const newIndex = direction === 'up' ? index - 1 : index + 1;
-        if (newIndex < 0 || newIndex >= links.length) return;
+        if (newIndex < 0 || newIndex >= links.length || !user) return;
         
         const newList = [...links];
-        [newList[index], newList[newIndex]] = [newList[newIndex], newList[index]];
+        const [movedItem] = newList.splice(index, 1);
+        newList.splice(newIndex, 0, movedItem);
         
         const updates = newList.map((item, idx) => ({ id: item.id, order: idx }));
         
-        setLinks(newList);
-        const { error } = await supabase.from('header_links').upsert(updates);
-        if (error) {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/header-links/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    siteId: user.id,
+                    updates 
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: 'Order updated' });
+                setLinks(newList);
+            } else {
+                throw new Error(result.error || 'Failed to reorder');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Failed to reorder', description: error.message });
-            setLinks(links); // Revert
-        } else {
-            toast({ title: 'Order updated' });
+            await fetchData(); // Revert from server
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8" /></div>;
+    if (isLoading && links.length === 0) return <div className="flex justify-center p-16"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>;
     
     return (
         <>
@@ -137,27 +187,56 @@ export default function HeaderManagerPage() {
                 </CardHeader>
                  <CardContent>
                     {links.length > 0 ? (
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Label</TableHead><TableHead>URL</TableHead><TableHead className="text-right w-36">Actions</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {links.map((link, index) => (
-                                    <TableRow key={link.id}>
-                                        <TableCell>{link.label}</TableCell>
-                                        <TableCell className="font-mono text-xs">{link.href}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" disabled={index === 0} onClick={() => handleReorder(index, 'up')}><ArrowUp className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" disabled={index === links.length - 1} onClick={() => handleReorder(index, 'down')}><ArrowDown className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(link)}><Edit className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => { setSelectedLink(link); setIsAlertOpen(true);}}><Trash2 className="h-4 w-4" /></Button>
-                                        </TableCell>
+                        <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Label</TableHead>
+                                        <TableHead>URL</TableHead>
+                                        <TableHead className="text-right w-36">Actions</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {links.map((link, index) => (
+                                        <TableRow key={link.id}>
+                                            <TableCell className="font-medium">{link.label}</TableCell>
+                                            <TableCell className="font-mono text-xs">{link.href}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="icon" disabled={index === 0} onClick={() => handleReorder(index, 'up')}><ArrowUp className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" disabled={index === links.length - 1} onClick={() => handleReorder(index, 'down')}><ArrowDown className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(link)}><Edit className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => { setSelectedLink(link); setIsAlertOpen(true);}}><Trash2 className="h-4 w-4" /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     ) : (
                         <p className="text-center text-muted-foreground p-8">No header links yet.</p>
                     )}
-                    <Button className="mt-4" onClick={() => handleOpenDialog()}><Plus className="mr-2 h-4 w-4" /> Add Link</Button>
+                    
+                    {/* Mobile View */}
+                    <div className="grid gap-4 md:hidden">
+                        {links.map((link, index) => (
+                            <Card key={link.id}>
+                                <CardContent className="p-4 flex items-center justify-between">
+                                    <div>
+                                        <p className="font-semibold">{link.label}</p>
+                                        <p className="text-xs text-muted-foreground font-mono">{link.href}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="ghost" size="icon" disabled={index === 0} onClick={() => handleReorder(index, 'up')}><ArrowUp className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" disabled={index === links.length - 1} onClick={() => handleReorder(index, 'down')}><ArrowDown className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(link)}><Edit className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { setSelectedLink(link); setIsAlertOpen(true);}}><Trash2 className="h-4 w-4" /></Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    <Button className="mt-6" onClick={() => handleOpenDialog()}><Plus className="mr-2 h-4 w-4" /> Add Link</Button>
                 </CardContent>
             </Card>
 
@@ -167,10 +246,10 @@ export default function HeaderManagerPage() {
                         <DialogTitle>{selectedLink ? 'Edit' : 'Add'} Header Link</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(handleDialogSubmit)} className="space-y-4">
-                            <FormField control={form.control} name="label" render={({ field }) => (<FormItem><FormLabel>Label</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="href" render={({ field }) => (<FormItem><FormLabel>URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <DialogFooter><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2" />} Save</Button></DialogFooter>
+                        <form onSubmit={form.handleSubmit(handleDialogSubmit)} className="space-y-4 pt-4">
+                            <FormField control={form.control} name="label" render={({ field }) => (<FormItem><FormLabel>Label</FormLabel><FormControl><Input placeholder="e.g., Home" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="href" render={({ field }) => (<FormItem><FormLabel>URL</FormLabel><FormControl><Input placeholder="e.g., /products" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <DialogFooter><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2 h-4 w-4" />} Save Link</Button></DialogFooter>
                         </form>
                     </Form>
                 </DialogContent>
@@ -193,5 +272,3 @@ export default function HeaderManagerPage() {
         </>
     );
 }
-
-    
