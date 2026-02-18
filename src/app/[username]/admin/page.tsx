@@ -1,8 +1,8 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import type { Order, Product } from '@/types';
 import Link from 'next/link';
 import { format, subDays, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
   const [revenueChartData, setRevenueChartData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // New states for Order Status Chart
+  // States for Order Status Chart
   const [orderStatusData, setOrderStatusData] = useState<any[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [paymentMethodData, setPaymentMethodData] = useState<any[]>([]);
@@ -114,115 +114,129 @@ export default function AdminDashboard() {
       setIsLoading(true);
       try {
         const siteId = user.id;
-        const sevenDaysAgo = subDays(new Date(), 7).toISOString();
-        const startOfCurrentMonth = startOfMonth(new Date()).toISOString();
+        const sevenDaysAgo = subDays(new Date(), 7);
+        const startOfCurrentMonth = startOfMonth(new Date());
 
+        // Fetch using created secure APIs
+        const [ordersRes, productsRes, uncompletedRes, customersRes] = await Promise.all([
+            fetch('/api/orders/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId }),
+            }),
+            fetch('/api/products/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId }),
+            }),
+            fetch('/api/uncompleted-orders/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId }),
+            }),
+            fetch('/api/customers/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId }),
+            }),
+        ]);
 
-        // Fetch all orders once
-        const ordersPromise = supabase.from('orders').select('total, status, created_at, payment_method, shipping_info, order_number, id').eq('site_id', siteId);
-        const productsPromise = supabase.from('products').select('*', { count: 'exact' }).eq('site_id', siteId);
-        const uncompletedPromise = supabase.from('uncompleted_orders').select('*', { count: 'exact' }).eq('site_id', siteId);
-        const customersPromise = supabase.from('customer_profiles').select('*', { count: 'exact', head: true }).eq('site_id', siteId);
+        const [ordersResult, productsResult, uncompletedResult, customersResult] = await Promise.all([
+            ordersRes.json(),
+            productsRes.json(),
+            uncompletedRes.json(),
+            customersRes.json(),
+        ]);
 
-        const [
-          { data: allOrders, error: ordersError },
-          { data: productsData, count: totalProducts, error: productsError },
-          { data: uncompletedData, count: totalUncompleted, error: uncompletedError },
-          { count: totalCustomers, error: customersError },
-        ] = await Promise.all([ordersPromise, productsPromise, uncompletedPromise, customersPromise]);
-        
-        if (ordersError) throw new Error(`Failed to fetch orders: ${ordersError.message}`);
-        if (productsError) throw new Error(`Failed to fetch products: ${productsError.message}`);
-        if (uncompletedError) throw new Error(`Failed to fetch uncompleted orders: ${uncompletedError.message}`);
-        if (customersError) throw new Error(`Failed to fetch customers: ${customersError.message}`);
+        if (!ordersRes.ok) throw new Error(ordersResult.error || 'Failed to fetch orders');
+        if (!productsRes.ok) throw new Error(productsResult.error || 'Failed to fetch products');
+        if (!uncompletedRes.ok) throw new Error(uncompletedResult.error || 'Failed to fetch uncompleted orders');
+        if (!customersRes.ok) throw new Error(customersResult.error || 'Failed to fetch customers');
 
-        if (allOrders) {
-          // --- Revenue Chart Data (Last 7 days) ---
-          const totalRevenue = allOrders
+        const allOrders: any[] = ordersResult.orders || [];
+        const allProducts: any[] = productsResult.products || [];
+        const uncompletedData: any[] = uncompletedResult.orders || [];
+        const customersData: any[] = customersResult.customers || [];
+
+        // --- Calculate Stats ---
+        const totalRevenue = allOrders
             .filter(o => o.status === 'delivered')
             .reduce((acc, o) => acc + o.total, 0);
 
-          setPendingOrders(allOrders.filter(o => o.status === 'pending').slice(0, 5) as any);
+        setPendingOrders(allOrders.filter(o => o.status === 'pending').slice(0, 5));
 
-          const dailyRevenue: { [key: string]: number } = {};
-          for (let i = 6; i >= 0; i--) {
-              const date = subDays(new Date(), i);
-              const formattedDate = format(date, 'MMM d');
-              dailyRevenue[formattedDate] = 0;
-          }
+        // Revenue Chart (Last 7 days)
+        const dailyRevenue: { [key: string]: number } = {};
+        for (let i = 6; i >= 0; i--) {
+            const date = subDays(new Date(), i);
+            const formattedDate = format(date, 'MMM d');
+            dailyRevenue[formattedDate] = 0;
+        }
 
-          allOrders
-            .filter(o => new Date(o.created_at) >= new Date(sevenDaysAgo) && o.status === 'delivered')
+        allOrders
+            .filter(o => new Date(o.created_at) >= sevenDaysAgo && o.status === 'delivered')
             .forEach(o => {
-              const date = format(new Date(o.created_at), 'MMM d');
-              if (dailyRevenue.hasOwnProperty(date)) {
-                 dailyRevenue[date] += o.total;
-              }
+                const date = format(new Date(o.created_at), 'MMM d');
+                if (dailyRevenue.hasOwnProperty(date)) {
+                    dailyRevenue[date] += o.total;
+                }
             });
-          
-          const revenueChartFormattedData = Object.keys(dailyRevenue)
-              .map(date => ({ date, Revenue: dailyRevenue[date] }));
-              
-          setRevenueChartData(revenueChartFormattedData);
-          
-          const monthlyOrdersCount = allOrders.filter(o => new Date(o.created_at) >= new Date(startOfCurrentMonth) && o.status !== 'canceled').length;
+        
+        setRevenueChartData(Object.keys(dailyRevenue).map(date => ({ date, Revenue: dailyRevenue[date] })));
 
-          setStats(prev => ({ ...prev, totalRevenue, ordersThisMonth: monthlyOrdersCount }));
+        const monthlyOrdersCount = allOrders.filter(o => new Date(o.created_at) >= startOfCurrentMonth && o.status !== 'canceled').length;
 
-          // --- Order Status Chart Data (for selected month) ---
-          const start = startOfMonth(selectedMonth);
-          const end = endOfMonth(selectedMonth);
-          
-          const ordersForMonth = allOrders.filter(o => isWithinInterval(new Date(o.created_at), {start, end}));
-          
-          const statusCounts = ordersForMonth.reduce((acc, order) => {
-              const status = order.status.toLowerCase();
-              acc[status] = (acc[status] || 0) + 1;
-              return acc;
-          }, {} as Record<string, number>);
+        // Order Status Chart (for selected month)
+        const start = startOfMonth(selectedMonth);
+        const end = endOfMonth(selectedMonth);
+        const ordersForMonth = allOrders.filter(o => isWithinInterval(new Date(o.created_at), {start, end}));
+        
+        const statusCounts = ordersForMonth.reduce((acc, order) => {
+            const status = order.status.toLowerCase();
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
 
-          const chartData = Object.entries(statusCounts)
+        setOrderStatusData(Object.entries(statusCounts)
             .map(([status, count]) => ({
                 name: ORDER_STATUSES[status as keyof typeof ORDER_STATUSES]?.label || status,
                 value: count,
                 fill: ORDER_STATUSES[status as keyof typeof ORDER_STATUSES]?.color || '#8884d8',
             }))
-            .filter(item => item.name !== 'Canceled');
-            
-          setOrderStatusData(chartData);
+            .filter(item => item.name !== 'Canceled')
+        );
 
-          // --- Payment Method Chart Data (All Time) ---
-          const paymentMethodSales = allOrders
+        // Payment Method Chart (All Time)
+        const paymentMethodSales = allOrders
             .filter(o => o.status !== 'canceled')
             .reduce((acc, order) => {
-              const method = order.payment_method; // 'cod' or 'mobile_banking'
-              acc[method] = (acc[method] || 0) + order.total;
-              return acc;
+                const method = order.payment_method;
+                acc[method] = (acc[method] || 0) + order.total;
+                return acc;
             }, {} as Record<string, number>);
-          
-          const paymentChartData = Object.entries(paymentMethodSales)
-            .map(([method, total]) => ({
-              name: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.label || method,
-              value: total,
-              fill: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.color || '#8884d8',
-            }));
-          
-          setPaymentMethodData(paymentChartData);
-        }
-
-        if (productsData) {
-          setStats(prev => ({ ...prev, totalProducts: totalProducts || 0 }));
-          setLowStockProducts(productsData.filter(p => p.stock !== undefined && p.stock !== null && p.stock < 10).slice(0, 5));
-        }
         
-        if (uncompletedData) {
-          const unviewedCount = uncompletedData.filter((o: any) => !o.is_viewed).length;
-          setStats(prev => ({...prev, uncompletedOrders: unviewedCount, totalUncompletedOrders: totalUncompleted || 0}));
-        } else {
-          setStats(prev => ({...prev, uncompletedOrders: 0, totalUncompletedOrders: 0}));
-        }
+        setPaymentMethodData(Object.entries(paymentMethodSales)
+            .map(([method, total]) => ({
+                name: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.label || method,
+                value: total,
+                fill: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.color || '#8884d8',
+            }))
+        );
 
-        setStats(prev => ({ ...prev, totalCustomers: totalCustomers || 0 }));
+        // Products and Customers
+        setLowStockProducts(allProducts.filter(p => p.stock !== undefined && p.stock !== null && p.stock < 10).slice(0, 5));
+        
+        const unviewedCount = uncompletedData.filter((o: any) => !o.is_viewed).length;
+
+        setStats({
+            totalRevenue,
+            totalProducts: allProducts.length,
+            uncompletedOrders: unviewedCount,
+            totalUncompletedOrders: uncompletedData.length,
+            totalCustomers: customersData.length,
+            ordersThisMonth: monthlyOrdersCount,
+        });
+
       } catch (error: any) {
         console.error("Failed to fetch dashboard data:", error);
         toast({
