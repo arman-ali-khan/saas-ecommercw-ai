@@ -3,6 +3,7 @@
 
 import AdminSidebar from '@/components/admin-sidebar';
 import AdminBottomNav from '@/components/admin-bottom-nav';
+import AdminHeader from '@/components/admin-header';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -74,48 +75,51 @@ export default function AdminLayout({
     <div className="fixed inset-0 bg-background z-50">
       <div className="grid w-full h-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <AdminSidebar />
-        <main className="overflow-auto p-1 lg:p-6 pb-20 md:pb-6">
-          {isPending && (
-             <Alert variant="destructive" className="mb-6">
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Subscription Pending</AlertTitle>
-                <AlertDescription>
-                  Your subscription payment is currently being reviewed. Some features are disabled until your payment is approved.
-                </AlertDescription>
-            </Alert>
-          )}
-          {isBlocked && (
-             <Alert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Account Blocked</AlertTitle>
-                <AlertDescription>
-                  Your account has been blocked. Please contact support for assistance.
-                </AlertDescription>
-            </Alert>
-          )}
-           {isSubscriptionExpired && !isBlocked && (
-             <Alert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Subscription Expired</AlertTitle>
-                <AlertDescription>
-                  Your subscription ended on {user?.subscription_end_date ? format(new Date(user.subscription_end_date), 'PP') : 'N/A'}. 
-                  Please renew your plan to continue using all features.
-                </AlertDescription>
-            </Alert>
-          )}
-          {isExpiringSoon && !isSubscriptionExpired && !isBlocked && (
-             <Alert className="mb-6 border-amber-500 text-amber-500 [&>svg]:text-amber-500">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Subscription Expiring Soon</AlertTitle>
-                <AlertDescription>
-                  Your subscription will expire in {daysRemaining} day(s). Renew now to avoid any disruption.
-                </AlertDescription>
-            </Alert>
-          )}
-          <fieldset disabled={isContentDisabled}>
-            {children}
-          </fieldset>
-        </main>
+        <div className="flex flex-col h-full overflow-hidden">
+          <AdminHeader />
+          <main className="flex-1 overflow-auto p-4 lg:p-6 pb-20 md:pb-6">
+            {isPending && (
+              <Alert variant="destructive" className="mb-6">
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Subscription Pending</AlertTitle>
+                  <AlertDescription>
+                    Your subscription payment is currently being reviewed. Some features are disabled until your payment is approved.
+                  </AlertDescription>
+              </Alert>
+            )}
+            {isBlocked && (
+              <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Account Blocked</AlertTitle>
+                  <AlertDescription>
+                    Your account has been blocked. Please contact support for assistance.
+                  </AlertDescription>
+              </Alert>
+            )}
+            {isSubscriptionExpired && !isBlocked && (
+              <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Subscription Expired</AlertTitle>
+                  <AlertDescription>
+                    Your subscription ended on {user?.subscription_end_date ? format(new Date(user.subscription_end_date), 'PP') : 'N/A'}. 
+                    Please renew your plan to continue using all features.
+                  </AlertDescription>
+              </Alert>
+            )}
+            {isExpiringSoon && !isSubscriptionExpired && !isBlocked && (
+              <Alert className="mb-6 border-amber-500 text-amber-500 [&>svg]:text-amber-500">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Subscription Expiring Soon</AlertTitle>
+                  <AlertDescription>
+                    Your subscription will expire in {daysRemaining} day(s). Renew now to avoid any disruption.
+                  </AlertDescription>
+              </Alert>
+            )}
+            <fieldset disabled={isContentDisabled}>
+              {children}
+            </fieldset>
+          </main>
+        </div>
       </div>
       <AdminBottomNav />
     </div>
