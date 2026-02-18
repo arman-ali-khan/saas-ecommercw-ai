@@ -99,27 +99,12 @@ export default function CheckoutPage() {
     setUncompletedOrderId(cartSessionId);
   }, [username]);
 
-  const onInvalidSubmit = (errors: any) => {
-    console.log(errors)
-  }
-
   const saveUncompletedOrder = useCallback(async () => {
     const currentFormValues = form.getValues();
+    if (!uncompletedOrderId || !siteId || cartItems.length === 0) return;
     
-    if (!uncompletedOrderId || !siteId || cartItems.length === 0) {
-      return;
-    }
-    
-    const hasShippingInfo = 
-        currentFormValues.name || 
-        currentFormValues.email || 
-        currentFormValues.address ||
-        currentFormValues.city ||
-        currentFormValues.phone;
-    
-    if (!hasShippingInfo) {
-      return;
-    }
+    const hasPhone = !!currentFormValues.phone && currentFormValues.phone.length >= 10;
+    if (!hasPhone) return;
 
     const uncompletedOrderData = {
       id: uncompletedOrderId,
@@ -144,13 +129,7 @@ export default function CheckoutPage() {
       status: 'shipping-info-entered'
     };
 
-    const { error } = await supabase
-      .from('uncompleted_orders')
-      .upsert(uncompletedOrderData, { onConflict: 'id' });
-    
-    if (error) {
-      console.error("Failed to save uncompleted order:", error);
-    }
+    await supabase.from('uncompleted_orders').upsert(uncompletedOrderData, { onConflict: 'id' });
   }, [uncompletedOrderId, siteId, form, customer, cartItems, cartSubtotal]);
 
 
@@ -158,10 +137,7 @@ export default function CheckoutPage() {
     const handler = setTimeout(() => {
       saveUncompletedOrder();
     }, 2000); 
-
-    return () => {
-      clearTimeout(handler);
-    };
+    return () => clearTimeout(handler);
   }, [JSON.stringify(watchedFormValues), saveUncompletedOrder]);
 
 
@@ -193,12 +169,9 @@ export default function CheckoutPage() {
         setIsLoadingShipping(false);
         return;
       }
-      setIsLoadingPaymentSettings(true);
-      setIsLoadingShipping(true);
       
       try {
         const paymentPromise = supabase.from('store_settings').select('mobile_banking_enabled, mobile_banking_number, accepted_banking_methods').eq('site_id', siteId).maybeSingle();
-        
         const shippingPromise = fetch('/api/get-shipping-zones', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -207,16 +180,9 @@ export default function CheckoutPage() {
 
         const [paymentResult, shippingResult] = await Promise.all([paymentPromise, shippingPromise]);
 
-        if (paymentResult.error) throw paymentResult.error;
-
         if (paymentResult.data) {
             setPaymentSettings(paymentResult.data);
-            if (!paymentResult.data.mobile_banking_enabled && form.getValues('paymentMethod') === 'mobile_banking') {
-            form.setValue('paymentMethod', 'cod');
-            }
         }
-
-        if (shippingResult.error) throw new Error(shippingResult.error);
 
         if (shippingResult.zones) {
             setShippingZones(shippingResult.zones);
@@ -227,9 +193,7 @@ export default function CheckoutPage() {
 
         if (customer) {
             const { data: addressesData } = await supabase.from('customer_addresses').select('*').eq('customer_id', customer.id);
-            if (addressesData) {
-                setSavedAddresses(addressesData);
-            }
+            if (addressesData) setSavedAddresses(addressesData);
         }
 
       } catch (error: any) {
@@ -253,13 +217,6 @@ export default function CheckoutPage() {
     }
   }, [customer, customerHasHydrated, form]);
 
-  const acceptedMethods = useMemo(() => {
-    if (!paymentSettings?.accepted_banking_methods || paymentSettings.accepted_banking_methods.length === 0) {
-        return 'যেমন বিকাশ, নগদ';
-    }
-    return paymentSettings.accepted_banking_methods.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ');
-  }, [paymentSettings]);
-
   useEffect(() => {
     if (isHydrated && cartCount === 0 && !isSubmitting && !window.location.search.includes('order_id')) {
       router.push(`/`);
@@ -268,22 +225,15 @@ export default function CheckoutPage() {
 
   const handleSelectAddress = async (address: Address) => {
     setSelectedAddressId(address.id);
-    
     form.setValue('name', customer?.full_name || '');
     form.setValue('address', address.details);
     form.setValue('city', address.city);
-    if (address.phone) {
-        form.setValue('phone', address.phone);
-    }
-    
-    toast({ title: "Address selected", description: "Shipping information has been filled." });
+    if (address.phone) form.setValue('phone', address.phone);
+    toast({ title: "Address selected" });
   }
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    if (!siteId) {
-      toast({ variant: 'destructive', title: 'ত্রুটি', description: 'সাইট খুঁজে পাওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।' });
-      return;
-    }
+    if (!siteId) return;
     setIsSubmitting(true);
 
     const orderNumber = `BN-${Date.now().toString().slice(-6)}`;
@@ -318,257 +268,140 @@ export default function CheckoutPage() {
     };
 
     try {
-      const response = await fetch('/api/create-order', {
+      const response = await fetch('/api/orders/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(orderData),
       });
 
-      const newOrder = await response.json();
+      const result = await response.json();
 
-      if (!response.ok) {
-          throw new Error(newOrder.error || 'অর্ডার স্থাপন ব্যর্থ হয়েছে');
-      }
+      if (!response.ok) throw new Error(result.error || 'অর্ডার স্থাপন ব্যর্থ হয়েছে');
 
       clearCart();
       localStorage.removeItem(`cart_session_id_${username}`);
-      router.push(`/checkout/success?order_id=${newOrder.id}`);
+      router.push(`/checkout/success?order_id=${result.order.id}`);
 
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'অর্ডার স্থাপন ব্যর্থ হয়েছে', description: error.message || 'একটি অপ্রত্যাশিত সমস্যা হয়েছে।' });
+        toast({ variant: 'destructive', title: 'অর্ডার স্থাপন ব্যর্থ হয়েছে', description: error.message });
         setIsSubmitting(false);
     }
   }
   
-  const AddressIcon = ({type}: {type: string | null}) => {
-    if (type === 'home') return <Home className="h-5 w-5 text-muted-foreground" />
-    if (type === 'work') return <Briefcase className="h-5 w-5 text-muted-foreground" />
-    return <Building className="h-5 w-5 text-muted-foreground" />;
-  }
-
   if (!isHydrated || (cartCount === 0 && !window.location.search.includes('order_id'))) {
-    return (
-      <div className="grid md:grid-cols-2 gap-12">
-        <div className="md:order-2 space-y-4">
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
-        <div className="md:order-1 space-y-4">
-          <Skeleton className="h-12 w-1/2" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-      </div>
-    );
+    return <div className="flex justify-center py-20"><Loader2 className="animate-spin h-12 w-12" /></div>;
   }
 
   return (
     <div className="grid md:grid-cols-2 gap-12">
       <div className="md:order-2">
         <Card>
-          <CardHeader>
-            <CardTitle>অর্ডার সারাংশ</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>অর্ডার সারাংশ</CardTitle></CardHeader>
           <CardContent>
-            {cartItems.length > 0 ? (
-            <>
-              <div className="space-y-4">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4">
-                    <div className="relative h-16 w-16 rounded-md overflow-hidden">
-                      <Image
-                        src={item.images[0].imageUrl}
-                        alt={item.name}
-                        width={64}
-                        height={64}
-                        className="object-cover"
-                      />
-                      <span className="absolute -top-0 -right-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                        {item.quantity}
-                      </span>
-                    </div>
-                    <div className="flex-grow">
-                      <p className="font-semibold">{item.name} ⛌ {item.quantity}</p>
-                    </div>
-                    <p>
-                      {(item.price * item.quantity).toFixed(2)} {item.currency}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <Separator className="my-4" />
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>
-                    {cartSubtotal.toFixed(2)} {cartItems[0]?.currency}
-                  </span>
+            <div className="space-y-4">
+            {cartItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-4 text-sm">
+                <div className="relative h-16 w-16 rounded-md overflow-hidden">
+                    <Image src={item.images[0].imageUrl} alt={item.name} fill className="object-cover" />
+                    <span className="absolute -top-0 -right-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{item.quantity}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span>{shippingCost > 0 ? `${shippingCost.toFixed(2)} ${cartItems[0]?.currency}` : 'নির্বাচন করুন'}</span>
+                <div className="flex-grow font-medium">{item.name}</div>
+                <p>{(item.price * item.quantity).toFixed(2)} {item.currency}</p>
                 </div>
-              </div>
-              <Separator className="my-4" />
-              <div className="flex justify-between font-bold text-lg">
-                <span>Total</span>
-                <span>
-                  {cartTotal.toFixed(2)} {cartItems[0]?.currency}
-                </span>
-              </div>
-            </>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">আপনার কার্ট খালি।</p>
-            )}
+            ))}
+            </div>
+            <Separator className="my-4" />
+            <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span>Subtotal</span><span>{cartSubtotal.toFixed(2)} BDT</span></div>
+                <div className="flex justify-between"><span>Shipping</span><span>{shippingCost.toFixed(2)} BDT</span></div>
+            </div>
+            <Separator className="my-4" />
+            <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{cartTotal.toFixed(2)} BDT</span></div>
           </CardContent>
         </Card>
       </div>
 
       <div className="md:order-1">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <h1 className="text-3xl font-headline font-bold">যোগাযোগ ও শিপিং</h1>
             
             {customer && savedAddresses.length > 0 && (
                 <div className="space-y-3">
                     <Label>সংরক্ষিত ঠিকানা</Label>
-                    <RadioGroup 
-                        onValueChange={(id) => {
-                            const selectedAddr = savedAddresses.find(a => a.id === id);
-                            if(selectedAddr) handleSelectAddress(selectedAddr);
-                        }} 
-                        value={selectedAddressId || ''}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                    >
+                    <RadioGroup onValueChange={(id) => { const addr = savedAddresses.find(a => a.id === id); if(addr) handleSelectAddress(addr); }} value={selectedAddressId || ''} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {savedAddresses.map(address => (
-                            <Label key={address.id} htmlFor={`address-${address.id}`} className={cn("flex items-start gap-4 rounded-md border-2 p-4 cursor-pointer transition-colors", selectedAddressId === address.id ? "border-primary bg-primary/10" : "border-muted bg-popover")}>
-                                <RadioGroupItem value={address.id} id={`address-${address.id}`} className="mt-1" />
-                                <div className="flex-grow">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <AddressIcon type={address.type} />
-                                        <p className="font-semibold">{address.name}</p>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">{address.details}, {address.city}</p>
+                            <Label key={address.id} htmlFor={`addr-${address.id}`} className={cn("flex items-start gap-4 rounded-md border-2 p-4 cursor-pointer", selectedAddressId === address.id ? "border-primary bg-primary/10" : "border-muted")}>
+                                <RadioGroupItem value={address.id} id={`addr-${address.id}`} className="mt-1" />
+                                <div className="flex-grow text-xs">
+                                    <p className="font-semibold mb-1">{address.name}</p>
+                                    <p className="text-muted-foreground">{address.details}, {address.city}</p>
                                 </div>
                             </Label>
                         ))}
                     </RadioGroup>
-                    <p className="text-sm text-muted-foreground text-center pt-2">অথবা নিচে একটি নতুন ঠিকানা পূরণ করুন</p>
                 </div>
             )}
 
             <div className="grid md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>পুরো নাম</FormLabel><FormControl><Input placeholder="আপনার পুরো নাম" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>ইমেল ঠিকানা</FormLabel><FormControl><Input placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>পুরো নাম</FormLabel><FormControl><Input placeholder="পুরো নাম" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>ইমেল</FormLabel><FormControl><Input placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
             </div>
-            
-            <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>ঠিকানা</FormLabel><FormControl><Input placeholder="বাড়ির ঠিকানা" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            
+            <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>ঠিকানা</FormLabel><FormControl><Input placeholder="ঠিকানা" {...field} /></FormControl><FormMessage /></FormItem> )} />
             <div className="grid md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>শহর</FormLabel><FormControl><Input placeholder="আপনার শহর" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>ফোন নম্বর</FormLabel><FormControl><Input placeholder="আপনার ফোন নম্বর" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>শহর</FormLabel><FormControl><Input placeholder="শহর" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>ফোন নম্বর</FormLabel><FormControl><Input placeholder="ফোন নম্বর" {...field} /></FormControl><FormMessage /></FormItem> )} />
             </div>
 
-            <FormField
-              control={form.control}
-              name="shippingZoneId"
-              render={({ field }) => (
+            <FormField control={form.control} name="shippingZoneId" render={({ field }) => (
                 <FormItem className="space-y-3">
                   <FormLabel>শিপিং পদ্ধতি</FormLabel>
-                   {isLoadingShipping ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                          {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
-                      </div>
-                    ) : (
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"
-                      >
-                        {shippingZones.map((zone) => (
-                           <Label
-                              key={zone.id}
-                              htmlFor={`shipping-${zone.id}`}
-                              className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer transition-colors", 
-                                field.value === zone.id.toString() ? "border-primary bg-primary/10" : "border-muted bg-popover"
-                              )}
-                            >
-                              <RadioGroupItem value={zone.id.toString()} id={`shipping-${zone.id}`} className="sr-only" />
-                              <Truck className="h-6 w-6 text-muted-foreground" />
-                              <div className="flex-grow">
+                  <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {shippingZones.map((zone) => (
+                        <Label key={zone.id} htmlFor={`ship-${zone.id}`} className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer", field.value === zone.id.toString() ? "border-primary bg-primary/10" : "border-muted")}>
+                            <RadioGroupItem value={zone.id.toString()} id={`ship-${zone.id}`} className="sr-only" />
+                            <Truck className="h-6 w-6 text-muted-foreground" />
+                            <div className="flex-grow text-xs">
                                 <p className="font-medium">{zone.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {zone.price.toFixed(2)} BDT
-                                </p>
-                              </div>
-                            </Label>
-                        ))}
-                      </RadioGroup>
-                    )}
+                                <p className="text-muted-foreground">{zone.price.toFixed(2)} BDT</p>
+                            </div>
+                        </Label>
+                    ))}
+                  </RadioGroup>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
+            )} />
 
-            <FormField control={form.control} name="notes" render={({ field }) => ( <FormItem><FormLabel>অর্ডার নোট (ঐচ্ছিক)</FormLabel><FormControl><Textarea placeholder="আপনার অর্ডারের জন্য কোনো বিশেষ নির্দেশনা থাকলে এখানে লিখুন..." {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="notes" render={({ field }) => ( <FormItem><FormLabel>অর্ডার নোট (ঐচ্ছিক)</FormLabel><FormControl><Textarea placeholder="বিশেষ নির্দেশনা..." {...field} /></FormControl><FormMessage /></FormItem> )} />
             
-            <div className="pt-4">
-              <h2 className="text-2xl font-headline font-bold mb-4">পেমেন্ট</h2>
-                <Controller
-                  name="paymentMethod"
-                  control={control}
-                  render={({ field }) => (
-                    <div className="space-y-3">
-                        <Label>পেমেন্ট পদ্ধতি</Label>
-                        <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Label htmlFor="cod" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer transition-colors", field.value === 'cod' ? "border-primary bg-primary/10" : "border-muted bg-popover")}>
-                                <RadioGroupItem value="cod" id="cod" className="sr-only" />
-                                <p className="text-lg font-medium">ক্যাশ অন ডেলিভারি</p>
+            <div className="pt-4 space-y-4">
+              <h2 className="text-2xl font-headline font-bold">পেমেন্ট পদ্ধতি</h2>
+                <Controller name="paymentMethod" control={control} render={({ field }) => (
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Label htmlFor="cod" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer", field.value === 'cod' ? "border-primary bg-primary/10" : "border-muted")}>
+                            <RadioGroupItem value="cod" id="cod" className="sr-only" />
+                            <p className="font-medium">ক্যাশ অন ডেলিভারি</p>
+                        </Label>
+                        {paymentSettings?.mobile_banking_enabled && (
+                            <Label htmlFor="mb" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer", field.value === 'mobile_banking' ? "border-primary bg-primary/10" : "border-muted")}>
+                                <RadioGroupItem value="mobile_banking" id="mb" className="sr-only" />
+                                <p className="font-medium">মোবাইল ব্যাংকিং</p>
                             </Label>
-                            {paymentSettings?.mobile_banking_enabled && (
-                              <Label htmlFor="mobile_banking" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer transition-colors", field.value === 'mobile_banking' ? "border-primary bg-primary/10" : "border-muted bg-popover")}>
-                                  <RadioGroupItem value="mobile_banking" id="mobile_banking" className="sr-only" />
-                                  <p className="text-lg font-medium">মোবাইল ব্যাংকিং</p>
-                              </Label>
-                            )}
-                        </RadioGroup>
-                        {form.formState.errors.paymentMethod && <p className="text-sm font-medium text-destructive pt-2">{`${form.formState.errors.paymentMethod.message}`}</p>}
-                    </div>
-                  )}
-                />
+                        )}
+                    </RadioGroup>
+                )} />
                 
               {paymentMethod === 'mobile_banking' && (
-                <Card className="mt-6">
-                  <CardHeader> <CardTitle>মোবাইল ব্যাংকিং নির্দেশনা</CardTitle> </CardHeader>
-                  <CardContent className="space-y-4">
-                  {isLoadingPaymentSettings ? <Skeleton className="h-40 w-full" /> : (
-                    <>
-                      <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg"> <ol className="list-decimal list-inside space-y-2"> <li> আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ ({acceptedMethods}) খুলুন। </li> <li>"পেমেন্ট" অপশন নির্বাচন করুন।</li> <li> মার্চেন্ট নম্বর হিসেবে <strong>{paymentSettings?.mobile_banking_number || '01...'}</strong> দিন। </li> <li> টাকার পরিমাণ হিসেবে <strong> {cartTotal.toFixed(2)} {cartItems[0]?.currency} </strong> লিখুন। </li> <li> পেমেন্ট সম্পন্ন করুন এবং প্রাপ্ত ট্রানজেকশন আইডিটি কপি করুন। </li> <li> নিচের বক্সে ট্রানজেকশন আইডিটি পেস্ট করুন। </li> </ol> </div>
-                      <div className="space-y-2">
-                          <Label htmlFor="transactionId">ট্রানজেকশন আইডি</Label>
-                          <Input
-                              id="transactionId"
-                              placeholder="e.g., 8N7F6G5H4J"
-                              {...register("transactionId")}
-                          />
-                          {form.formState.errors.transactionId && (
-                              <p className="text-sm font-medium text-destructive">
-                              {`${form.formState.errors.transactionId.message}`}
-                              </p>
-                          )}
-                      </div>
-                    </>
-                  )}
-                  </CardContent>
-                </Card>
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                    <p className="text-sm">মার্চেন্ট নম্বর: <strong>{paymentSettings?.mobile_banking_number}</strong></p>
+                    <FormField control={form.control} name="transactionId" render={({ field }) => ( <FormItem><FormLabel>ট্রানজেকশন আইডি</FormLabel><FormControl><Input placeholder="যেমন: 8N7F6G..." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
               )}
             </div>
 
-            <Button type="submit" className="w-full mt-6" size="lg" disabled={isSubmitting || !siteId || isLoadingPaymentSettings || isLoadingShipping || cartItems.length === 0}>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || cartItems.length === 0}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSubmitting ? 'অর্ডার প্রক্রিয়া করা হচ্ছে...' : 'অর্ডার দিন'}
+              {isSubmitting ? 'অর্ডার হচ্ছে...' : 'অর্ডার নিশ্চিত করুন'}
             </Button>
           </form>
         </Form>

@@ -1,9 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/stores/auth';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -55,7 +55,6 @@ type Order = {
 };
 
 export default function OrdersAdminPage() {
-    const params = useParams();
     const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
@@ -67,18 +66,24 @@ export default function OrdersAdminPage() {
     
     const fetchOrders = useCallback(async () => {
         if (!user?.id) return;
-        const { data, error } = await supabase
-            .from('orders')
-            .select('id, order_number, shipping_info, created_at, total, status, cart_items, customer_email')
-            .eq('site_id', user.id)
-            .order('created_at', { ascending: false });
-
-        if (error) {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/orders/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setOrders(result.orders || []);
+            } else {
+                throw new Error(result.error || 'Failed to fetch orders');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: "Failed to fetch orders:", description: error.message });
-        } else if (data) {
-            setOrders(data as Order[]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [user?.id, toast]);
 
     useEffect(() => {
@@ -132,7 +137,6 @@ export default function OrdersAdminPage() {
                 <CardContent>
                     {orders.length > 0 ? (
                     <>
-                        {/* Desktop View: Table */}
                         <div className="hidden md:block">
                             <Table>
                                 <TableHeader>
@@ -183,7 +187,6 @@ export default function OrdersAdminPage() {
                             </Table>
                         </div>
 
-                        {/* Mobile View: Cards */}
                         <div className="grid gap-4 md:hidden">
                             {orders.map(order => (
                                 <Card key={order.id}>

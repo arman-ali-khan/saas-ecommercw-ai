@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -43,7 +42,7 @@ export default function OrderDetailsPage() {
             case 'processing': return 'প্রক্রিয়াকরণ চলছে';
             case 'packaging': return 'প্যাকেজিং চলছে';
             case 'send for delivery': return 'ডেলিভারির জন্য পাঠানো হয়েছে';
-            case 'shipped': return 'পাঠানো হয়েছে'; // backwards compatibility
+            case 'shipped': return 'পাঠানো হয়েছে';
             case 'delivered': return 'বিতরণ করা হয়েছে';
             case 'canceled': return 'বাতিল করা হয়েছে';
             default: return status;
@@ -53,19 +52,24 @@ export default function OrderDetailsPage() {
     const fetchOrder = useCallback(async () => {
         if (!orderId || !user) return;
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('id', orderId)
-            .single();
-
-        if (error || !data) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Order not found.' });
+        try {
+            const response = await fetch('/api/orders/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setOrder(result.order as Order);
+            } else {
+                throw new Error(result.error || 'Order not found');
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
             router.push(`/admin/orders`);
-            return;
+        } finally {
+            setIsLoading(false);
         }
-        setOrder(data as Order);
-        setIsLoading(false);
     }, [orderId, user, router, toast]);
 
 
@@ -87,7 +91,7 @@ export default function OrderDetailsPage() {
         setActionTarget(newStatus);
         
         try {
-            const response = await fetch('/api/update-order-status', {
+            const response = await fetch('/api/orders/update-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ orderId: order.id, newStatus }),
@@ -155,9 +159,7 @@ export default function OrderDetailsPage() {
         )
     }
 
-    if (!order) {
-        return null;
-    }
+    if (!order) return null;
 
     return (
         <div className="space-y-6">
@@ -207,7 +209,7 @@ export default function OrderDetailsPage() {
                                     <span>{subtotal.toFixed(2)} BDT</span>
                                 </div>
                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">শিপিং ({order.shipping_info.shipping_method_name || 'N/A'})</span>
+                                    <span className="text-muted-foreground">শিপিং ({order.shipping_info.shipping_cost || 0} BDT)</span>
                                     <span>{(order.shipping_info.shipping_cost || 0).toFixed(2)} BDT</span>
                                 </div>
                                  <div className="flex justify-between font-bold text-lg">
