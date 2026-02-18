@@ -213,48 +213,69 @@ export function ShowcaseOrderBlock({
             <CardContent className="space-y-6">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        {products.filter(p => p.id === main_product_id || optional_product_ids.includes(p.id)).map(p => (
-                            <div key={p.id} className="flex gap-4 items-center justify-between p-2 rounded-md hover:bg-muted/50">
-                                <div className="flex gap-4 items-center flex-grow">
-                                    <Image src={p.images[0].imageUrl} alt={p.name} width={64} height={64} className="rounded-md object-cover aspect-square" />
-                                    <div><p className="font-medium text-sm">{p.name}</p><p className="text-xs text-primary font-bold">{p.price.toFixed(2)} BDT</p></div>
+                        <div className="space-y-4">
+                            {products.filter(p => p.id === main_product_id || optional_product_ids.includes(p.id)).map(p => (
+                                <div key={p.id} className="flex gap-4 items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                                    <div className="flex gap-4 items-center flex-grow">
+                                        <Image src={p.images[0].imageUrl} alt={p.name} width={64} height={64} className="rounded-md object-cover aspect-square" />
+                                        <div><p className="font-medium text-sm">{p.name}</p><p className="text-xs text-primary font-bold">{p.price.toFixed(2)} BDT</p></div>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) - 1)}><Minus className="h-4 w-4" /></Button>
+                                        <Input value={quantities[p.id] || 0} readOnly className="h-7 w-10 text-center text-xs p-0" />
+                                        <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) + 1)}><Plus className="h-4 w-4" /></Button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) - 1)}><Minus className="h-4 w-4" /></Button>
-                                    <Input value={quantities[p.id] || 0} readOnly className="h-7 w-10 text-center text-xs p-0" />
-                                    <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) + 1)}><Plus className="h-4 w-4" /></Button>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+
+                        <div className="flex justify-between items-center px-4 py-3 bg-primary/10 rounded-lg border border-primary/20">
+                            <span className="font-semibold text-sm">পণ্যের মোট মূল্য (Subtotal):</span>
+                            <span className="text-lg font-bold text-primary">{subtotal.toFixed(2)} BDT</span>
+                        </div>
+
                         <Separator />
+                        
                         <FormField control={form.control} name="shippingZoneId" render={({ field }) => (
                             <FormItem className="space-y-3">
-                                <FormLabel>Shipping Method</FormLabel>
+                                <FormLabel className="text-base font-bold">শিপিং পদ্ধতি নির্বাচন করুন</FormLabel>
                                 <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                                     {shippingZones.map((zone) => (
-                                        <Label key={zone.id} htmlFor={`sc-ship-${zone.id}`} className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer", field.value === zone.id.toString() ? "border-primary bg-primary/10" : "border-muted")}>
+                                        <Label key={zone.id} htmlFor={`sc-ship-${zone.id}`} className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer transition-all", field.value === zone.id.toString() ? "border-primary bg-primary/10" : "border-muted hover:border-muted-foreground/50")}>
                                             <RadioGroupItem value={zone.id.toString()} id={`sc-ship-${zone.id}`} className="sr-only" />
-                                            <div className="text-xs font-medium">{zone.name}<br/><span className="text-muted-foreground">{zone.price.toFixed(2)} BDT</span></div>
+                                            <div className="text-xs font-medium">
+                                                <p className="text-sm font-bold">{zone.name}</p>
+                                                <p className="text-primary font-semibold">{zone.price.toFixed(2)} BDT</p>
+                                            </div>
                                         </Label>
                                     ))}
                                 </RadioGroup>
                                 <FormMessage />
                             </FormItem>
                         )} />
+                        
                         <Separator />
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Name</FormLabel><FormControl><Input placeholder="Name" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input placeholder="Phone" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        
+                        <div className="space-y-4">
+                            <h3 className="text-base font-bold">শিপিং তথ্য প্রদান করুন</h3>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>নাম</FormLabel><FormControl><Input placeholder="আপনার নাম লিখুন" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>ফোন নম্বর</FormLabel><FormControl><Input placeholder="আপনার ফোন নম্বর দিন" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            </div>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>বিস্তারিত ঠিকানা</FormLabel><FormControl><Input placeholder="বাসা নং, রাস্তা নং, এলাকা" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>শহর</FormLabel><FormControl><Input placeholder="আপনার শহরের নাম" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            </div>
                         </div>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input placeholder="Address" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="City" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        </div>
+
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-6">
-                             <div className="w-full text-right"><p className="text-lg font-bold text-primary">Total: {total.toFixed(2)} BDT</p></div>
-                            <Button type="submit" disabled={isSubmitting || total === 0} className="w-full sm:w-auto">
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Place Quick Order
+                             <div className="w-full text-right">
+                                <p className="text-sm text-muted-foreground">শিপিং চার্জসহ মোট মূল্য:</p>
+                                <p className="text-2xl font-black text-primary">{total.toFixed(2)} BDT</p>
+                             </div>
+                            <Button type="submit" disabled={isSubmitting || total === 0} className="w-full sm:w-auto h-14 px-8 text-lg font-bold shadow-lg shadow-primary/20">
+                                {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                                অর্ডার কনফার্ম করুন
                             </Button>
                         </div>
                     </form>
