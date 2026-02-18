@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { ShippingZone } from '@/types';
 
@@ -49,18 +48,24 @@ export default function ShippingAdminPage() {
 
     const fetchZones = useCallback(async () => {
         if (!user) return;
-        const { data, error } = await supabase
-            .from('shipping_zones')
-            .select('*')
-            .eq('site_id', user.id)
-            .order('name', { ascending: true });
-        
-        if (error) {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/shipping/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setZones(result.zones as ShippingZone[]);
+            } else {
+                throw new Error(result.error || 'Failed to fetch shipping zones');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching shipping zones', description: error.message });
-        } else {
-            setZones(data as ShippingZone[]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [user, toast]);
 
     useEffect(() => {
@@ -84,33 +89,33 @@ export default function ShippingAdminPage() {
     const onSubmit = async (data: ShippingZoneFormData) => {
         if (!user) return;
         setIsSubmitting(true);
-        const payload = { ...data, site_id: user.id };
 
-        let error;
+        try {
+            const response = await fetch('/api/shipping/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedZone?.id,
+                    siteId: user.id,
+                    ...data 
+                }),
+            });
 
-        if (selectedZone) {
-            // Update
-            const { error: updateError } = await supabase
-                .from('shipping_zones')
-                .update(payload)
-                .eq('id', selectedZone.id);
-            error = updateError;
-            if (!error) toast({ title: 'Shipping Zone Updated' });
-        } else {
-            // Create
-            const { error: insertError } = await supabase.from('shipping_zones').insert(payload);
-            error = insertError;
-            if (!error) toast({ title: 'Shipping Zone Created' });
-        }
+            const result = await response.json();
 
-        if (error) {
+            if (response.ok) {
+                toast({ title: `Shipping Zone ${selectedZone ? 'Updated' : 'Created'}` });
+                await fetchZones();
+                setIsFormOpen(false);
+                setSelectedZone(null);
+            } else {
+                throw new Error(result.error || 'Failed to save shipping zone');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
-        } else {
-            await fetchZones();
-            setIsFormOpen(false);
-            setSelectedZone(null);
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     const openForm = (zone: ShippingZone | null) => {
@@ -124,20 +129,33 @@ export default function ShippingAdminPage() {
     }
 
     const handleDelete = async () => {
-        if (!selectedZone) return;
+        if (!selectedZone || !user) return;
         setIsSubmitting(true);
-        const { error } = await supabase.from('shipping_zones').delete().eq('id', selectedZone.id);
-        setIsSubmitting(false);
+        try {
+            const response = await fetch('/api/shipping/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedZone.id,
+                    siteId: user.id
+                }),
+            });
 
-        if (error) {
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: 'Shipping Zone Deleted' });
+                await fetchZones();
+            } else {
+                throw new Error(result.error || 'Failed to delete zone');
+            }
+        } catch (error: any) {
             toast({ title: 'Error Deleting Zone', variant: 'destructive', description: error.message });
-        } else {
-            toast({ title: 'Shipping Zone Deleted' });
-            await fetchZones();
+        } finally {
+            setIsSubmitting(false);
+            setIsAlertOpen(false);
+            setSelectedZone(null);
         }
-
-        setIsAlertOpen(false);
-        setSelectedZone(null);
     }
     
     if (isLoading) {
@@ -173,6 +191,7 @@ export default function ShippingAdminPage() {
                         </div>
                     ) : (
                         <>
+                            {/* Desktop View: Table */}
                             <div className="hidden md:block">
                                 <Table>
                                     <TableHeader>
@@ -207,6 +226,7 @@ export default function ShippingAdminPage() {
                                 </Table>
                             </div>
 
+                            {/* Mobile View: Cards */}
                             <div className="grid gap-4 md:hidden p-4">
                                 {zones.map((zone) => (
                                     <Card key={zone.id}>
@@ -249,7 +269,7 @@ export default function ShippingAdminPage() {
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{selectedZone ? 'Edit Shipping Zone' : 'Add New Zone'}</DialogTitle>
+                        <DialogTitle>{selectedZone ? 'Edit' : 'Add'} Shipping Zone</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
