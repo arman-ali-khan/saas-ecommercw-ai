@@ -56,8 +56,8 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, MoreHorizontal } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, Edit, Trash2, Loader2, MoreHorizontal, Palette } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
@@ -72,10 +72,21 @@ const categorySchema = z.object({
     description: z.string().optional(),
     icon: z.string().min(1, 'An icon is required.'),
     image_url: z.string().url().optional().or(z.literal('')),
-    card_color: z.string().optional(),
+    card_color: z.string().optional().or(z.literal('')),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
+
+const defaultColorPalette = [
+    { name: 'Navy', color: '#172554' },
+    { name: 'Green', color: '#064e3b' },
+    { name: 'Red', color: '#7f1d1d' },
+    { name: 'Amber', color: '#854d0e' },
+    { name: 'Indigo', color: '#1e1b4b' },
+    { name: 'Fuchsia', color: '#4a044e' },
+    { name: 'Slate', color: '#334155' },
+    { name: 'Stone', color: '#44403c' },
+];
 
 export default function CategoriesAdminPage() {
     const { user, loading: authLoading } = useAuth();
@@ -254,6 +265,7 @@ export default function CategoriesAdminPage() {
                                         <TableRow>
                                             <TableHead className="w-[80px]">{t.image}/{t.icon}</TableHead>
                                             <TableHead>{t.name}</TableHead>
+                                            <TableHead>Color</TableHead>
                                             <TableHead>Description</TableHead>
                                             <TableHead className="text-right">{common.actions}</TableHead>
                                         </TableRow>
@@ -273,6 +285,16 @@ export default function CategoriesAdminPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="font-medium">{category.name}</TableCell>
+                                                <TableCell>
+                                                    {category.card_color ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: category.card_color }} />
+                                                            <span className="text-xs font-mono">{category.card_color}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground">Default</span>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell className="text-muted-foreground">{category.description}</TableCell>
                                                 <TableCell className="text-right">
                                                     <Button variant="ghost" size="sm" onClick={() => openForm(category)} className="mr-2">
@@ -295,7 +317,7 @@ export default function CategoriesAdminPage() {
                                         <CardHeader>
                                             <div className="flex justify-between items-start">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted shrink-0">
+                                                    <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted shrink-0 border-2" style={{ borderColor: category.card_color || 'transparent' }}>
                                                         {category.image_url ? (
                                                             <Image src={category.image_url} alt={category.name} fill className="object-cover" />
                                                         ) : (
@@ -365,6 +387,51 @@ export default function CategoriesAdminPage() {
                                     </FormItem>
                                 )} />
                                 <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>{t.icon}</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormDescription>Shown if no image is uploaded.</FormDescription><FormMessage /></FormItem>)} />
+                                
+                                <FormField control={form.control} name="card_color" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Card Background Color</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <FormControl>
+                                                <Input {...field} placeholder="e.g., #172554 or hsl(var(--card))" />
+                                            </FormControl>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button type="button" variant="outline" size="icon">
+                                                        <Palette className="h-4 w-4" />
+                                                        <span className="sr-only">Open color picker</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-64">
+                                                    <DropdownMenuLabel>Predefined Palette</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    <div className="p-2 grid grid-cols-4 gap-2">
+                                                        {defaultColorPalette.map(({name, color}) => (
+                                                            <button 
+                                                                type="button" 
+                                                                key={name} 
+                                                                title={name}
+                                                                className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring" 
+                                                                style={{ backgroundColor: color }} 
+                                                                onClick={() => form.setValue('card_color', color)}
+                                                            />
+                                                        ))}
+                                                        <button 
+                                                            type="button" 
+                                                            title="Clear"
+                                                            className="h-8 w-8 rounded-md border flex items-center justify-center bg-background"
+                                                            onClick={() => form.setValue('card_color', '')}
+                                                        >
+                                                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                                                        </button>
+                                                    </div>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                        <FormDescription>Choose a color for the category card on the homepage.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
                             </div>
 
                             <DialogFooter className="pt-4">
