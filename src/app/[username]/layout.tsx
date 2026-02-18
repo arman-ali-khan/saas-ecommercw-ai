@@ -14,14 +14,13 @@ import bn from '@/locales/bn.json';
 
 const translations = { en, bn };
 
-// This function generates dynamic metadata for the store's pages.
 export async function generateMetadata({
   params,
 }: {
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }): Promise<Metadata> {
-  const { username } = params;
-  const cookieStore = cookies();
+  const { username } = await params;
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,7 +42,6 @@ export async function generateMetadata({
     }
   );
 
-  // Fetch the main profile and its related settings in one go.
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, site_name, site_description, store_settings(seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url)')
@@ -56,9 +54,7 @@ export async function generateMetadata({
     };
   }
 
-  // The joined store_settings might be an object or an array with one object.
   const settings = (Array.isArray(profile.store_settings) ? profile.store_settings[0] : profile.store_settings) || {};
-
   const title = settings.seo_title || profile.site_name || 'Store';
   const description = settings.seo_description || profile.site_description || 'An e-commerce store.';
   const keywords = settings.seo_keywords || '';
@@ -91,9 +87,10 @@ export default async function UsernameLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }) {
-  const cookieStore = cookies();
+  const { username } = await params;
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -110,7 +107,7 @@ export default async function UsernameLayout({
     }
   );
 
-  const { data: profile } = await supabase.from('profiles').select('id, site_name, site_description').eq('domain', params.username).single();
+  const { data: profile } = await supabase.from('profiles').select('id, site_name, site_description').eq('domain', username).single();
   const siteId = profile?.id;
 
   const settingsPromise = siteId ? supabase.from('store_settings').select('*').eq('site_id', siteId).single() : Promise.resolve({ data: null });
@@ -127,7 +124,7 @@ export default async function UsernameLayout({
 
   const siteInfo = profile ? {
     id: profile.id,
-    name: profile.site_name || params.username,
+    name: profile.site_name || username,
     description: profile.site_description,
     logoType: settingsData?.logo_type || 'icon',
     logoIcon: settingsData?.logo_icon || 'Leaf',
@@ -148,9 +145,8 @@ export default async function UsernameLayout({
   })).sort((a,b) => a.order - b.order) as FooterLinkCategory[];
 
   const socialLinks = (socialData || []) as SocialLink[];
-
   const lang = settingsData?.language || 'bn';
-  const t = translations[lang];
+  const t = translations[lang as keyof typeof translations] || bn;
 
   let themeStyles = '';
   if (settingsData) {

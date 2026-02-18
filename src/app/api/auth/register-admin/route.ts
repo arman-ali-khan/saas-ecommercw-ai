@@ -1,6 +1,4 @@
 
-// src/app/api/auth/register-admin/route.ts
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,7 +8,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(request: Request) {
-  // Environment variable check
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     console.error("Server Error: Supabase environment variables are not configured.");
     return NextResponse.json({ error: "সার্ভার কনফিগারেশনে সমস্যা রয়েছে। দয়া করে সাপোর্টে যোগাযোগ করুন।" }, { status: 500 });
@@ -28,7 +25,6 @@ export async function POST(request: Request) {
   let userId: string | undefined;
 
   try {
-    // Step 1: Create the auth user. (Auth email stays plain for login)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -46,7 +42,6 @@ export async function POST(request: Request) {
 
     userId = authData.user.id;
 
-    // Step 2: Update the profile with ENCRYPTED sensitive data
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -67,7 +62,6 @@ export async function POST(request: Request) {
       throw new Error(`প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ${profileError.message}`);
     }
 
-    // Step 3: If the plan is not free, create the payment record.
     if (planId !== 'free') {
       const { data: planData, error: planError } = await supabaseAdmin
         .from('plans')
@@ -81,7 +75,6 @@ export async function POST(request: Request) {
       
       const priceString = String(planData.price || '0');
       const priceNumber = parseFloat(priceString.replace(/[^0-9.]/g, '')) || 0;
-
       const finalTransactionId = (transactionId && transactionId.trim()) ? transactionId.trim() : uuidv4();
 
       const { error: paymentError } = await supabaseAdmin
@@ -97,14 +90,10 @@ export async function POST(request: Request) {
         });
       
       if (paymentError) {
-        if (userId) {
-            await supabaseAdmin.auth.admin.deleteUser(userId);
-        }
-        
+        if (userId) await supabaseAdmin.auth.admin.deleteUser(userId);
         if (paymentError.code === '23505' || paymentError.message.includes('subscription_payments_transaction_id_key')) {
             return NextResponse.json({ error: 'এই ট্রানজেকশন আইডিটি ইতিমধ্যে ব্যবহৃত হয়েছে।' }, { status: 409 });
         }
-        
         return NextResponse.json({ error: `পেমেন্ট রেকর্ড তৈরি করা যায়নি: ${paymentError.message}` }, { status: 500 });
       }
     }
@@ -112,9 +101,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ user: authData.user }, { status: 200 });
 
   } catch (err: any) {
-    if (userId) {
-      await supabaseAdmin.auth.admin.deleteUser(userId);
-    }
+    if (userId) await supabaseAdmin.auth.admin.deleteUser(userId);
     console.error("Full Registration Process Error:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

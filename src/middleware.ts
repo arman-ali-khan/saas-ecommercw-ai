@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -5,21 +6,25 @@ export function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
-  // 1. SKIP REWRITES FOR DEVELOPMENT TOOLS
-  // This prevents IDX, Localhost, and Vercel Previews from breaking
+  // 1. SKIP REWRITES FOR DEVELOPMENT TOOLS AND SYSTEM PATHS
   const isDev = 
     hostname.includes('cloudworkstations.dev') || 
     hostname.includes('localhost') || 
     hostname.includes('vercel.app');
 
-  if (isDev) {
+  // Skip for all API routes, static files, and internal Next.js paths
+  if (
+    isDev || 
+    url.pathname.startsWith('/api') || 
+    url.pathname.startsWith('/_next') || 
+    url.pathname.includes('.')
+  ) {
     return NextResponse.next();
   }
 
   const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
 
   // 2. Extract subdomain
-  // Use a more robust check to see if the hostname actually belongs to your root domain
   if (!hostname.includes(rootDomain)) {
     return NextResponse.next();
   }
