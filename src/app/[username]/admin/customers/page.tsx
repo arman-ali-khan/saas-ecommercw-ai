@@ -1,9 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link'; // Import Link
+import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Mail, MoreHorizontal, Eye } from 'lucide-react'; // Import Eye icon
+import { Loader2, Mail, MoreHorizontal, Eye } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -51,23 +51,27 @@ export default function CustomersAdminPage() {
     if (!user) return;
     setIsLoading(true);
 
-    const { data, error } = await supabase
-      .from('customer_profiles')
-      .select('id, full_name, email, created_at')
-      .eq('site_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+        const response = await fetch('/api/customers/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            setCustomers(result.customers || []);
+        } else {
+            throw new Error(result.error || 'Failed to fetch customers');
+        }
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error fetching customer data',
         description: error.message,
       });
-    } else if (data) {
-      setCustomers(data as CustomerProfile[]);
+    } finally {
+        setIsLoading(false);
     }
-    
-    setIsLoading(false);
   }, [user, toast]);
 
   useEffect(() => {

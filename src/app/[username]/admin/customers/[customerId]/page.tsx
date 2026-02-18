@@ -58,29 +58,38 @@ export default function CustomerDetailsPage() {
         if (!customerId || !user) return;
         setIsLoading(true);
 
-        const customerPromise = supabase.from('customer_profiles').select('*').eq('id', customerId).eq('site_id', user.id).single();
-        const ordersPromise = supabase.from('orders').select('*').eq('customer_id', customerId).order('created_at', { ascending: false });
-        const addressesPromise = supabase.from('customer_addresses').select('*').eq('customer_id', customerId).order('created_at', { ascending: false });
+        try {
+            const customerResponse = await fetch('/api/customers/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customerId, siteId: user.id }),
+            });
+            const customerResult = await customerResponse.json();
 
-        const [
-            { data: customerData, error: customerError },
-            { data: ordersData, error: ordersError },
-            { data: addressesData, error: addressesError },
-        ] = await Promise.all([customerPromise, ordersPromise, addressesPromise]);
+            if (!customerResponse.ok) {
+                throw new Error(customerResult.error || 'Customer not found.');
+            }
 
-        if (customerError || !customerData) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Customer not found.' });
+            const ordersPromise = supabase.from('orders').select('*').eq('customer_id', customerId).order('created_at', { ascending: false });
+            const addressesPromise = supabase.from('customer_addresses').select('*').eq('customer_id', customerId).order('created_at', { ascending: false });
+
+            const [
+                { data: ordersData, error: ordersError },
+                { data: addressesData, error: addressesError },
+            ] = await Promise.all([ordersPromise, addressesPromise]);
+
+            if (ordersError) toast({ variant: 'destructive', title: 'Error fetching orders' });
+            if (addressesError) toast({ variant: 'destructive', title: 'Error fetching addresses' });
+
+            setCustomer(customerResult.customer as CustomerProfile);
+            setOrders(ordersData as Order[] || []);
+            setAddresses(addressesData as Address[] || []);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
             router.push(`/admin/customers`);
-            return;
+        } finally {
+            setIsLoading(false);
         }
-
-        if (ordersError) toast({ variant: 'destructive', title: 'Error fetching orders' });
-        if (addressesError) toast({ variant: 'destructive', title: 'Error fetching addresses' });
-
-        setCustomer(customerData as CustomerProfile);
-        setOrders(ordersData as Order[] || []);
-        setAddresses(addressesData as Address[] || []);
-        setIsLoading(false);
     }, [customerId, user, router, toast]);
 
     useEffect(() => {
