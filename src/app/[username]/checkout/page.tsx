@@ -178,20 +178,25 @@ export default function CheckoutPage() {
       }
       
       try {
-        const paymentPromise = supabase.from('store_settings').select('mobile_banking_enabled, mobile_banking_number, accepted_banking_methods').eq('site_id', siteId).maybeSingle();
-        const shippingPromise = fetch('/api/get-shipping-zones', {
+        const settingsResponse = await fetch('/api/settings/get', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ siteId }),
-        }).then(res => res.json());
+        });
+        const settingsResult = await settingsResponse.json();
 
-        const [paymentResult, shippingResult] = await Promise.all([paymentPromise, shippingPromise]);
-
-        if (paymentResult.data) {
-            setPaymentSettings(paymentResult.data);
+        if (settingsResponse.ok && settingsResult.settings) {
+            setPaymentSettings(settingsResult.settings);
         }
 
-        if (shippingResult.zones) {
+        const shippingResponse = await fetch('/api/get-shipping-zones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId }),
+        });
+        const shippingResult = await shippingResponse.json();
+
+        if (shippingResponse.ok && shippingResult.zones) {
             setShippingZones(shippingResult.zones);
             if(shippingResult.zones.length > 0) {
                 form.setValue('shippingZoneId', shippingResult.zones[0].id.toString());
@@ -199,8 +204,15 @@ export default function CheckoutPage() {
         }
 
         if (customer) {
-            const { data: addressesData } = await supabase.from('customer_addresses').select('*').eq('customer_id', customer.id);
-            if (addressesData) setSavedAddresses(addressesData);
+            const addrResponse = await fetch('/api/customers/addresses/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id }),
+            });
+            const addrResult = await addrResponse.json();
+            if (addrResponse.ok && addrResult.addresses) {
+                setSavedAddresses(addrResult.addresses);
+            }
         }
 
       } catch (error: any) {

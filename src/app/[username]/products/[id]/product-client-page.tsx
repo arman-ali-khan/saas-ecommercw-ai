@@ -48,7 +48,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useTranslation } from '@/hooks/use-translation';
-// Import Dialog components
 import {
   Dialog,
   DialogContent,
@@ -87,7 +86,6 @@ const reviewSchema = z.object({
 
 type ReviewFormData = z.infer<typeof reviewSchema>;
 
-// This component will now be rendered inside a Dialog
 const ReviewForm = ({ product, onReviewSubmitted, setDialogOpen }: { product: Product, onReviewSubmitted: () => void, setDialogOpen: (open: boolean) => void }) => {
     const { customer } = useCustomerAuth();
     const { toast } = useToast();
@@ -111,34 +109,48 @@ const ReviewForm = ({ product, onReviewSubmitted, setDialogOpen }: { product: Pr
 
     const onSubmit = async (data: ReviewFormData) => {
         setIsSubmitting(true);
-        const { error } = await supabase.from('product_reviews').insert({
-            site_id: product.site_id,
-            product_id: product.id,
-            customer_id: customer.id,
-            customer_name: customer.full_name,
-            ...data
-        });
+        try {
+            const response = await fetch('/api/reviews/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    siteId: product.site_id,
+                    product_id: product.id,
+                    customer_id: customer.id,
+                    customer_name: customer.full_name,
+                    ...data,
+                    is_approved: false
+                }),
+            });
 
-        if (error) {
-            toast({ variant: 'destructive', title: 'Failed to submit review', description: error.message });
-        } else {
+            if (!response.ok) {
+                const res = await response.json();
+                throw new Error(res.error || 'Failed to submit review');
+            }
+
             toast({ title: 'Review submitted for approval!' });
             
             // Create notification for admin
-            const notificationMessage = `New review for "${product.name}" from ${customer.full_name}.`;
-            await supabase.from('notifications').insert({
-                recipient_id: product.site_id,
-                recipient_type: 'admin',
-                site_id: product.site_id,
-                message: notificationMessage,
-                link: '/admin/reviews',
+            await fetch('/api/notifications/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipientId: product.site_id,
+                    recipientType: 'admin',
+                    siteId: product.site_id,
+                    message: `New review for "${product.name}" from ${customer.full_name}.`,
+                    link: '/admin/reviews',
+                }),
             });
 
             form.reset();
             onReviewSubmitted();
-            setDialogOpen(false); // Close dialog on success
+            setDialogOpen(false);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     return (
@@ -205,34 +217,48 @@ const QnaForm = ({ product, onQuestionSubmitted, setDialogOpen }: { product: Pro
 
     const onSubmit = async (data: QnaFormData) => {
         setIsSubmitting(true);
-        const { error } = await supabase.from('product_qna').insert({
-            site_id: product.site_id,
-            product_id: product.id,
-            customer_id: customer.id,
-            customer_name: customer.full_name,
-            question: data.question,
-        });
+        try {
+            const response = await fetch('/api/qna/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    siteId: product.site_id,
+                    product_id: product.id,
+                    customer_id: customer.id,
+                    customer_name: customer.full_name,
+                    question: data.question,
+                    is_approved: false
+                }),
+            });
 
-        if (error) {
-            toast({ variant: 'destructive', title: 'Failed to submit question', description: error.message });
-        } else {
+            if (!response.ok) {
+                const res = await response.json();
+                throw new Error(res.error || 'Failed to submit question');
+            }
+
             toast({ title: 'Question submitted!', description: 'Your question will be visible once it has been answered.' });
             
             // Create notification for admin
-            const notificationMessage = `New question for "${product.name}" from ${customer.full_name}.`;
-            await supabase.from('notifications').insert({
-                recipient_id: product.site_id,
-                recipient_type: 'admin',
-                site_id: product.site_id,
-                message: notificationMessage,
-                link: '/admin/qna',
+            await fetch('/api/notifications/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipientId: product.site_id,
+                    recipientType: 'admin',
+                    siteId: product.site_id,
+                    message: `New question for "${product.name}" from ${customer.full_name}.`,
+                    link: '/admin/qna',
+                }),
             });
             
             form.reset();
             onQuestionSubmitted();
-            setDialogOpen(false); // Close dialog
+            setDialogOpen(false);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
     
     return (
@@ -285,83 +311,91 @@ export default function ProductClientPage({ product }: { product: Product }) {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLoadingRelated, setIsLoadingRelated] = useState(true);
 
-  // State for dialogs
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
   const [isQnaFormOpen, setIsQnaFormOpen] = useState(false);
 
   const fetchReviews = useCallback(async () => {
     setIsLoadingReviews(true);
-    const { data, error } = await supabase
-        .from('product_reviews')
-        .select('*')
-        .eq('product_id', product.id)
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false });
-    if(error) {
-      console.error("Error fetching reviews", error);
-    } else {
-      setReviews(data as ProductReview[]);
+    try {
+        const response = await fetch('/api/reviews/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: product.site_id }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            const productReviews = (result.reviews || []).filter((r: any) => r.product_id === product.id && r.is_approved);
+            setReviews(productReviews);
+        }
+    } catch (error) {
+        console.error("Error fetching reviews", error);
     }
     setIsLoadingReviews(false);
-  }, [product.id]);
+  }, [product.id, product.site_id]);
   
   const fetchQna = useCallback(async () => {
     setIsLoadingQna(true);
-    const { data, error } = await supabase
-        .from('product_qna')
-        .select('*')
-        .eq('product_id', product.id)
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false });
-    if (error) {
+    try {
+        const response = await fetch('/api/qna/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: product.site_id }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            const productQna = (result.qna || []).filter((q: any) => q.product_id === product.id && q.is_approved);
+            setQna(productQna);
+        }
+    } catch (error) {
         console.error("Error fetching Q&A:", error);
-    } else {
-        setQna(data as ProductQna[]);
     }
     setIsLoadingQna(false);
-  }, [product.id]);
+  }, [product.id, product.site_id]);
 
   useEffect(() => {
     setShareUrl(window.location.href);
 
-    const fetchFlashDeal = async () => {
-        const { data } = await supabase
-            .from('flash_deals')
-            .select('*')
-            .eq('product_id', product.id)
-            .eq('is_active', true)
-            .gt('end_date', new Date().toISOString())
-            .single();
-        if (data) {
-            setFlashDeal(data as FlashDeal);
-        }
-    }
-    
-    const fetchRelatedProducts = async () => {
-        if (!product.categories || product.categories.length === 0) {
-            setIsLoadingRelated(false);
-            return;
-        }
+    const fetchAdditionalData = async () => {
+        // Fetch Flash Deal
+        try {
+            const fdRes = await fetch('/api/flash-deals/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: product.site_id }),
+            });
+            const fdResult = await fdRes.json();
+            if (fdRes.ok) {
+                const now = new Date().toISOString();
+                const activeDeal = (fdResult.deals || []).find((d: any) => 
+                    d.product_id === product.id && 
+                    d.is_active && 
+                    d.end_date > now
+                );
+                if (activeDeal) setFlashDeal(activeDeal);
+            }
+        } catch (e) { console.error("Flash Deal fetch error", e); }
 
-        setIsLoadingRelated(true);
-        const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .eq('site_id', product.site_id)
-            .overlaps('categories', product.categories)
-            .neq('id', product.id)
-            .limit(4);
-
-        if (error) {
-            console.error("Error fetching related products:", error);
-        } else {
-            setRelatedProducts(data as Product[]);
-        }
+        // Fetch Related Products
+        try {
+            setIsLoadingRelated(true);
+            const pRes = await fetch('/api/products/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: product.site_id }),
+            });
+            const pResult = await pRes.json();
+            if (pRes.ok) {
+                const filtered = (pResult.products || []).filter((p: Product) => 
+                    p.id !== product.id && 
+                    p.categories?.some(cat => product.categories?.includes(cat))
+                ).slice(0, 4);
+                setRelatedProducts(filtered);
+            }
+        } catch (e) { console.error("Related products fetch error", e); }
         setIsLoadingRelated(false);
-    }
+    };
 
-    fetchFlashDeal();
-    fetchRelatedProducts();
+    fetchAdditionalData();
     fetchReviews();
     fetchQna();
   }, [product.id, product.categories, product.site_id, fetchReviews, fetchQna]);
