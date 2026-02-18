@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -119,157 +120,165 @@ export default function SettingsAdminPage() {
     defaultValues: { transactionId: '' },
   });
 
+  const fetchSettingsData = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+
+    try {
+        const response = await fetch('/api/settings/get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+            const { profile, settings, plans: fetchedPlans } = result;
+
+            setPlans(fetchedPlans);
+            setIsLoadingPlans(false);
+
+            form.reset({
+                siteName: profile.site_name || '',
+                siteDescription: profile.site_description || '',
+            });
+
+            seoForm.reset({
+                seoTitle: settings.seo_title || '',
+                seoDescription: settings.seo_description || '',
+                seoKeywords: settings.seo_keywords || '',
+            });
+
+            paymentForm.reset({
+                mobileBankingEnabled: settings.mobile_banking_enabled ?? false,
+                mobileBankingNumber: settings.mobile_banking_number || '',
+                acceptedBankingMethods: settings.accepted_banking_methods || [],
+            });
+
+            brandingForm.reset({
+                logo_type: settings.logo_type || 'icon',
+                logo_icon: settings.logo_icon || 'Leaf',
+                logo_image_url: settings.logo_image_url || '',
+                favicon_url: settings.favicon_url || '',
+                social_share_image_url: settings.social_share_image_url || '',
+            });
+
+            // Handle SEO Requests separately if needed
+            const { data: seoReq } = await supabase.from('seo_requests').select('*').eq('site_id', user.id).order('created_at', { ascending: false }).limit(1).single();
+            if (seoReq) setSeoRequest(seoReq as SeoRequest);
+            setIsSeoRequestLoading(false);
+
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [user, form, seoForm, paymentForm, brandingForm, toast]);
+
   useEffect(() => {
     if (user) {
-        setIsLoading(true);
-
         const protocol = window.location.protocol;
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
         setSitemapUrl(`${protocol}//${user.domain}.${baseDomain}/sitemap.xml`);
         setRobotsUrl(`${protocol}//${user.domain}.${baseDomain}/robots.txt`);
-
-        const fetchSettingsAndRequests = async () => {
-            const settingsPromise = supabase
-                .from('store_settings')
-                .select('*')
-                .eq('site_id', user.id)
-                .single();
-            
-            const seoRequestPromise = supabase
-                .from('seo_requests')
-                .select('*')
-                .eq('site_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
-            
-            const plansPromise = supabase.from('plans').select('*').order('price', { ascending: true });
-
-            const [
-                { data, error }, 
-                { data: seoRequestData, error: seoRequestError },
-                { data: plansData, error: plansError }
-            ] = await Promise.all([settingsPromise, seoRequestPromise, plansPromise]);
-
-            if (error && error.code !== 'PGRST116') {
-                toast({ variant: 'destructive', title: 'Error fetching settings', description: error.message });
-            }
-
-            if (plansData) {
-                setPlans(plansData);
-            }
-            setIsLoadingPlans(false);
-
-            form.reset({
-                siteName: user.siteName || '',
-                siteDescription: user.siteDescription || '',
-            });
-
-            if (data) {
-                seoForm.reset({
-                    seoTitle: data.seo_title || '',
-                    seoDescription: data.seo_description || '',
-                    seoKeywords: data.seo_keywords || '',
-                });
-
-                paymentForm.reset({
-                    mobileBankingEnabled: data.mobile_banking_enabled ?? false,
-                    mobileBankingNumber: data.mobile_banking_number || '',
-                    acceptedBankingMethods: data.accepted_banking_methods || [],
-                });
-
-                brandingForm.reset({
-                    logo_type: data.logo_type || 'icon',
-                    logo_icon: data.logo_icon || 'Leaf',
-                    logo_image_url: data.logo_image_url || '',
-                    favicon_url: data.favicon_url || '',
-                    social_share_image_url: data.social_share_image_url || '',
-                });
-
-            }
-
-            if (seoRequestData) {
-                setSeoRequest(seoRequestData as SeoRequest);
-            }
-            
-            setIsSeoRequestLoading(false);
-            setIsLoading(false);
-        };
-        fetchSettingsAndRequests();
+        fetchSettingsData();
     }
-  }, [user, form, seoForm, paymentForm, brandingForm, toast]);
+  }, [user, fetchSettingsData]);
 
   async function onGeneralSubmit(values: z.infer<typeof settingsSchema>) {
     if (!user) return;
     setIsSubmitting(true);
-    const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-            site_name: values.siteName,
-            site_description: values.siteDescription,
-        })
-        .eq('id', user.id);
     
-    setIsSubmitting(false);
+    try {
+        const response = await fetch('/api/settings/save-general', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id, siteName: values.siteName, siteDescription: values.siteDescription }),
+        });
 
-    if (profileError) {
-        toast({ variant: 'destructive', title: 'Error updating site info', description: profileError.message });
-    } else {
-        toast({ title: 'General settings saved!' });
-        await refreshUser();
+        if (response.ok) {
+            toast({ title: 'General settings saved!' });
+            await refreshUser();
+        } else {
+            const res = await response.json();
+            throw new Error(res.error);
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error updating site info', description: error.message });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
   async function onSeoSubmit(values: z.infer<typeof seoSchema>) {
     if (!user) return;
     setIsSubmitting(true);
-    const { error } = await supabase.from('store_settings').upsert({
-        site_id: user.id,
-        seo_title: values.seoTitle,
-        seo_description: values.seoDescription,
-        seo_keywords: values.seoKeywords,
-    });
-    setIsSubmitting(false);
-    if(error) {
+    try {
+        const response = await fetch('/api/settings/save-seo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id, ...values }),
+        });
+
+        if (response.ok) {
+            toast({ title: 'SEO settings saved!' });
+        } else {
+            const res = await response.json();
+            throw new Error(res.error);
+        }
+    } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error saving SEO settings', description: error.message });
-    } else {
-        toast({ title: 'SEO settings saved!' });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
   async function onPaymentSubmit(values: z.infer<typeof paymentSchema>) {
     if (!user) return;
     setIsSubmitting(true);
-    const { error } = await supabase.from('store_settings').upsert({
-        site_id: user.id,
-        mobile_banking_enabled: values.mobileBankingEnabled,
-        mobile_banking_number: values.mobileBankingNumber,
-        accepted_banking_methods: values.acceptedBankingMethods,
-    });
-    setIsSubmitting(false);
-    if (error) {
+    try {
+        const response = await fetch('/api/settings/save-payments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id, ...values }),
+        });
+
+        if (response.ok) {
+            toast({ title: 'Payment settings saved!' });
+        } else {
+            const res = await response.json();
+            throw new Error(res.error);
+        }
+    } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error saving payment settings', description: error.message });
-    } else {
-        toast({ title: 'Payment settings saved!' });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
   async function onBrandingSubmit(values: z.infer<typeof brandingSchema>) {
     if (!user) return;
     setIsSubmitting(true);
-    const { error } = await supabase.from('store_settings').upsert({
-        site_id: user.id,
-        logo_type: values.logo_type,
-        logo_icon: values.logo_icon,
-        logo_image_url: values.logo_image_url,
-        favicon_url: values.favicon_url,
-        social_share_image_url: values.social_share_image_url,
-    });
-    setIsSubmitting(false);
-    if (error) {
+    try {
+        const response = await fetch('/api/settings/save-branding', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id, ...values }),
+        });
+
+        if (response.ok) {
+            toast({ title: 'Branding settings saved!' });
+        } else {
+            const res = await response.json();
+            throw new Error(res.error);
+        }
+    } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error saving branding settings', description: error.message });
-    } else {
-        toast({ title: 'Branding settings saved!' });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
@@ -319,27 +328,24 @@ export default function SettingsAdminPage() {
 
         setIsSubmitting(true);
         try {
-            const { error: paymentError } = await supabase.from('subscription_payments').insert({
-                user_id: user.id,
-                plan_id: planToChange.id,
-                amount: planToChange.price,
-                payment_method: 'mobile_banking',
-                transaction_id: data.transactionId,
-                status: 'pending_verification',
-                subscription_from: 'dashboard',
+            const response = await fetch('/api/settings/request-plan-change', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    siteId: user.id, 
+                    planId: planToChange.id, 
+                    amount: planToChange.price, 
+                    transactionId: data.transactionId 
+                }),
             });
 
-            if (paymentError) throw paymentError;
-
-            const { error: profileError } = await supabase.from('profiles').update({
-                subscription_status: 'pending_verification',
-                last_subscription_from: 'dashboard',
-            }).eq('id', user.id);
-
-            if (profileError) throw profileError;
-            
-            toast({ title: 'Upgrade Request Submitted', description: 'Your request is under review. You will be notified upon approval.' });
-            await refreshUser();
+            if (response.ok) {
+                toast({ title: 'Upgrade Request Submitted', description: 'Your request is under review. You will be notified upon approval.' });
+                await refreshUser();
+            } else {
+                const res = await response.json();
+                throw new Error(res.error);
+            }
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error submitting request', description: e.message });
         } finally {
