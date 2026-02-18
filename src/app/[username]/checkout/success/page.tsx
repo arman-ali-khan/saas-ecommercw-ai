@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/card';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/lib/supabase/client';
 import { useCart } from '@/stores/cart';
 
 function SuccessPageContent() {
@@ -35,21 +34,28 @@ function SuccessPageContent() {
 
     const fetchOrder = async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
+      try {
+        // Use the secure API instead of direct supabase client to handle decryption server-side
+        const response = await fetch('/api/orders/get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId }),
+        });
+        
+        const result = await response.json();
 
-      if (error || !data) {
-        // Can't find the order, maybe a bad link.
+        if (!response.ok || !result.order) {
+          throw new Error(result.error || 'Order not found');
+        }
+
+        setOrder(result.order);
+        setLastOrder(result.order);
+      } catch (error) {
         console.error('Error fetching order on success page:', error);
         router.replace(`/`);
-      } else {
-        setOrder(data);
-        setLastOrder(data);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     fetchOrder();
@@ -69,8 +75,6 @@ function SuccessPageContent() {
       </div>
     );
   }
-
-  console.log(order,'order')
 
   return (
     <div className="max-w-2xl mx-auto py-8">
@@ -119,11 +123,11 @@ function SuccessPageContent() {
           <div className="space-y-2 text-sm">
           <div className="flex justify-between">
               <span className="text-muted-foreground">শিপিং</span>
-              <span>{order.shipping_info.shipping_cost.toFixed(2)} BDT</span>
+              <span>{(order.shipping_info?.shipping_cost || 0).toFixed(2)} BDT</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">উপমোট</span>
-              <span>{order.total.toFixed(2)} BDT</span>
+              <span>{(order.total - (order.shipping_info?.shipping_cost || 0)).toFixed(2)} BDT</span>
             </div>
            
             <div className="flex justify-between font-bold text-base">
