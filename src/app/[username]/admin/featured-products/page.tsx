@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { getProductsBySiteId } from '@/lib/products';
 import { useAuth } from '@/stores/auth';
 import type { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { supabase } from '@/lib/supabase/client';
 
 export default function FeaturedProductsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -41,11 +39,26 @@ export default function FeaturedProductsPage() {
   const fetchProducts = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
-    const products = await getProductsBySiteId(user.id);
-    setAllProducts(products);
-    setFeaturedProductIds(products.filter(p => p.is_featured).map(p => p.id));
-    setIsLoading(false);
-  }, [user]);
+    try {
+        const response = await fetch('/api/products/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            const products = (result.products as Product[]) || [];
+            setAllProducts(products);
+            setFeaturedProductIds(products.filter(p => p.is_featured).map(p => p.id));
+        } else {
+            throw new Error(result.error || 'Failed to fetch products');
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [user, toast]);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -99,44 +112,37 @@ export default function FeaturedProductsPage() {
     setIsSaving(true);
   
     // Determine which products to feature and un-feature
-    const productsToFeature = featuredProductIds;
+    const productsToFeature = featuredProductIds.filter(id => !allProducts.find(p => p.id === id)?.is_featured);
     const productsToUnfeature = allProducts
       .filter(p => p.is_featured && !featuredProductIds.includes(p.id))
       .map(p => p.id);
   
-    const updates = [];
-  
-    if (productsToFeature.length > 0) {
-      updates.push(
-        supabase
-          .from('products')
-          .update({ is_featured: true })
-          .in('id', productsToFeature)
-      );
-    }
-  
-    if (productsToUnfeature.length > 0) {
-      updates.push(
-        supabase
-          .from('products')
-          .update({ is_featured: false })
-          .in('id', productsToUnfeature)
-      );
-    }
-  
-    const results = await Promise.all(updates);
-  
-    setIsSaving(false);
-  
-    const hasError = results.some(res => res.error);
-    if (hasError) {
-      toast({ variant: 'destructive', title: 'Error updating featured products.' });
-    } else {
-      toast({
-        title: 'Success!',
-        description: 'Featured products have been updated.',
-      });
-      await fetchProducts(); // Refresh the state
+    try {
+        const response = await fetch('/api/products/featured/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                siteId: user.id,
+                featuredIds: productsToFeature,
+                unfeaturedIds: productsToUnfeature
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            toast({
+                title: 'Success!',
+                description: 'Featured products have been updated.',
+            });
+            await fetchProducts(); // Refresh the state
+        } else {
+            throw new Error(result.error || 'Failed to update featured products');
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } finally {
+        setIsSaving(false);
     }
   };
 

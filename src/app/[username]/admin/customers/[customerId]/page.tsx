@@ -54,15 +54,14 @@ export default function CustomerDetailsPage() {
     const [addresses, setAddresses] = useState<Address[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const fetchData = useCallback(async () => {
-        if (!customerId || !user) return;
+    const fetchData = useCallback(async (cId: string, sId: string) => {
         setIsLoading(true);
 
         try {
             const customerResponse = await fetch('/api/customers/get', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ customerId, siteId: user.id }),
+                body: JSON.stringify({ customerId: cId, siteId: sId }),
             });
             const customerResult = await customerResponse.json();
 
@@ -70,8 +69,8 @@ export default function CustomerDetailsPage() {
                 throw new Error(customerResult.error || 'Customer not found.');
             }
 
-            const ordersPromise = supabase.from('orders').select('*').eq('customer_id', customerId).order('created_at', { ascending: false });
-            const addressesPromise = supabase.from('customer_addresses').select('*').eq('customer_id', customerId).order('created_at', { ascending: false });
+            const ordersPromise = supabase.from('orders').select('*').eq('customer_id', cId).order('created_at', { ascending: false });
+            const addressesPromise = supabase.from('customer_addresses').select('*').eq('customer_id', cId).order('created_at', { ascending: false });
 
             const [
                 { data: ordersData, error: ordersError },
@@ -90,13 +89,13 @@ export default function CustomerDetailsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [customerId, user, router, toast]);
+    }, [router, toast]);
 
     useEffect(() => {
-        if (!authLoading && user) {
-            fetchData();
+        if (!authLoading && user && customerId) {
+            fetchData(customerId, user.id);
         }
-    }, [authLoading, user, fetchData]);
+    }, [authLoading, user, customerId, fetchData]);
 
     const stats = useMemo(() => {
         const totalSpent = orders.reduce((acc, order) => acc + (order.status !== 'canceled' ? order.total : 0), 0);
@@ -145,7 +144,9 @@ export default function CustomerDetailsPage() {
                         <Link href={`/admin/customers`}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Customers</Link>
                     </Button>
                     <div className="flex items-center gap-4 mt-2">
-                        <Avatar className="h-16 w-16 text-3xl"><AvatarFallback>{customer.full_name.charAt(0)}</AvatarFallback></Avatar>
+                        <Avatar className="h-16 w-16 text-3xl">
+                            <AvatarFallback>{customer.full_name?.charAt(0) || '?'}</AvatarFallback>
+                        </Avatar>
                         <div>
                             <h1 className="text-2xl font-bold">{customer.full_name}</h1>
                             <p className="text-muted-foreground">Joined on {format(new Date(customer.created_at), 'PP')}</p>
