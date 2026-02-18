@@ -34,10 +34,11 @@
     previews = {
       enable = true;
       previews = {
-        web = {
-          command = ["npm" "run" "dev" "--" "--port" "$PORT" "--hostname" "0.0.0.0"];
-          manager = "web";
-        };
+       web = {
+        # This command must use the $PORT variable provided by IDX
+        command = ["npm" "run" "dev" "--" "-p" "$PORT"];
+        manager = "web";
+      };
       };
     };
   };
