@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -5,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { ProductAttribute } from '@/types';
 
@@ -53,17 +53,24 @@ export default function AttributesAdminPage() {
 
     const fetchAttributes = useCallback(async () => {
         if (!user) return;
-        const { data, error } = await supabase
-            .from('product_attributes')
-            .select('*')
-            .eq('site_id', user.id);
-        
-        if (error) {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/attributes/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setAttributes(result.attributes as ProductAttribute[]);
+            } else {
+                throw new Error(result.error || 'Failed to fetch attributes');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching attributes', description: error.message });
-        } else {
-            setAttributes(data as ProductAttribute[]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [user, toast]);
 
     useEffect(() => {
@@ -95,31 +102,32 @@ export default function AttributesAdminPage() {
         if (!user || !currentAttributeType) return;
         setIsSubmitting(true);
 
-        const payload = { 
-            site_id: user.id,
-            type: currentAttributeType,
-            value: data.value 
-        };
+        try {
+            const response = await fetch('/api/attributes/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedAttribute?.id,
+                    siteId: user.id,
+                    type: currentAttributeType,
+                    value: data.value 
+                }),
+            });
 
-        let error;
+            const result = await response.json();
 
-        if (selectedAttribute) {
-            const { error: updateError } = await supabase.from('product_attributes').update({ value: data.value }).eq('id', selectedAttribute.id);
-            error = updateError;
-            if (!error) toast({ title: 'Attribute Updated' });
-        } else {
-            const { error: insertError } = await supabase.from('product_attributes').insert(payload);
-            error = insertError;
-            if (!error) toast({ title: 'Attribute Created' });
-        }
-
-        if (error) {
+            if (response.ok) {
+                toast({ title: `Attribute ${selectedAttribute ? 'Updated' : 'Created'}` });
+                await fetchAttributes();
+                setIsFormOpen(false);
+            } else {
+                throw new Error(result.error || 'Failed to save attribute');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
-        } else {
-            await fetchAttributes();
-            setIsFormOpen(false);
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     const openForm = (attribute: ProductAttribute | null, type: string) => {
@@ -134,22 +142,35 @@ export default function AttributesAdminPage() {
     };
 
     const handleDelete = async () => {
-        if (!selectedAttribute) return;
+        if (!selectedAttribute || !user) return;
         setIsSubmitting(true);
-        const { error } = await supabase.from('product_attributes').delete().eq('id', selectedAttribute.id);
-        
-        if (error) {
+        try {
+            const response = await fetch('/api/attributes/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedAttribute.id,
+                    siteId: user.id
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: 'Attribute Deleted' });
+                await fetchAttributes();
+            } else {
+                throw new Error(result.error || 'Failed to delete attribute');
+            }
+        } catch (error: any) {
             toast({ title: 'Error Deleting Attribute', variant: 'destructive', description: error.message });
-        } else {
-            toast({ title: 'Attribute Deleted' });
-            await fetchAttributes();
+        } finally {
+            setIsSubmitting(false);
+            setIsAlertOpen(false);
         }
-        
-        setIsSubmitting(false);
-        setIsAlertOpen(false);
     };
     
-    if (isLoading) {
+    if (isLoading && attributes.length === 0) {
         return (
             <div>
                 <Skeleton className="h-9 w-64 mb-2" />
@@ -200,8 +221,12 @@ export default function AttributesAdminPage() {
                                                 <TableRow key={attr.id}>
                                                     <TableCell className="font-medium">{attr.value}</TableCell>
                                                     <TableCell className="text-right">
-                                                        <Button variant="ghost" size="sm" onClick={() => openForm(attr, type)}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
-                                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => openDeleteAlert(attr)}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+                                                        <Button variant="ghost" size="sm" onClick={() => openForm(attr, type)} className="mr-2">
+                                                            <Edit className="mr-2 h-4 w-4" /> Edit
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => openDeleteAlert(attr)}>
+                                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                        </Button>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
