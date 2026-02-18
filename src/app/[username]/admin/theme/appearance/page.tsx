@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -148,7 +147,7 @@ export default function AppearanceManagerPage() {
         theme_background: '224 71% 4%',
         theme_foreground: '210 40% 98%',
         theme_card: '224 71% 6%',
-        font_primary: 'Hind Siliguri',
+        font_primary: 'Poppins',
         font_secondary: 'Orbitron',
     },
   });
@@ -173,7 +172,7 @@ export default function AppearanceManagerPage() {
                 theme_background: data.theme_background || '224 71% 4%',
                 theme_foreground: data.theme_foreground || '210 40% 98%',
                 theme_card: data.theme_card || '224 71% 6%',
-                font_primary: data.font_primary || 'Hind Siliguri',
+                font_primary: data.font_primary || 'Poppins',
                 font_secondary: data.font_secondary || 'Orbitron',
             });
         }
