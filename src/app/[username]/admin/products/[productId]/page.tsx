@@ -410,23 +410,32 @@ export default function ManageProductPage() {
 
   const handleGenerateDescription = async () => {
       if (!user) return;
+      
+      const productName = form.getValues('name');
+      if (!productName) {
+          toast({ variant: 'destructive', title: 'পণ্যর নাম প্রয়োজন', description: 'এআই ডেসক্রিপশন তৈরির আগে দয়া করে পণ্যের নাম লিখুন।' });
+          return;
+      }
+
       setIsGenerating(true);
       try {
-          const { data: settingsData, error: settingsError } = await supabase
-              .from('store_settings')
-              .select('gemini_api_key')
-              .eq('site_id', user.id)
-              .single();
+          // Fetch the API key using our secure API endpoint
+          const response = await fetch('/api/ai-settings/get', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ siteId: user.id }),
+          });
+          const resultSettings = await response.json();
           
-          if (settingsError || !settingsData?.gemini_api_key) {
-              toast({ variant: 'destructive', title: 'AI Error', description: 'Gemini API key is not configured. Please add it in Settings > AI Settings.' });
+          if (!response.ok || !resultSettings.gemini_api_key) {
+              toast({ variant: 'destructive', title: 'এআই ত্রুটি', description: 'Gemini API কী সেট আপ করা নেই। দয়া করে Settings > AI Settings এ গিয়ে কী যোগ করুন।' });
               setIsGenerating(false);
               return;
           }
 
           const productData = form.getValues();
           const result = await generateProductDescription({
-              apiKey: settingsData.gemini_api_key,
+              apiKey: resultSettings.gemini_api_key,
               name: productData.name,
               description: productData.description,
               categories: productData.categories,
@@ -434,10 +443,10 @@ export default function ManageProductPage() {
           });
 
           form.setValue('long_description', result.longDescription, { shouldValidate: true });
-          toast({ title: 'AI description generated!' });
+          toast({ title: 'এআই ডেসক্রিপশন তৈরি হয়েছে!' });
 
       } catch (error: any) {
-          toast({ variant: 'destructive', title: 'Generation Failed', description: error.message });
+          toast({ variant: 'destructive', title: 'তৈরি করতে ব্যর্থ হয়েছে', description: error.message });
       } finally {
           setIsGenerating(false);
       }

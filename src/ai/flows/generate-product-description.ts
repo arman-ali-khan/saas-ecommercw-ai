@@ -5,6 +5,14 @@ import { genkit, type GenkitError } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
 
+/**
+ * @fileOverview Product description generation flow.
+ * 
+ * - generateProductDescription - Wrapper function to call the AI generation flow.
+ * - GenerateProductDescriptionInput - Input schema for the flow.
+ * - GenerateProductDescriptionOutput - Output schema for the flow.
+ */
+
 const GenerateProductDescriptionInputSchema = z.object({
     apiKey: z.string(),
     name: z.string(),
@@ -12,28 +20,31 @@ const GenerateProductDescriptionInputSchema = z.object({
     categories: z.array(z.string()).optional(),
     origin: z.string().optional(),
 });
-type GenerateProductDescriptionInput = z.infer<typeof GenerateProductDescriptionInputSchema>;
+export type GenerateProductDescriptionInput = z.infer<typeof GenerateProductDescriptionInputSchema>;
 
 const GenerateProductDescriptionOutputSchema = z.object({
     longDescription: z.string(),
 });
-type GenerateProductDescriptionOutput = z.infer<typeof GenerateProductDescriptionOutputSchema>;
+export type GenerateProductDescriptionOutput = z.infer<typeof GenerateProductDescriptionOutputSchema>;
 
-
+/**
+ * Generates a detailed product description in Bengali using Gemini AI.
+ * This function uses the user-provided API key from the database.
+ */
 export async function generateProductDescription(input: GenerateProductDescriptionInput): Promise<GenerateProductDescriptionOutput> {
   try {
     const { apiKey, name, description, categories, origin } = input;
 
     if (!apiKey) {
-      throw new Error('The Gemini API key is not configured. Please add it in your AI settings.');
+      throw new Error('Gemini API key is missing. Please configure it in AI Settings.');
     }
 
-    // Initialize Genkit dynamically with the user's API key
-    const dynamicGenerationFlow = genkit({
+    // Initialize Genkit dynamically with the user's specific API key
+    const ai = genkit({
       plugins: [googleAI({ apiKey })],
     });
     
-    const categoryString = categories && categories.length > 0 ? categories.join(', ') : 'general';
+    const categoryString = categories && categories.length > 0 ? categories.join(', ') : 'সাধারণ';
 
     const prompt = `You are an expert copywriter for an e-commerce store in Bangladesh called "Bangla Naturals". 
 Your task is to write an engaging and detailed product description in Bengali, directly in Tiptap/ProseMirror JSON format.
@@ -45,53 +56,55 @@ Product Information:
 - Origin: ${origin || 'Not provided.'}
 
 Instructions:
-1.  Generate a JSON object conforming to the Tiptap schema. The root object must be {"type": "doc", "content": [...]}.
-2.  The content should be an array of nodes (e.g., paragraphs, headings, bullet lists).
-3.  Use paragraphs for the main body text.
-4.  Use headings (level 2 or 3) for section titles like "উপকারিতা" (Benefits), "কেন আমাদের পণ্যটি সেরা?" (Why us?), etc.
-5.  Use bullet lists for features or benefits.
-6.  The description MUST be entirely in Bengali.
-7.  Highlight the product's natural origins, purity, and health benefits.
-8.  Start with an engaging introduction and end with a call to action.
-9.  CRITICAL: Your entire output must be ONLY the valid JSON object. Do not include any introductory text, explanations, or markdown code blocks (like \`\`\`json). The output must be valid JSON that can be parsed directly.`;
+1. Generate a JSON object conforming to the Tiptap schema. The root object must be {"type": "doc", "content": [...]}.
+2. Use paragraphs for the main body text.
+3. Use headings (level 2 or 3) for section titles like "উপকারিতা" (Benefits), "কেন আমাদের পণ্যটি সেরা?" (Why us?), etc.
+4. Use bullet lists for features or benefits.
+5. The description MUST be entirely in Bengali.
+6. Highlight natural origins, purity, and health benefits.
+7. CRITICAL: Output ONLY valid JSON. No markdown code blocks, no preamble, no chatter.`;
 
-    const result = await dynamicGenerationFlow.generate({
+    const response = await ai.generate({
       model: 'googleai/gemini-1.5-flash',
       prompt,
       config: { 
         temperature: 0.7,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 2500,
       },
     });
 
-    let generatedJsonString = result.text;
+    let text = response.text;
     
-    // Clean up potentially included markdown code blocks
-    if (generatedJsonString.includes('```')) {
-        generatedJsonString = generatedJsonString.replace(/```json/g, '').replace(/```/g, '').trim();
+    // Robust JSON extraction: look for the first '{' and last '}'
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        console.error("AI output did not contain valid JSON object:", text);
+        throw new Error('AI produced an invalid response format.');
     }
+    
+    const jsonString = jsonMatch[0];
     
     try {
         // Validate if the output is a valid JSON.
-        JSON.parse(generatedJsonString);
-        return { longDescription: generatedJsonString };
+        JSON.parse(jsonString);
+        return { longDescription: jsonString };
     } catch (parseError) {
-        console.error("AI returned non-JSON text:", result.text);
-        throw new Error('AI produced an invalid format. Please try generating again.');
+        console.error("Failed to parse AI JSON:", jsonString);
+        throw new Error('AI generated content was not in a valid JSON format. Please try again.');
     }
 
   } catch (e: any) {
     console.error("AI Generation Error:", e);
     
-    if (e.message.includes('API key not valid')) {
+    if (e.message.includes('API key not valid') || e.message.includes('API_KEY_INVALID')) {
         throw new Error('The provided Gemini API key is not valid. Please check your AI settings.');
     }
     
     const genkitError = e as GenkitError;
     if (genkitError.code) {
-        throw new Error(`AI Error: ${genkitError.message}`);
+        throw new Error(`AI Service Error: ${genkitError.message}`);
     }
 
-    throw e;
+    throw new Error(e.message || 'An unexpected error occurred during AI generation.');
   }
 }
