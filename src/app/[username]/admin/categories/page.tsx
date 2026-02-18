@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -7,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Category } from '@/types';
 import Image from 'next/image';
@@ -93,18 +91,24 @@ export default function CategoriesAdminPage() {
 
     const fetchCategories = useCallback(async () => {
         if (!user) return;
-        const { data, error } = await supabase
-            .from('categories')
-            .select('*')
-            .eq('site_id', user.id)
-            .order('name', { ascending: true });
-        
-        if (error) {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/categories/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setCategories(result.categories as Category[]);
+            } else {
+                throw new Error(result.error || 'Failed to fetch categories');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching categories', description: error.message });
-        } else {
-            setCategories(data as Category[]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [user, toast]);
 
     useEffect(() => {
@@ -134,33 +138,33 @@ export default function CategoriesAdminPage() {
     const onSubmit = async (data: CategoryFormData) => {
         if (!user) return;
         setIsSubmitting(true);
-        const payload = { ...data, site_id: user.id };
 
-        let error;
+        try {
+            const response = await fetch('/api/categories/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedCategory?.id,
+                    siteId: user.id,
+                    ...data 
+                }),
+            });
 
-        if (selectedCategory) {
-            // Update
-            const { error: updateError } = await supabase
-                .from('categories')
-                .update(payload)
-                .eq('id', selectedCategory.id);
-            error = updateError;
-            if (!error) toast({ title: 'Category Updated' });
-        } else {
-            // Create
-            const { error: insertError } = await supabase.from('categories').insert(payload);
-            error = insertError;
-            if (!error) toast({ title: 'Category Created' });
-        }
+            const result = await response.json();
 
-        if (error) {
+            if (response.ok) {
+                toast({ title: `Category ${selectedCategory ? 'Updated' : 'Created'}` });
+                await fetchCategories();
+                setIsFormOpen(false);
+                setSelectedCategory(null);
+            } else {
+                throw new Error(result.error || 'Failed to save category');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
-        } else {
-            await fetchCategories();
-            setIsFormOpen(false);
-            setSelectedCategory(null);
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     const openForm = (category: Category | null) => {
@@ -174,20 +178,33 @@ export default function CategoriesAdminPage() {
     }
 
     const handleDelete = async () => {
-        if (!selectedCategory) return;
+        if (!selectedCategory || !user) return;
         setIsSubmitting(true);
-        const { error } = await supabase.from('categories').delete().eq('id', selectedCategory.id);
-        setIsSubmitting(false);
+        try {
+            const response = await fetch('/api/categories/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: selectedCategory.id,
+                    siteId: user.id
+                }),
+            });
 
-        if (error) {
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: 'Category Deleted' });
+                await fetchCategories();
+            } else {
+                throw new Error(result.error || 'Failed to delete category');
+            }
+        } catch (error: any) {
             toast({ title: 'Error Deleting Category', variant: 'destructive', description: error.message });
-        } else {
-            toast({ title: 'Category Deleted' });
-            await fetchCategories();
+        } finally {
+            setIsSubmitting(false);
+            setIsAlertOpen(false);
+            setSelectedCategory(null);
         }
-
-        setIsAlertOpen(false);
-        setSelectedCategory(null);
     }
     
     if (isLoading) {
