@@ -1,38 +1,43 @@
-
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const url = request.nextUrl;
-  const hostname = request.headers.get('host');
+  const hostname = request.headers.get('host') || '';
 
-  // Your main domain, now dynamically from an environment variable with a fallback.
-  const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
+  // 1. SKIP REWRITES FOR DEVELOPMENT TOOLS
+  // This prevents IDX, Localhost, and Vercel Previews from breaking
+  const isDev = 
+    hostname.includes('cloudworkstations.dev') || 
+    hostname.includes('localhost') || 
+    hostname.includes('vercel.app');
 
-  // Extract subdomain (e.g., 'student1' from 'student1.schoolbd.top')
-  const subdomain = hostname?.replace(`.${rootDomain}`, '');
-
-  // 1. Avoid rewriting the main domain or 'www'
-  if (!subdomain || subdomain === rootDomain || subdomain === 'www') {
+  if (isDev) {
     return NextResponse.next();
   }
 
-  // 2. The Rewrite Rule
-  // Current Path: url.pathname (e.g., /admin)
-  // Target Path: /[subdomain]/admin
+  const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
+
+  // 2. Extract subdomain
+  // Use a more robust check to see if the hostname actually belongs to your root domain
+  if (!hostname.includes(rootDomain)) {
+    return NextResponse.next();
+  }
+
+  const subdomain = hostname.replace(`.${rootDomain}`, '').replace(rootDomain, '');
+
+  // 3. Avoid rewriting the main domain or 'www'
+  if (!subdomain || subdomain === 'www' || subdomain === '') {
+    return NextResponse.next();
+  }
+
+  // 4. The Rewrite Rule
   const targetPath = `/${subdomain}${url.pathname}${url.search}`;
-  
   return NextResponse.rewrite(new URL(targetPath, request.url));
 }
 
 export const config = {
   matcher: [
-    '/manifest.json',
-    '/sitemap.xml',
-    '/robots.txt',
-    /*
-     * Match all paths except static assets and internal Next.js files
-     */
     '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
   ],
 };
