@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
-import type { Order, Product } from '@/types';
+import type { Order, Product, FlashDeal } from '@/types';
 import Link from 'next/link';
 import { format, subDays, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import {
@@ -41,6 +41,7 @@ import {
   PieChart as PieChartIcon,
   Users,
   Ban,
+  Flame,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -75,6 +76,7 @@ export default function AdminDashboard() {
     totalUncompletedOrders: 0,
     totalCustomers: 0,
     ordersThisMonth: 0,
+    activeFlashDeals: 0,
   });
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
@@ -118,7 +120,7 @@ export default function AdminDashboard() {
         const startOfCurrentMonth = startOfMonth(new Date());
 
         // Fetch using created secure APIs
-        const [ordersRes, productsRes, uncompletedRes, customersRes] = await Promise.all([
+        const [ordersRes, productsRes, uncompletedRes, customersRes, flashDealsRes] = await Promise.all([
             fetch('/api/orders/list', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -139,24 +141,32 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ siteId }),
             }),
+            fetch('/api/flash-deals/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId }),
+            }),
         ]);
 
-        const [ordersResult, productsResult, uncompletedResult, customersResult] = await Promise.all([
+        const [ordersResult, productsResult, uncompletedResult, customersResult, flashDealsResult] = await Promise.all([
             ordersRes.json(),
             productsRes.json(),
             uncompletedRes.json(),
             customersRes.json(),
+            flashDealsRes.json(),
         ]);
 
         if (!ordersRes.ok) throw new Error(ordersResult.error || 'Failed to fetch orders');
         if (!productsRes.ok) throw new Error(productsResult.error || 'Failed to fetch products');
         if (!uncompletedRes.ok) throw new Error(uncompletedResult.error || 'Failed to fetch uncompleted orders');
         if (!customersRes.ok) throw new Error(customersResult.error || 'Failed to fetch customers');
+        if (!flashDealsRes.ok) throw new Error(flashDealsResult.error || 'Failed to fetch flash deals');
 
         const allOrders: any[] = ordersResult.orders || [];
         const allProducts: any[] = productsResult.products || [];
         const uncompletedData: any[] = uncompletedResult.orders || [];
         const customersData: any[] = customersResult.customers || [];
+        const allDeals: FlashDeal[] = flashDealsResult.deals || [];
 
         // --- Calculate Stats ---
         const totalRevenue = allOrders
@@ -227,6 +237,8 @@ export default function AdminDashboard() {
         setLowStockProducts(allProducts.filter(p => p.stock !== undefined && p.stock !== null && p.stock < 10).slice(0, 5));
         
         const unviewedCount = uncompletedData.filter((o: any) => !o.is_viewed).length;
+        const now = new Date();
+        const activeDealsCount = allDeals.filter(d => d.is_active && new Date(d.end_date) > now).length;
 
         setStats({
             totalRevenue,
@@ -235,6 +247,7 @@ export default function AdminDashboard() {
             totalUncompletedOrders: uncompletedData.length,
             totalCustomers: customersData.length,
             ordersThisMonth: monthlyOrdersCount,
+            activeFlashDeals: activeDealsCount,
         });
 
       } catch (error: any) {
@@ -335,6 +348,7 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard title={t.totalRevenue} value={`BDT ${stats.totalRevenue.toFixed(2)}`} icon={DollarSign} isLoading={isLoading} description={t.allTime} />
         <StatCard title={t.newUncompleted} value={stats.uncompletedOrders} icon={FileClock} isLoading={isLoading} description={`${stats.totalUncompletedOrders} ${t.totalAbandoned}`} />
+        <StatCard title={t.activeFlashDeals} value={stats.activeFlashDeals} icon={Flame} isLoading={isLoading} />
         <LimitStatCard title={t.products} value={stats.totalProducts} limit={user?.product_limit ?? null} icon={Package} isLoading={isLoading} isLimitReached={isProductLimitReached} />
         <LimitStatCard title={t.customers} value={stats.totalCustomers} limit={user?.customer_limit ?? null} icon={Users} isLoading={isLoading} isLimitReached={isCustomerLimitReached}/>
         <LimitStatCard title={t.ordersThisMonth} value={stats.ordersThisMonth} limit={user?.order_limit ?? null} icon={ShoppingBag} isLoading={isLoading} isLimitReached={isOrderLimitReached}/>

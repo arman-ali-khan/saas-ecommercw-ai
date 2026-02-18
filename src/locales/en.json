@@ -54,6 +54,7 @@
     "products": "Products",
     "customers": "Customers",
     "ordersThisMonth": "Orders (This Month)",
+    "activeFlashDeals": "Active Flash Deals",
     "limitReachedAlert": "Limit reached. Upgrade plan to add more.",
     "unlimited": "Unlimited on your current plan",
     "remaining": "remaining",
