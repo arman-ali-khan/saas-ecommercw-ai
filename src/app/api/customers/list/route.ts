@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { decrypt } from '@/lib/encryption';
+import { decryptObject } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -27,12 +27,8 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    // Decrypt all customers
-    const decryptedCustomers = data.map(customer => ({
-        ...customer,
-        full_name: decrypt(customer.full_name),
-        email: decrypt(customer.email)
-    }));
+    // Decrypt all customers in the list
+    const decryptedCustomers = data.map(customer => decryptObject(customer));
 
     return NextResponse.json({ customers: decryptedCustomers }, { status: 200 });
   } catch (err: any) {

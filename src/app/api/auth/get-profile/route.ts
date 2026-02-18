@@ -3,7 +3,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { decrypt } from '@/lib/encryption';
+import { decryptObject } from '@/lib/encryption';
 
 export async function GET(request: Request) {
   const cookieStore = cookies()
@@ -54,13 +54,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Profile not found or database error' }, { status: 404 });
     }
     
-    // Decrypt sensitive fields
-    const decryptedProfile = {
-        ...profile,
-        email: decrypt(profile.email),
-        username: decrypt(profile.username),
-        full_name: decrypt(profile.full_name)
-    };
+    // Decrypt sensitive fields using recursive decryption
+    const decryptedProfile = decryptObject(profile);
     
     const hostname = request.headers.get('host');
     const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
