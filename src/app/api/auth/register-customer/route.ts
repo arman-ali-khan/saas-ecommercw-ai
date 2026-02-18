@@ -4,14 +4,14 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { encrypt } from '@/lib/encryption';
+import { encrypt, decrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
     const { fullName, email, password, siteId } = await request.json();
 
     if (!fullName || !email || !password || !siteId) {
-        return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+        return NextResponse.json({ error: 'সকল তথ্য প্রদান করা আবশ্যক।' }, { status: 400 });
     }
 
     const supabaseAdmin = createClient(
@@ -19,21 +19,21 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
     
-    // Deterministic search for encrypted fields is hard without blind indexing.
-    // For this prototype, we store a separate hashed_email for lookups if needed, 
-    // or just search auth.users if they are linked. 
-    // However, since we're using a custom table, we'll keep it simple.
-    
-    // Check if user already exists (simplified check)
-    const { data: existingUsers } = await supabaseAdmin
+    // Check if user already exists
+    // Since we use random IV for encryption, we must fetch and decrypt to verify uniqueness
+    const { data: existingUsers, error: fetchError } = await supabaseAdmin
         .from('customer_profiles')
-        .select('id, email')
+        .select('email')
         .eq('site_id', siteId);
 
-    // Manual check because of encryption
-    const duplicate = existingUsers?.find(u => u.email === email);
-    if (duplicate) {
-        return NextResponse.json({ error: 'A customer with this email already exists on this site.' }, { status: 409 });
+    if (fetchError) {
+        console.error("Error fetching existing customers:", fetchError);
+        return NextResponse.json({ error: 'ডাটাবেস সংযোগে সমস্যা হয়েছে।' }, { status: 500 });
+    }
+
+    const isDuplicate = existingUsers?.some(u => decrypt(u.email) === email);
+    if (isDuplicate) {
+        return NextResponse.json({ error: 'এই ইমেলটি দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা হয়েছে।' }, { status: 409 });
     }
     
     const password_hash = await bcrypt.hash(password, 10);
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
     if (insertError) {
       console.error("DB Error on customer insert:", insertError);
-      return NextResponse.json({ error: `Database error: ${insertError.message}` }, { status: 500 });
+      return NextResponse.json({ error: `ডাটাবেস এরর: ${insertError.message}` }, { status: 500 });
     }
 
     const { password_hash: removed, ...safeUser } = data;
@@ -63,6 +63,6 @@ export async function POST(request: Request) {
 
   } catch (err: any) {
     console.error("Customer Registration API Error:", err);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'সার্ভারে একটি অভ্যন্তরীণ ত্রুটি হয়েছে।' }, { status: 500 });
   }
 }

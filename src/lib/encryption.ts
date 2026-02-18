@@ -2,9 +2,13 @@
 import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'v-7x!A%D*G-KaPdSgUkXp2s5v8y/B?E('; // Must be 32 bytes
+const RAW_KEY = process.env.ENCRYPTION_KEY || 'v-7x!A%D*G-KaPdSgUkXp2s5v8y/B?E('; 
 const IV_LENGTH = 16;
 const PREFIX = 'enc:';
+
+// Ensure the key is exactly 32 bytes for AES-256
+const ENCRYPTION_KEY = Buffer.alloc(32);
+Buffer.from(RAW_KEY).copy(ENCRYPTION_KEY);
 
 /**
  * Encrypts a string. Returns original if already encrypted or empty.
@@ -12,12 +16,17 @@ const PREFIX = 'enc:';
 export function encrypt(text: string | null | undefined): string {
   if (!text || text.startsWith(PREFIX)) return text || '';
 
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  try {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+    let encrypted = cipher.update(text);
+    encrypted = Buffer.concat([encrypted, cipher.final()]);
 
-  return PREFIX + iv.toString('hex') + ':' + encrypted.toString('hex');
+    return PREFIX + iv.toString('hex') + ':' + encrypted.toString('hex');
+  } catch (error) {
+    console.error('Encryption failed:', error);
+    return text;
+  }
 }
 
 /**
@@ -28,9 +37,14 @@ export function decrypt(text: string | null | undefined): string {
 
   try {
     const textParts = text.substring(PREFIX.length).split(':');
-    const iv = Buffer.from(textParts.shift()!, 'hex');
-    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-    const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
+    const ivString = textParts.shift();
+    const encryptedString = textParts.join(':');
+    
+    if (!ivString || !encryptedString) return text;
+
+    const iv = Buffer.from(ivString, 'hex');
+    const encryptedText = Buffer.from(encryptedString, 'hex');
+    const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
     let decrypted = decipher.update(encryptedText);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
@@ -52,9 +66,9 @@ export function decryptObject(obj: any): any {
 
   const decrypted: any = {};
   for (const [key, value] of Object.entries(obj)) {
-    if (typeof value === 'string') {
+    if (typeof value === 'string' && value.startsWith(PREFIX)) {
       decrypted[key] = decrypt(value);
-    } else if (typeof value === 'object') {
+    } else if (typeof value === 'object' && value !== null) {
       decrypted[key] = decryptObject(value);
     } else {
       decrypted[key] = value;

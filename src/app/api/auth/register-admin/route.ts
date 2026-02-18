@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   // Environment variable check
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     console.error("Server Error: Supabase environment variables are not configured.");
-    return NextResponse.json({ error: "Server is not configured correctly. Please contact support." }, { status: 500 });
+    return NextResponse.json({ error: "সার্ভার কনফিগারেশনে সমস্যা রয়েছে। দয়া করে সাপোর্টে যোগাযোগ করুন।" }, { status: 500 });
   }
   
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     });
 
     if (authError) {
-      return NextResponse.json({ error: `Authentication error: ${authError.message}` }, { status: 400 });
+      return NextResponse.json({ error: `অথেনটিকেশন এরর: ${authError.message}` }, { status: 400 });
     }
 
     userId = authData.user.id;
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       .eq('id', userId); 
 
     if (profileError) {
-      throw new Error(`Database error updating profile: ${profileError.message}`);
+      throw new Error(`প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ${profileError.message}`);
     }
 
     // Step 3: If the plan is not free, create the payment record.
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
         .single();
 
       if (planError || !planData) {
-        throw new Error('Invalid plan selected during payment record creation.');
+        throw new Error('পেমেন্ট রেকর্ড তৈরির সময় অবৈধ প্ল্যান পাওয়া গেছে।');
       }
       
       const priceString = String(planData.price || '0');
@@ -102,10 +102,10 @@ export async function POST(request: Request) {
         }
         
         if (paymentError.code === '23505' || paymentError.message.includes('subscription_payments_transaction_id_key')) {
-            return NextResponse.json({ error: 'This payment transaction ID has already been used. Please start the registration process again with a new payment.' }, { status: 409 });
+            return NextResponse.json({ error: 'এই ট্রানজেকশন আইডিটি ইতিমধ্যে ব্যবহৃত হয়েছে।' }, { status: 409 });
         }
         
-        return NextResponse.json({ error: `Could not create payment record: ${paymentError.message}` }, { status: 500 });
+        return NextResponse.json({ error: `পেমেন্ট রেকর্ড তৈরি করা যায়নি: ${paymentError.message}` }, { status: 500 });
       }
     }
 
