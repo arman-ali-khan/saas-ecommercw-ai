@@ -1,10 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
-import type { ProductReview, Product } from '@/types';
 import { format } from 'date-fns';
 import {
   Card,
@@ -51,8 +50,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { ProductReview, Product } from '@/types';
 
-// New schema for the form
 const reviewFormSchema = z.object({
   product_id: z.string().min(1, 'Please select a product.'),
   customer_name: z.string().min(2, 'Customer name is required.'),
@@ -72,7 +71,6 @@ export default function ReviewsAdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   
-  // States for modals/dialogs
   const [reviewToDelete, setReviewToDelete] = useState<ProductReview | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<ProductReview | null>(null);
@@ -89,24 +87,29 @@ export default function ReviewsAdminPage() {
     if (!user) return;
     setIsLoading(true);
     try {
-      const reviewsPromise = supabase
-        .from('product_reviews')
-        .select('*')
-        .eq('site_id', user.id)
-        .order('created_at', { ascending: false });
+      const reviewsResponse = await fetch('/api/reviews/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: user.id }),
+      });
+      const reviewsResult = await reviewsResponse.json();
 
-      const productsPromise = supabase
-        .from('products')
-        .select('id, name')
-        .eq('site_id', user.id);
-
-      const [reviewsRes, productsRes] = await Promise.all([reviewsPromise, productsPromise]);
+      const productsResponse = await fetch('/api/products/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: user.id }),
+      });
+      const productsResult = await productsResponse.json();
       
-      if (reviewsRes.error) throw reviewsRes.error;
-      setReviews(reviewsRes.data as ProductReview[]);
+      if (reviewsResponse.ok) {
+        setReviews(reviewsResult.reviews || []);
+      } else {
+        throw new Error(reviewsResult.error);
+      }
 
-      if (productsRes.error) throw productsRes.error;
-      setProducts(productsRes.data as Pick<Product, 'id' | 'name'>[]);
+      if (productsResponse.ok) {
+        setProducts(productsResult.products || []);
+      }
 
     } catch(error: any) {
        toast({
@@ -161,15 +164,15 @@ export default function ReviewsAdminPage() {
     setIsActionLoading(true);
 
     try {
-      let error;
-      if (selectedReview) {
-        // Update
-        ({ error } = await supabase.from('product_reviews').update(data).eq('id', selectedReview.id));
-      } else {
-        // Create
-        ({ error } = await supabase.from('product_reviews').insert({ ...data, site_id: user.id }));
-      }
-      if (error) throw error;
+      const response = await fetch('/api/reviews/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, id: selectedReview?.id, siteId: user.id }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) throw new Error(result.error);
+
       toast({ title: `Review ${selectedReview ? 'updated' : 'created'} successfully!` });
       await fetchData();
       setIsFormOpen(false);
@@ -181,29 +184,50 @@ export default function ReviewsAdminPage() {
   };
 
   const handleApprove = async (reviewId: string) => {
+    if (!user) return;
     setIsActionLoading(true);
-    const { error } = await supabase.from('product_reviews').update({ is_approved: true }).eq('id', reviewId);
-    if (error) {
+    try {
+      const response = await fetch('/api/reviews/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: reviewId, siteId: user.id }),
+      });
+      if (response.ok) {
+        toast({ title: 'Review approved!' });
+        await fetchData();
+      } else {
+        const result = await response.json();
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
       toast({ variant: 'destructive', title: 'Failed to approve review', description: error.message });
-    } else {
-      toast({ title: 'Review approved!' });
-      await fetchData();
+    } finally {
+      setIsActionLoading(false);
     }
-    setIsActionLoading(false);
   };
   
   const handleDelete = async () => {
-    if (!reviewToDelete) return;
+    if (!reviewToDelete || !user) return;
     setIsActionLoading(true);
-    const { error } = await supabase.from('product_reviews').delete().eq('id', reviewToDelete.id);
-    if (error) {
+    try {
+      const response = await fetch('/api/reviews/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: reviewToDelete.id, siteId: user.id }),
+      });
+      if (response.ok) {
+        toast({ title: 'Review deleted.' });
+        await fetchData();
+      } else {
+        const result = await response.json();
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
       toast({ variant: 'destructive', title: 'Failed to delete review', description: error.message });
-    } else {
-      toast({ title: 'Review deleted.' });
-      await fetchData();
+    } finally {
+      setIsActionLoading(false);
+      setReviewToDelete(null);
     }
-    setIsActionLoading(false);
-    setReviewToDelete(null);
   }
 
   if (isLoading) {
