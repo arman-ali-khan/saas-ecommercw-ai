@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/stores/cart';
@@ -24,28 +23,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
+import { useTranslation } from '@/hooks/use-translation';
 
 const checkoutSchema = z
   .object({
-    name: z.string().min(2, 'নাম কমপক্ষে ২ অক্ষরের হতে হবে'),
-    email: z.string().email('অনুগ্রহ করে একটি বৈধ ইমেল ঠিকানা লিখুন'),
-    address: z.string().min(5, 'অনুগ্রহ করে একটি বৈধ ঠিকানা লিখুন'),
-    city: z.string().min(2, 'অনুগ্রহ করে একটি বৈধ শহর লিখুন'),
-    phone: z.string().min(10, 'অনুগ্রহ করে একটি বৈধ ফোন নম্বর লিখুন'),
-    shippingZoneId: z.string({ required_error: 'একটি শিপিং পদ্ধতি নির্বাচন করুন।' }),
-    paymentMethod: z.enum(['cod', 'mobile_banking'], { required_error: 'একটি পেমেন্ট পদ্ধতি নির্বাচন করুন।' }),
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    email: z.string().email('Please enter a valid email address'),
+    address: z.string().min(5, 'Please enter a valid address'),
+    city: z.string().min(2, 'Please enter a valid city'),
+    phone: z.string().min(10, 'Please enter a valid phone number'),
+    shippingZoneId: z.string({ required_error: 'Please select a shipping method.' }),
+    paymentMethod: z.enum(['cod', 'mobile_banking'], { required_error: 'Please select a payment method.' }),
     transactionId: z.string().optional(),
     notes: z.string().optional(),
   })
   .refine(
     (data) => {
       if (data.paymentMethod === 'mobile_banking') {
-        return data.transactionId && data.transactionId.trim() !== '';
+        return !!data.transactionId && data.transactionId.trim() !== '';
       }
       return true;
     },
     {
-      message: 'ট্রানজেকশন আইডি প্রয়োজন।',
+      message: 'Transaction ID is required for mobile banking.',
       path: ['transactionId'],
     }
   );
@@ -58,6 +58,8 @@ export default function CheckoutPage() {
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslation();
+  const { checkout: t_checkout } = t;
 
   const [isHydrated, setIsHydrated] = useState(false);
   const [siteId, setSiteId] = useState<string | null>(null);
@@ -86,7 +88,7 @@ export default function CheckoutPage() {
     },
   });
 
-  const { control, register } = form;
+  const { control } = form;
   const watchedFormValues = form.watch();
 
   useEffect(() => {
@@ -171,12 +173,11 @@ export default function CheckoutPage() {
   
   useEffect(() => {
     const fetchSettingsAndAddresses = async () => {
-      if (!siteId) {
-        setIsLoadingPaymentSettings(false);
-        setIsLoadingShipping(false);
-        return;
-      }
+      if (!siteId) return;
       
+      setIsLoadingPaymentSettings(true);
+      setIsLoadingShipping(true);
+
       try {
         const settingsResponse = await fetch('/api/settings/get', {
             method: 'POST',
@@ -248,7 +249,7 @@ export default function CheckoutPage() {
     form.setValue('address', address.details);
     form.setValue('city', address.city);
     if (address.phone) form.setValue('phone', address.phone);
-    toast({ title: "Address selected" });
+    toast({ title: t_checkout.addressSelected });
   }
 
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
@@ -295,14 +296,14 @@ export default function CheckoutPage() {
 
       const result = await response.json();
 
-      if (!response.ok) throw new Error(result.error || 'অর্ডার স্থাপন ব্যর্থ হয়েছে');
+      if (!response.ok) throw new Error(result.error || 'Order placement failed');
 
       clearCart();
       localStorage.removeItem(`cart_session_id_${username}`);
       router.push(`/checkout/success?order_id=${result.order.id}`);
 
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'অর্ডার স্থাপন ব্যর্থ হয়েছে', description: error.message });
+        toast({ variant: 'destructive', title: 'Order Failed', description: error.message });
         setIsSubmitting(false);
     }
   }
@@ -315,7 +316,7 @@ export default function CheckoutPage() {
     <div className="grid md:grid-cols-2 gap-12">
       <div className="md:order-2">
         <Card>
-          <CardHeader><CardTitle>অর্ডার সারাংশ</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t_checkout.summary}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
             {cartItems.map((item) => (
@@ -331,11 +332,11 @@ export default function CheckoutPage() {
             </div>
             <Separator className="my-4" />
             <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Subtotal</span><span>{cartSubtotal.toFixed(2)} BDT</span></div>
-                <div className="flex justify-between"><span>Shipping</span><span>{shippingCost.toFixed(2)} BDT</span></div>
+                <div className="flex justify-between"><span>{t_checkout.subtotal}</span><span>{cartSubtotal.toFixed(2)} BDT</span></div>
+                <div className="flex justify-between"><span>{t_checkout.shipping}</span><span>{shippingCost.toFixed(2)} BDT</span></div>
             </div>
             <Separator className="my-4" />
-            <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{cartTotal.toFixed(2)} BDT</span></div>
+            <div className="flex justify-between font-bold text-lg"><span>{t_checkout.total}</span><span>{cartTotal.toFixed(2)} BDT</span></div>
           </CardContent>
         </Card>
       </div>
@@ -343,11 +344,11 @@ export default function CheckoutPage() {
       <div className="md:order-1">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <h1 className="text-3xl font-headline font-bold">যোগাযোগ ও শিপিং</h1>
+            <h1 className="text-3xl font-headline font-bold">{t_checkout.title}</h1>
             
             {customer && savedAddresses.length > 0 && (
                 <div className="space-y-3">
-                    <Label>সংরক্ষিত ঠিকানা</Label>
+                    <Label>{t_checkout.savedAddresses}</Label>
                     <RadioGroup onValueChange={(id) => { const addr = savedAddresses.find(a => a.id === id); if(addr) handleSelectAddress(addr); }} value={selectedAddressId || ''} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {savedAddresses.map(address => (
                             <Label key={address.id} htmlFor={`addr-${address.id}`} className={cn("flex items-start gap-4 rounded-md border-2 p-4 cursor-pointer", selectedAddressId === address.id ? "border-primary bg-primary/10" : "border-muted")}>
@@ -363,48 +364,57 @@ export default function CheckoutPage() {
             )}
 
             <div className="grid md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>পুরো নাম</FormLabel><FormControl><Input placeholder="পুরো নাম" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>ইমেল</FormLabel><FormControl><Input placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>{t_checkout.fullName}</FormLabel><FormControl><Input placeholder={t_checkout.fullName} {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>{t_checkout.email}</FormLabel><FormControl><Input placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
             </div>
-            <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>ঠিকানা</FormLabel><FormControl><Input placeholder="ঠিকানা" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>{t_checkout.address}</FormLabel><FormControl><Input placeholder={t_checkout.address} {...field} /></FormControl><FormMessage /></FormItem> )} />
             <div className="grid md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>শহর</FormLabel><FormControl><Input placeholder="শহর" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>ফোন নম্বর</FormLabel><FormControl><Input placeholder="ফোন নম্বর" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>{t_checkout.city}</FormLabel><FormControl><Input placeholder={t_checkout.city} {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>{t_checkout.phone}</FormLabel><FormControl><Input placeholder={t_checkout.phone} {...field} /></FormControl><FormMessage /></FormItem> )} />
             </div>
 
             <FormField control={form.control} name="shippingZoneId" render={({ field }) => (
                 <FormItem className="space-y-3">
-                  <FormLabel>শিপিং পদ্ধতি</FormLabel>
-                  <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    {shippingZones.map((zone) => (
-                        <Label key={zone.id} htmlFor={`ship-${zone.id}`} className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer", field.value === zone.id.toString() ? "border-primary bg-primary/10" : "border-muted")}>
-                            <RadioGroupItem value={zone.id.toString()} id={`ship-${zone.id}`} className="sr-only" />
-                            <Truck className="h-6 w-6 text-muted-foreground" />
-                            <div className="flex-grow text-xs">
-                                <p className="font-medium">{zone.name}</p>
-                                <p className="text-muted-foreground">{zone.price.toFixed(2)} BDT</p>
-                            </div>
-                        </Label>
-                    ))}
-                  </RadioGroup>
+                  <FormLabel>{t_checkout.shippingMethod}</FormLabel>
+                  {isLoadingShipping ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        <Skeleton className="h-20 w-full" />
+                        <Skeleton className="h-20 w-full" />
+                    </div>
+                  ) : shippingZones.length > 0 ? (
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        {shippingZones.map((zone) => (
+                            <Label key={zone.id} htmlFor={`ship-${zone.id}`} className={cn("flex items-center gap-4 rounded-md border-2 p-4 cursor-pointer", field.value === zone.id.toString() ? "border-primary bg-primary/10" : "border-muted")}>
+                                <RadioGroupItem value={zone.id.toString()} id={`ship-${zone.id}`} className="sr-only" />
+                                <Truck className="h-6 w-6 text-muted-foreground" />
+                                <div className="flex-grow text-xs">
+                                    <p className="font-medium">{zone.name}</p>
+                                    <p className="text-muted-foreground">{zone.price.toFixed(2)} BDT</p>
+                                </div>
+                            </Label>
+                        ))}
+                    </RadioGroup>
+                  ) : (
+                    <p className="text-sm text-destructive">{t_checkout.noShipping}</p>
+                  )}
                   <FormMessage />
                 </FormItem>
             )} />
 
-            <FormField control={form.control} name="notes" render={({ field }) => ( <FormItem><FormLabel>অর্ডার নোট (ঐচ্ছিক)</FormLabel><FormControl><Textarea placeholder="বিশেষ নির্দেশনা..." {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="notes" render={({ field }) => ( <FormItem><FormLabel>{t_checkout.orderNote}</FormLabel><FormControl><Textarea placeholder="..." {...field} /></FormControl><FormMessage /></FormItem> )} />
             
             <div className="pt-4 space-y-4">
-              <h2 className="text-2xl font-headline font-bold">পেমেন্ট পদ্ধতি</h2>
+              <h2 className="text-2xl font-headline font-bold">{t_checkout.paymentMethod}</h2>
                 <Controller name="paymentMethod" control={control} render={({ field }) => (
                     <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Label htmlFor="cod" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer", field.value === 'cod' ? "border-primary bg-primary/10" : "border-muted")}>
                             <RadioGroupItem value="cod" id="cod" className="sr-only" />
-                            <p className="font-medium">ক্যাশ অন ডেলিভারি</p>
+                            <p className="font-medium">{t_checkout.cod}</p>
                         </Label>
                         {paymentSettings?.mobile_banking_enabled && (
                             <Label htmlFor="mb" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer", field.value === 'mobile_banking' ? "border-primary bg-primary/10" : "border-muted")}>
                                 <RadioGroupItem value="mobile_banking" id="mb" className="sr-only" />
-                                <p className="font-medium">মোবাইল ব্যাংকিং</p>
+                                <p className="font-medium">{t_checkout.mobileBanking}</p>
                             </Label>
                         )}
                     </RadioGroup>
@@ -412,15 +422,15 @@ export default function CheckoutPage() {
                 
               {paymentMethod === 'mobile_banking' && (
                 <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                    <p className="text-sm">মার্চেন্ট নম্বর: <strong>{paymentSettings?.mobile_banking_number}</strong></p>
-                    <FormField control={form.control} name="transactionId" render={({ field }) => ( <FormItem><FormLabel>ট্রানজেকশন আইডি</FormLabel><FormControl><Input placeholder="যেমন: 8N7F6G..." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <p className="text-sm">{t_checkout.merchantNumber}: <strong>{paymentSettings?.mobile_banking_number}</strong></p>
+                    <FormField control={form.control} name="transactionId" render={({ field }) => ( <FormItem><FormLabel>{t_checkout.transactionId}</FormLabel><FormControl><Input placeholder="8N7F6G..." {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
               )}
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || cartItems.length === 0}>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || cartItems.length === 0 || shippingZones.length === 0}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSubmitting ? 'অর্ডার হচ্ছে...' : 'অর্ডার নিশ্চিত করুন'}
+              {isSubmitting ? t_checkout.placingOrder : t_checkout.placeOrder}
             </Button>
           </form>
         </Form>

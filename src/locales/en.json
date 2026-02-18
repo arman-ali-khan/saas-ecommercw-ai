@@ -1,4 +1,3 @@
-
 {
   "common": {
     "save": "Save",
@@ -114,6 +113,30 @@
     "name": "Name",
     "icon": "Icon",
     "image": "Image"
+  },
+  "checkout": {
+    "title": "Contact & Shipping",
+    "summary": "Order Summary",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "total": "Total",
+    "fullName": "Full Name",
+    "email": "Email",
+    "address": "Address",
+    "city": "City",
+    "phone": "Phone Number",
+    "shippingMethod": "Shipping Method",
+    "orderNote": "Order Note (Optional)",
+    "paymentMethod": "Payment Method",
+    "cod": "Cash on Delivery",
+    "mobileBanking": "Mobile Banking",
+    "merchantNumber": "Merchant Number",
+    "transactionId": "Transaction ID",
+    "placeOrder": "Place Order",
+    "placingOrder": "Placing order...",
+    "savedAddresses": "Saved Addresses",
+    "addressSelected": "Address selected",
+    "noShipping": "No shipping methods found. Please contact the administrator."
   },
   "success": {
     "title": "Your order has been placed!",
