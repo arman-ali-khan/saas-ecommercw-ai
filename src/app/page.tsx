@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -37,6 +36,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import DynamicIcon from '@/components/dynamic-icon';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 export default function SaasLandingPage() {
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
