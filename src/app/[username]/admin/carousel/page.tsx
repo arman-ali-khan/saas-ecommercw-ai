@@ -182,8 +182,9 @@ export default function CarouselAdminPage() {
         const [movedItem] = newSlides.splice(index, 1);
         newSlides.splice(newIndex, 0, movedItem);
 
+        // Include the entire slide object to satisfy DB constraints during upsert
         const updates = newSlides.map((slide, idx) => ({
-            id: slide.id,
+            ...slide,
             order: idx
         }));
         

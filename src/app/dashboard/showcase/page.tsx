@@ -143,8 +143,9 @@ export default function ShowcaseAdminPage() {
         const newItems = [...items];
         [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
 
+        // Include the entire item object to satisfy DB constraints during upsert
         const updates = newItems.map((item, idx) => ({
-            id: item.id,
+            ...item,
             order: idx
         }));
         

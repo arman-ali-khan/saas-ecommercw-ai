@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -147,7 +146,8 @@ export default function HeaderManagerPage() {
         const [movedItem] = newList.splice(index, 1);
         newList.splice(newIndex, 0, movedItem);
         
-        const updates = newList.map((item, idx) => ({ id: item.id, order: idx }));
+        // Include the entire item object to satisfy DB constraints during upsert
+        const updates = newList.map((item, idx) => ({ ...item, order: idx }));
         
         setIsLoading(true);
         try {

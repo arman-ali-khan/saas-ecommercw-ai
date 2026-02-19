@@ -171,8 +171,9 @@ export default function FeaturesAdminPage() {
         const [movedItem] = newFeatures.splice(index, 1);
         newFeatures.splice(newIndex, 0, movedItem);
 
+        // Include the entire feature object to satisfy DB constraints during upsert
         const updates = newFeatures.map((feature, idx) => ({
-            id: feature.id,
+            ...feature,
             order: idx
         }));
         
