@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -30,8 +29,8 @@ import { useAuth } from '@/stores/auth';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
-import { useEffect, useState, useMemo } from 'react';
-import { Loader2, Copy, Sparkles, CheckCircle } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -40,6 +39,14 @@ import DynamicIcon from '@/components/dynamic-icon';
 import { type SeoRequest, type Plan } from '@/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+  } from '@/components/ui/dropdown-menu';
 
 
 const availableBankingMethods = [
@@ -414,6 +421,17 @@ export default function SettingsAdminPage() {
         return false;
     }
   }, [socialShareImageUrl]);
+
+  const defaultColorPalette = [
+    { name: 'Navy', color: '#172554' },
+    { name: 'Green', color: '#064e3b' },
+    { name: 'Red', color: '#7f1d1d' },
+    { name: 'Amber', color: '#854d0e' },
+    { name: 'Indigo', color: '#1e1b4b' },
+    { name: 'Fuchsia', color: '#4a044e' },
+    { name: 'Slate', color: '#334155' },
+    { name: 'Stone', color: '#44403c' },
+  ];
 
   if (isLoading) {
     return (
