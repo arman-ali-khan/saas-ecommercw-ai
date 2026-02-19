@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -46,84 +45,30 @@ export default function SubscriptionPaymentsPage() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
 
   const fetchPayments = useCallback(async () => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(true);
     try {
-        const { data: paymentsData, error: paymentsError } = await supabase
-        .from('subscription_payments')
-        .select('*')
-        .order('created_at', { ascending: false });
+        const response = await fetch('/api/saas/subscriptions/list');
+        const result = await response.json();
 
-        if (paymentsError) {
-            toast({
-                variant: 'destructive',
-                title: 'Error Fetching Subscription Payments',
-                description: `Could not load payment data. Error: ${paymentsError.message}`,
-                duration: 10000,
-            });
-            console.error("Subscription Payments fetch error:", paymentsError);
-            setPayments([]);
-            return;
+        if (response.ok) {
+            setPayments(result.payments || []);
+        } else {
+            throw new Error(result.error || 'Failed to fetch payments');
         }
-        
-        if (!paymentsData || paymentsData.length === 0) {
-            setPayments([]);
-            setIsLoading(false);
-            return;
-        }
-
-        const userIds = [...new Set(paymentsData.map(p => p.user_id))];
-        const planIds = [...new Set(paymentsData.map(p => p.plan_id).filter(Boolean))];
-
-        const profilesPromise = userIds.length > 0 ? supabase.from('profiles').select('id, full_name, username').in('id', userIds) : Promise.resolve({ data: [], error: null });
-        const plansPromise = planIds.length > 0 ? supabase.from('plans').select('id, name').in('id', planIds) : Promise.resolve({ data: [], error: null });
-        
-        const [
-            { data: profilesData, error: profilesError },
-            { data: plansData, error: plansError }
-        ] = await Promise.all([profilesPromise, plansPromise]);
-
-
-        if (profilesError || plansError) {
-            const description = profilesError?.message || plansError?.message || 'Could not fetch related data.';
-            toast({
-                variant: 'destructive',
-                title: 'Error Fetching Subscription Details',
-                description: `Could not load user or plan details. ${description}`,
-                duration: 10000,
-            });
-        }
-
-        const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
-        const plansMap = new Map((plansData || []).map(p => [p.id, p]));
-
-        const combinedData = paymentsData.map(payment => ({
-            ...payment,
-            profiles: profilesMap.get(payment.user_id) || null,
-            plans: payment.plan_id ? plansMap.get(payment.plan_id) || null : null,
-        }));
-
-        setPayments(combinedData as SubscriptionPaymentWithDetails[]);
     } catch (e: any) {
-        toast({ variant: 'destructive', title: 'An unexpected client error occurred', description: e.message });
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
         setPayments([]);
     } finally {
         setIsLoading(false);
     }
-  }, [toast, user]);
+  }, [toast]);
   
   useEffect(() => {
-    if (!authLoading) {
-        fetchPayments();
-    }
-  }, [authLoading, fetchPayments]);
+    fetchPayments();
+  }, [fetchPayments]);
 
   const totalPages = Math.ceil(payments.length / PAYMENTS_PER_PAGE);
   const paginatedPayments = payments.slice(
@@ -232,11 +177,16 @@ export default function SubscriptionPaymentsPage() {
                   <TableBody>
                     {paginatedPayments.map(payment => (
                       <TableRow key={payment.id}>
-                        <TableCell className="font-medium">{payment.profiles?.full_name || 'N/A'}</TableCell>
+                        <TableCell className="font-medium">
+                            <div className="flex flex-col">
+                                <span className="font-bold">{payment.profiles?.full_name || 'N/A'}</span>
+                                <span className="text-[10px] text-muted-foreground">@{payment.profiles?.username}</span>
+                            </div>
+                        </TableCell>
                         <TableCell><Badge variant="secondary">{payment.plans?.name || 'N/A'}</Badge></TableCell>
                         <TableCell>{payment.amount.toFixed(2)} BDT</TableCell>
                         <TableCell className="font-mono text-xs">{payment.transaction_id || 'N/A'}</TableCell>
-                        <TableCell>{format(new Date(payment.created_at), 'PPP')}</TableCell>
+                        <TableCell className="text-xs">{format(new Date(payment.created_at), 'PP')}</TableCell>
                         <TableCell><Badge variant={getStatusBadgeVariant(payment.status)}>{payment.status}</Badge></TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => setSelectedPayment(payment)}>
@@ -253,26 +203,26 @@ export default function SubscriptionPaymentsPage() {
               <div className="grid gap-4 md:hidden">
                 {paginatedPayments.map(payment => (
                   <Card key={payment.id} onClick={() => setSelectedPayment(payment)} className="cursor-pointer hover:bg-muted/50">
-                      <CardHeader>
+                      <CardHeader className="p-4">
                         <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">
                                 <Avatar>
                                     <AvatarFallback>{payment.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <CardTitle className="text-lg">{payment.profiles?.full_name || 'N/A'}</CardTitle>
-                                    <CardDescription>@{payment.profiles?.username || 'unknown'}</CardDescription>
+                                    <CardTitle className="text-sm font-bold">{payment.profiles?.full_name || 'N/A'}</CardTitle>
+                                    <CardDescription className="text-xs">@{payment.profiles?.username || 'unknown'}</CardDescription>
                                 </div>
                             </div>
-                             <Badge variant={getStatusBadgeVariant(payment.status)}>{payment.status}</Badge>
+                             <Badge variant={getStatusBadgeVariant(payment.status)} className="text-[10px] h-fit">{payment.status}</Badge>
                         </div>
                       </CardHeader>
-                      <CardContent className="flex justify-between items-center">
+                      <CardContent className="p-4 pt-0 flex justify-between items-center">
                           <div className="space-y-1">
-                            <Badge variant="secondary">{payment.plans?.name || 'N/A'}</Badge>
-                            <p className="text-sm text-muted-foreground">{format(new Date(payment.created_at), 'PP')}</p>
+                            <Badge variant="secondary" className="text-[10px]">{payment.plans?.name || 'N/A'}</Badge>
+                            <p className="text-[10px] text-muted-foreground">{format(new Date(payment.created_at), 'PP')}</p>
                           </div>
-                          <p className="font-semibold text-lg">{payment.amount.toFixed(2)} BDT</p>
+                          <p className="font-bold text-base">{payment.amount.toFixed(2)} BDT</p>
                       </CardContent>
                   </Card>
                 ))}
@@ -281,7 +231,6 @@ export default function SubscriptionPaymentsPage() {
           ) : (
             <div className="text-center py-16">
               <p className="text-muted-foreground">No payment records found.</p>
-              <p className="text-xs text-muted-foreground mt-2">If you have just added the security policies, please try refreshing the page.</p>
             </div>
           )}
         </CardContent>
@@ -327,6 +276,7 @@ export default function SubscriptionPaymentsPage() {
                         <h4 className="font-semibold flex items-center gap-2"><User className="h-4 w-4" /> User Information</h4>
                         <p><strong>Name:</strong> {selectedPayment.profiles?.full_name}</p>
                         <p><strong>Username:</strong> @{selectedPayment.profiles?.username}</p>
+                        <p><strong>Email:</strong> {(selectedPayment.profiles as any)?.email}</p>
                     </div>
                     <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
                         <h4 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Subscription Details</h4>
@@ -337,10 +287,6 @@ export default function SubscriptionPaymentsPage() {
                         <h4 className="font-semibold flex items-center gap-2"><CreditCard className="h-4 w-4" /> Payment Information</h4>
                         <p><strong>Method:</strong> {formatPaymentMethod(selectedPayment.payment_method)}</p>
                         <p><strong>Transaction ID:</strong> {selectedPayment.transaction_id || 'N/A'}</p>
-                        <p className="flex items-center gap-2">
-                          <strong>Initiated From:</strong>
-                          <span className="capitalize">{selectedPayment.subscription_from || 'get-started'}</span>
-                        </p>
                         <div className="flex items-center gap-2">
                             <strong>Status:</strong>
                             <Badge variant={getStatusBadgeVariant(selectedPayment.status)}>{selectedPayment.status}</Badge>

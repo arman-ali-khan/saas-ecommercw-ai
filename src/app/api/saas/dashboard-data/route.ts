@@ -1,0 +1,91 @@
+
+import { NextResponse } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { decryptObject } from '@/lib/encryption';
+
+export async function GET(request: Request) {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { persistSession: false } }
+    );
+
+    // Verify caller is a SaaS Admin
+    const { data: callerProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    if (callerProfile?.role !== 'saas_admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Fetch Stats and Recent Lists in Parallel
+    const [
+        profilesRes,
+        paymentsRes,
+        notificationsRes,
+        pendingReviewsRes
+    ] = await Promise.all([
+        supabaseAdmin.from('profiles').select('id, subscription_status'),
+        supabaseAdmin.from('subscription_payments').select('*, profiles(full_name, username), plans(name)').order('created_at', { ascending: false }),
+        supabaseAdmin.from('notifications').select('*, profiles!notifications_recipient_id_fkey(full_name, username)').eq('is_read', false).eq('recipient_type', 'admin').order('created_at', { ascending: false }).limit(5),
+        supabaseAdmin.from('saas_reviews').select('id', { count: 'exact', head: true }).eq('is_approved', false)
+    ]);
+
+    const allProfiles = profilesRes.data || [];
+    const allPayments = paymentsRes.data || [];
+    const recentNotifications = notificationsRes.data || [];
+    
+    // Calculate Stats
+    const totalRevenue = allPayments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
+    const activeSubscriptions = allProfiles.filter(p => p.subscription_status === 'active').length;
+    const pendingSubscriptionsCount = allPayments.filter(p => p.status === 'pending' || p.status === 'pending_verification').length;
+
+    // Process Recent Payments (Decrypt names)
+    const recentPendingPayments = allPayments
+        .filter(p => p.status === 'pending' || p.status === 'pending_verification')
+        .slice(0, 5)
+        .map(p => decryptObject(p));
+
+    // Process Recent Notifications (Decrypt recipient names)
+    const processedNotifications = recentNotifications.map(n => decryptObject(n));
+
+    return NextResponse.json({
+        stats: {
+            totalRevenue,
+            activeSubscriptions,
+            pendingReviews: pendingReviewsRes.count || 0,
+            pendingSubscriptions: pendingSubscriptionsCount,
+        },
+        recentPendingPayments,
+        unreadNotifications: processedNotifications
+    });
+
+  } catch (e: any) {
+    console.error('API /saas/dashboard-data error:', e);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

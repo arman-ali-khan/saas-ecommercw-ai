@@ -25,13 +25,13 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { SubscriptionPaymentWithDetails } from '@/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SaasAdminDashboard() {
   const [stats, setStats] = useState({
@@ -43,101 +43,32 @@ export default function SaasAdminDashboard() {
   const [pendingPayments, setPendingPayments] = useState<SubscriptionPaymentWithDetails[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  const fetchDashboardData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/saas/dashboard-data');
+      const result = await response.json();
+
+      if (response.ok) {
+        setStats(result.stats);
+        setPendingPayments(result.recentPendingPayments || []);
+        setUnreadNotifications(result.unreadNotifications || []);
+      } else {
+        throw new Error(result.error || 'Failed to fetch dashboard data');
+      }
+    } catch (e: any) {
+      console.error("Dashboard fetch error:", e);
+      toast({ variant: 'destructive', title: 'Error', description: e.message });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-
-      try {
-        const profilesPromise = supabase.from('profiles').select('*', { count: 'exact' });
-        const paymentsPromise = supabase.from('subscription_payments').select('*');
-        const notificationsPromise = supabase
-          .from('notifications')
-          .select('*')
-          .eq('is_read', false)
-          .order('created_at', { ascending: false })
-          .limit(5);
-        const pendingReviewsPromise = supabase
-            .from('saas_reviews')
-            .select('*', { count: 'exact', head: true })
-            .eq('is_approved', false);
-
-        const [
-          { data: profilesData, error: profilesError },
-          { data: paymentsData, error: paymentsError },
-          { data: notificationsData, error: notificationsError },
-          { count: pendingReviewsCount, error: reviewsError },
-        ] = await Promise.all([profilesPromise, paymentsPromise, notificationsPromise, pendingReviewsPromise]);
-
-        if (profilesError || paymentsError || notificationsError || reviewsError) {
-          console.error("Dashboard fetch error:", profilesError || paymentsError || notificationsError || reviewsError);
-          setIsLoading(false);
-          return;
-        }
-
-        // Calculate stats
-        const totalRevenue = paymentsData?.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0) || 0;
-        const activeSubscriptions = profilesData?.filter(p => p.subscription_status === 'active').length || 0;
-        const pendingSubscriptionsCount = paymentsData?.filter(p => p.status === 'pending').length || 0;
-
-        setStats({
-          totalRevenue,
-          activeSubscriptions,
-          pendingReviews: pendingReviewsCount || 0,
-          pendingSubscriptions: pendingSubscriptionsCount,
-        });
-
-        // Manually "join" data for pending payments
-        const pending = paymentsData?.filter(p => p.status === 'pending').slice(0, 5) || [];
-        if (pending.length > 0) {
-            const userIdsForPending = [...new Set(pending.map(p => p.user_id))];
-            const planIdsForPending = [...new Set(pending.map(p => p.plan_id).filter(Boolean))];
-
-            const { data: pendingProfilesData } = await supabase.from('profiles').select('id, full_name, username').in('id', userIdsForPending);
-            const { data: pendingPlansData } = await supabase.from('plans').select('id, name').in('id', planIdsForPending);
-
-            const pendingProfilesMap = new Map((pendingProfilesData || []).map(p => [p.id, p]));
-            const pendingPlansMap = new Map((pendingPlansData || []).map(p => [p.id, p]));
-
-            const pendingWithDetails = pending.map(payment => ({
-                ...payment,
-                profiles: pendingProfilesMap.get(payment.user_id) || null,
-                plans: payment.plan_id ? pendingPlansMap.get(payment.plan_id) || null : null,
-            }));
-            setPendingPayments(pendingWithDetails as SubscriptionPaymentWithDetails[]);
-        } else {
-            setPendingPayments([]);
-        }
-
-        // Manually "join" data for unread notifications
-        if (notificationsData && notificationsData.length > 0) {
-            const adminRecipientIds = notificationsData.filter(n => n.recipient_type === 'admin').map(n => n.recipient_id);
-            
-            if (adminRecipientIds.length > 0) {
-                const { data: notifProfilesData } = await supabase.from('profiles').select('id, full_name, username').in('id', adminRecipientIds);
-                const notifProfilesMap = new Map((notifProfilesData || []).map(p => [p.id, p]));
-                
-                const notificationsWithDetails = notificationsData.map(notification => ({
-                    ...notification,
-                    profiles: notifProfilesMap.get(notification.recipient_id) || null,
-                })).filter(n => n.recipient_type === 'admin'); // Only show admin notifications on SaaS dash
-                setUnreadNotifications(notificationsWithDetails);
-            } else {
-                 setUnreadNotifications([]);
-            }
-        } else {
-            setUnreadNotifications([]);
-        }
-
-      } catch (e: any) {
-        console.error("Dashboard fetchData catch block error:", e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
   
   return (
     <div className="space-y-6">
@@ -149,7 +80,7 @@ export default function SaasAdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">BDT {stats.totalRevenue.toFixed(2)}</div>
+            {isLoading ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">BDT {stats.totalRevenue.toFixed(2)}</div>}
             <p className="text-xs text-muted-foreground">
               All time from subscriptions
             </p>
@@ -161,7 +92,7 @@ export default function SaasAdminDashboard() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{stats.activeSubscriptions}</div>
+            {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.activeSubscriptions}</div>}
             <p className="text-xs text-muted-foreground">
               Currently active plans
             </p>
@@ -173,7 +104,7 @@ export default function SaasAdminDashboard() {
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{stats.pendingReviews}</div>
+            {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.pendingReviews}</div>}
             <p className="text-xs text-muted-foreground">
               Require approval
             </p>
@@ -185,7 +116,7 @@ export default function SaasAdminDashboard() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{stats.pendingSubscriptions}</div>
+            {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.pendingSubscriptions}</div>}
             <p className="text-xs text-muted-foreground">
               Require manual approval
             </p>
@@ -199,7 +130,7 @@ export default function SaasAdminDashboard() {
               <div>
                 <CardTitle>Pending Subscriptions</CardTitle>
                 <CardDescription>
-                  The 5 most recent payments awaiting approval.
+                  The most recent payments awaiting approval.
                 </CardDescription>
               </div>
               <Button asChild variant="outline" size="sm">
@@ -229,7 +160,12 @@ export default function SaasAdminDashboard() {
                 ) : pendingPayments.length > 0 ? (
                     pendingPayments.map((sub) => (
                     <TableRow key={sub.id}>
-                        <TableCell className="font-medium">{sub.profiles?.full_name || 'N/A'}</TableCell>
+                        <TableCell className="font-medium">
+                            <div className="flex flex-col">
+                                <span>{sub.profiles?.full_name || 'N/A'}</span>
+                                <span className="text-[10px] text-muted-foreground">@{sub.profiles?.username}</span>
+                            </div>
+                        </TableCell>
                         <TableCell>
                         <Badge variant="secondary">
                             {sub.plans?.name || 'N/A'}
@@ -253,9 +189,9 @@ export default function SaasAdminDashboard() {
         <Card>
            <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Unread Notifications</CardTitle>
+                <CardTitle>Recent Unread Notifications</CardTitle>
                 <CardDescription>
-                  The 5 latest unread notifications across the platform.
+                  Latest updates from store administrators.
                 </CardDescription>
               </div>
               <Button asChild variant="outline" size="sm">
@@ -284,19 +220,19 @@ export default function SaasAdminDashboard() {
                     </Avatar>
                     <div className="grid gap-1 flex-1">
                       <p className="text-sm font-medium leading-none">
-                          To: {notif.profiles?.full_name || 'System'}
+                          From: {notif.profiles?.full_name || 'System'}
                       </p>
-                      <p className="text-sm text-muted-foreground truncate max-w-xs">
+                      <p className="text-sm text-muted-foreground line-clamp-1 max-w-xs">
                         {notif.message}
                       </p>
                     </div>
                     <div className="ml-auto text-xs text-muted-foreground">
-                      {format(new Date(notif.created_at), 'PP')}
+                      {format(new Date(notif.created_at), 'MMM d')}
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-6 text-center text-muted-foreground">
+                <div className="p-12 text-center text-muted-foreground">
                   No unread notifications.
                 </div>
               )}
