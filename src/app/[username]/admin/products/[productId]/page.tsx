@@ -60,8 +60,8 @@ const FALLBACK_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 const productFormSchema = z.object({
   id: z.string().min(3, 'ID/Slug must be at least 3 characters.').regex(/^[a-z0-9\u0980-\u09FF-]+$/, 'Slug can only contain lowercase letters, numbers, hyphens, and Bengali characters.'),
   name: z.string().min(1, 'Name is required.'),
-  price: z.preprocess((a) => parseFloat(String(a)), z.number().positive('Price must be a positive number.')),
-  stock: z.preprocess((a) => parseInt(String(a), 10), z.number().min(0, "Stock can't be negative.").default(0)),
+  price: z.preprocess((a) => (a === '' || a == null ? 0 : parseFloat(String(a))), z.number().positive('Price must be a positive number.')),
+  stock: z.preprocess((a) => (a === '' || a == null ? 0 : parseInt(String(a), 10)), z.number().min(0, "Stock can't be negative.").default(0)),
   currency: z.string().default('BDT'),
   description: z.string().min(10, 'Short description is required (min 10 chars).'),
   long_description: z.string().optional(),
@@ -82,8 +82,8 @@ const productFormSchema = z.object({
     amount: z.string().optional(),
     unitType: z.string().optional(),
     size: z.string().optional(),
-    price: z.preprocess((a) => parseFloat(String(a)), z.number().positive('Price must be positive')),
-    stock: z.preprocess((a) => parseInt(String(a), 10), v => v == null ? 0 : v).optional(),
+    price: z.preprocess((a) => (a === '' || a == null ? 0 : parseFloat(String(a))), z.number().positive('Price must be positive')),
+    stock: z.preprocess((a) => (a === '' || a == null ? 0 : parseInt(String(a), 10)), z.number().min(0).default(0)),
   })).optional().or(z.null()),
 }).refine(data => {
     if (data.use_variants && data.variants) {
