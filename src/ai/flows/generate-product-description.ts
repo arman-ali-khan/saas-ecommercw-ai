@@ -60,12 +60,12 @@ function extractJson(text: string) {
 /**
  * Generates a DETAILED and LONG product description in Bengali using Gemini AI.
  */
-export async function generateProductDescription(input: GenerateProductDescriptionInput): Promise<GenerateProductDescriptionOutput> {
+export async function generateProductDescription(input: GenerateProductDescriptionInput) {export async function generateProductDescription(input: GenerateProductDescriptionInput) {
   try {
     const { apiKey, name, description, categories, origin } = input;
     if (!apiKey) throw new Error('Gemini API key is missing.');
 
-    const ai = genkit({ plugins: [googleAI({ apiKey })] });
+    const ai = genkit({ plugins: [googleAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY })] });
     const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
     const prompt = `You are a premium e-commerce copywriter for "Bangla Naturals".
