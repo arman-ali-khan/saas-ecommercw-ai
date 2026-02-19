@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -14,7 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Loader2, Trash2, CheckCircle, Star, Plus, Edit } from 'lucide-react';
+import { Loader2, Trash2, CheckCircle, Star, Plus, Edit, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,14 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -308,76 +299,136 @@ export default function ReviewsAdminPage() {
         </CardContent>
       </Card>
       
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>{selectedReview ? 'Edit' : 'Create'} Review</DialogTitle>
-            <DialogDescription>
-              {selectedReview ? 'Update the details for this review.' : 'Manually create a new review for a product.'}
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 pt-4">
-                <FormField
-                    control={form.control}
-                    name="product_id"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Product</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="Select a product" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField control={form.control} name="customer_name" render={({ field }) => (<FormItem><FormLabel>Customer Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField
-                    control={form.control}
-                    name="rating"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Rating</FormLabel>
-                        <FormControl>
-                            <div className="flex items-center gap-2">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                    key={star}
-                                    className={cn(
-                                    "h-7 w-7 cursor-pointer transition-colors",
-                                    field.value >= star
-                                        ? "text-primary fill-primary"
-                                        : "text-muted-foreground/30"
-                                    )}
-                                    onClick={() => field.onChange(star)}
-                                />
-                            ))}
-                            </div>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Review Title (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="review_text" render={({ field }) => (<FormItem><FormLabel>Review Text</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="is_approved" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><FormLabel>Approved</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
-                <DialogFooter>
-                    <Button type="submit" disabled={isActionLoading}>
-                    {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Review
+      {/* Custom Raw Tailwind Dialog (Bottom Sheet on Mobile) */}
+      {isFormOpen && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            {/* Backdrop */}
+            <div 
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                onClick={() => setIsFormOpen(false)}
+            />
+            
+            {/* Dialog Content */}
+            <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between p-6 border-b">
+                    <h2 className="text-xl font-bold">{selectedReview ? 'Edit Review' : 'Create Review'}</h2>
+                    <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
+                        <X className="h-5 w-5" />
                     </Button>
-                </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+                </div>
+                
+                <div className="p-6 overflow-y-auto">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+                            <FormField
+                                control={form.control}
+                                name="product_id"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Product</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger className="h-11">
+                                        <SelectValue placeholder="Select a product" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                    </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            
+                            <FormField control={form.control} name="customer_name" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Customer Name</FormLabel>
+                                    <FormControl><Input placeholder="e.g., John Doe" {...field} className="h-11" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            
+                            <FormField
+                                control={form.control}
+                                name="rating"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Rating</FormLabel>
+                                    <FormControl>
+                                        <div className="flex items-center gap-2">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <Star
+                                                key={star}
+                                                className={cn(
+                                                "h-8 w-8 cursor-pointer transition-colors",
+                                                field.value >= star
+                                                    ? "text-primary fill-primary"
+                                                    : "text-muted-foreground/30"
+                                                )}
+                                                onClick={() => field.onChange(star)}
+                                            />
+                                        ))}
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            
+                            <FormField control={form.control} name="title" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Review Title (Optional)</FormLabel>
+                                    <FormControl><Input placeholder="e.g., Amazing Quality!" {...field} className="h-11" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            
+                            <FormField control={form.control} name="review_text" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Review Text</FormLabel>
+                                    <FormControl><Textarea placeholder="Share details about the experience..." {...field} rows={4} className="resize-none" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            
+                            <FormField control={form.control} name="is_approved" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/30">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">Approve Review</FormLabel>
+                                        <p className="text-xs text-muted-foreground">Check this to make it visible on the product page.</p>
+                                    </div>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )} />
+                            
+                            <div className="pt-4 flex gap-3 pb-8 sm:pb-0">
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    className="flex-1 h-12 rounded-xl"
+                                    onClick={() => setIsFormOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button 
+                                    type="submit" 
+                                    disabled={isActionLoading} 
+                                    className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
+                                >
+                                    {isActionLoading ? (
+                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                                    ) : (
+                                        'Save Review'
+                                    )}
+                                </Button>
+                            </div>
+                        </form>
+                    </Form>
+                </div>
+            </div>
+        </div>
+      )}
       
       <AlertDialog open={!!reviewToDelete} onOpenChange={() => setReviewToDelete(null)}>
         <AlertDialogContent>

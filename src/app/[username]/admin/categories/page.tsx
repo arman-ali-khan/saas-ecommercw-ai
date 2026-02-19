@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -13,8 +12,6 @@ import Image from 'next/image';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -26,14 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-    DialogDescription
-  } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,7 +45,7 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, MoreHorizontal, Palette } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, MoreHorizontal, Palette, X } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
@@ -358,92 +347,140 @@ export default function CategoriesAdminPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>{selectedCategory ? common.edit : common.add} {t.name}</DialogTitle>
-                        <DialogDescription>
-                            {selectedCategory ? 'Update category details.' : 'Create a new category.'}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)}>
-                            <div className="max-h-[70vh] overflow-y-auto pr-6 pl-1 space-y-4">
-                                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>{t.name}</FormLabel><FormControl><Input placeholder="e.g., ফল" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="A short description of the category." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="image_url" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t.image}</FormLabel>
-                                        <div className="flex items-start gap-4">
-                                            <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
-                                                {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
+            {/* Custom Raw Tailwind Dialog (Bottom Sheet on Mobile) */}
+            {isFormOpen && (
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                        onClick={() => setIsFormOpen(false)}
+                    />
+                    
+                    {/* Dialog Content */}
+                    <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b">
+                            <h2 className="text-xl font-bold">{selectedCategory ? common.edit : common.add} {t.name}</h2>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        
+                        <div className="p-6 overflow-y-auto">
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                    <FormField control={form.control} name="name" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t.name}</FormLabel>
+                                            <FormControl><Input placeholder="e.g., ফল" {...field} className="h-11" /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <FormField control={form.control} name="description" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Description (Optional)</FormLabel>
+                                            <FormControl><Textarea placeholder="A short description of the category." {...field} rows={3} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <FormField control={form.control} name="image_url" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t.image}</FormLabel>
+                                            <div className="flex flex-col sm:flex-row items-start gap-4">
+                                                <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden shrink-0">
+                                                    {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
+                                                </div>
+                                                <div className="space-y-2 flex-grow w-full">
+                                                    <FormControl><Input placeholder="https://example.com/image.png" {...field} className="h-11" /></FormControl>
+                                                    <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} label="Upload Image" />
+                                                </div>
                                             </div>
-                                            <div className="space-y-2 flex-grow">
-                                                <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
-                                                <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} />
-                                            </div>
-                                        </div>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>{t.icon}</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormDescription>Shown if no image is uploaded.</FormDescription><FormMessage /></FormItem>)} />
-                                
-                                <FormField control={form.control} name="card_color" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Card Background Color</FormLabel>
-                                        <div className="flex items-center gap-2">
-                                            <FormControl>
-                                                <Input {...field} placeholder="e.g., #172554 or hsl(var(--card))" />
-                                            </FormControl>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button type="button" variant="outline" size="icon">
-                                                        <Palette className="h-4 w-4" />
-                                                        <span className="sr-only">Open color picker</span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-64">
-                                                    <DropdownMenuLabel>Predefined Palette</DropdownMenuLabel>
-                                                    <DropdownMenuSeparator />
-                                                    <div className="p-2 grid grid-cols-4 gap-2">
-                                                        {defaultColorPalette.map(({name, color}) => (
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <FormField control={form.control} name="icon" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t.icon}</FormLabel>
+                                            <FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl>
+                                            <FormDescription>Shown if no image is uploaded.</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <FormField control={form.control} name="card_color" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Card Background Color</FormLabel>
+                                            <div className="flex items-center gap-2">
+                                                <FormControl>
+                                                    <Input {...field} placeholder="e.g., #172554 or hsl(var(--card))" className="h-11" />
+                                                </FormControl>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0">
+                                                            <Palette className="h-5 w-5" />
+                                                            <span className="sr-only">Open color picker</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-64">
+                                                        <DropdownMenuLabel>Predefined Palette</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <div className="p-2 grid grid-cols-4 gap-2">
+                                                            {defaultColorPalette.map(({name, color}) => (
+                                                                <button 
+                                                                    type="button" 
+                                                                    key={name} 
+                                                                    title={name}
+                                                                    className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring" 
+                                                                    style={{ backgroundColor: color }} 
+                                                                    onClick={() => form.setValue('card_color', color)}
+                                                                />
+                                                            ))}
                                                             <button 
                                                                 type="button" 
-                                                                key={name} 
-                                                                title={name}
-                                                                className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring" 
-                                                                style={{ backgroundColor: color }} 
-                                                                onClick={() => form.setValue('card_color', color)}
-                                                            />
-                                                        ))}
-                                                        <button 
-                                                            type="button" 
-                                                            title="Clear"
-                                                            className="h-8 w-8 rounded-md border flex items-center justify-center bg-background"
-                                                            onClick={() => form.setValue('card_color', '')}
-                                                        >
-                                                            <Trash2 className="h-4 w-4 text-muted-foreground" />
-                                                        </button>
-                                                    </div>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                        <FormDescription>Choose a color for the category card on the homepage.</FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                            </div>
-
-                            <DialogFooter className="pt-4">
-                                <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {common.save}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+                                                                title="Clear"
+                                                                className="h-8 w-8 rounded-md border flex items-center justify-center bg-background"
+                                                                onClick={() => form.setValue('card_color', '')}
+                                                            >
+                                                                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                                                            </button>
+                                                        </div>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                            <FormDescription>Choose a color for the category card on the homepage.</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <div className="pt-4 flex gap-3 pb-8 sm:pb-0">
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            className="flex-1 h-12 rounded-xl"
+                                            onClick={() => setIsFormOpen(false)}
+                                        >
+                                            {common.cancel}
+                                        </Button>
+                                        <Button 
+                                            type="submit" 
+                                            disabled={isSubmitting} 
+                                            className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
+                                        >
+                                            {isSubmitting ? (
+                                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {common.saving}</>
+                                            ) : (
+                                                common.save
+                                            )}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </Form>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                 <AlertDialogContent>

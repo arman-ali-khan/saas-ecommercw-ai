@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -12,13 +11,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, Sparkles, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, Sparkles, MoreHorizontal, X } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
@@ -290,44 +288,95 @@ export default function FeaturesAdminPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-xl">
-                    <DialogHeader>
-                        <DialogTitle>{selectedFeature ? 'Edit Feature' : 'Add New Feature'}</DialogTitle>
-                        <DialogDescription>
-                            {selectedFeature ? 'Update the details for this feature.' : 'Fill in the details for your new feature.'}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                            <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., সরাসরি কৃষক থেকে" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short description of the feature." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="image_url" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Feature Image (Optional)</FormLabel>
-                                    <div className="flex items-start gap-4">
-                                        <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
-                                            {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
-                                        </div>
-                                        <div className="space-y-2 flex-grow">
-                                            <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
-                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} />
-                                        </div>
+            {/* Custom Raw Tailwind Dialog (Bottom Sheet on Mobile) */}
+            {isFormOpen && (
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                        onClick={() => setIsFormOpen(false)}
+                    />
+                    
+                    {/* Dialog Content */}
+                    <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b">
+                            <h2 className="text-xl font-bold">{selectedFeature ? 'Edit Feature' : 'Add New Feature'}</h2>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        
+                        <div className="p-6 overflow-y-auto">
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                    <FormField control={form.control} name="title" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Title</FormLabel>
+                                            <FormControl><Input placeholder="e.g., সরাসরি কৃষক থেকে" {...field} className="h-11" /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <FormField control={form.control} name="description" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Description</FormLabel>
+                                            <FormControl><Textarea placeholder="A short description of the feature." {...field} rows={3} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <FormField control={form.control} name="image_url" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Feature Image (Optional)</FormLabel>
+                                            <div className="flex flex-col sm:flex-row items-start gap-4">
+                                                <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden shrink-0">
+                                                    {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
+                                                </div>
+                                                <div className="space-y-2 flex-grow w-full">
+                                                    <FormControl><Input placeholder="https://example.com/image.png" {...field} className="h-11" /></FormControl>
+                                                    <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} label="Upload Image" />
+                                                </div>
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <FormField control={form.control} name="icon" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Fallback Icon</FormLabel>
+                                            <FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl>
+                                            <FormDescription>This icon will be shown if no image is uploaded.</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <div className="pt-4 flex gap-3 pb-8 sm:pb-0">
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            className="flex-1 h-12 rounded-xl"
+                                            onClick={() => setIsFormOpen(false)}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button 
+                                            type="submit" 
+                                            disabled={isSubmitting} 
+                                            className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
+                                        >
+                                            {isSubmitting ? (
+                                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                                            ) : (
+                                                'Save Feature'
+                                            )}
+                                        </Button>
                                     </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>Fallback Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormDescription>This icon will be shown if no image is uploaded.</FormDescription><FormMessage /></FormItem>)} />
-                            <DialogFooter>
-                                <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isSubmitting ? 'Saving...' : 'Save Feature'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+                                </form>
+                            </Form>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                 <AlertDialogContent>
