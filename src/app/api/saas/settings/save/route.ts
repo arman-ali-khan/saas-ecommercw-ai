@@ -32,9 +32,37 @@ export async function POST(request: Request) {
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
     if (profile?.role !== 'saas_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    // Map incoming CamelCase or specific names to DB column names if necessary
+    const payload = {
+        platform_name: data.platform_name || data.platformName,
+        platform_description: data.platform_description || data.platformDescription,
+        logo_url: data.logo_url,
+        favicon_url: data.favicon_url,
+        base_domain: data.base_domain,
+        social_facebook: data.social_facebook,
+        social_twitter: data.social_twitter,
+        social_tiktok: data.social_tiktok,
+        seo_title: data.seo_title || data.seoTitle,
+        seo_description: data.seo_description || data.seoDescription,
+        seo_keywords: data.seo_keywords || data.seoKeywords,
+        mobile_banking_enabled: data.mobile_banking_enabled || data.mobileBankingEnabled,
+        mobile_banking_number: data.mobile_banking_number || data.mobileBankingNumber,
+        accepted_banking_methods: data.accepted_banking_methods || data.acceptedBankingMethods,
+        // New Landing Page Fields
+        hero_title: data.hero_title,
+        hero_description: data.hero_description,
+        hero_image_url: data.hero_image_url,
+        cta_title: data.cta_title,
+        cta_description: data.cta_description,
+        cta_bg_color: data.cta_bg_color,
+    };
+
+    // Remove undefined values
+    Object.keys(payload).forEach(key => (payload as any)[key] === undefined && delete (payload as any)[key]);
+
     const { error } = await supabaseAdmin
       .from('saas_settings')
-      .upsert({ id: 1, ...data }, { onConflict: 'id' });
+      .upsert({ id: 1, ...payload }, { onConflict: 'id' });
 
     if (error) throw error;
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -108,6 +109,7 @@ export default function SaasLandingPage() {
   const [reviews, setReviews] = useState<SaaSReview[]>([]);
   const [showcaseItems, setShowcaseItems] = useState<SaasShowcaseItem[]>([]);
   const [sections, setSections] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -138,7 +140,7 @@ export default function SaasLandingPage() {
 
       const settingsPromise = supabase
         .from('saas_settings')
-        .select('homepage_sections')
+        .select('*')
         .eq('id', 1)
         .single();
 
@@ -181,19 +183,21 @@ export default function SaasLandingPage() {
         setShowcaseItems(showcaseData as SaasShowcaseItem[]);
       }
 
-      if (settingsData?.homepage_sections && Array.isArray(settingsData.homepage_sections)) {
-        setSections(settingsData.homepage_sections);
-      } else {
-        // Fallback default order
-        setSections([
-            { id: 'hero', enabled: true },
-            { id: 'features', enabled: true },
-            { id: 'showcase', enabled: true },
-            { id: 'stats', enabled: true },
-            { id: 'pricing', enabled: true },
-            { id: 'testimonial', enabled: true },
-            { id: 'cta', enabled: true }
-        ]);
+      if (settingsData) {
+        setSettings(settingsData);
+        if (settingsData.homepage_sections && Array.isArray(settingsData.homepage_sections)) {
+            setSections(settingsData.homepage_sections);
+        } else {
+            setSections([
+                { id: 'hero', enabled: true },
+                { id: 'features', enabled: true },
+                { id: 'showcase', enabled: true },
+                { id: 'stats', enabled: true },
+                { id: 'pricing', enabled: true },
+                { id: 'testimonial', enabled: true },
+                { id: 'cta', enabled: true }
+            ]);
+        }
       }
 
       setIsLoading(false);
@@ -236,11 +240,11 @@ export default function SaasLandingPage() {
             </div>
             
             <h1 className="text-5xl md:text-7xl font-headline font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 mb-6">
-              আপনার স্বপ্নের স্টোর <br className="hidden md:block" /> এখন বাস্তবের পথে
+              {settings?.hero_title || 'আপনার স্বপ্নের স্টোর এখন বাস্তবের পথে'}
             </h1>
             
             <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground leading-relaxed">
-              বাংলা ন্যাচারালস-এর মাধ্যমে কয়েক মিনিটের মধ্যেই শুরু করুন আপনার নিজস্ব ই-কমার্স প্ল্যাটফর্ম। এআই-চালিত টুলস এবং কাস্টমাইজযোগ্য ডিজাইন নিয়ে আজই আপনার ব্র্যান্ড চালু করুন।
+              {settings?.hero_description || 'বাংলা ন্যাচারালস-এর মাধ্যমে কয়েক মিনিটের মধ্যেই শুরু করুন আপনার নিজস্ব ই-কমার্স প্ল্যাটফর্ম। এআই-চালিত টুলস এবং কাস্টমাইজযোগ্য ডিজাইন নিয়ে আজই আপনার ব্র্যান্ড চালু করুন।'}
             </p>
             
             <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4 px-4 sm:px-0">
@@ -270,7 +274,7 @@ export default function SaasLandingPage() {
                 </div>
                 <div className="aspect-[16/9] relative">
                   <Image
-                    src="https://images.unsplash.com/photo-1628882139032-a1314387532f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxlY29tbWVyY2UlMjBhcHB8ZW58MHx8fHwxNzcxMDQzODA2fDA&ixlib=rb-4.1.0&q=80&w=1200"
+                    src={settings?.hero_image_url || "https://images.unsplash.com/photo-1628882139032-a1314387532f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxlY29tbWVyY2UlMjBhcHB8ZW58MHx8fHwxNzcxMDQzODA2fDA&ixlib=rb-4.1.0&q=80&w=1200"}
                     alt="Platform Dashboard"
                     fill
                     className="object-cover"
@@ -476,15 +480,18 @@ export default function SaasLandingPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="relative rounded-[3rem] bg-primary overflow-hidden py-20 px-8 text-center text-primary-foreground shadow-2xl shadow-primary/20"
+            className="relative rounded-[3rem] overflow-hidden py-20 px-8 text-center text-primary-foreground shadow-2xl"
+            style={{ backgroundColor: settings?.cta_bg_color || 'hsl(var(--primary))' }}
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] rounded-full -mr-32 -mt-32" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 blur-[80px] rounded-full -ml-32 -mb-32" />
             
             <div className="relative z-10">
-              <h2 className="text-4xl md:text-6xl font-headline font-bold mb-6">আপনার অনলাইন যাত্রা আজই শুরু হোক</h2>
+              <h2 className="text-4xl md:text-6xl font-headline font-bold mb-6">
+                {settings?.cta_title || 'আপনার অনলাইন যাত্রা আজই শুরু হোক'}
+              </h2>
               <p className="max-w-2xl mx-auto text-lg md:text-xl opacity-90 mb-10 leading-relaxed">
-                হাজার হাজার উদ্যোক্তার সাথে যোগ দিন যারা বাংলা ন্যাচারালস ব্যবহার করে তাদের ব্র্যান্ডকে সফলভাবে গড়ে তুলছেন।
+                {settings?.cta_description || 'হাজার হাজার উদ্যোক্তার সাথে যোগ দিন যারা বাংলা ন্যাচারালস ব্যবহার করে তাদের ব্র্যান্ডকে সফলভাবে গড়ে তুলছেন।'}
               </p>
               <Button asChild size="lg" variant="secondary" className="h-14 px-10 rounded-full text-lg shadow-xl transition-transform hover:scale-105 active:scale-95">
                 <Link href="/get-started">

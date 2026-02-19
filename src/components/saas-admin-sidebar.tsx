@@ -18,6 +18,7 @@ import {
   Star,
   GalleryVertical,
   LayoutList,
+  Monitor,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -113,6 +114,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: counts.pendingSubscriptions },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
+    { href: `/dashboard/landing-page`, label: 'Landing Page', icon: Monitor },
     { href: `/dashboard/showcase`, label: 'Showcase', icon: GalleryVertical },
     { href: `/dashboard/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/dashboard/pages`, label: 'Pages', icon: FileText },
@@ -120,7 +122,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell, count: counts.unreadNotifications },
     { href: `/dashboard/seo-requests`, label: 'SEO Requests', icon: Sparkles, count: counts.pendingSeoRequests },
     { href: `/dashboard/settings`, label: 'Settings', icon: Settings },
-    { href: `/`, label: 'View Landing Page', icon: Building },
+    { href: `/`, label: 'View Platform', icon: Building },
   ];
 
   const NavLink = ({
