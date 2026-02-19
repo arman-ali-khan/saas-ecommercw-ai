@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -32,9 +31,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, ArrowRight, Search, X, CheckCircle2, Clock } from 'lucide-react';
+import { Loader2, Plus, Search, X, CheckCircle2, Clock } from 'lucide-react';
 import type { Notification } from '@/types';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 type NotificationWithDetails = Notification & {
   profiles?: {
@@ -54,7 +53,6 @@ export default function SaasNotificationsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -100,7 +98,7 @@ export default function SaasNotificationsPage() {
   
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterType, filterStatus]);
+  }, [searchQuery, filterStatus]);
 
   const filteredNotifications = useMemo(() => {
     return notifications.filter(n => {

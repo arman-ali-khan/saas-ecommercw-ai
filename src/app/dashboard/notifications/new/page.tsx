@@ -66,7 +66,7 @@ export default function NewNotificationPage() {
         if (response.ok) {
           setAdmins(result.users || []);
         } else {
-          throw new Error(result.error);
+          throw new Error(result.error || 'Failed to fetch admins');
         }
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
@@ -78,9 +78,9 @@ export default function NewNotificationPage() {
   }, [toast]);
 
   const filteredAdmins = admins.filter(admin => 
-    admin.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    admin.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    admin.site_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    (admin.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (admin.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (admin.site_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const onSubmit = async (values: NotificationFormData) => {
@@ -97,7 +97,7 @@ export default function NewNotificationPage() {
         router.push('/dashboard/notifications');
       } else {
         const result = await response.json();
-        throw new Error(result.error);
+        throw new Error(result.error || 'Failed to send notifications');
       }
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Failed', description: error.message });
@@ -108,7 +108,7 @@ export default function NewNotificationPage() {
 
   const toggleAll = () => {
     const currentIds = form.getValues('recipientIds');
-    if (currentIds.length === filteredAdmins.length) {
+    if (currentIds.length === filteredAdmins.length && filteredAdmins.length > 0) {
       form.setValue('recipientIds', []);
     } else {
       form.setValue('recipientIds', filteredAdmins.map(a => a.id));
@@ -143,8 +143,8 @@ export default function NewNotificationPage() {
                   </div>
                   
                   <div className="flex items-center justify-between px-2">
-                    <Button type="button" variant="link" size="sm" onClick={toggleAll} className="h-auto p-0">
-                      {form.watch('recipientIds').length === filteredAdmins.length ? 'Deselect All' : 'Select All Filtered'}
+                    <Button type="button" variant="link" size="sm" onClick={toggleAll} className="h-auto p-0" disabled={isLoadingAdmins || filteredAdmins.length === 0}>
+                      {form.watch('recipientIds').length === filteredAdmins.length && filteredAdmins.length > 0 ? 'Deselect All' : 'Select All Filtered'}
                     </Button>
                     <span className="text-xs text-muted-foreground">{form.watch('recipientIds').length} selected</span>
                   </div>
@@ -153,7 +153,9 @@ export default function NewNotificationPage() {
                     <ScrollArea className="h-72">
                       <div className="p-4 space-y-4">
                         {isLoadingAdmins ? (
-                          <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                          <div className="flex flex-col gap-4">
+                             {[...Array(5)].map((_, i) => <div key={i} className="flex gap-2 items-center"><Loader2 className="animate-spin h-4 w-4" /><div className="h-4 w-32 bg-muted rounded animate-pulse" /></div>)}
+                          </div>
                         ) : filteredAdmins.length > 0 ? (
                           filteredAdmins.map((admin) => (
                             <FormField
@@ -173,8 +175,8 @@ export default function NewNotificationPage() {
                                     />
                                   </FormControl>
                                   <div className="grid gap-0.5 leading-none">
-                                    <FormLabel className="font-semibold cursor-pointer">{admin.full_name}</FormLabel>
-                                    <p className="text-xs text-muted-foreground">{admin.site_name} ({admin.domain})</p>
+                                    <FormLabel className="font-semibold cursor-pointer">{admin.full_name || 'Unnamed Admin'}</FormLabel>
+                                    <p className="text-xs text-muted-foreground">{admin.site_name || 'No Site Name'} ({admin.domain || 'no-domain'})</p>
                                   </div>
                                 </FormItem>
                               )}
@@ -218,7 +220,7 @@ export default function NewNotificationPage() {
                     )}
                   />
                   <div className="pt-4">
-                    <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isLoadingAdmins}>
+                    <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isLoadingAdmins || form.watch('recipientIds').length === 0}>
                       {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Users className="mr-2 h-4 w-4" /> Send Announcement
                     </Button>
