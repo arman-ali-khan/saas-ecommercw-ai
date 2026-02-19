@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, PackageCheck, Wand2, RotateCcw, CheckCircle2, Star, Info, Sparkles, Plus, Ruler, Scale, X } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Wand2, Sparkles, Plus, Ruler, Scale, X, Info, Star, CheckCircle2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -46,7 +46,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import RichTextEditor from '@/components/rich-text-editor';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -60,7 +59,7 @@ const FALLBACK_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 const productFormSchema = z.object({
   id: z.string().min(3, 'ID/Slug must be at least 3 characters.').regex(/^[a-z0-9\u0980-\u09FF-]+$/, 'Slug can only contain lowercase letters, numbers, hyphens, and Bengali characters.'),
   name: z.string().min(1, 'Name is required.'),
-  price: z.preprocess((a) => (a === '' || a == null ? 0 : parseFloat(String(a))), z.number().positive('Price must be a positive number.')),
+  price: z.preprocess((a) => (a === '' || a == null ? 0 : parseFloat(String(a))), z.number().min(0).default(0)),
   stock: z.preprocess((a) => (a === '' || a == null ? 0 : parseInt(String(a), 10)), z.number().min(0, "Stock can't be negative.").default(0)),
   currency: z.string().default('BDT'),
   description: z.string().min(10, 'Short description is required (min 10 chars).'),
@@ -82,7 +81,7 @@ const productFormSchema = z.object({
     amount: z.string().optional(),
     unitType: z.string().optional(),
     size: z.string().optional(),
-    price: z.preprocess((a) => (a === '' || a == null ? 0 : parseFloat(String(a))), z.number().positive('Price must be positive')),
+    price: z.preprocess((a) => (a === '' || a == null ? 0 : parseFloat(String(a))), z.number().min(0).default(0)),
     stock: z.preprocess((a) => (a === '' || a == null ? 0 : parseInt(String(a), 10)), z.number().min(0).default(0)),
   })).optional(),
 });
@@ -98,7 +97,6 @@ export default function ManageProductPage() {
 
   const productId = params.productId as string;
   const isNew = productId === 'new';
-  const draftKey = useMemo(() => user ? `unsaved_product_draft_${user.id}` : null, [user]);
 
   const [isLoading, setIsLoading] = useState(() => {
     const store = useAdminStore.getState();
@@ -109,7 +107,6 @@ export default function ManageProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isBeautifying, setIsBeautifying] = useState(false);
-  const [hasDraft, setHasDraft] = useState(false);
   
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -126,18 +123,6 @@ export default function ManageProductPage() {
   
   const watchedValues = form.watch();
   
-  useEffect(() => {
-    if (isNew && watchedValues.name) {
-        const slug = watchedValues.name
-            .toLowerCase()
-            .replace(/[^\u0980-\u09FFa-z0-9\s-]/g, '')
-            .trim()
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-');
-        form.setValue('id', slug, { shouldValidate: true });
-    }
-  }, [watchedValues.name, isNew, form]);
-
   const fetchProductData = useCallback(async () => {
     if (!user) return;
 
@@ -306,7 +291,6 @@ export default function ManageProductPage() {
             const res = await response.json();
             throw new Error(res.error || 'Failed to save');
         }
-        if (isNew && draftKey) localStorage.removeItem(draftKey);
         invalidateEntity('products');
         invalidateEntity('dashboard');
         toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });

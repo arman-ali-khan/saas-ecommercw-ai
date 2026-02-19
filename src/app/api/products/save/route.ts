@@ -18,10 +18,10 @@ export async function POST(request: Request) {
 
     let resultProduct;
 
-    // Ensure variants is handled as JSONB
+    // Sanitize and ensure variants is either null or a valid object for JSONB
     const sanitizedProductData = {
         ...productData,
-        variants: productData.variants || null
+        variants: productData.variants && productData.variants.length > 0 ? productData.variants : null
     };
 
     if (isNew) {
