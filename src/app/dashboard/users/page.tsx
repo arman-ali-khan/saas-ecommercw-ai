@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
   Card,
@@ -86,9 +85,15 @@ export default function UsersAdminPage() {
                 throw new Error(result.error);
             }
 
-            const { data: settingsData } = await supabase.from('saas_settings').select('base_domain').eq('id', 1).single();
-            if (settingsData?.base_domain) {
-                setBaseDomain(settingsData.base_domain);
+            // Fetch base domain from settings API
+            const settingsRes = await fetch('/api/saas/fetch-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ entity: 'settings' }),
+            });
+            const settingsResult = await settingsRes.json();
+            if (settingsRes.ok && settingsResult.data?.base_domain) {
+                setBaseDomain(settingsResult.data.base_domain);
             }
 
         } catch (e: any) {
@@ -175,15 +180,20 @@ export default function UsersAdminPage() {
         setIsBlocking(true);
         const newStatus = selectedUser.subscription_status === 'active' ? 'inactive' : 'active';
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ subscription_status: newStatus })
-                .eq('id', selectedUser.id);
+            const response = await fetch('/api/saas/admins/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: selectedUser.id, status: newStatus }),
+            });
 
-            if (error) throw error;
-            
-            toast({ title: `Store has been ${newStatus === 'active' ? 'unblocked' : 'blocked'}.` });
-            await fetchUsersData();
+            const result = await response.json();
+
+            if (response.ok) {
+                toast({ title: `Store has been ${newStatus === 'active' ? 'unblocked' : 'blocked'}.` });
+                await fetchUsersData();
+            } else {
+                throw new Error(result.error);
+            }
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Action failed', description: e.message });
         } finally {
@@ -277,6 +287,7 @@ export default function UsersAdminPage() {
                                                                     <><ShieldCheck className="mr-2 h-4 w-4" /> Unblock</>
                                                                 )}
                                                             </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
                                                             <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => handleDeleteClick(user)}>
                                                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                             </DropdownMenuItem>
