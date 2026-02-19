@@ -80,12 +80,15 @@ export default function ManageProductPage() {
   const isNew = productId === 'new';
   const draftKey = useMemo(() => user ? `unsaved_product_draft_${user.id}` : null, [user]);
 
-  // Initial loading state based on store content to prevent flickering
+  // INSTANT STATE: Check store immediately. Do not show loader if data is present.
   const [isLoading, setIsLoading] = useState(() => {
     if (isNew) {
         const store = useAdminStore.getState();
+        // If we have categories and attributes, we don't need to show a loader for a "New" product
         return !(store.categories.length > 0 && store.attributes.length > 0);
     }
+    // For editing, we check if the products are already in the store? 
+    // Actually, for editing, we usually want to fetch the specific product details once.
     return true;
   });
 
@@ -118,6 +121,7 @@ export default function ManageProductPage() {
     }
   }, [watchedValues.name, isNew, form]);
 
+  // Draft Persistence
   useEffect(() => {
     if (isNew && draftKey && !isLoading && form.formState.isDirty) {
         const timeout = setTimeout(() => { 
@@ -162,7 +166,6 @@ export default function ManageProductPage() {
   const fetchProductData = useCallback(async () => {
     if (!user) return;
 
-    // Background fetch logic for lookups
     const fetchLookups = async () => {
         try {
             const [attrResponse, catResponse] = await Promise.all([
@@ -180,15 +183,18 @@ export default function ManageProductPage() {
         }
     };
 
-    // If it's a new product and we have cached lookups, just refresh in background
     if (isNew) {
+        // Lookups happen in background, but we don't need a loader if we already have them
         fetchLookups();
         setIsLoading(false);
         return;
     }
 
-    // For editing, we need the product details
-    setIsLoading(true);
+    // For editing, only set loading to true if the form is empty
+    if (!form.getValues('name')) {
+        setIsLoading(true);
+    }
+
     try {
         await fetchLookups();
         const response = await fetch('/api/products/get', {
@@ -219,10 +225,10 @@ export default function ManageProductPage() {
   }, [productId, isNew, user, router, toast, form, setAttributes, setCategories]);
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (user) {
         fetchProductData();
     }
-  }, [authLoading, user, fetchProductData]);
+  }, [user, fetchProductData]);
 
   const groupedAttributes = useMemo(() => attributes.reduce((acc, attr) => { (acc[attr.type] = acc[attr.type] || []).push(attr.value); return acc; }, {} as Record<string, string[]>), [attributes]);
 
@@ -258,12 +264,28 @@ export default function ManageProductPage() {
     toast({ title: 'থাম্বনেইল সেট করা হয়েছে' });
   };
 
-  if (isLoading && isNew) {
-      // Return a very minimal shell if we truly have no data yet
-      return <div className="space-y-6"><Skeleton className="h-8 w-1/2" /><Skeleton className="h-64 w-full" /></div>;
-  }
+  // SMART RENDER: Only block UI if we truly don't have enough to show the page
+  // If it's a new product, we render the form immediately.
+  const isActuallyLoading = isNew ? (isLoading && categories.length === 0) : isLoading;
+  const isAuthBlocked = authLoading && !user;
 
-  if (isLoading || authLoading) return <div className="space-y-6"><Skeleton className="h-8 w-1/2" /><Card><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
+  if (isActuallyLoading || isAuthBlocked) {
+      return (
+        <div className="space-y-6">
+            <Skeleton className="h-10 w-48" />
+            <div className="grid lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                    <Skeleton className="h-64 w-full" />
+                    <Skeleton className="h-40 w-full" />
+                </div>
+                <div className="space-y-8">
+                    <Skeleton className="h-48 w-full" />
+                    <Skeleton className="h-64 w-full" />
+                </div>
+            </div>
+        </div>
+      );
+  }
 
   const totalProductsCount = dashboard?.totalProducts || 0;
   const isLimitReached = user?.product_limit !== null && totalProductsCount >= (user?.product_limit || 0);
