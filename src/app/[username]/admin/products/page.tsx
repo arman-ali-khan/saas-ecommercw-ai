@@ -25,14 +25,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, X } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import { useEffect, useState, useCallback } from 'react';
 import type { Product } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 
@@ -43,19 +42,13 @@ export default function ProductsAdminPage() {
   const { products, setProducts, invalidateEntity } = useAdminStore();
   const { toast } = useToast();
 
-  // Instant check for cache to avoid spinner on tab switch
-  const [isLoading, setIsLoading] = useState(() => {
-    const store = useAdminStore.getState();
-    const isFresh = Date.now() - store.lastFetched.products < 300000;
-    return !(store.products.length > 0 && isFresh);
-  });
-
+  const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const lang = user?.language || 'bn';
-  const t = translations[lang].products;
-  const common = translations[lang].common;
+  const t = translations[lang as keyof typeof translations]?.products || translations.bn.products;
+  const common = translations[lang as keyof typeof translations]?.common || translations.bn.common;
 
   const fetchProducts = useCallback(async (force = false) => {
     const siteId = user?.id;
@@ -96,6 +89,11 @@ export default function ProductsAdminPage() {
 
   useEffect(() => {
     if (user?.id) {
+      const store = useAdminStore.getState();
+      const isFresh = Date.now() - store.lastFetched.products < 300000;
+      if (store.products.length > 0 && isFresh) {
+          setIsLoading(false);
+      }
       fetchProducts();
     }
   }, [user?.id, fetchProducts]);

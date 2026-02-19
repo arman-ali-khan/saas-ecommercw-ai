@@ -12,7 +12,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -26,14 +25,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, PackageCheck, Ban, CalendarIcon, Wand2, RotateCcw } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, PackageCheck, Wand2, RotateCcw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
-import type { Product, ProductAttribute, Category } from '@/types';
+import type { Product, Category } from '@/types';
 import ImageUploader from '@/components/image-uploader';
 import {
   DropdownMenu,
@@ -42,13 +40,8 @@ import {
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import RichTextEditor from '@/components/rich-text-editor';
-import { isBefore, format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
 
 const productFormSchema = z.object({
@@ -71,18 +64,6 @@ const productFormSchema = z.object({
   has_flash_deal: z.boolean().default(false),
   flash_deal_price: z.preprocess((val) => (val === '' || val == null ? undefined : parseFloat(String(val))), z.number().positive('Discount price must be a positive number.').optional()),
   flash_deal_range: z.object({ startDate: z.any().optional(), endDate: z.any().optional() }).optional(),
-}).superRefine((data, ctx) => {
-    if (data.has_flash_deal) {
-        if (!data.flash_deal_price || data.flash_deal_price <= 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Discount price is required and must be positive.", path: ['flash_deal_price'] });
-        if (!data.flash_deal_range?.startDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Start date is required for the flash deal.", path: ['flash_deal_range', 'startDate'] });
-        if (!data.flash_deal_range?.endDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "End date is required for the flash deal.", path: ['flash_deal_range', 'endDate'] });
-        if (data.flash_deal_range?.startDate && data.flash_deal_range?.endDate) {
-            const start = new Date(data.flash_deal_range.startDate);
-            const end = new Date(data.flash_deal_range.endDate);
-            if (end <= start) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "End date must be after the start date.", path: ['flash_deal_range', 'endDate'] });
-        }
-        if (data.flash_deal_price && data.price && data.flash_deal_price >= data.price) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Discount price must be less than the regular price.", path: ['flash_deal_price'] });
-    }
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -92,22 +73,13 @@ export default function ManageProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { attributes, categories, setAttributes, setCategories, dashboard, lastFetched, invalidateEntity } = useAdminStore();
+  const { attributes, categories, setAttributes, setCategories, dashboard, invalidateEntity } = useAdminStore();
 
   const productId = params.productId as string;
   const isNew = productId === 'new';
   const draftKey = useMemo(() => user ? `unsaved_product_draft_${user.id}` : null, [user]);
 
-  // Instant check for cache to avoid spinner
-  const [isLoading, setIsLoading] = useState(() => {
-    if (isNew) {
-        const store = useAdminStore.getState();
-        const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
-        return !(store.dashboard && isFresh);
-    }
-    return true; 
-  });
-
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
@@ -121,16 +93,15 @@ export default function ManageProductPage() {
     },
   });
 
-  const { fields, append, remove, swap } = useFieldArray({ control: form.control, name: 'images' });
+  const { fields, append, remove } = useFieldArray({ control: form.control, name: 'images' });
   const watchedValues = form.watch();
-  const isDirty = form.formState.isDirty;
   
   useEffect(() => {
-    if (isNew && draftKey && !isLoading && (isDirty || watchedValues.name || watchedValues.images.length > 0)) {
+    if (isNew && draftKey && !isLoading && form.formState.isDirty) {
         const timeout = setTimeout(() => { localStorage.setItem(draftKey, JSON.stringify(watchedValues)); }, 1000);
         return () => clearTimeout(timeout);
     }
-  }, [watchedValues, isNew, draftKey, isLoading, isDirty]);
+  }, [watchedValues, isNew, draftKey, isLoading, form.formState.isDirty]);
 
   useEffect(() => {
     if (isNew && draftKey) {
@@ -161,57 +132,51 @@ export default function ManageProductPage() {
     }
   };
 
-  const fetchProduct = useCallback(async () => {
-    if (isNew || !user) return;
+  const fetchProductData = useCallback(async () => {
+    if (!user) return;
     setIsLoading(true);
-    const decodedProductId = decodeURIComponent(productId);
-    const [{ data: productData, error }, { data: flashDealData }] = await Promise.all([
-      supabase.from('products').select('*').match({ id: decodedProductId, site_id: user.id }).single(),
-      supabase.from('flash_deals').select('*').eq('product_id', decodedProductId).eq('site_id', user.id).single()
-    ]);
 
-    if (error || !productData) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Product not found.' });
-      router.push(`/admin/products`);
-      return;
-    }
-    
-    form.reset({
-      ...productData,
-      images: (productData.images || []).map((img: any) => ({ imageUrl: img.imageUrl || '', imageHint: img.imageHint || '' })),
-      has_flash_deal: !!flashDealData,
-      flash_deal_price: flashDealData?.discount_price,
-      flash_deal_range: flashDealData ? { startDate: new Date(flashDealData.start_date), endDate: new Date(flashDealData.end_date) } : { startDate: undefined, endDate: undefined },
-    });
-    setIsLoading(false);
-  }, [productId, isNew, user, router, toast, form]);
-  
-  const fetchAttributes = useCallback(async (force = false) => {
-    if (!user) return;
-    const store = useAdminStore.getState();
-    const isFresh = Date.now() - store.lastFetched.attributes < 300000;
-    if (!force && store.attributes.length > 0 && isFresh) return;
-    const { data } = await supabase.from('product_attributes').select('*').eq('site_id', user.id);
-    if (data) setAttributes(data);
-  }, [user, setAttributes]);
-  
-  const fetchCategories = useCallback(async (force = false) => {
-    if (!user) return;
     const store = useAdminStore.getState();
     const isFresh = Date.now() - store.lastFetched.categories < 300000;
-    if (!force && store.categories.length > 0 && isFresh) return;
-    const { data } = await supabase.from('categories').select('*').eq('site_id', user.id);
-    if (data) setCategories(data as Category[]);
-  }, [user, setCategories]);
+
+    if (!isFresh) {
+        const [attrRes, catRes] = await Promise.all([
+            supabase.from('product_attributes').select('*').eq('site_id', user.id),
+            supabase.from('categories').select('*').eq('site_id', user.id)
+        ]);
+        if (attrRes.data) setAttributes(attrRes.data);
+        if (catRes.data) setCategories(catRes.data as Category[]);
+    }
+
+    if (!isNew) {
+        const decodedProductId = decodeURIComponent(productId);
+        const [{ data: productData, error }, { data: flashDealData }] = await Promise.all([
+          supabase.from('products').select('*').match({ id: decodedProductId, site_id: user.id }).single(),
+          supabase.from('flash_deals').select('*').eq('product_id', decodedProductId).eq('site_id', user.id).single()
+        ]);
+
+        if (error || !productData) {
+          toast({ variant: 'destructive', title: 'Error', description: 'Product not found.' });
+          router.push(`/admin/products`);
+          return;
+        }
+        
+        form.reset({
+          ...productData,
+          images: (productData.images || []).map((img: any) => ({ imageUrl: img.imageUrl || '', imageHint: img.imageHint || '' })),
+          has_flash_deal: !!flashDealData,
+          flash_deal_price: flashDealData?.discount_price,
+          flash_deal_range: flashDealData ? { startDate: new Date(flashDealData.start_date), endDate: new Date(flashDealData.end_date) } : { startDate: undefined, endDate: undefined },
+        });
+    }
+    setIsLoading(false);
+  }, [productId, isNew, user, router, toast, form, setAttributes, setCategories]);
 
   useEffect(() => {
     if (!authLoading && user) {
-        fetchAttributes();
-        fetchCategories();
-        if (isNew) setIsLoading(false);
-        else fetchProduct();
+        fetchProductData();
     }
-  }, [authLoading, user, isNew, fetchProduct, fetchAttributes, fetchCategories]);
+  }, [authLoading, user, fetchProductData]);
 
   const groupedAttributes = useMemo(() => attributes.reduce((acc, attr) => { (acc[attr.type] = acc[attr.type] || []).push(attr.value); return acc; }, {} as Record<string, string[]>), [attributes]);
 
@@ -254,23 +219,40 @@ export default function ManageProductPage() {
             <Card>
                 <CardHeader><CardTitle>{isNew ? 'Add New Product' : `Edit: ${watchedValues.name}`}</CardTitle><CardDescription>Fill in the details for your product below.</CardDescription></CardHeader>
                 <CardContent className="space-y-8">
-                    <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field} placeholder="e.g., হিমসাগর আম (১ কেজি)" /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="id" render={({ field }) => (<FormItem><FormLabel>Product ID / Slug</FormLabel><FormControl><Input {...field} placeholder="e.g., himsagar-mango" disabled={!isNew} /></FormControl><FormDescription>A unique identifier. Auto-generated for new products.</FormDescription><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="name" render={({ field: nameField }) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...nameField} placeholder="e.g., হিমসাগর আম (১ কেজি)" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="id" render={({ field: idField }) => (<FormItem><FormLabel>Product ID / Slug</FormLabel><FormControl><Input {...idField} placeholder="e.g., himsagar-mango" disabled={!isNew} /></FormControl><FormDescription>A unique identifier. Auto-generated for new products.</FormDescription><FormMessage /></FormItem>)} />
                     <div className="grid md:grid-cols-2 gap-6">
-                        <FormField control={form.control} name="price" render={({ field }) => (<FormItem><FormLabel>Price</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="stock" render={({ field }) => (<FormItem><FormLabel>Stock Quantity</FormLabel><FormControl><Input type="number" step="1" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="price" render={({ field: priceField }) => (<FormItem><FormLabel>Price</FormLabel><FormControl><Input type="number" step="0.01" {...priceField} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="stock" render={({ field: stockField }) => (<FormItem><FormLabel>Stock Quantity</FormLabel><FormControl><Input type="number" step="1" {...stockField} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
-                    <FormField control={form.control} name="categories" render={({ field }) => (
-                        <FormItem><FormLabel>Categories</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select categories"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((cat) => (<DropdownMenuCheckboxItem key={cat.id} checked={field.value?.includes(cat.name)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), cat.name] : field.value.filter((v) => v !== cat.name))}>{cat.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>
+                    <FormField control={form.control} name="categories" render={({ field: catField }) => (
+                        <FormItem><FormLabel>Categories</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{catField.value?.length ? catField.value.join(', ') : "Select categories"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((cat) => (<DropdownMenuCheckboxItem key={cat.id} checked={catField.value?.includes(cat.name)} onCheckedChange={(checked) => catField.onChange(checked ? [...(catField.value || []), cat.name] : catField.value.filter((v) => v !== cat.name))}>{cat.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>
                     )} />
+                    
+                    <FormItem>
+                        <FormLabel>Product Images</FormLabel>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-2">
+                            {fields.map((imageItem, imageIndex) => (
+                                <div key={imageItem.id} className="relative aspect-square rounded-md overflow-hidden border group">
+                                    <Image src={imageItem.imageUrl} alt={`Product ${imageIndex + 1}`} fill className="object-cover" />
+                                    <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => remove(imageIndex)}><Trash2 className="h-3 w-3" /></Button>
+                                </div>
+                            ))}
+                            <div className="aspect-square flex items-center justify-center border-2 border-dashed rounded-md bg-muted/50">
+                                <ImageUploader multiple onUpload={(res) => append({ imageUrl: res.info.secure_url, imageHint: '' })} label="Add" />
+                            </div>
+                        </div>
+                        <FormMessage>{form.formState.errors.images?.message}</FormMessage>
+                    </FormItem>
+
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {['brand', 'color', 'size', 'unit'].map((attr) => (
-                            <FormField key={attr} control={form.control} name={attr as any} render={({ field: attrField }) => (
-                                <FormItem><FormLabel className="capitalize">{attr}</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{attrField.value?.length ? attrField.value.join(', ') : `Select ${attr}`}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes[attr] || []).map((opt) => (<DropdownMenuCheckboxItem key={opt} checked={attrField.value?.includes(opt)} onCheckedChange={(checked) => attrField.onChange(checked ? [...(attrField.value || []), opt] : attrField.value.filter((v: string) => v !== opt))}>{opt}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>
+                        {['brand', 'color', 'size', 'unit'].map((attrName) => (
+                            <FormField key={attrName} control={form.control} name={attrName as any} render={({ field: attrValField }) => (
+                                <FormItem><FormLabel className="capitalize">{attrName}</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{attrValField.value?.length ? attrValField.value.join(', ') : `Select ${attrName}`}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes[attrName] || []).map((opt) => (<DropdownMenuCheckboxItem key={opt} checked={attrValField.value?.includes(opt)} onCheckedChange={(checked) => attrValField.onChange(checked ? [...(attrValField.value || []), opt] : attrValField.value.filter((v: string) => v !== opt))}>{opt}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>
                             )} />
                         ))}
                     </div>
-                    <FormField control={form.control} name="long_description" render={({ field: descField }) => (
+                    <FormField control={form.control} name="long_description" render={({ field: longDescField }) => (
                         <FormItem><div className="flex justify-between items-center mb-2"><FormLabel>Long Description</FormLabel><Button type="button" variant="outline" size="sm" onClick={async () => {
                             if (!watchedValues.name) return toast({ variant: 'destructive', title: 'পণ্যর নাম প্রয়োজন' });
                             setIsGenerating(true);
@@ -282,7 +264,7 @@ export default function ManageProductPage() {
                                 form.setValue('long_description', result.longDescription, { shouldValidate: true });
                                 toast({ title: 'এআই ডেসক্রিপশন তৈরি হয়েছে!' });
                             } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsGenerating(false); }
-                        }} disabled={isGenerating}>{isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}Generate with AI</Button></div><FormControl><RichTextEditor value={descField.value || ''} onChange={descField.onChange} /></FormControl><FormMessage /></FormItem>
+                        }} disabled={isGenerating}>{isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}Generate with AI</Button></div><FormControl><RichTextEditor value={longDescField.value || ''} onChange={longDescField.onChange} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </CardContent>
             </Card>

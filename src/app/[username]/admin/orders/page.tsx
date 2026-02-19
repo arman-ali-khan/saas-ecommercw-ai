@@ -35,16 +35,11 @@ export default function OrdersAdminPage() {
     const { orders, setOrders } = useAdminStore();
     const { toast } = useToast();
     
-    // Instant check for cache to avoid spinner on tab switch
-    const [isLoading, setIsLoading] = useState(() => {
-        const store = useAdminStore.getState();
-        const isFresh = Date.now() - store.lastFetched.orders < 300000;
-        return !(store.orders.length > 0 && isFresh);
-    });
+    const [isLoading, setIsLoading] = useState(true);
     
     const lang = user?.language || 'bn';
-    const t = translations[lang].orders;
-    const statusTranslations = translations[lang].statuses;
+    const t = translations[lang as keyof typeof translations]?.orders || translations.bn.orders;
+    const statusTranslations = translations[lang as keyof typeof translations]?.statuses || translations.bn.statuses;
     
     const fetchOrders = useCallback(async (force = false) => {
         const siteId = user?.id;
@@ -80,6 +75,11 @@ export default function OrdersAdminPage() {
 
     useEffect(() => {
         if (user?.id) {
+            const store = useAdminStore.getState();
+            const isFresh = Date.now() - store.lastFetched.orders < 300000;
+            if (store.orders.length > 0 && isFresh) {
+                setIsLoading(false);
+            }
             fetchOrders();
         }
     }, [user?.id, fetchOrders]);

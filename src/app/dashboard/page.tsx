@@ -38,12 +38,7 @@ export default function SaasAdminDashboard() {
   const { dashboardData, setDashboardData } = useSaasStore();
   const { toast } = useToast();
 
-  // Instant check for cache to prevent tab-switch flicker
-  const [isLoading, setIsLoading] = useState(() => {
-    const store = useSaasStore.getState();
-    const isFresh = Date.now() - store.lastFetched.dashboard < 300000; // 5 mins
-    return !(store.dashboardData && isFresh);
-  });
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchDashboardData = useCallback(async (force = false) => {
     const siteId = user?.id;
@@ -78,6 +73,11 @@ export default function SaasAdminDashboard() {
 
   useEffect(() => {
     if (user) {
+      const store = useSaasStore.getState();
+      const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
+      if (store.dashboardData && isFresh) {
+          setIsLoading(false);
+      }
       fetchDashboardData();
     }
   }, [fetchDashboardData, user]);
@@ -101,7 +101,7 @@ export default function SaasAdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">BDT {stats.totalRevenue.toFixed(2)}</div>}
+            {isLoading && !dashboardData ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">BDT {stats.totalRevenue.toFixed(2)}</div>}
             <p className="text-xs text-muted-foreground">All time from subscriptions</p>
           </CardContent>
         </Card>
@@ -111,7 +111,7 @@ export default function SaasAdminDashboard() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.activeSubscriptions}</div>}
+            {isLoading && !dashboardData ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.activeSubscriptions}</div>}
             <p className="text-xs text-muted-foreground">Currently active plans</p>
           </CardContent>
         </Card>
@@ -121,7 +121,7 @@ export default function SaasAdminDashboard() {
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.pendingReviews}</div>}
+            {isLoading && !dashboardData ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.pendingReviews}</div>}
             <p className="text-xs text-muted-foreground">Require approval</p>
           </CardContent>
         </Card>
@@ -131,7 +131,7 @@ export default function SaasAdminDashboard() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.pendingSubscriptions}</div>}
+            {isLoading && !dashboardData ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.pendingSubscriptions}</div>}
             <p className="text-xs text-muted-foreground">Require manual approval</p>
           </CardContent>
         </Card>
@@ -158,7 +158,7 @@ export default function SaasAdminDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading && !dashboardData ? (
                     [...Array(3)].map((_, i) => (
                         <TableRow key={i}>
                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -167,16 +167,16 @@ export default function SaasAdminDashboard() {
                         </TableRow>
                     ))
                 ) : pendingPayments.length > 0 ? (
-                    pendingPayments.map((sub) => (
-                    <TableRow key={sub.id}>
+                    pendingPayments.map((subItem) => (
+                    <TableRow key={subItem.id}>
                         <TableCell className="font-medium">
                             <div className="flex flex-col">
-                                <span>{sub.profiles?.full_name || 'N/A'}</span>
-                                <span className="text-[10px] text-muted-foreground">@{sub.profiles?.username}</span>
+                                <span>{subItem.profiles?.full_name || 'N/A'}</span>
+                                <span className="text-[10px] text-muted-foreground">@{subItem.profiles?.username}</span>
                             </div>
                         </TableCell>
-                        <TableCell><Badge variant="secondary">{sub.plans?.name || 'N/A'}</Badge></TableCell>
-                        <TableCell>৳{sub.amount.toFixed(2)}</TableCell>
+                        <TableCell><Badge variant="secondary">{subItem.plans?.name || 'N/A'}</Badge></TableCell>
+                        <TableCell>৳{subItem.amount.toFixed(2)}</TableCell>
                     </TableRow>
                     ))
                 ) : (
@@ -199,7 +199,7 @@ export default function SaasAdminDashboard() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border">
-              {isLoading ? (
+              {isLoading && !dashboardData ? (
                 [...Array(3)].map((_, i) => (
                   <div key={i} className="flex items-start gap-4 p-4">
                     <Skeleton className="h-9 w-9 rounded-full" />
@@ -210,16 +210,16 @@ export default function SaasAdminDashboard() {
                   </div>
                 ))
               ) : unreadNotifications.length > 0 ? (
-                unreadNotifications.map((notif) => (
-                  <div key={notif.id} className="flex items-start gap-4 p-4">
+                unreadNotifications.map((notifItem) => (
+                  <div key={notifItem.id} className="flex items-start gap-4 p-4">
                     <Avatar className="h-9 w-9">
-                      <AvatarFallback>{notif.profiles?.full_name?.charAt(0) || 'S'}</AvatarFallback>
+                      <AvatarFallback>{notifItem.profiles?.full_name?.charAt(0) || 'S'}</AvatarFallback>
                     </Avatar>
                     <div className="grid gap-1 flex-1">
-                      <p className="text-sm font-medium leading-none">From: {notif.profiles?.full_name || 'System'}</p>
-                      <p className="text-sm text-muted-foreground line-clamp-1 max-w-xs">{notif.message}</p>
+                      <p className="text-sm font-medium leading-none">From: {notifItem.profiles?.full_name || 'System'}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-1 max-w-xs">{notifItem.message}</p>
                     </div>
-                    <div className="ml-auto text-xs text-muted-foreground">{format(new Date(notif.created_at), 'MMM d')}</div>
+                    <div className="ml-auto text-xs text-muted-foreground">{format(new Date(notifItem.created_at), 'MMM d')}</div>
                   </div>
                 ))
               ) : (
