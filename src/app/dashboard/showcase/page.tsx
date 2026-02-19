@@ -5,20 +5,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { SaasShowcaseItem } from '@/types';
 import Image from 'next/image';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, GalleryVertical, MoreHorizontal } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, GalleryVertical, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
@@ -93,27 +91,33 @@ export default function ShowcaseAdminPage() {
 
     const onSubmit = async (data: ShowcaseFormData) => {
         setIsSubmitting(true);
-        
-        let error;
-        if (selectedItem) {
-            const { error: updateError } = await supabase.from('saas_showcase').update(data).eq('id', selectedItem.id);
-            error = updateError;
-            if (!error) toast({ title: 'Showcase Item Updated' });
-        } else {
-            const payload = { ...data, order: items.length };
-            const { error: insertError } = await supabase.from('saas_showcase').insert(payload);
-            error = insertError;
-            if (!error) toast({ title: 'Showcase Item Created' });
-        }
+        try {
+            const payload = {
+                ...data,
+                id: selectedItem?.id,
+                order: selectedItem ? selectedItem.order : items.length,
+            };
 
-        if (error) {
+            const response = await fetch('/api/saas/showcase/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+                toast({ title: `Showcase Item ${selectedItem ? 'Updated' : 'Created'}` });
+                await fetchItems();
+                setIsFormOpen(false);
+                setSelectedItem(null);
+            } else {
+                const result = await response.json();
+                throw new Error(result.error || 'Failed to save showcase item');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
-        } else {
-            await fetchItems();
-            setIsFormOpen(false);
-            setSelectedItem(null);
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     const openForm = (item: SaasShowcaseItem | null) => {
@@ -129,18 +133,27 @@ export default function ShowcaseAdminPage() {
     const handleDelete = async () => {
         if (!selectedItem) return;
         setIsSubmitting(true);
-        const { error } = await supabase.from('saas_showcase').delete().eq('id', selectedItem.id);
-        
-        if (error) {
-            toast({ title: 'Error Deleting Item', variant: 'destructive', description: error.message });
-        } else {
-            toast({ title: 'Showcase Item Deleted' });
-            await fetchItems();
+        try {
+            const response = await fetch('/api/saas/showcase/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: selectedItem.id }),
+            });
+
+            if (response.ok) {
+                toast({ title: 'Showcase Item Deleted' });
+                await fetchItems();
+            } else {
+                const result = await response.json();
+                throw new Error(result.error || 'Failed to delete item');
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error Deleting Item', description: error.message });
+        } finally {
+            setIsSubmitting(false);
+            setIsAlertOpen(false);
+            setSelectedItem(null);
         }
-        
-        setIsSubmitting(false);
-        setIsAlertOpen(false);
-        setSelectedItem(null);
     };
     
     const handleMove = async (index: number, direction: 'up' | 'down') => {
@@ -151,22 +164,33 @@ export default function ShowcaseAdminPage() {
         [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
 
         const updates = newItems.map((item, idx) => ({
-            ...item,
+            id: item.id,
             order: idx
         }));
         
         setIsLoading(true);
-        const { error } = await supabase.from('saas_showcase').upsert(updates);
-        if (error) {
+        try {
+            const response = await fetch('/api/saas/showcase/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ updates }),
+            });
+
+            if (response.ok) {
+                setItems(newItems);
+            } else {
+                const result = await response.json();
+                throw new Error(result.error || 'Failed to reorder');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Failed to reorder items', description: error.message });
             fetchItems(); // Revert on failure
-        } else {
-            setItems(newItems);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
     
-    if (isLoading) {
+    if (isLoading && items.length === 0) {
         return <div className="flex items-center justify-center p-16"><Loader2 className="h-10 w-10 animate-spin text-muted-foreground" /></div>;
     }
     
@@ -222,11 +246,14 @@ export default function ShowcaseAdminPage() {
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                 <DialogContent className="sm:max-w-xl">
-                    <DialogHeader>
-                        <DialogTitle>{selectedItem ? 'Edit' : 'Add'} Showcase Item</DialogTitle>
-                    </DialogHeader>
+                    <div className="flex items-center justify-between p-6 border-b">
+                        <h2 className="text-xl font-bold">{selectedItem ? 'Edit' : 'Add'} Showcase Item</h2>
+                        <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
+                            <X className="h-5 w-5" />
+                        </Button>
+                    </div>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-6">
                             <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="image_url" render={({ field }) => (
@@ -244,12 +271,24 @@ export default function ShowcaseAdminPage() {
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <FormField control={form.control} name="icon" render={({ field }) => (<FormItem><FormLabel>Fallback Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormDescription>Shown if no image is uploaded.</FormDescription><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="is_enabled" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><FormLabel>Enabled</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
+                            <FormField control={form.control} name="icon" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Fallback Icon</FormLabel>
+                                    <FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl>
+                                    <FormDescription>Shown if no image is uploaded.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="is_enabled" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-muted/30">
+                                    <FormLabel>Enabled</FormLabel>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )} />
                             <DialogFooter>
-                                <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save Item
+                                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Save Item
                                 </Button>
                             </DialogFooter>
                         </form>
