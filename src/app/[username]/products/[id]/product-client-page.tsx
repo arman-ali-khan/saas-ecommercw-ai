@@ -463,6 +463,8 @@ export default function ProductClientPage({ product }: { product: Product }) {
         item.answer?.toLowerCase().includes(qnaSearch.toLowerCase())
     ), [qna, qnaSearch]);
 
+  const hasOriginOrStory = product.origin || product.story;
+
   return (
     <div>
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
@@ -550,16 +552,22 @@ export default function ProductClientPage({ product }: { product: Product }) {
                 {product.description}
                 </p>
 
-                <Separator className="my-6" />
+                {hasOriginOrStory && <Separator className="my-6" />}
 
-                <div className="space-y-4">
-                <p>
-                    <span className="font-semibold">{t_product.origin}:</span> {product.origin}
-                </p>
-                <p>
-                    <span className="font-semibold">{t_product.story}:</span> {product.story}
-                </p>
-                </div>
+                {hasOriginOrStory && (
+                    <div className="space-y-4">
+                        {product.origin && (
+                            <p>
+                                <span className="font-semibold">{t_product.origin}:</span> {product.origin}
+                            </p>
+                        )}
+                        {product.story && (
+                            <p>
+                                <span className="font-semibold">{t_product.story}:</span> {product.story}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <div className="flex items-center gap-2">
@@ -734,11 +742,11 @@ export default function ProductClientPage({ product }: { product: Product }) {
                 </div>
                  {isLoadingQna ? <Skeleton className="h-60 w-full" /> : (
                     <>
-                        <Input 
+                        <input 
                             placeholder={t_product.searchQna}
                             value={qnaSearch}
                             onChange={(e) => setQnaSearch(e.target.value)}
-                            className="mb-6"
+                            className="mb-6 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                         {filteredQna.length > 0 ? (
                             <Accordion type="single" collapsible className="w-full space-y-4">
