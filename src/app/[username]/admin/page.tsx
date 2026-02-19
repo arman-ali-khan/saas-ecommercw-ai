@@ -65,7 +65,7 @@ export default function AdminDashboard() {
           customersRes.json(), 
           flashDealsRes.json(), 
           reviewsRes.json(), 
-          qnaResult = qnaRes.json()
+          qnaRes.json()
         ]);
 
         const fetchedOrders = ordersResult.orders || [];
@@ -104,11 +104,9 @@ export default function AdminDashboard() {
           revenueChartData: Object.keys(dailyRevenue).map(dateKey => ({ date: dateKey, Revenue: dailyRevenue[dateKey] })),
           pendingOrders: fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5),
           lowStockProducts: fetchedProducts.filter((p: any) => {
-            // Check main stock for simple products
             if (!p.variants || p.variants.length === 0) {
               return p.stock !== null && p.stock < LOW_STOCK_THRESHOLD;
             }
-            // Check if any variant is low stock
             return p.variants.some((v: any) => v.stock !== null && v.stock < LOW_STOCK_THRESHOLD);
           }).slice(0, 5),
           pendingReviews: fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5),
