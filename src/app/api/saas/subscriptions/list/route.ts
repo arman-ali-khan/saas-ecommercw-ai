@@ -5,6 +5,11 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { decryptObject } from '@/lib/encryption';
 
+/**
+ * @fileOverview Secure API for SaaS admins to list all subscription payments.
+ * Includes user profile and plan details with decryption.
+ */
+
 export async function GET(request: Request) {
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -20,43 +25,58 @@ export async function GET(request: Request) {
   );
 
   try {
+    // 1. Verify Authentication
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) {
+        console.error('Critical: SUPABASE_SERVICE_ROLE_KEY is missing.');
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        serviceKey,
         { auth: { persistSession: false } }
     );
 
-    // Verify caller is a SaaS Admin
-    const { data: callerProfile } = await supabaseAdmin
+    // 2. Verify Authorization (SaaS Admin only)
+    const { data: callerProfile, error: callerError } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', session.user.id)
-      .single();
+      .maybeSingle();
 
-    if (callerProfile?.role !== 'saas_admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (callerError || callerProfile?.role !== 'saas_admin') {
+      return NextResponse.json({ error: 'Forbidden: SaaS Admin access required.' }, { status: 403 });
     }
 
-    // Fetch all subscription payments with user and plan details
-    const { data: payments, error } = await supabaseAdmin
+    // 3. Fetch all subscription payments with nested details
+    // Note: We use explicit relationship names if needed, but profiles and plans are standard.
+    const { data: payments, error: fetchError } = await supabaseAdmin
       .from('subscription_payments')
-      .select('*, profiles(full_name, username, email), plans(name)')
+      .select(`
+        *,
+        profiles:user_id (id, full_name, username, email),
+        plans:plan_id (id, name)
+      `)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (fetchError) {
+        console.error('Database fetch error in /saas/subscriptions/list:', fetchError);
+        return NextResponse.json({ error: 'Failed to fetch payment records' }, { status: 500 });
+    }
 
-    // Decrypt sensitive user info
-    const decryptedPayments = (payments || []).map(p => decryptObject(p));
+    // 4. Decrypt sensitive user info recursively
+    const decryptedPayments = decryptObject(payments || []);
 
     return NextResponse.json({ payments: decryptedPayments });
 
   } catch (e: any) {
-    console.error('API /saas/subscriptions/list error:', e);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Unexpected API Error /saas/subscriptions/list:', e);
+    return NextResponse.json({ error: 'Internal Server Error', message: e.message }, { status: 500 });
   }
 }

@@ -36,9 +36,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) {
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      serviceKey,
       { auth: { persistSession: false } }
     );
 
@@ -54,10 +59,11 @@ export async function POST(request: Request) {
     }
 
     // 3. Fetch current payment record to get user and plan info
+    // We convert paymentId to Number to ensure it matches DB type
     const { data: payment, error: fetchError } = await supabaseAdmin
       .from('subscription_payments')
       .select('*, plans(name)')
-      .eq('id', paymentId)
+      .eq('id', Number(paymentId))
       .single();
 
     if (fetchError || !payment) {
@@ -68,12 +74,12 @@ export async function POST(request: Request) {
     const { error: paymentUpdateError } = await supabaseAdmin
       .from('subscription_payments')
       .update({ status: newStatus })
-      .eq('id', paymentId);
+      .eq('id', Number(paymentId));
 
     if (paymentUpdateError) throw paymentUpdateError;
 
     // 5. Update User Profile Status & Notify
-    let profileUpdate = {};
+    let profileUpdate: any = {};
     let notificationMessage = '';
 
     if (newStatus === 'completed') {
@@ -84,17 +90,19 @@ export async function POST(request: Request) {
       notificationMessage = `আপনার ${payment.plans?.name || 'সাবস্ক্রিপশন'} পেমেন্ট সফলভাবে যাচাই করা হয়েছে এবং আপনার প্ল্যানটি সক্রিয় করা হয়েছে।`;
     } else if (newStatus === 'failed') {
       profileUpdate = {
-        subscription_status: 'inactive'
+        subscription_status: 'failed' // Set to failed instead of inactive to allow retry
       };
       notificationMessage = `দুঃখিত, আপনার সাবস্ক্রিপশন পেমেন্ট যাচাই করা সম্ভব হয়নি। অনুগ্রহ করে আপনার ট্রানজেকশন আইডি পরীক্ষা করুন বা সাপোর্টে যোগাযোগ করুন।`;
     }
 
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .update(profileUpdate)
-      .eq('id', payment.user_id);
+    if (Object.keys(profileUpdate).length > 0) {
+        const { error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .update(profileUpdate)
+          .eq('id', payment.user_id);
 
-    if (profileError) throw profileError;
+        if (profileError) throw profileError;
+    }
 
     // 6. Create notification for the store owner
     await supabaseAdmin.from('notifications').insert({
