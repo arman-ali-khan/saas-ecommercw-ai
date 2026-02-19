@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -26,7 +25,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, PackageCheck, Wand2, RotateCcw } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, PackageCheck, Wand2, RotateCcw, CheckCircle2, Star, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -42,6 +41,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
 import RichTextEditor from '@/components/rich-text-editor';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 const productFormSchema = z.object({
   id: z.string().min(3, 'ID/Slug must be at least 3 characters.').regex(/^[a-z0-9\u0980-\u09FF-]+$/, 'Slug can only contain lowercase letters, numbers, hyphens, and Bengali characters.'),
@@ -49,7 +50,7 @@ const productFormSchema = z.object({
   price: z.preprocess((a) => parseFloat(String(a)), z.number().positive('Price must be a positive number.')),
   stock: z.preprocess((a) => parseInt(String(a), 10), z.number().min(0, "Stock can't be negative.").default(0)),
   currency: z.string().default('BDT'),
-  description: z.string().optional(),
+  description: z.string().min(10, 'Short description is required (min 10 chars).'),
   long_description: z.string().optional(),
   categories: z.array(z.string()).default([]),
   origin: z.string().optional(),
@@ -92,15 +93,34 @@ export default function ManageProductPage() {
     },
   });
 
-  const { fields, append, remove } = useFieldArray({ control: form.control, name: 'images' });
+  const { fields, append, remove, move } = useFieldArray({ control: form.control, name: 'images' });
   const watchedValues = form.watch();
   
+  // Auto-Slug Logic
+  useEffect(() => {
+    if (isNew && watchedValues.name) {
+        const slug = watchedValues.name
+            .toLowerCase()
+            .replace(/[^\u0980-\u09FFa-z0-9\s-]/g, '') // Keep Bengali, lowercase English, numbers, spaces, hyphens
+            .trim()
+            .replace(/\s+/g, '-') // Replace spaces with hyphens
+            .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
+        form.setValue('id', slug, { shouldValidate: true });
+    }
+  }, [watchedValues.name, isNew, form]);
+
   useEffect(() => {
     if (isNew && draftKey && !isLoading && form.formState.isDirty) {
-        const timeout = setTimeout(() => { localStorage.setItem(draftKey, JSON.stringify(watchedValues)); }, 1000);
+        const timeout = setTimeout(() => { 
+            const dataToSave = { ...form.getValues() };
+            // Convert Dates to ISO strings for JSON storage
+            if (dataToSave.flash_deal_range?.startDate instanceof Date) dataToSave.flash_deal_range.startDate = dataToSave.flash_deal_range.startDate.toISOString();
+            if (dataToSave.flash_deal_range?.endDate instanceof Date) dataToSave.flash_deal_range.endDate = dataToSave.flash_deal_range.endDate.toISOString();
+            localStorage.setItem(draftKey, JSON.stringify(dataToSave)); 
+        }, 1000);
         return () => clearTimeout(timeout);
     }
-  }, [watchedValues, isNew, draftKey, isLoading, form.formState.isDirty]);
+  }, [watchedValues, isNew, draftKey, isLoading, form.formState.isDirty, form]);
 
   useEffect(() => {
     if (isNew && draftKey) {
@@ -136,10 +156,9 @@ export default function ManageProductPage() {
     setIsLoading(true);
 
     try {
-        // Fetch categories and attributes via existing APIs
         const [attrResponse, catResponse] = await Promise.all([
-            fetch('/api/attributes/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }) }),
-            fetch('/api/categories/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }) })
+            fetch('/api/attributes/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } }),
+            fetch('/api/categories/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } })
         ]);
         
         const attrResult = await attrResponse.json();
@@ -211,7 +230,13 @@ export default function ManageProductPage() {
     } catch (error: any) { setIsSubmitting(false); toast({ variant: 'destructive', title: `Error`, description: error.message }); }
   };
 
-  if ((isLoading && !dashboard) || authLoading) return <div className="space-y-6"><Skeleton className="h-8 w-1/2" /><Card><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
+  const handleSetMainImage = (index: number) => {
+    if (index === 0) return;
+    move(index, 0);
+    toast({ title: 'থাম্বনেইল সেট করা হয়েছে' });
+  };
+
+  if (isLoading || authLoading) return <div className="space-y-6"><Skeleton className="h-8 w-1/2" /><Card><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
 
   const totalProducts = dashboard?.totalProducts || 0;
   const isLimitReached = user?.product_limit !== null && totalProducts >= (user?.product_limit || 0);
@@ -219,66 +244,284 @@ export default function ManageProductPage() {
   if (isNew && isLimitReached) return <div className="space-y-6"><Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button><Alert variant="destructive"><PackageCheck className="h-4 w-4" /><AlertTitle>Product Limit Reached</AlertTitle><AlertDescription>You have reached your limit of {user?.product_limit} products.</AlertDescription></Alert></div>;
 
   return (
-    <div>
-      <Button variant="ghost" asChild className="mb-4 -ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" />Back to Products</Link></Button>
+    <div className="pb-20">
+      <div className="flex items-center justify-between mb-6">
+        <Button variant="ghost" asChild className="-ml-4">
+            <Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" />পণ্য তালিকায় ফিরে যান</Link>
+        </Button>
+        <div className="flex gap-2">
+             <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>বাতিল</Button>
+             <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isNew ? 'পণ্যটি তৈরি করুন' : 'পরিবর্তনগুলো সেভ করুন'}
+            </Button>
+        </div>
+      </div>
+
       {isNew && hasDraft && (
-        <Alert className="mb-6 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500"><RotateCcw className="h-4 w-4 text-primary" /><AlertTitle className="font-bold">ড্রাফট পাওয়া গিয়েছে!</AlertTitle><AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><span className="text-foreground/90">আপনার কাছে একটি অসম্পূর্ণ পণ্যের তথ্য রয়েছে।</span><div className="flex gap-2 shrink-0"><Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(draftKey!); setHasDraft(false); }} className="h-8 border-destructive text-destructive hover:bg-destructive/10">মুছে ফেলুন</Button><Button size="sm" onClick={applyDraft} className="h-8">ড্রাফট রিকভার করুন</Button></div></AlertDescription></Alert>
+        <Alert className="mb-6 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500">
+            <RotateCcw className="h-4 w-4 text-primary" />
+            <AlertTitle className="font-bold">অসম্পূর্ণ ডাটা পাওয়া গেছে!</AlertTitle>
+            <AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <span className="text-foreground/90">আপনার কাছে একটি অসম্পূর্ণ পণ্যের তথ্য রয়েছে। আপনি কি সেটি রিকভার করতে চান?</span>
+                <div className="flex gap-2 shrink-0">
+                    <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(draftKey!); setHasDraft(false); }} className="h-8 border-destructive text-destructive hover:bg-destructive/10">মুছে ফেলুন</Button>
+                    <Button size="sm" onClick={applyDraft} className="h-8">রিকভার করুন</Button>
+                </div>
+            </AlertDescription>
+        </Alert>
       )}
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <Card>
-                <CardHeader><CardTitle>{isNew ? 'Add New Product' : `Edit: ${watchedValues.name}`}</CardTitle><CardDescription>Fill in the details for your product below.</CardDescription></CardHeader>
-                <CardContent className="space-y-8">
-                    <FormField control={form.control} name="name" render={({ field: nameField }) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...nameField} placeholder="e.g., হিমসাগর আম (১ কেজি)" /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="id" render={({ field: idField }) => (<FormItem><FormLabel>Product ID / Slug</FormLabel><FormControl><Input {...idField} placeholder="e.g., himsagar-mango" disabled={!isNew} /></FormControl><FormDescription>A unique identifier. Auto-generated for new products.</FormDescription><FormMessage /></FormItem>)} />
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <FormField control={form.control} name="price" render={({ field: priceField }) => (<FormItem><FormLabel>Price</FormLabel><FormControl><Input type="number" step="0.01" {...priceField} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="stock" render={({ field: stockField }) => (<FormItem><FormLabel>Stock Quantity</FormLabel><FormControl><Input type="number" step="1" {...stockField} /></FormControl><FormMessage /></FormItem>)} />
-                    </div>
-                    <FormField control={form.control} name="categories" render={({ field: catField }) => (
-                        <FormItem><FormLabel>Categories</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{catField.value?.length ? catField.value.join(', ') : "Select categories"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((cat) => (<DropdownMenuCheckboxItem key={cat.id} checked={catField.value?.includes(cat.name)} onCheckedChange={(checked) => catField.onChange(checked ? [...(catField.value || []), cat.name] : catField.value.filter((v) => v !== cat.name))}>{cat.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>
-                    )} />
-                    
-                    <FormItem>
-                        <FormLabel>Product Images</FormLabel>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-2">
-                            {fields.map((imageItem, imageIndex) => (
-                                <div key={imageItem.id} className="relative aspect-square rounded-md overflow-hidden border group">
-                                    <Image src={imageItem.imageUrl} alt={`Product ${imageIndex + 1}`} fill className="object-cover" />
-                                    <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => remove(imageIndex)}><Trash2 className="h-3 w-3" /></Button>
-                                </div>
-                            ))}
-                            <div className="aspect-square flex items-center justify-center border-2 border-dashed rounded-md bg-muted/50">
-                                <ImageUploader multiple onUpload={(res) => append({ imageUrl: res.info.secure_url, imageHint: '' })} label="Add" />
-                            </div>
-                        </div>
-                        <FormMessage>{form.formState.errors.images?.message}</FormMessage>
-                    </FormItem>
-
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {['brand', 'color', 'size', 'unit'].map((attrName) => (
-                            <FormField key={attrName} control={form.control} name={attrName as any} render={({ field: attrValField }) => (
-                                <FormItem><FormLabel className="capitalize">{attrName}</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{attrValField.value?.length ? attrValField.value.join(', ') : `Select ${attrName}`}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes[attrName] || []).map((opt) => (<DropdownMenuCheckboxItem key={opt} checked={attrValField.value?.includes(opt)} onCheckedChange={(checked) => attrValField.onChange(checked ? [...(attrValField.value || []), opt] : attrValField.value.filter((v: string) => v !== opt))}>{opt}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>
+            <div className="grid lg:grid-cols-3 gap-8">
+                {/* Left Column: Basic Info */}
+                <div className="lg:col-span-2 space-y-8">
+                    <Card className="shadow-sm border-2">
+                        <CardHeader className="bg-muted/30">
+                            <CardTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary" /> সাধারণ তথ্য</CardTitle>
+                            <CardDescription>পণ্যের নাম, স্লাগ এবং সংক্ষিপ্ত বর্ণনা প্রদান করুন।</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-6">
+                            <FormField control={form.control} name="name" render={({ field: nameField }) => (
+                                <FormItem>
+                                    <FormLabel className="font-bold">পণ্যের নাম</FormLabel>
+                                    <FormControl><Input {...nameField} placeholder="যেমন: হিমসাগর আম (৫ কেজি)" className="h-12 text-lg font-medium" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )} />
-                        ))}
-                    </div>
-                    <FormField control={form.control} name="long_description" render={({ field: longDescField }) => (
-                        <FormItem><div className="flex justify-between items-center mb-2"><FormLabel>Long Description</FormLabel><Button type="button" variant="outline" size="sm" onClick={async () => {
-                            if (!watchedValues.name) return toast({ variant: 'destructive', title: 'পণ্যর নাম প্রয়োজন' });
-                            setIsGenerating(true);
-                            try {
-                                const res = await fetch('/api/ai-settings/get', { method: 'POST', body: JSON.stringify({ siteId: user.id }) });
-                                const settings = await res.json();
-                                if (!res.ok || !settings.gemini_api_key) throw new Error('Gemini API key is missing.');
-                                const result = await generateProductDescription({ apiKey: settings.gemini_api_key, name: watchedValues.name, description: watchedValues.description, categories: watchedValues.categories, origin: watchedValues.origin });
-                                form.setValue('long_description', result.longDescription, { shouldValidate: true });
-                                toast({ title: 'এআই ডেসক্রিপশন তৈরি হয়েছে!' });
-                            } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsGenerating(false); }
-                        }} disabled={isGenerating}>{isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}Generate with AI</Button></div><FormControl><RichTextEditor value={longDescField.value || ''} onChange={longDescField.onChange} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                </CardContent>
-            </Card>
-            <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{isNew ? 'Create Product' : 'Save Changes'}</Button>
+                            
+                            <FormField control={form.control} name="id" render={({ field: idField }) => (
+                                <FormItem>
+                                    <FormLabel className="flex items-center gap-2">ইউনিক আইডি / স্লাগ (Slug) <Badge variant="secondary" className="text-[10px] h-4">স্বয়ংক্রিয়</Badge></FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Input {...idField} placeholder="যেমন: himsagar-mango-5kg" disabled={!isNew} className="pl-8 font-mono text-sm bg-muted/20" />
+                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">/</span>
+                                        </div>
+                                    </FormControl>
+                                    <FormDescription className="text-[11px]">এটি আপনার পণ্যের ইউআরএল হিসেবে ব্যবহৃত হবে।</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            <FormField control={form.control} name="description" render={({ field: descField }) => (
+                                <FormItem>
+                                    <FormLabel className="font-bold">সংক্ষিপ্ত বিবরণ (Short Description)</FormLabel>
+                                    <FormControl><Textarea {...descField} placeholder="পণ্য সম্পর্কে ছোট করে ২-৩ লাইন লিখুন যা গ্রাহক প্রথমেই দেখবে।" rows={3} className="resize-none" /></FormControl>
+                                    <FormDescription className="text-[11px]">এটি পণ্যের নামের নিচে প্রদর্শিত হবে।</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </CardContent>
+                    </Card>
+
+                    <Card className="shadow-sm border-2">
+                        <CardHeader className="bg-muted/30">
+                            <CardTitle className="flex items-center gap-2"><Star className="h-5 w-5 text-primary" /> পণ্যের ছবিসমূহ</CardTitle>
+                            <CardDescription>পণ্যের পরিষ্কার এবং আকর্ষণীয় ছবি আপলোড করুন।</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <FormItem>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                    {fields.map((imageItem, imageIndex) => (
+                                        <div key={imageItem.id} className={cn(
+                                            "relative aspect-square rounded-xl overflow-hidden border-2 group transition-all",
+                                            imageIndex === 0 ? "border-primary ring-4 ring-primary/10 shadow-lg" : "border-border"
+                                        )}>
+                                            <Image src={imageItem.imageUrl} alt={`Product ${imageIndex + 1}`} fill className="object-cover" />
+                                            
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                                {imageIndex !== 0 && (
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="secondary" 
+                                                        size="sm" 
+                                                        className="h-8 text-[10px] rounded-full"
+                                                        onClick={() => handleSetMainImage(imageIndex)}
+                                                    >
+                                                        <Star className="h-3 w-3 mr-1" /> থাম্বনেইল করুন
+                                                    </Button>
+                                                )}
+                                                <Button 
+                                                    type="button" 
+                                                    variant="destructive" 
+                                                    size="icon" 
+                                                    className="h-8 w-8 rounded-full" 
+                                                    onClick={() => remove(imageIndex)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+
+                                            {imageIndex === 0 && (
+                                                <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] shadow-sm">থাম্বনেইল</Badge>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div className="aspect-square flex flex-col items-center justify-center border-2 border-dashed rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                                        <ImageUploader multiple onUpload={(res) => append({ imageUrl: res.info.secure_url, imageHint: '' })} label="ছবি যোগ করুন" />
+                                    </div>
+                                </div>
+                                <FormMessage className="mt-4">{form.formState.errors.images?.message}</FormMessage>
+                            </FormItem>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="shadow-sm border-2">
+                        <CardHeader className="bg-muted/30 flex flex-row items-center justify-between space-y-0">
+                            <div>
+                                <CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> বিস্তারিত বিবরণ</CardTitle>
+                                <CardDescription>পণ্যের বিস্তারিত তথ্য এবং গল্প শেয়ার করুন।</CardDescription>
+                            </div>
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                className="bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
+                                onClick={async () => {
+                                    if (!watchedValues.name) return toast({ variant: 'destructive', title: 'আগে পণ্যের নাম প্রদান করুন' });
+                                    setIsGenerating(true);
+                                    try {
+                                        const res = await fetch('/api/ai-settings/get', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } });
+                                        const settings = await res.json();
+                                        if (!res.ok || !settings.gemini_api_key) throw new Error('এআই সেটিংস থেকে Gemini API Key কনফিগার করুন।');
+                                        const result = await generateProductDescription({ 
+                                            apiKey: settings.gemini_api_key, 
+                                            name: watchedValues.name, 
+                                            description: watchedValues.description, 
+                                            categories: watchedValues.categories, 
+                                            origin: watchedValues.origin 
+                                        });
+                                        form.setValue('long_description', result.longDescription, { shouldValidate: true });
+                                        toast({ title: 'AI ম্যাজিক সম্পন্ন!', description: 'বিস্তারিত বিবরণ সফলভাবে তৈরি হয়েছে।' });
+                                    } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsGenerating(false); }
+                                }} 
+                                disabled={isGenerating}
+                            >
+                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                                AI দিয়ে জেনারেট করুন
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <FormField control={form.control} name="long_description" render={({ field: longDescField }) => (
+                                <FormItem>
+                                    <FormControl><RichTextEditor value={longDescField.value || ''} onChange={longDescField.onChange} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Right Column: Pricing & Meta */}
+                <div className="space-y-8">
+                    <Card className="shadow-sm border-2">
+                        <CardHeader className="bg-muted/30">
+                            <CardTitle>মূল্য এবং স্টক</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-6">
+                            <FormField control={form.control} name="price" render={({ field: priceField }) => (
+                                <FormItem>
+                                    <FormLabel>বিক্রয় মূল্য (BDT)</FormLabel>
+                                    <FormControl><Input type="number" step="0.01" {...priceField} className="h-11 font-bold text-lg" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="stock" render={({ field: stockField }) => (
+                                <FormItem>
+                                    <FormLabel>স্টক পরিমাণ (Stock)</FormLabel>
+                                    <FormControl><Input type="number" step="1" {...stockField} className="h-11" /></FormControl>
+                                    <FormDescription className="text-[10px]">আপনার কাছে কতগুলো পণ্য বিক্রয়ের জন্য রয়েছে।</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </CardContent>
+                    </Card>
+
+                    <Card className="shadow-sm border-2">
+                        <CardHeader className="bg-muted/30">
+                            <CardTitle>ক্যাটাগরি এবং ফিল্টার</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-6">
+                            <FormField control={form.control} name="categories" render={({ field: catField }) => (
+                                <FormItem>
+                                    <FormLabel>ক্যাটাগরি সিলেক্ট করুন</FormLabel>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" className="w-full h-11 justify-between font-normal">
+                                                <span className="truncate pr-2">{catField.value?.length ? catField.value.join(', ') : "সিলেক্ট করুন"}</span>
+                                                <ChevronDown className="h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                            {categories.map((cat) => (
+                                                <DropdownMenuCheckboxItem 
+                                                    key={cat.id} 
+                                                    checked={catField.value?.includes(cat.name)} 
+                                                    onCheckedChange={(checked) => catField.onChange(checked ? [...(catField.value || []), cat.name] : catField.value.filter((v) => v !== cat.name))}
+                                                >
+                                                    {cat.name}
+                                                </DropdownMenuCheckboxItem>
+                                            ))}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            <FormField control={form.control} name="origin" render={({ field: originField }) => (
+                                <FormItem>
+                                    <FormLabel>উৎপত্তি স্থল (Origin)</FormLabel>
+                                    <FormControl><Input {...originField} placeholder="যেমন: রাজশাহী, খুলনা" className="h-11" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            {['brand', 'color', 'size', 'unit'].map((attrName) => (
+                                <FormField key={attrName} control={form.control} name={attrName as any} render={({ field: attrValField }) => (
+                                    <FormItem>
+                                        <FormLabel className="capitalize">{attrName === 'unit' ? 'পরিমাপের একক (Unit)' : attrName}</FormLabel>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="outline" className="w-full h-11 justify-between font-normal">
+                                                    <span className="truncate pr-2">{attrValField.value?.length ? attrValField.value.join(', ') : `সিলেক্ট ${attrName}`}</span>
+                                                    <ChevronDown className="h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                                {(groupedAttributes[attrName] || []).map((opt) => (
+                                                    <DropdownMenuCheckboxItem 
+                                                        key={opt} 
+                                                        checked={attrValField.value?.includes(opt)} 
+                                                        onCheckedChange={(checked) => attrValField.onChange(checked ? [...(attrValField.value || []), opt] : attrValField.value.filter((v: string) => v !== opt))}
+                                                    >
+                                                        {opt}
+                                                    </DropdownMenuCheckboxItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        <FormMessage />
+                                    </FormItem>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-40 md:left-[220px] lg:left-[280px]">
+                <div className="container max-w-5xl mx-auto flex justify-end gap-4">
+                    <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>বাতিল করুন</Button>
+                    <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-lg shadow-primary/20">
+                        {isSubmitting ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> সেভ হচ্ছে...</>
+                        ) : (
+                            <><CheckCircle2 className="mr-2 h-4 w-4" /> {isNew ? 'পণ্যটি তৈরি করুন' : 'পরিবর্তনগুলো সেভ করুন'}</>
+                        )}
+                    </Button>
+                </div>
+            </div>
         </form>
       </Form>
     </div>
