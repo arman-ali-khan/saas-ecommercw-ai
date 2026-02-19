@@ -1,10 +1,10 @@
-
 'use client';
 
 import Link from 'next/link';
 import {
   LayoutDashboard,
   ShoppingBag,
+  Package,
   PanelLeft,
   Bell,
 } from 'lucide-react';
@@ -22,7 +22,6 @@ import {
 import AdminMobileSidebar from './admin-mobile-sidebar';
 import { useAuth } from '@/stores/auth';
 import { useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
 
 export default function AdminBottomNav() {
   const pathname = usePathname();
@@ -58,6 +57,11 @@ export default function AdminBottomNav() {
 
   const navLinks = [
     {
+      href: `/admin/products`,
+      label: 'Products',
+      icon: Package,
+    },
+    {
       href: `/admin/orders`,
       label: 'Orders',
       icon: ShoppingBag,
@@ -65,20 +69,20 @@ export default function AdminBottomNav() {
     },
     {
       href: `/admin/notifications`,
-      label: 'Notifications',
+      label: 'Inbox',
       icon: Bell,
       count: unreadNotificationsCount,
     },
     {
       href: `/admin`,
-      label: 'Dashboard',
+      label: 'Home',
       icon: LayoutDashboard,
     },
   ];
 
   return (
     <div className="admin-bottom-nav md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 p-1">
-      <div className="grid h-16 grid-cols-4 gap-1">
+      <div className="grid h-16 grid-cols-5 gap-1">
         <Sheet>
           <SheetTrigger asChild>
             <Button
@@ -86,7 +90,7 @@ export default function AdminBottomNav() {
               className="flex flex-col h-auto items-center justify-center p-1 text-card-foreground/70 hover:bg-accent hover:text-accent-foreground"
             >
               <PanelLeft className="h-5 w-5" />
-              <span className="text-xs font-normal">Menu</span>
+              <span className="text-[10px] font-normal">Menu</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-72 bg-card border-r-0">
@@ -111,12 +115,12 @@ export default function AdminBottomNav() {
                 <div className="relative">
                   <link.icon className="h-5 w-5" />
                   {link.count && link.count > 0 ? (
-                    <span className="absolute -top-1.5 -right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+                    <span className="absolute -top-1.5 -right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
                       {link.count}
                     </span>
                   ):''}
                 </div>
-                <span className="text-xs font-normal">{link.label}</span>
+                <span className="text-[10px] font-normal">{link.label}</span>
               </div>
             </Link>
           );
