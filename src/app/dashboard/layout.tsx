@@ -59,19 +59,19 @@ export default function DashboardLayout({
     fetchInfo();
   }, []);
 
-  // Show a full-page loader while checking auth state
-  if (loading) {
+  // Show a full-page loader ONLY if loading AND no user exists in store.
+  // This prevents flickering during tab switches or simple re-validations.
+  if (loading && !user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground animate-pulse">Initializing Dashboard...</p>
+            <p className="text-sm text-muted-foreground animate-pulse">প্রবেশ করা হচ্ছে...</p>
         </div>
       </div>
     );
   }
 
-  // If loading is done but no user or not saas admin, return null while redirecting
   if (!user || !user.isSaaSAdmin) {
     return null;
   }

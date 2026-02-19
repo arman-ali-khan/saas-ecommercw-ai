@@ -23,10 +23,8 @@ export default function AdminDashboard() {
   const { dashboard, setDashboard } = useAdminStore();
   const { toast } = useToast();
 
-  // Initialize loading to false if we already have dashboard data in the store
   const [isLoading, setIsLoading] = useState(() => {
-    const currentStore = useAdminStore.getState();
-    return !currentStore.dashboard;
+    return !useAdminStore.getState().dashboard;
   });
 
   const fetchData = useCallback(async (force = false) => {
@@ -35,16 +33,13 @@ export default function AdminDashboard() {
 
     const currentStore = useAdminStore.getState();
     const now = Date.now();
-    const isFresh = now - currentStore.lastFetched.dashboard < 300000; // 5 minutes
+    const isFresh = now - currentStore.lastFetched.dashboard < 300000;
     
-    // If not a forced refresh and data is fresh, do nothing
     if (!force && currentStore.dashboard && isFresh) {
         setIsLoading(false);
         return;
     }
 
-    // ONLY show loading spinner if we have absolutely NO data.
-    // Stale data is better than a spinner when switching tabs.
     if (!currentStore.dashboard) {
         setIsLoading(true);
     }
@@ -63,7 +58,7 @@ export default function AdminDashboard() {
         ]);
 
         const [ordersResult, productsResult, uncompletedResult, customersResult, flashDealsResult, reviewsResult, qnaResult] = await Promise.all([
-          ordersRes.json(), productsRes.json(), uncompletedRes.json(), customersRes.json(), flashDealsRes.json(), reviewsRes.json(), qnaRes.json()
+          ordersRes.json(), productsRes.json(), uncompletedResult.json(), customersResult.json(), flashDealsResult.json(), reviewsResult.json(), qnaResult.json()
         ]);
 
         const fetchedOrders = ordersResult.orders || [];

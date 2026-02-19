@@ -40,8 +40,7 @@ export default function AdminLayout({
       });
       const result = await response.json();
       if (response.ok) {
-        // Show only unread notifications at the top
-        setSaasNotifications(result.notifications?.filter((n: any) => !n.is_read) || []);
+        setSaasNotifications(result.notifications?.filter((n: Notification) => !n.is_read) || []);
       }
     } catch (error) {
       console.error("Failed to fetch layout notifications:", error);
@@ -55,7 +54,6 @@ export default function AdminLayout({
   }, [user, pathname, fetchSaasNotifications]);
 
   const dismissNotification = async (id: string) => {
-    // Optimistic UI update
     setSaasNotifications(prev => prev.filter(n => n.id !== id));
     
     try {
@@ -69,7 +67,7 @@ export default function AdminLayout({
     }
   };
   
-  const { isSubscriptionExpired, isExpiringSoon, daysRemaining } = useMemo(() => {
+  const subscriptionStats = useMemo(() => {
     if (!user?.subscription_end_date) {
         return { isSubscriptionExpired: false, isExpiringSoon: false, daysRemaining: null };
     }
@@ -87,7 +85,7 @@ export default function AdminLayout({
   const isPending = (user?.subscription_status === 'pending' || isPendingFromRegistration || isFailed);
   const isBlocked = user?.subscription_status === 'inactive';
   
-  const isContentDisabled = isPending || isBlocked || isSubscriptionExpired;
+  const isContentDisabled = isPending || isBlocked || subscriptionStats.isSubscriptionExpired;
 
   useEffect(() => {
     if (!loading && pathname !== `/admin/login`) {
@@ -97,21 +95,23 @@ export default function AdminLayout({
     }
   }, [user, loading, username, router, pathname]);
 
-  // Render the login page directly
   if (pathname === `/admin/login`) {
     return <>{children}</>;
   }
 
-  // Show a full-page loader only while the initial auth check is running.
-  if (loading) {
+  // Only show full-screen loader if loading AND no user exists in memory.
+  // This prevents the flicker when navigating or switching browser tabs.
+  if (loading && !user) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground animate-pulse">অনুগ্রহ করে অপেক্ষা করুন...</p>
+        </div>
       </div>
     );
   }
 
-  // After loading, if the user is invalid, we're about to redirect.
   if (!user || user.domain !== username) {
       return null;
   }
@@ -123,7 +123,6 @@ export default function AdminLayout({
         <div className="flex flex-col h-full overflow-hidden">
           <AdminHeader />
           <main className="flex-1 overflow-auto p-4 lg:p-6 pb-20 md:pb-6">
-            {/* SaaS Global Notifications (Alert Style) */}
             {saasNotifications.map((notif) => (
               <Alert key={notif.id} className="mb-6 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500">
                 <Bell className="h-4 w-4 text-primary" />
@@ -167,7 +166,7 @@ export default function AdminLayout({
                   </AlertDescription>
               </Alert>
             )}
-            {isSubscriptionExpired && !isBlocked && (
+            {subscriptionStats.isSubscriptionExpired && !isBlocked && (
               <Alert variant="destructive" className="mb-6">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Subscription Expired</AlertTitle>
@@ -177,12 +176,12 @@ export default function AdminLayout({
                   </AlertDescription>
               </Alert>
             )}
-            {isExpiringSoon && !isSubscriptionExpired && !isBlocked && (
+            {subscriptionStats.isExpiringSoon && !subscriptionStats.isSubscriptionExpired && !isBlocked && (
               <Alert className="mb-6 border-amber-500 text-amber-500 [&>svg]:text-amber-500">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Subscription Expiring Soon</AlertTitle>
                   <AlertDescription>
-                    Your subscription will expire in {daysRemaining} day(s). Renew now to avoid any disruption.
+                    Your subscription will expire in {subscriptionStats.daysRemaining} day(s). Renew now to avoid any disruption.
                   </AlertDescription>
               </Alert>
             )}

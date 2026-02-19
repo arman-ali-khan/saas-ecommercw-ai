@@ -38,16 +38,11 @@ export default function SaasAdminDashboard() {
   const { dashboardData, setDashboardData } = useSaasStore();
   const { toast } = useToast();
 
-  // Lazy initialization to avoid flickering if data is in the store
   const [isLoading, setIsLoading] = useState(() => {
-    const currentStore = useSaasStore.getState();
-    return !currentStore.dashboardData;
+    return !useSaasStore.getState().dashboardData;
   });
 
   const fetchDashboardData = useCallback(async (force = false) => {
-    const siteId = user?.id;
-    if (!siteId) return;
-
     const currentStore = useSaasStore.getState();
     const now = Date.now();
     const isFresh = now - currentStore.lastFetched.dashboard < 300000;
@@ -57,7 +52,6 @@ export default function SaasAdminDashboard() {
         return;
     }
 
-    // Only set loading true if we don't have existing data
     if (!currentStore.dashboardData) {
         setIsLoading(true);
     }
@@ -76,7 +70,7 @@ export default function SaasAdminDashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, setDashboardData]);
+  }, [setDashboardData]);
 
   useEffect(() => {
     if (user) {
