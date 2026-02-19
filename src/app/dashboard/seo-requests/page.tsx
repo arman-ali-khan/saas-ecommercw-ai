@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { type SeoRequest } from '@/types';
@@ -69,18 +68,24 @@ export default function SeoRequestsPage() {
   const handleMarkAsComplete = async () => {
     if (!selectedRequest) return;
     setIsActionLoading(true);
-    const { error } = await supabase
-        .from('seo_requests')
-        .update({ status: 'completed' })
-        .eq('id', selectedRequest.id);
-
-    setIsActionLoading(false);
-    if(error) {
-        toast({ variant: 'destructive', title: 'Failed to update status', description: error.message });
-    } else {
-        toast({ title: 'Request marked as complete!' });
-        fetchRequests(); // Refetch data
-        setSelectedRequest(null);
+    try {
+        const response = await fetch('/api/saas/seo-requests/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: selectedRequest.id, status: 'completed' }),
+        });
+        if (response.ok) {
+            toast({ title: 'Request marked as complete!' });
+            await fetchRequests();
+            setSelectedRequest(null);
+        } else {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to update status');
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
+    } finally {
+        setIsActionLoading(false);
     }
   };
 

@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,28 +48,48 @@ export default function SaasReviewsPage() {
 
   const handleApprove = async (reviewId: string) => {
     setIsActionLoading(true);
-    const { error } = await supabase.from('saas_reviews').update({ is_approved: true }).eq('id', reviewId);
-    if (error) {
-      toast({ variant: 'destructive', title: 'Failed to approve review', description: error.message });
-    } else {
-      toast({ title: 'Review approved!' });
-      await fetchReviews();
+    try {
+        const response = await fetch('/api/saas/reviews/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: reviewId, is_approved: true }),
+        });
+        if (response.ok) {
+            toast({ title: 'Review approved!' });
+            await fetchReviews();
+        } else {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to approve');
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
+    } finally {
+        setIsActionLoading(false);
     }
-    setIsActionLoading(false);
   };
   
   const handleDelete = async () => {
     if (!reviewToDelete) return;
     setIsActionLoading(true);
-    const { error } = await supabase.from('saas_reviews').delete().eq('id', reviewToDelete.id);
-    if (error) {
-      toast({ variant: 'destructive', title: 'Failed to delete review', description: error.message });
-    } else {
-      toast({ title: 'Review deleted.' });
-      await fetchReviews();
+    try {
+        const response = await fetch('/api/saas/reviews/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: reviewToDelete.id }),
+        });
+        if (response.ok) {
+            toast({ title: 'Review deleted.' });
+            await fetchReviews();
+        } else {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to delete');
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
+    } finally {
+        setIsActionLoading(false);
+        setReviewToDelete(null);
     }
-    setIsActionLoading(false);
-    setReviewToDelete(null);
   }
 
   if (isLoading) {

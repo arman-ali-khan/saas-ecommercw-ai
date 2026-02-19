@@ -25,7 +25,6 @@ import { SheetClose } from './ui/sheet';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
 import Image from 'next/image';
@@ -39,10 +38,12 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const { user, logout: logoutAction } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [pendingSubscriptionsCount, setPendingSubscriptionsCount] = useState(0);
-  const [pendingSeoRequestsCount, setPendingSeoRequestsCount] = useState(0);
-  const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
+  const [counts, setCounts] = useState({
+    unreadNotifications: 0,
+    pendingSubscriptions: 0,
+    pendingSeoRequests: 0,
+    pendingReviews: 0,
+  });
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
     logoUrl: string | null;
@@ -50,66 +51,52 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const [isInfoLoading, setIsInfoLoading] = useState(true);
   
   if (!user || !user.isSaaSAdmin) {
-    return null; // Or a loading skeleton
+    return null;
   }
 
   useEffect(() => {
-    if (!user) return;
-
     const fetchCounts = async () => {
-      // Fetch notification count
-      const { count: notifCount } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_read', false);
-      setUnreadCount(notifCount || 0);
-
-      // Fetch pending subscriptions count
-      const { count: subCount } = await supabase
-        .from('subscription_payments')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-      setPendingSubscriptionsCount(subCount || 0);
-      
-      // Fetch pending seo requests count
-      const { count: seoCount } = await supabase
-        .from('seo_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-      setPendingSeoRequestsCount(seoCount || 0);
-
-      // Fetch pending reviews count
-      const { count: reviewCount } = await supabase
-        .from('saas_reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_approved', false);
-      setPendingReviewsCount(reviewCount || 0);
+      try {
+        const response = await fetch('/api/saas/sidebar-counts');
+        if (response.ok) {
+            const data = await response.json();
+            setCounts(data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch sidebar counts:", e);
+      }
     };
 
     fetchCounts();
-  }, [user]);
+    // Refresh counts every 30 seconds
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, []);
   
   useEffect(() => {
     const fetchInfo = async () => {
       setIsInfoLoading(true);
-      const { data } = await supabase
-        .from('saas_settings')
-        .select('platform_name, logo_url')
-        .eq('id', 1)
-        .single();
-      
-      if (data) {
-        setSiteInfo({
-          name: data.platform_name || 'SaaS Admin',
-          logoUrl: data.logo_url || null,
+      try {
+        const response = await fetch('/api/saas/fetch-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entity: 'settings' }),
         });
-      } else {
-         setSiteInfo({
-          name: 'SaaS Admin',
-          logoUrl: null,
-        })
+        const result = await response.json();
+        
+        if (response.ok && result.data) {
+            setSiteInfo({
+                name: result.data.platform_name || 'SaaS Admin',
+                logoUrl: result.data.logo_url || null,
+            });
+        } else {
+            setSiteInfo({ name: 'SaaS Admin', logoUrl: null });
+        }
+      } catch (e) {
+        setSiteInfo({ name: 'SaaS Admin', logoUrl: null });
+      } finally {
+        setIsInfoLoading(false);
       }
-      setIsInfoLoading(false);
     };
     fetchInfo();
   }, []);
@@ -123,15 +110,15 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const adminNavLinks = [
     { href: `/dashboard`, label: 'Dashboard', icon: Home },
     { href: `/dashboard/users`, label: 'Stores', icon: Store },
-    { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: pendingSubscriptionsCount },
+    { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: counts.pendingSubscriptions },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
     { href: `/dashboard/showcase`, label: 'Showcase', icon: GalleryVertical },
     { href: `/dashboard/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/dashboard/pages`, label: 'Pages', icon: FileText },
-    { href: `/dashboard/reviews`, label: 'Reviews', icon: Star, count: pendingReviewsCount },
-    { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell, count: unreadCount },
-    { href: `/dashboard/seo-requests`, label: 'SEO Requests', icon: Sparkles, count: pendingSeoRequestsCount },
+    { href: `/dashboard/reviews`, label: 'Reviews', icon: Star, count: counts.pendingReviews },
+    { href: `/dashboard/notifications`, label: 'Notifications', icon: Bell, count: counts.unreadNotifications },
+    { href: `/dashboard/seo-requests`, label: 'SEO Requests', icon: Sparkles, count: counts.pendingSeoRequests },
     { href: `/dashboard/settings`, label: 'Settings', icon: Settings },
     { href: `/`, label: 'View Landing Page', icon: Building },
   ];

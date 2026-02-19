@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
-import { supabase } from '@/lib/supabase/client';
 import {
   Card,
   CardContent,
@@ -159,37 +158,24 @@ export default function PlansAdminPage() {
         order_limit: data.order_limit && data.order_limit.trim() !== '' ? parseInt(data.order_limit, 10) : null,
       };
 
-      let error;
-      const { id, ...updateData } = planPayload;
+      const response = await fetch('/api/saas/plans/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(planPayload),
+      });
 
-      if (selectedPlan && selectedPlan.id) {
-        const { error: updateError } = await supabase
-          .from('plans')
-          .update(updateData)
-          .eq('id', selectedPlan.id);
-        error = updateError;
-        if (!error) toast({ title: 'Plan Updated' });
-      } else {
-        const { error: insertError } = await supabase
-          .from('plans')
-          .insert(planPayload);
-        error = insertError;
-        if (!error) toast({ title: 'Plan Created' });
-      }
+      const result = await response.json();
 
-      if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'An error occurred',
-          description: error.message,
-        });
-      } else {
+      if (response.ok) {
+        toast({ title: selectedPlan ? 'Plan Updated' : 'Plan Created' });
         await fetchPlans();
         setIsFormOpen(false);
         setSelectedPlan(null);
+      } else {
+        throw new Error(result.error || 'Failed to save plan');
       }
     } catch(e: any) {
-        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
     } finally {
       setIsSubmitting(false);
     }
@@ -209,20 +195,21 @@ export default function PlansAdminPage() {
     if (!selectedPlan) return;
     setIsDeleting(true);
     try {
-      const { error } = await supabase.from('plans').delete().eq('id', selectedPlan.id);
+      const response = await fetch('/api/saas/plans/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedPlan.id }),
+      });
 
-      if (error) {
-        toast({
-          title: 'Error Deleting Plan',
-          variant: 'destructive',
-          description: error.message,
-        });
-      } else {
+      if (response.ok) {
         toast({ title: 'Plan Deleted' });
         await fetchPlans();
+      } else {
+        const result = await response.json();
+        throw new Error(result.error || 'Failed to delete plan');
       }
     } catch (e: any) {
-        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
     } finally {
       setIsDeleting(false);
       setIsAlertOpen(false);

@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
-import { supabase } from '@/lib/supabase/client';
 import {
   Card,
   CardContent,
@@ -133,33 +132,24 @@ export default function FeaturesAdminPage() {
   const onSubmit = async (data: FeatureFormData) => {
     setIsSubmitting(true);
     try {
-      let error;
-      if (selectedFeature) {
-        const { error: updateError } = await supabase
-          .from('saas_features')
-          .update(data)
-          .eq('id', selectedFeature.id);
-        error = updateError;
-        if (!error) toast({ title: 'Feature Updated' });
-      } else {
-        const { error: insertError } = await supabase.from('saas_features').insert(data);
-        error = insertError;
-        if (!error) toast({ title: 'Feature Created' });
-      }
+      const response = await fetch('/api/saas/features/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, id: selectedFeature?.id }),
+      });
 
-      if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'An error occurred',
-          description: error.message,
-        });
-      } else {
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({ title: selectedFeature ? 'Feature Updated' : 'Feature Created' });
         await fetchFeatures();
         setIsFormOpen(false);
         setSelectedFeature(null);
+      } else {
+        throw new Error(result.error || 'Failed to save feature');
       }
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+      toast({ variant: 'destructive', title: 'Error', description: e.message });
     } finally {
       setIsSubmitting(false);
     }
@@ -179,20 +169,21 @@ export default function FeaturesAdminPage() {
     if (!selectedFeature) return;
     setIsDeleting(true);
     try {
-      const { error } = await supabase.from('saas_features').delete().eq('id', selectedFeature.id);
+      const response = await fetch('/api/saas/features/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedFeature.id }),
+      });
 
-      if (error) {
-        toast({
-          title: 'Error Deleting Feature',
-          variant: 'destructive',
-          description: error.message,
-        });
-      } else {
+      if (response.ok) {
         toast({ title: 'Feature Deleted' });
         await fetchFeatures();
+      } else {
+        const result = await response.json();
+        throw new Error(result.error || 'Failed to delete feature');
       }
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+      toast({ variant: 'destructive', title: 'Error', description: e.message });
     } finally {
       setIsDeleting(false);
       setIsAlertOpen(false);

@@ -29,7 +29,6 @@ import { Globe, BarChart, CreditCard, Loader2, Facebook, Twitter } from 'lucide-
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import ImageUploader from '@/components/image-uploader';
 import Image from 'next/image';
 
@@ -156,10 +155,10 @@ export default function SaasSettingsPage() {
   async function onGeneralSubmit(values: z.infer<typeof generalSettingsSchema>) {
     setIsGeneralSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('saas_settings')
-        .upsert({
-            id: 1,
+      const response = await fetch('/api/saas/settings/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
             platform_name: values.platformName,
             platform_description: values.platformDescription,
             logo_url: values.logo_url,
@@ -168,16 +167,18 @@ export default function SaasSettingsPage() {
             social_facebook: values.social_facebook,
             social_twitter: values.social_twitter,
             social_tiktok: values.social_tiktok,
-        });
+        }),
+      });
 
-      if (error) {
-        toast({ variant: 'destructive', title: 'Error Saving General Settings', description: error.message });
-      } else {
+      if (response.ok) {
         toast({ title: 'General Settings Saved!' });
         await fetchSettings();
+      } else {
+        const result = await response.json();
+        throw new Error(result.error || 'Failed to save');
       }
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+      toast({ variant: 'destructive', title: 'Error', description: e.message });
     } finally {
       setIsGeneralSubmitting(false);
     }
@@ -186,23 +187,25 @@ export default function SaasSettingsPage() {
   async function onSeoSubmit(values: z.infer<typeof seoSettingsSchema>) {
     setIsSeoSubmitting(true);
     try {
-        const { error } = await supabase
-            .from('saas_settings')
-            .upsert({
-                id: 1,
+        const response = await fetch('/api/saas/settings/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
                 seo_title: values.seoTitle,
                 seo_description: values.seoDescription,
                 seo_keywords: values.seoKeywords,
-            });
+            }),
+        });
 
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error Saving SEO Settings', description: error.message });
-        } else {
+        if (response.ok) {
             toast({ title: 'SEO Settings Saved!' });
             await fetchSettings();
+        } else {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to save');
         }
     } catch (e: any) {
-        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
     } finally {
         setIsSeoSubmitting(false);
     }
@@ -212,23 +215,25 @@ export default function SaasSettingsPage() {
   async function onPaymentSubmit(values: z.infer<typeof paymentSettingsSchema>) {
     setIsPaymentSubmitting(true);
     try {
-        const { error } = await supabase
-            .from('saas_settings')
-            .upsert({
-                id: 1,
+        const response = await fetch('/api/saas/settings/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
                 mobile_banking_enabled: values.mobileBankingEnabled,
                 mobile_banking_number: values.mobileBankingNumber,
                 accepted_banking_methods: values.acceptedBankingMethods,
-            });
+            }),
+        });
 
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error Saving Settings', description: error.message });
-        } else {
-            toast({ title: 'Payment Settings Saved!', description: 'Subscription payment settings have been updated.' });
+        if (response.ok) {
+            toast({ title: 'Payment Settings Saved!' });
             await fetchSettings();
+        } else {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to save');
         }
     } catch (e: any) {
-        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
     } finally {
         setIsPaymentSubmitting(false);
     }

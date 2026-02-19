@@ -6,7 +6,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -60,22 +59,36 @@ export default function ManageSaasPage() {
     if (isNew) return;
     setIsLoading(true);
 
-    const { data, error } = await supabase.from('saas_pages').select('*').eq('id', pageId).single();
-    if (error || !data) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Page not found.' });
-        router.push(`/dashboard/pages`);
-        return;
-    }
-    
-    form.reset({
-        title: data.title,
-        slug: data.slug,
-        content: JSON.stringify(data.content || ''),
-        is_published: data.is_published,
-    });
-    
-    setIsLoading(false);
+    try {
+        const response = await fetch('/api/saas/fetch-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entity: 'pages' }),
+        });
+        const result = await response.json();
+        
+        if (response.ok) {
+            const pageData = (result.data || []).find((p: any) => p.id === pageId);
+            if (!pageData) throw new Error('Page not found');
 
+            // Fetch actual content if not in summary (or update fetch-data)
+            // For now, assuming fetch-data returns full object for simplicity
+            // or we'd need a specific get-page API.
+            form.reset({
+                title: pageData.title,
+                slug: pageData.slug,
+                content: typeof pageData.content === 'object' ? JSON.stringify(pageData.content) : (pageData.content || ''),
+                is_published: pageData.is_published,
+            });
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
+        router.push(`/dashboard/pages`);
+    } finally {
+        setIsLoading(false);
+    }
   }, [pageId, isNew, router, toast, form]);
 
   useEffect(() => {
@@ -84,35 +97,34 @@ export default function ManageSaasPage() {
 
   const onSubmit = async (values: PageFormData) => {
     setIsSubmitting(true);
-    const payload = { 
-        ...values, 
-        content: values.content ? JSON.parse(values.content) : null 
-    };
-    
-    let error;
-    if (isNew) {
-      const { error: insertError } = await supabase.from('saas_pages').insert(payload);
-      error = insertError;
-    } else {
-      const { slug, ...updatePayload } = payload; // slug cannot be updated
-      const { error: updateError } = await supabase.from('saas_pages').update(updatePayload).eq('id', pageId);
-      error = updateError;
+    try {
+        const payload = { 
+            ...values, 
+            id: isNew ? undefined : pageId,
+            content: values.content ? JSON.parse(values.content) : null 
+        };
+        
+        const response = await fetch('/api/saas/pages/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+            toast({ title: `Page ${isNew ? 'created' : 'updated'} successfully!` });
+            startTransition(() => {
+                router.push(`/dashboard/pages`);
+                router.refresh();
+            });
+        } else {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to save');
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
+    } finally {
+        setIsSubmitting(false);
     }
-    
-    if (error) {
-      if (error.code === '23505') {
-        form.setError('slug', { type: 'manual', message: 'This slug is already in use. Please choose another.' });
-      } else {
-        toast({ variant: 'destructive', title: `Failed to ${isNew ? 'create' : 'update'} page`, description: error.message });
-      }
-    } else {
-      toast({ title: `Page ${isNew ? 'created' : 'updated'} successfully!` });
-      startTransition(() => {
-        router.push(`/dashboard/pages`);
-        router.refresh();
-      });
-    }
-    setIsSubmitting(false);
   };
 
   if (isLoading) {

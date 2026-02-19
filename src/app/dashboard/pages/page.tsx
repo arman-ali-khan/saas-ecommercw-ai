@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -86,16 +85,25 @@ export default function SaasPagesAdminPage() {
   const handleDelete = async () => {
     if (!pageToDelete) return;
     setIsDeleting(true);
-    const { error } = await supabase.from('saas_pages').delete().eq('id', pageToDelete.id);
-    setIsDeleting(false);
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error deleting page', description: error.message });
-    } else {
-      toast({ title: 'Page Deleted' });
-      await fetchPages();
+    try {
+        const response = await fetch('/api/saas/pages/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: pageToDelete.id }),
+        });
+        if (response.ok) {
+            toast({ title: 'Page Deleted' });
+            await fetchPages();
+        } else {
+            const result = await response.json();
+            throw new Error(result.error || 'Failed to delete page');
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Error', description: e.message });
+    } finally {
+        setIsDeleting(false);
+        setPageToDelete(null);
     }
-    setPageToDelete(null);
   };
   
   if (isLoading) {
