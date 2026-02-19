@@ -7,7 +7,7 @@ import { decryptObject } from '@/lib/encryption';
 
 /**
  * @fileOverview Secure API for SaaS admins to list all subscription payments.
- * Includes user profile and plan details with decryption.
+ * Uses a manual join strategy to ensure reliability even if DB Foreign Keys are missing.
  */
 
 export async function GET(request: Request) {
@@ -33,7 +33,6 @@ export async function GET(request: Request) {
 
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!serviceKey) {
-        console.error('Critical: SUPABASE_SERVICE_ROLE_KEY is missing.');
         return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
@@ -54,29 +53,44 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden: SaaS Admin access required.' }, { status: 403 });
     }
 
-    // 3. Fetch all subscription payments with nested details
-    // We use standard Supabase join syntax. 
-    // If this fails, it's likely due to missing foreign keys in the database.
-    const { data: payments, error: fetchError } = await supabaseAdmin
+    // 3. Robust Data Fetching (Manual Join)
+    // Step A: Get all payments
+    const { data: payments, error: paymentsError } = await supabaseAdmin
       .from('subscription_payments')
-      .select(`
-        *,
-        profiles (id, full_name, username, email),
-        plans (id, name)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (fetchError) {
-        console.error('Database fetch error in /saas/subscriptions/list:', fetchError);
-        // If the join fails, try fetching without joins to provide a partial response or better error
-        return NextResponse.json({ 
-            error: 'Failed to fetch payment records from database.',
-            details: fetchError.message 
-        }, { status: 500 });
+    if (paymentsError) {
+        console.error('Database fetch error (payments):', paymentsError);
+        return NextResponse.json({ error: 'Failed to fetch payment records.' }, { status: 500 });
     }
 
+    if (!payments || payments.length === 0) {
+        return NextResponse.json({ payments: [] });
+    }
+
+    // Step B: Get unique User IDs and Plan IDs for related data
+    const userIds = Array.from(new Set(payments.map(p => p.user_id).filter(Boolean)));
+    const planIds = Array.from(new Set(payments.map(p => p.plan_id).filter(Boolean)));
+
+    // Step C: Fetch Profiles and Plans in parallel
+    const [profilesRes, plansRes] = await Promise.all([
+        supabaseAdmin.from('profiles').select('id, full_name, username, email').in('id', userIds),
+        supabaseAdmin.from('plans').select('id, name').in('id', planIds)
+    ]);
+
+    const profilesMap = new Map((profilesRes.data || []).map(p => [p.id, p]));
+    const plansMap = new Map((plansRes.data || []).map(p => [p.id, p]));
+
+    // Step D: Combine data
+    const combinedPayments = payments.map(payment => ({
+        ...payment,
+        profiles: profilesMap.get(payment.user_id) || null,
+        plans: plansMap.get(payment.plan_id) || null
+    }));
+
     // 4. Decrypt sensitive user info recursively
-    const decryptedPayments = decryptObject(payments || []);
+    const decryptedPayments = decryptObject(combinedPayments);
 
     return NextResponse.json({ payments: decryptedPayments });
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -96,12 +97,11 @@ export default function SubscriptionPaymentsPage() {
 
 
   const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case 'completed':
         return 'default';
       case 'pending':
-        return 'secondary';
-       case 'pending_verification':
+      case 'pending_verification':
         return 'secondary';
       default:
         return 'destructive';
@@ -111,7 +111,7 @@ export default function SubscriptionPaymentsPage() {
   const formatPaymentMethod = (method: string) => {
     if (method === 'mobile_banking') return 'Mobile Banking';
     if (method === 'credit_card') return 'Credit Card';
-    return method;
+    return method || 'Unknown';
   }
 
   if (isLoading) {
@@ -157,8 +157,8 @@ export default function SubscriptionPaymentsPage() {
                       <TableRow key={payment.id}>
                         <TableCell className="font-medium">
                             <div className="flex flex-col">
-                                <span className="font-bold text-sm">{payment.profiles?.full_name || 'N/A'}</span>
-                                <span className="text-[10px] text-muted-foreground">@{payment.profiles?.username}</span>
+                                <span className="font-bold text-sm">{payment.profiles?.full_name || 'Deleted User'}</span>
+                                <span className="text-[10px] text-muted-foreground">@{payment.profiles?.username || 'unknown'}</span>
                             </div>
                         </TableCell>
                         <TableCell><Badge variant="secondary" className="text-[10px]">{payment.plans?.name || 'N/A'}</Badge></TableCell>
@@ -188,7 +188,7 @@ export default function SubscriptionPaymentsPage() {
                                     <AvatarFallback>{payment.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <CardTitle className="text-sm font-bold">{payment.profiles?.full_name || 'N/A'}</CardTitle>
+                                    <CardTitle className="text-sm font-bold">{payment.profiles?.full_name || 'Deleted User'}</CardTitle>
                                     <CardDescription className="text-xs">@{payment.profiles?.username || 'unknown'}</CardDescription>
                                 </div>
                             </div>
@@ -255,15 +255,15 @@ export default function SubscriptionPaymentsPage() {
                         <div className="space-y-2 p-4 border rounded-xl bg-muted/20">
                             <h4 className="font-bold flex items-center gap-2 text-primary text-sm uppercase tracking-widest"><User className="h-4 w-4" /> Admin Info</h4>
                             <div className="grid gap-1">
-                                <p className="font-bold">{selectedPayment.profiles?.full_name}</p>
-                                <p className="text-xs text-muted-foreground">@{selectedPayment.profiles?.username}</p>
+                                <p className="font-bold">{selectedPayment.profiles?.full_name || 'Deleted User'}</p>
+                                <p className="text-xs text-muted-foreground">@{selectedPayment.profiles?.username || 'unknown'}</p>
                                 <p className="text-xs text-muted-foreground">{(selectedPayment.profiles as any)?.email}</p>
                             </div>
                         </div>
                         <div className="space-y-2 p-4 border rounded-xl bg-muted/20">
                             <h4 className="font-bold flex items-center gap-2 text-primary text-sm uppercase tracking-widest"><FileText className="h-4 w-4" /> Plan & Amount</h4>
                             <div className="flex justify-between items-center">
-                                <span className="font-medium">{selectedPayment.plans?.name}</span>
+                                <span className="font-medium">{selectedPayment.plans?.name || 'N/A'}</span>
                                 <span className="text-lg font-black">৳{selectedPayment.amount.toFixed(2)}</span>
                             </div>
                         </div>
