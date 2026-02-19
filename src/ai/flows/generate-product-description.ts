@@ -63,7 +63,7 @@ export async function generateProductDescription(input: any) {
         DO NOT include any markdown code blocks (like \`\`\`json) in your response. Just the raw JSON object.`;
 
         const response = await scopedAi.generate({
-            model: 'googleai/gemini-1.5-flash',
+            model: 'googleai/gemini-2.5-flash',
             prompt,
             config: { temperature: 0.8, maxOutputTokens: 4096 },
         });
