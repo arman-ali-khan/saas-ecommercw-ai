@@ -75,12 +75,20 @@ const productFormSchema = z.object({
   flash_deal_range: z.object({ startDate: z.any().optional(), endDate: z.any().optional() }).optional(),
   use_variants: z.boolean().default(false),
   variants: z.array(z.object({
-    amount: z.string().min(1, 'Amount is required'),
-    unitType: z.string().min(1, 'Unit is required'),
+    amount: z.string().optional(),
+    unitType: z.string().optional(),
     size: z.string().optional(),
     price: z.preprocess((a) => parseFloat(String(a)), z.number().positive('Price must be positive')),
     stock: z.preprocess((a) => parseInt(String(a), 10), v => v == null ? 0 : v).optional(),
   })).optional().or(z.null()),
+}).refine(data => {
+    if (data.use_variants && data.variants) {
+        return data.variants.every(v => (v.amount && v.unitType) || v.size);
+    }
+    return true;
+}, {
+    message: "Each variant must have either (Amount & Unit) or a Size.",
+    path: ["variants"]
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -205,28 +213,30 @@ export default function ManageProductPage() {
         if (response.ok) {
             const { product: productData, flashDeal: flashDealData } = result;
             
-            // Map variants back to UI format: "1 KG (Large)" -> amount="1", unitType="KG", size="Large"
+            // Map variants back to UI format: 
+            // "1 KG (Large)" -> amount="1", unitType="KG", size="Large"
+            // "1 KG" -> amount="1", unitType="KG", size=""
+            // "XL" -> amount="", unitType="", size="XL"
             const mappedVariants = (productData.variants || []).map((v: any) => {
                 const variantString = v.unit || '';
-                // Regex to match "Amount Unit (Size)" or "Amount Unit"
-                const match = variantString.match(/^([\d.]+)\s+(\w+)(?:\s+\((.*)\))?$/);
                 
-                if (match) {
+                // Case 1: Amount Unit (Size) - e.g. "1 KG (Large)"
+                const fullMatch = variantString.match(/^([\d.]+)\s+(\w+)(?:\s+\((.*)\))?$/);
+                if (fullMatch) {
                     return {
-                        amount: match[1],
-                        unitType: match[2],
-                        size: match[3] || '',
+                        amount: fullMatch[1],
+                        unitType: fullMatch[2],
+                        size: fullMatch[3] || '',
                         price: v.price,
                         stock: v.stock
                     };
                 }
                 
-                // Fallback if regex fails (e.g. legacy data)
-                const parts = variantString.split(' ');
+                // Case 2: Only Size - If it doesn't match the standard "Amount Unit" pattern
                 return {
-                    amount: parts[0] || '1',
-                    unitType: parts[1] || 'KG',
-                    size: '',
+                    amount: '',
+                    unitType: '',
+                    size: variantString,
                     price: v.price,
                     stock: v.stock
                 };
@@ -317,9 +327,12 @@ export default function ManageProductPage() {
     // Process variants: combine amount, unitType, and size into unit string for DB
     if (use_variants && values.variants) {
         productValues.variants = values.variants.map(v => {
-            const sizeSuffix = v.size ? ` (${v.size})` : '';
+            const hasUnit = v.amount && v.unitType;
+            const sizeSuffix = v.size ? (hasUnit ? ` (${v.size})` : v.size) : '';
+            const unitBase = hasUnit ? `${v.amount} ${v.unitType}` : '';
+            
             return {
-                unit: `${v.amount} ${v.unitType}${sizeSuffix}`,
+                unit: `${unitBase}${sizeSuffix}`.trim(),
                 price: v.price,
                 stock: v.stock || 0
             };
@@ -485,6 +498,7 @@ export default function ManageProductPage() {
                                         ))}
                                     </div>
                                     <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ amount: '1', unitType: 'KG', size: '', price: 0, stock: 0 })}><Plus className="mr-2 h-4 w-4" /> নতুন ভেরিয়েন্ট যোগ করুন</Button>
+                                    <FormMessage className="text-xs">{form.formState.errors.variants?.message}</FormMessage>
                                 </div>
                             )}
                         </CardContent>
