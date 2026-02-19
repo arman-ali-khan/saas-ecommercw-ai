@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import type { Page } from '@/types';
@@ -24,7 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,19 +31,23 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Plus, Loader2, Edit, Trash2, Eye } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { MoreHorizontal, Plus, Loader2, Edit, Trash2, Eye, AlertTriangle, X } from 'lucide-react';
 
 export default function PagesAdminPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const { pages, setPages } = useAdminStore();
   const { toast } = useToast();
-  const [pages, setPages] = useState<Page[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchPages = useCallback(async () => {
+  const fetchPages = useCallback(async (force = false) => {
     if (!user) return;
+    
+    const store = useAdminStore.getState();
+    const isFresh = Date.now() - store.lastFetched.pages < 300000;
+    if (!force && store.pages.length > 0 && isFresh) return;
+
     setIsLoading(true);
     try {
         const response = await fetch('/api/pages/list', {
@@ -63,15 +66,13 @@ export default function PagesAdminPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [user, toast]);
+  }, [user, setPages, toast]);
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (user) {
       fetchPages();
-    } else if (!authLoading && !user) {
-      setIsLoading(false);
     }
-  }, [user, authLoading, fetchPages]);
+  }, [user, fetchPages]);
 
   const handleDelete = async () => {
     if (!pageToDelete || !user) return;
@@ -86,7 +87,7 @@ export default function PagesAdminPage() {
         
         if (response.ok) {
             toast({ title: 'Page Deleted' });
-            await fetchPages();
+            await fetchPages(true);
         } else {
             throw new Error(result.error || 'Failed to delete page');
         }
@@ -98,7 +99,7 @@ export default function PagesAdminPage() {
     }
   };
   
-  if (isLoading) {
+  if (isLoading && pages.length === 0) {
     return (
         <Card>
             <CardHeader>
@@ -117,9 +118,7 @@ export default function PagesAdminPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Page Manager</h1>
-          <p className="text-muted-foreground">
-            Create, edit, and manage the custom pages for your site.
-          </p>
+          <p className="text-muted-foreground">Create, edit, and manage the custom pages for your site.</p>
         </div>
         <Button asChild>
           <Link href={`/admin/pages/new`}>
@@ -130,18 +129,15 @@ export default function PagesAdminPage() {
 
       <Card>
         <CardContent className="p-0">
-          {pages.length === 0 ? (
+          {pages.length === 0 && !isLoading ? (
             <div className="text-center py-16">
               <p className="text-muted-foreground">You have no pages yet.</p>
               <Button asChild className="mt-4">
-                <Link href={`/admin/pages/new`}>
-                  <Plus className="mr-2 h-4 w-4" /> Create Your First Page
-                </Link>
+                <Link href={`/admin/pages/new`}><Plus className="mr-2 h-4 w-4" /> Create Your First Page</Link>
               </Button>
             </div>
           ) : (
             <>
-              {/* Desktop View: Table */}
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
@@ -159,9 +155,7 @@ export default function PagesAdminPage() {
                         <TableCell className="font-medium">{page.title}</TableCell>
                         <TableCell className="font-mono text-xs">/pages/{page.slug}</TableCell>
                         <TableCell>
-                          <Badge variant={page.is_published ? 'default' : 'outline'}>
-                            {page.is_published ? 'Published' : 'Draft'}
-                          </Badge>
+                          <Badge variant={page.is_published ? 'default' : 'outline'}>{page.is_published ? 'Published' : 'Draft'}</Badge>
                         </TableCell>
                         <TableCell>{format(new Date(page.updated_at), 'PPp')}</TableCell>
                         <TableCell className="text-right">
@@ -189,7 +183,6 @@ export default function PagesAdminPage() {
                 </Table>
               </div>
 
-              {/* Mobile View: Cards */}
               <div className="grid gap-4 md:hidden p-4">
                 {pages.map((page) => (
                   <Card key={page.id}>
@@ -201,24 +194,16 @@ export default function PagesAdminPage() {
                             <Button variant="ghost" size="icon" className="-mt-2 -mr-2"><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                                <Link href={`/pages/${page.slug}`} target="_blank"><Eye className="mr-2 h-4 w-4" /> View</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                                <Link href={`/admin/pages/${page.id}`}><Edit className="mr-2 h-4 w-4" /> Edit</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => setPageToDelete(page)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild><Link href={`/pages/${page.slug}`} target="_blank"><Eye className="mr-2 h-4 w-4" /> View</Link></DropdownMenuItem>
+                            <DropdownMenuItem asChild><Link href={`/admin/pages/${page.id}`}><Edit className="mr-2 h-4 w-4" /> Edit</Link></DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => setPageToDelete(page)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
                       <CardDescription className="font-mono text-xs">/pages/{page.slug}</CardDescription>
                     </CardHeader>
                     <CardContent className="flex justify-between items-center">
-                        <Badge variant={page.is_published ? 'default' : 'outline'}>
-                            {page.is_published ? 'Published' : 'Draft'}
-                        </Badge>
+                        <Badge variant={page.is_published ? 'default' : 'outline'}>{page.is_published ? 'Published' : 'Draft'}</Badge>
                         <p className="text-xs text-muted-foreground">{format(new Date(page.updated_at), 'PP')}</p>
                     </CardContent>
                   </Card>
@@ -229,28 +214,21 @@ export default function PagesAdminPage() {
         </CardContent>
       </Card>
       
+      {/* Delete Modal */}
       {pageToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0">
-            <div className="w-full max-w-md p-6 bg-background rounded-lg shadow-xl border animate-in zoom-in-95">
-                <div className="text-center sm:text-left">
-                    <h3 className="text-lg font-semibold text-foreground">Are you absolutely sure?</h3>
-                    <div className="mt-2">
-                        <p className="text-sm text-muted-foreground">
-                            This will permanently delete the page "{pageToDelete.title}". This action cannot be undone.
-                        </p>
-                    </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isDeleting && setPageToDelete(null)} />
+            <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                <div className="flex items-center gap-3 mb-4 text-destructive">
+                    <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                    <h3 className="text-xl font-bold">Are you absolutely sure?</h3>
                 </div>
-                <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-                    <Button variant="outline" onClick={() => setPageToDelete(null)}>
-                    Cancel
-                    </Button>
-                    <Button
-                        onClick={handleDelete}
-                        disabled={isDeleting}
-                        className={cn(buttonVariants({ variant: 'destructive' }))}
-                    >
-                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Delete
+                <p className="text-muted-foreground mb-8">This will permanently delete the page "{pageToDelete.title}". This action cannot be undone.</p>
+                <div className="flex justify-end gap-3">
+                    <Button variant="outline" onClick={() => setPageToDelete(null)} disabled={isDeleting}>Cancel</Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Delete
                     </Button>
                 </div>
             </div>

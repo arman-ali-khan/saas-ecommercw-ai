@@ -47,7 +47,6 @@ export default function OrdersAdminPage() {
         const store = useAdminStore.getState();
         const isFresh = Date.now() - store.lastFetched.orders < 300000;
         if (!force && store.orders.length > 0 && isFresh) {
-            setIsLoading(false);
             return;
         }
 
@@ -111,92 +110,90 @@ export default function OrdersAdminPage() {
     }
 
     return (
-        <>
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t.title}</CardTitle>
-                    <CardDescription>{t.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {orders.length > 0 ? (
-                    <>
-                        <div className="hidden md:block">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>{t.orderId}</TableHead>
-                                        <TableHead>{t.customer}</TableHead>
-                                        <TableHead>{t.date}</TableHead>
-                                        <TableHead>{t.status}</TableHead>
-                                        <TableHead>{t.total}</TableHead>
-                                        <TableHead className="text-right">{t.actions}</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {orders.map(order => (
-                                        <TableRow key={order.id}>
-                                            <TableCell className="font-medium">{order.order_number}</TableCell>
-                                            <TableCell>
-                                                <div className="font-medium">{order.shipping_info?.name || 'Guest'}</div>
-                                                <div className="text-sm text-muted-foreground">{order.customer_email}</div>
-                                            </TableCell>
-                                            <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
-                                            </TableCell>
-                                            <TableCell>{order.total.toFixed(2)} BDT</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="outline" size="sm" asChild>
-                                                    <Link href={`/admin/orders/${order.id}`}>
-                                                        <Eye className="mr-2 h-4 w-4" />
-                                                        {t.viewOrder}
-                                                    </Link>
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <div className="grid gap-4 md:hidden">
-                            {orders.map(order => (
-                                <Card key={order.id}>
-                                    <CardHeader>
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <CardTitle className="text-lg">{order.order_number}</CardTitle>
-                                                <CardDescription>{order.shipping_info?.name || 'Guest'}</CardDescription>
-                                                <CardDescription className="text-xs">{order.customer_email}</CardDescription>
-                                            </div>
-                                            <Button variant="ghost" size="icon" asChild className="-mt-2 -mr-2">
+        <Card>
+            <CardHeader>
+                <CardTitle>{t.title}</CardTitle>
+                <CardDescription>{t.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {orders.length > 0 ? (
+                <>
+                    <div className="hidden md:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>{t.orderId}</TableHead>
+                                    <TableHead>{t.customer}</TableHead>
+                                    <TableHead>{t.date}</TableHead>
+                                    <TableHead>{t.status}</TableHead>
+                                    <TableHead>{t.total}</TableHead>
+                                    <TableHead className="text-right">{t.actions}</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {orders.map(order => (
+                                    <TableRow key={order.id}>
+                                        <TableCell className="font-medium">{order.order_number}</TableCell>
+                                        <TableCell>
+                                            <div className="font-medium">{order.shipping_info?.name || 'Guest'}</div>
+                                            <div className="text-sm text-muted-foreground">{order.customer_email}</div>
+                                        </TableCell>
+                                        <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
+                                        </TableCell>
+                                        <TableCell>{order.total.toFixed(2)} BDT</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="outline" size="sm" asChild>
                                                 <Link href={`/admin/orders/${order.id}`}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                        </div>
-                                        <CardDescription className="pt-2">{format(new Date(order.created_at), 'PP')}</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="flex justify-between items-center">
-                                        <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
-                                        <div className="text-right">
-                                            <p className="font-semibold text-lg">{order.total.toFixed(2)} BDT</p>
-                                            <Button variant="link" size="sm" asChild className="h-auto p-0 text-primary">
-                                                <Link href={`/admin/orders/${order.id}`}>
+                                                    <Eye className="mr-2 h-4 w-4" />
                                                     {t.viewOrder}
                                                 </Link>
                                             </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    <div className="grid gap-4 md:hidden">
+                        {orders.map(order => (
+                            <Card key={order.id}>
+                                <CardHeader>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <CardTitle className="text-lg">{order.order_number}</CardTitle>
+                                            <CardDescription>{order.shipping_info?.name || 'Guest'}</CardDescription>
+                                            <CardDescription className="text-xs">{order.customer_email}</CardDescription>
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    </>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-8">{t.noOrders}</p>
-                    )}
-                </CardContent>
-            </Card>
-        </>
+                                        <Button variant="ghost" size="icon" asChild className="-mt-2 -mr-2">
+                                            <Link href={`/admin/orders/${order.id}`}>
+                                                <Eye className="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                    <CardDescription className="pt-2">{format(new Date(order.created_at), 'PP')}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex justify-between items-center">
+                                    <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
+                                    <div className="text-right">
+                                        <p className="font-semibold text-lg">{order.total.toFixed(2)} BDT</p>
+                                        <Button variant="link" size="sm" asChild className="h-auto p-0 text-primary">
+                                            <Link href={`/admin/orders/${order.id}`}>
+                                                {t.viewOrder}
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </>
+                ) : (
+                    <p className="text-muted-foreground text-center py-8">{t.noOrders}</p>
+                )}
+            </CardContent>
+        </Card>
     )
 }

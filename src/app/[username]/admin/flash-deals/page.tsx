@@ -1,35 +1,37 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
 import type { FlashDeal } from '@/types';
 import { format } from 'date-fns';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Plus, Edit, Trash2, Loader2, Flame, MoreHorizontal } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Plus, Edit, Trash2, Loader2, Flame, MoreHorizontal, X, AlertTriangle } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
 export default function FlashDealsAdminPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
+    const { flashDeals: deals, setFlashDeals: setDeals } = useAdminStore();
     const { toast } = useToast();
-    const [deals, setDeals] = useState<FlashDeal[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [dealToDelete, setDealToDelete] = useState<FlashDeal | null>(null);
 
-    const fetchDeals = useCallback(async () => {
+    const fetchDeals = useCallback(async (force = false) => {
         if (!user) return;
-        setIsLoading(true);
+        
+        const store = useAdminStore.getState();
+        const isFresh = Date.now() - store.lastFetched.flashDeals < 300000;
+        if (!force && store.flashDeals.length > 0 && isFresh) return;
 
+        setIsLoading(true);
         try {
             const response = await fetch('/api/flash-deals/list', {
                 method: 'POST',
@@ -47,15 +49,13 @@ export default function FlashDealsAdminPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [user, toast]);
+    }, [user, setDeals, toast]);
 
     useEffect(() => {
-        if (!authLoading && user) {
+        if (user) {
             fetchDeals();
-        } else if (!authLoading && !user) {
-            setIsLoading(false);
         }
-    }, [user, authLoading, fetchDeals]);
+    }, [user, fetchDeals]);
 
     const handleDelete = async () => {
         if (!dealToDelete || !user) return;
@@ -72,7 +72,7 @@ export default function FlashDealsAdminPage() {
 
             if (response.ok) {
                 toast({ title: 'Deal Deleted' });
-                await fetchDeals();
+                await fetchDeals(true);
             } else {
                 const result = await response.json();
                 throw new Error(result.error || 'Failed to delete deal');
@@ -85,8 +85,12 @@ export default function FlashDealsAdminPage() {
         }
     };
     
-    if (isLoading) {
-        return <div className="flex items-center justify-center p-16"><Loader2 className="h-10 w-10 animate-spin text-muted-foreground" /></div>;
+    if (isLoading && deals.length === 0) {
+        return (
+            <div className="flex items-center justify-center p-16">
+                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+            </div>
+        );
     }
 
     return (
@@ -105,14 +109,12 @@ export default function FlashDealsAdminPage() {
 
             <Card>
                 <CardContent className="p-0">
-                    {deals.length === 0 ? (
+                    {deals.length === 0 && !isLoading ? (
                         <div className="text-center py-16">
                             <Flame className="mx-auto h-12 w-12 text-muted-foreground" />
                              <p className="text-muted-foreground mt-4">You have no flash deals yet.</p>
                              <Button asChild className="mt-4">
-                                <Link href={`/admin/flash-deals/new`}>
-                                    <Plus className="mr-2 h-4 w-4" /> Add your first deal
-                                </Link>
+                                <Link href={`/admin/flash-deals/new`}><Plus className="mr-2 h-4 w-4" /> Add your first deal</Link>
                              </Button>
                         </div>
                     ) : (
@@ -143,9 +145,7 @@ export default function FlashDealsAdminPage() {
                                                 <TableCell><Badge variant={deal.is_active ? 'default' : 'outline'}>{deal.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
                                                 <TableCell className="text-right">
                                                     <Button asChild variant="ghost" size="sm">
-                                                        <Link href={`/admin/flash-deals/${deal.id}/edit`}>
-                                                            <Edit className="mr-2 h-4 w-4" /> Edit
-                                                        </Link>
+                                                        <Link href={`/admin/flash-deals/${deal.id}/edit`}><Edit className="mr-2 h-4 w-4" /> Edit</Link>
                                                     </Button>
                                                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDealToDelete(deal)}>
                                                         <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -172,36 +172,19 @@ export default function FlashDealsAdminPage() {
                                                 </div>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="-mt-2 -mr-2"><MoreHorizontal className="h-4 w-4" /></Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem asChild>
-                                                            <Link href={`/admin/flash-deals/${deal.id}/edit`}>
-                                                                <Edit className="mr-2 h-4 w-4" /> Edit
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem className="text-destructive" onClick={() => setDealToDelete(deal)}>
-                                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild><Link href={`/admin/flash-deals/${deal.id}/edit`}><Edit className="mr-2 h-4 w-4" /> Edit</Link></DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-destructive" onClick={() => setDealToDelete(deal)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
                                         </CardHeader>
                                         <CardContent className="space-y-3">
-                                            <div className="flex justify-between items-baseline">
-                                                <span className="text-sm text-muted-foreground">Price</span>
-                                                <span className="line-through">{deal.products?.price.toFixed(2)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-baseline">
-                                                <span className="text-sm text-muted-foreground">Deal Price</span>
-                                                <span className="font-bold text-lg text-primary">{deal.discount_price.toFixed(2)}</span>
-                                            </div>
-                                             <div className="flex justify-between items-baseline text-xs text-muted-foreground">
-                                                <span>Duration</span>
-                                                <span>{format(new Date(deal.start_date), 'P')} - {format(new Date(deal.end_date), 'P')}</span>
-                                            </div>
+                                            <div className="flex justify-between items-baseline"><span className="text-sm text-muted-foreground">Price</span><span className="line-through">{deal.products?.price.toFixed(2)}</span></div>
+                                            <div className="flex justify-between items-baseline"><span className="text-sm text-muted-foreground">Deal Price</span><span className="font-bold text-lg text-primary">{deal.discount_price.toFixed(2)}</span></div>
+                                             <div className="flex justify-between items-baseline text-xs text-muted-foreground"><span>Duration</span><span>{format(new Date(deal.start_date), 'P')} - {format(new Date(deal.end_date), 'P')}</span></div>
                                         </CardContent>
                                     </Card>
                                 ))}
@@ -211,20 +194,26 @@ export default function FlashDealsAdminPage() {
                 </CardContent>
             </Card>
 
-            <AlertDialog open={!!dealToDelete} onOpenChange={(open) => !open && setDealToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete this deal. This action cannot be undone.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className={cn(buttonVariants({ variant: "destructive" }))}>
-                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {/* Custom Delete Modal */}
+            {dealToDelete && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isDeleting && setDealToDelete(null)} />
+                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center gap-3 mb-4 text-destructive">
+                            <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                            <h3 className="text-xl font-bold">Are you absolutely sure?</h3>
+                        </div>
+                        <p className="text-muted-foreground mb-8">This will permanently delete this flash deal. This action cannot be undone.</p>
+                        <div className="flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setDealToDelete(null)} disabled={isDeleting}>Cancel</Button>
+                            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Delete
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }

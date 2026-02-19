@@ -3,11 +3,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
-import type { Order, Product } from '@/types';
 import Link from 'next/link';
 import { format, subDays } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Ban } from 'lucide-react';
+import { Ban, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
@@ -32,10 +31,10 @@ export default function AdminDashboard() {
     const siteId = user?.id;
     if (!siteId) return;
 
+    // Cache check: 5 minutes
     const store = useAdminStore.getState();
-    const isFresh = Date.now() - store.lastFetched.dashboard < 300000; // 5 mins cache
+    const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
     if (!force && store.dashboard && isFresh) {
-        setIsLoading(false);
         return;
     }
 
@@ -108,6 +107,14 @@ export default function AdminDashboard() {
     }
   }, [user?.id, fetchData]);
 
+  if (isLoading && !dashboard) {
+    return (
+        <div className="flex h-[60vh] items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+    );
+  }
+
   const productLimit = user?.product_limit;
   const stats = dashboard || {
     totalRevenue: 0,
@@ -143,14 +150,14 @@ export default function AdminDashboard() {
       <DashboardStats 
         stats={stats} 
         limits={{ productLimit: user?.product_limit ?? null, customerLimit: user?.customer_limit ?? null, orderLimit: user?.order_limit ?? null }} 
-        isLoading={isLoading} 
+        isLoading={isLoading && !dashboard} 
         t={t} 
       />
 
       <DashboardCharts 
         revenueChartData={stats.revenueChartData} 
-        allOrders={[]} // This would ideally come from store or separate fetch if needed for detail
-        isLoading={isLoading} 
+        allOrders={[]} 
+        isLoading={isLoading && !dashboard} 
         t={t} 
       />
 
@@ -159,7 +166,7 @@ export default function AdminDashboard() {
         lowStockProducts={stats.lowStockProducts} 
         pendingReviews={stats.pendingReviews} 
         unansweredQuestions={stats.unansweredQuestions} 
-        isLoading={isLoading} 
+        isLoading={isLoading && !dashboard} 
         t={t} 
       />
     </div>

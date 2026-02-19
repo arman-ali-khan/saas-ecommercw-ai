@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -6,17 +5,16 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
 import type { ProductAttribute } from '@/types';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit, Trash2, Loader2, Store, Scale, Ruler, Tags, Palette } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, Store, Scale, Ruler, Tags, Palette, X, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -36,10 +34,10 @@ const attributeTypes = [
 ];
 
 export default function AttributesAdminPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
+    const { attributes, setAttributes } = useAdminStore();
     const { toast } = useToast();
-    const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -51,8 +49,13 @@ export default function AttributesAdminPage() {
         defaultValues: { value: '' },
     });
 
-    const fetchAttributes = useCallback(async () => {
+    const fetchAttributes = useCallback(async (force = false) => {
         if (!user) return;
+        
+        const store = useAdminStore.getState();
+        const isFresh = Date.now() - store.lastFetched.attributes < 300000;
+        if (!force && store.attributes.length > 0 && isFresh) return;
+
         setIsLoading(true);
         try {
             const response = await fetch('/api/attributes/list', {
@@ -71,15 +74,13 @@ export default function AttributesAdminPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [user, toast]);
+    }, [user, setAttributes, toast]);
 
     useEffect(() => {
-        if(!authLoading && user) {
+        if(user) {
             fetchAttributes();
-        } else if (!authLoading && !user) {
-             setIsLoading(false);
         }
-    }, [user, authLoading, fetchAttributes]);
+    }, [user, fetchAttributes]);
     
     const groupedAttributes = useMemo(() => {
         return attributes.reduce((acc, attr) => {
@@ -118,7 +119,7 @@ export default function AttributesAdminPage() {
 
             if (response.ok) {
                 toast({ title: `Attribute ${selectedAttribute ? 'Updated' : 'Created'}` });
-                await fetchAttributes();
+                await fetchAttributes(true);
                 setIsFormOpen(false);
             } else {
                 throw new Error(result.error || 'Failed to save attribute');
@@ -154,12 +155,11 @@ export default function AttributesAdminPage() {
                 }),
             });
 
-            const result = await response.json();
-
             if (response.ok) {
                 toast({ title: 'Attribute Deleted' });
-                await fetchAttributes();
+                await fetchAttributes(true);
             } else {
+                const result = await response.json();
                 throw new Error(result.error || 'Failed to delete attribute');
             }
         } catch (error: any) {
@@ -174,8 +174,7 @@ export default function AttributesAdminPage() {
         return (
             <div>
                 <Skeleton className="h-9 w-64 mb-2" />
-                <Skeleton className="h-5 w-80 mb-8" />
-                <div className="space-y-4">
+                <div className="space-y-4 pt-8">
                     {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
                 </div>
             </div>
@@ -241,48 +240,62 @@ export default function AttributesAdminPage() {
                 ))}
             </Tabs>
             
-             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{selectedAttribute ? 'Edit' : 'Add'} {currentAttributeType}</DialogTitle>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                            <FormField
-                                control={form.control}
-                                name="value"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Value</FormLabel>
-                                    <FormControl><Input placeholder={`Enter a ${currentAttributeType} value`} {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <DialogFooter>
-                                <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+            {/* Custom Modal */}
+            {isFormOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isSubmitting && setIsFormOpen(false)} />
+                    <div className="relative w-full max-w-lg bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center justify-between p-6 border-b">
+                            <h2 className="text-xl font-bold">{selectedAttribute ? 'Edit' : 'Add'} {currentAttributeType}</h2>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        
+                        <div className="p-6 overflow-y-auto">
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                    <FormField control={form.control} name="value" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Value</FormLabel>
+                                            <FormControl><Input placeholder={`Enter a ${currentAttributeType} value`} {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </form>
+                            </Form>
+                        </div>
+                        <div className="p-6 border-t flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                            <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-            <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-                <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This will permanently delete the attribute "{selectedAttribute?.value}". This action cannot be undone.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className={cn(buttonVariants({ variant: "destructive" }))}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {/* Delete Confirmation */}
+            {isAlertOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isSubmitting && setIsAlertOpen(false)} />
+                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center gap-3 mb-4 text-destructive">
+                            <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                            <h3 className="text-xl font-bold">Are you sure?</h3>
+                        </div>
+                        <p className="text-muted-foreground mb-8">This will permanently delete the attribute "{selectedAttribute?.value}". This action cannot be undone.</p>
+                        <div className="flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsAlertOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                            <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Delete
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

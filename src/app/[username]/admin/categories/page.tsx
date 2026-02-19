@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
 import type { Category } from '@/types';
 import Image from 'next/image';
@@ -24,16 +25,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   Form,
   FormControl,
   FormDescription,
@@ -42,10 +33,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, MoreHorizontal, Palette, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, MoreHorizontal, Palette, X, AlertTriangle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
@@ -78,10 +69,10 @@ const defaultColorPalette = [
 ];
 
 export default function CategoriesAdminPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
+    const { categories, setCategories } = useAdminStore();
     const { toast } = useToast();
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -96,8 +87,13 @@ export default function CategoriesAdminPage() {
         defaultValues: { name: '', description: '', icon: 'Package', image_url: '', card_color: '' },
     });
 
-    const fetchCategories = useCallback(async () => {
+    const fetchCategories = useCallback(async (force = false) => {
         if (!user) return;
+        
+        const store = useAdminStore.getState();
+        const isFresh = Date.now() - store.lastFetched.categories < 300000;
+        if (!force && store.categories.length > 0 && isFresh) return;
+
         setIsLoading(true);
         try {
             const response = await fetch('/api/categories/list', {
@@ -116,15 +112,13 @@ export default function CategoriesAdminPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [user, toast]);
+    }, [user, setCategories, toast]);
 
     useEffect(() => {
-        if(!authLoading && user) {
+        if(user) {
             fetchCategories();
-        } else if (!authLoading && !user) {
-             setIsLoading(false);
         }
-    }, [user, authLoading, fetchCategories]);
+    }, [user, fetchCategories]);
 
     useEffect(() => {
         if (isFormOpen) {
@@ -161,7 +155,7 @@ export default function CategoriesAdminPage() {
 
             if (response.ok) {
                 toast({ title: `Category ${selectedCategory ? 'Updated' : 'Created'}` });
-                await fetchCategories();
+                await fetchCategories(true);
                 setIsFormOpen(false);
                 setSelectedCategory(null);
             } else {
@@ -197,12 +191,11 @@ export default function CategoriesAdminPage() {
                 }),
             });
 
-            const result = await response.json();
-
             if (response.ok) {
                 toast({ title: 'Category Deleted' });
-                await fetchCategories();
+                await fetchCategories(true);
             } else {
+                const result = await response.json();
                 throw new Error(result.error || 'Failed to delete category');
             }
         } catch (error: any) {
@@ -214,7 +207,7 @@ export default function CategoriesAdminPage() {
         }
     }
     
-    if (isLoading) {
+    if (isLoading && categories.length === 0) {
         return (
             <div className="flex items-center justify-center p-16">
                 <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
@@ -227,9 +220,7 @@ export default function CategoriesAdminPage() {
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-bold">{t.title}</h1>
-                    <p className="text-muted-foreground">
-                        {t.description}
-                    </p>
+                    <p className="text-muted-foreground">{t.description}</p>
                 </div>
                 <Button onClick={() => openForm(null)}>
                     <Plus className="mr-2 h-4 w-4" /> {t.addCategory}
@@ -238,7 +229,7 @@ export default function CategoriesAdminPage() {
 
             <Card>
                 <CardContent className="p-0">
-                    {categories.length === 0 ? (
+                    {categories.length === 0 && !isLoading ? (
                         <div className="text-center py-16">
                              <p className="text-muted-foreground">{t.noCategories}</p>
                              <Button className="mt-4" onClick={() => openForm(null)}>
@@ -247,7 +238,6 @@ export default function CategoriesAdminPage() {
                         </div>
                     ) : (
                         <>
-                            {/* Desktop View: Table */}
                             <div className="hidden md:block">
                                 <Table>
                                     <TableHeader>
@@ -299,7 +289,6 @@ export default function CategoriesAdminPage() {
                                 </Table>
                             </div>
 
-                            {/* Mobile View: Cards */}
                             <div className="grid gap-4 md:hidden p-4">
                                 {categories.map((category) => (
                                     <Card key={category.id}>
@@ -347,17 +336,11 @@ export default function CategoriesAdminPage() {
                 </CardContent>
             </Card>
 
-            {/* Custom Raw Tailwind Dialog (Bottom Sheet on Mobile) */}
+            {/* Custom Modal */}
             {isFormOpen && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
-                    {/* Backdrop */}
-                    <div 
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-                        onClick={() => setIsFormOpen(false)}
-                    />
-                    
-                    {/* Dialog Content */}
-                    <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isSubmitting && setIsFormOpen(false)} />
+                    <div className="relative w-full max-w-2xl bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
                         <div className="flex items-center justify-between p-6 border-b">
                             <h2 className="text-xl font-bold">{selectedCategory ? common.edit : common.add} {t.name}</h2>
                             <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
@@ -414,13 +397,12 @@ export default function CategoriesAdminPage() {
                                             <FormLabel>Card Background Color</FormLabel>
                                             <div className="flex items-center gap-2">
                                                 <FormControl>
-                                                    <Input {...field} placeholder="e.g., #172554 or hsl(var(--card))" className="h-11" />
+                                                    <Input {...field} placeholder="e.g., #172554" className="h-11" />
                                                 </FormControl>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0">
                                                             <Palette className="h-5 w-5" />
-                                                            <span className="sr-only">Open color picker</span>
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="w-64">
@@ -431,7 +413,6 @@ export default function CategoriesAdminPage() {
                                                                 <button 
                                                                     type="button" 
                                                                     key={name} 
-                                                                    title={name}
                                                                     className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring" 
                                                                     style={{ backgroundColor: color }} 
                                                                     onClick={() => form.setValue('card_color', color)}
@@ -439,7 +420,6 @@ export default function CategoriesAdminPage() {
                                                             ))}
                                                             <button 
                                                                 type="button" 
-                                                                title="Clear"
                                                                 className="h-8 w-8 rounded-md border flex items-center justify-center bg-background"
                                                                 onClick={() => form.setValue('card_color', '')}
                                                             >
@@ -449,60 +429,43 @@ export default function CategoriesAdminPage() {
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
-                                            <FormDescription>Choose a color for the category card on the homepage.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
-                                    
-                                    <div className="pt-4 flex gap-3 pb-8 sm:pb-0">
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            className="flex-1 h-12 rounded-xl"
-                                            onClick={() => setIsFormOpen(false)}
-                                        >
-                                            {common.cancel}
-                                        </Button>
-                                        <Button 
-                                            type="submit" 
-                                            disabled={isSubmitting} 
-                                            className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
-                                        >
-                                            {isSubmitting ? (
-                                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {common.saving}</>
-                                            ) : (
-                                                common.save
-                                            )}
-                                        </Button>
-                                    </div>
                                 </form>
                             </Form>
+                        </div>
+                        <div className="p-6 border-t flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>{common.cancel}</Button>
+                            <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {common.save}
+                            </Button>
                         </div>
                     </div>
                 </div>
             )}
 
-            <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-                <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{common.confirmDelete}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {common.deleteWarning} "{selectedCategory?.name}" মুছে ফেলা হবে।
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>{common.cancel}</AlertDialogCancel>
-                    <AlertDialogAction 
-                        onClick={handleDelete}
-                        disabled={isSubmitting}
-                        className={cn(buttonVariants({ variant: "destructive" }))}
-                    >
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {common.delete}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {/* Delete Confirmation */}
+            {isAlertOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isSubmitting && setIsAlertOpen(false)} />
+                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center gap-3 mb-4 text-destructive">
+                            <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                            <h3 className="text-xl font-bold">{common.confirmDelete}</h3>
+                        </div>
+                        <p className="text-muted-foreground mb-8">{common.deleteWarning} "{selectedCategory?.name}" মুছে ফেলা হবে।</p>
+                        <div className="flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsAlertOpen(false)} disabled={isSubmitting}>{common.cancel}</Button>
+                            <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {common.delete}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }

@@ -40,7 +40,7 @@ const translations = { en, bn };
 
 export default function ProductsAdminPage() {
   const { user } = useAuth();
-  const { products, setProducts } = useAdminStore();
+  const { products, setProducts, invalidateEntity } = useAdminStore();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -57,7 +57,6 @@ export default function ProductsAdminPage() {
     const store = useAdminStore.getState();
     const isFresh = Date.now() - store.lastFetched.products < 300000;
     if (!force && store.products.length > 0 && isFresh) {
-        setIsLoading(false);
         return;
     }
 
@@ -112,6 +111,7 @@ export default function ProductsAdminPage() {
         }
 
       toast({ title: 'Product deleted' });
+      invalidateEntity('dashboard'); // Invalidate dashboard stats
       await fetchProducts(true);
     } catch (error: any) {
       toast({
@@ -149,7 +149,7 @@ export default function ProductsAdminPage() {
         </Button>
       </div>
 
-      {products.length === 0 ? (
+      {products.length === 0 && !isLoading ? (
         <Card>
           <CardContent className="text-center py-16">
             <p className="text-muted-foreground">{t.noProducts}</p>
@@ -249,7 +249,6 @@ export default function ProductsAdminPage() {
             </CardContent>
           </Card>
 
-          {/* Mobile View: Cards */}
           <div className="grid gap-4 md:hidden">
             {products.map((product) => (
               <Card key={product.id}>
@@ -322,7 +321,7 @@ export default function ProductsAdminPage() {
         </>
       )}
 
-      {/* Raw Tailwind Delete Modal */}
+      {/* Delete Modal */}
       {productToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setProductToDelete(null)} />
