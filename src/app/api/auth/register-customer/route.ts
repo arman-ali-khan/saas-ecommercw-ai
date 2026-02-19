@@ -64,6 +64,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `ডাটাবেস এরর: ${insertError.message}` }, { status: 500 });
     }
 
+    // Create notification for admin about the new customer
+    if (data) {
+        await supabaseAdmin.from('notifications').insert({
+            recipient_id: siteId,
+            recipient_type: 'admin',
+            site_id: siteId,
+            message: `নতুন গ্রাহক: ${fullName} আপনার স্টোরে নিবন্ধিত হয়েছেন।`,
+            link: '/admin/customers',
+        });
+    }
+
     const { password_hash: removed, ...safeUser } = data;
 
     return NextResponse.json({ user: safeUser }, { status: 201 });
