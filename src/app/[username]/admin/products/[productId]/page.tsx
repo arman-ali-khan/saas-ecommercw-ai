@@ -122,6 +122,21 @@ export default function ManageProductPage() {
   const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({ control: form.control, name: 'variants' });
   
   const watchedValues = form.watch();
+  const productName = form.watch('name');
+
+  // Auto-slug generation for new products
+  useEffect(() => {
+    if (isNew && productName) {
+      const slug = productName
+        .toLowerCase()
+        .replace(/\s+/g, '-')           // Replace spaces with -
+        .replace(/[^\w\u0980-\u09FF-]+/g, '') // Remove all non-word chars (keeping Bengali)
+        .replace(/--+/g, '-')         // Replace multiple - with single -
+        .replace(/^-+/, '')           // Trim - from start of text
+        .replace(/-+$/, '');          // Trim - from end of text
+      form.setValue('id', slug, { shouldValidate: true });
+    }
+  }, [productName, isNew, form]);
   
   const fetchProductData = useCallback(async () => {
     if (!user) return;
@@ -334,7 +349,19 @@ export default function ManageProductPage() {
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel className="font-bold">পণ্যের নাম</FormLabel><FormControl><Input {...field} placeholder="যেমন: হিমসাগর আম (৫ কেজি)" className="h-12 text-lg font-medium" /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="id" render={({ field }) => (<FormItem><FormLabel>ইউনিক আইডি / স্লাগ (Slug)</FormLabel><FormControl><div className="relative"><Input {...field} placeholder="যেমন: himsagar-mango-5kg" disabled={!isNew} className="pl-8 font-mono text-sm bg-muted/20" /><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">/</span></div></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="id" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>ইউনিক আইডি / স্লাগ (Slug)</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Input {...field} placeholder="যেমন: himsagar-mango-5kg" disabled={!isNew} className="pl-8 font-mono text-sm bg-muted/20" />
+                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">/</span>
+                                  </div>
+                                </FormControl>
+                                <FormDescription>পণ্যের নামের ওপর ভিত্তি করে এটি স্বয়ংক্রিয়ভাবে তৈরি হয়।</FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel className="font-bold">সংক্ষিপ্ত বিবরণ</FormLabel><FormControl><Textarea {...field} placeholder="২-৩ লাইনে পণ্যের হাইলাইট লিখুন।" rows={3} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="story" render={({ field }) => (<FormItem><FormLabel className="font-bold">আমাদের গল্প (Our Story)</FormLabel><FormControl><Textarea {...field} placeholder="পণ্যটি সম্পর্কে কোনো বিশেষ প্রেক্ষাপট থাকলে এখানে লিখুন।" rows={3} /></FormControl><FormMessage /></FormItem>)} />
                         </CardContent>
