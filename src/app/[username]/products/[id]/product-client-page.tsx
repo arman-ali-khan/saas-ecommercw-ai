@@ -27,6 +27,7 @@ import {
   HelpCircle,
   ChevronDown,
   ChevronUp,
+  Search,
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
