@@ -43,6 +43,7 @@ import { generateProductDescription } from '@/ai/flows/generate-product-descript
 import RichTextEditor from '@/components/rich-text-editor';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const productFormSchema = z.object({
   id: z.string().min(3, 'ID/Slug must be at least 3 characters.').regex(/^[a-z0-9\u0980-\u09FF-]+$/, 'Slug can only contain lowercase letters, numbers, hyphens, and Bengali characters.'),
