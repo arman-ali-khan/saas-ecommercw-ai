@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,19 +17,11 @@ import { Loader2, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 
-type UserProfile = {
-    id: string;
-    username: string;
-    full_name: string;
-    email: string;
-    domain: string;
-    site_name: string;
-    site_description: string;
-};
-
 const editUserSchema = z.object({
     full_name: z.string().min(2, "Full name must be at least 2 characters."),
+    username: z.string().min(3, "Username must be at least 3 characters."),
     site_name: z.string().min(2, "Site name must be at least 2 characters."),
+    domain: z.string().min(3, "Domain is too short"),
     site_description: z.string().optional(),
 });
 
@@ -38,151 +31,112 @@ export default function EditUserPage() {
     const { toast } = useToast();
     const userId = params.id as string;
 
-    const [user, setUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [email, setEmail] = useState('');
 
     const form = useForm<z.infer<typeof editUserSchema>>({
         resolver: zodResolver(editUserSchema),
-        defaultValues: {
-            full_name: '',
-            site_name: '',
-            site_description: '',
-        }
+        defaultValues: { full_name: '', username: '', site_name: '', domain: '', site_description: '' }
     });
 
-    useEffect(() => {
+    const fetchUser = useCallback(async () => {
         if (!userId) return;
-
-        const fetchUser = async () => {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .single();
-
-            if (error || !data) {
-                toast({ variant: 'destructive', title: 'Error', description: 'User not found.' });
-                router.push('/dashboard/users');
-                return;
-            }
-
-            setUser(data as UserProfile);
-            form.reset({
-                full_name: data.full_name,
-                site_name: data.site_name,
-                site_description: data.site_description || '',
+        setLoading(true);
+        try {
+            const response = await fetch('/api/saas/admins/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: userId }),
             });
-            setLoading(false);
-        };
+            const result = await response.json();
 
-        fetchUser();
+            if (response.ok && result.user) {
+                const user = result.user;
+                setEmail(user.email);
+                form.reset({
+                    full_name: user.full_name,
+                    username: user.username,
+                    site_name: user.site_name,
+                    domain: user.domain,
+                    site_description: user.site_description || '',
+                });
+            } else {
+                throw new Error(result.error || 'User not found');
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
+            router.push('/dashboard/users');
+        } finally {
+            setLoading(false);
+        }
     }, [userId, router, toast, form]);
+
+    useEffect(() => {
+        fetchUser();
+    }, [fetchUser]);
 
     const onSubmit = async (values: z.infer<typeof editUserSchema>) => {
         setIsSubmitting(true);
-        const { error } = await supabase
-            .from('profiles')
-            .update({
-                full_name: values.full_name,
-                site_name: values.site_name,
-                site_description: values.site_description,
-            })
-            .eq('id', userId);
+        try {
+            const response = await fetch('/api/saas/admins/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...values, id: userId }),
+            });
+            const result = await response.json();
 
-        setIsSubmitting(false);
-
-        if (error) {
-            toast({ variant: 'destructive', title: 'Failed to update user', description: error.message });
-        } else {
-            toast({ title: 'User updated successfully!' });
-            router.push('/dashboard/users');
+            if (response.ok) {
+                toast({ title: 'User updated successfully!' });
+                router.push('/dashboard/users');
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Update failed', description: error.message });
+        } finally {
+            setIsSubmitting(false);
         }
     };
     
     if (loading) {
         return (
-             <Card>
-                <CardHeader>
-                    <Skeleton className="h-8 w-1/2" />
-                    <Skeleton className="h-4 w-3/4" />
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-1/4" />
+             <div className="space-y-6">
+                <Skeleton className="h-10 w-48" />
+                <Card>
+                    <CardHeader><Skeleton className="h-8 w-1/3" /></CardHeader>
+                    <CardContent className="space-y-6">
                         <Skeleton className="h-10 w-full" />
-                    </div>
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-1/4" />
                         <Skeleton className="h-10 w-full" />
-                    </div>
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-1/4" />
-                        <Skeleton className="h-20 w-full" />
-                    </div>
-                    <Skeleton className="h-10 w-32" />
-                </CardContent>
-            </Card>
+                        <Skeleton className="h-24 w-full" />
+                    </CardContent>
+                </Card>
+            </div>
         )
     }
 
-    if (!user) return null;
-
     return (
-        <div>
-            <Button variant="ghost" asChild className="mb-4 -ml-4">
-                <Link href="/dashboard/users">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Stores
-                </Link>
+        <div className="space-y-6">
+            <Button variant="ghost" asChild className="-ml-4">
+                <Link href="/dashboard/users"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Stores</Link>
             </Button>
             <Card>
                 <CardHeader>
-                    <CardTitle>Edit Store: {user.site_name}</CardTitle>
-                    <CardDescription>Update the profile and site details for @{user.username}.</CardDescription>
+                    <CardTitle>Edit Store Admin</CardTitle>
+                    <CardDescription>Update the profile and site details for {email}.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl><Input value={user.email || 'Not available'} disabled /></FormControl>
-                                <FormDescription>User's email address (cannot be changed).</FormDescription>
-                            </FormItem>
-                            <FormField
-                                control={form.control}
-                                name="full_name"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Full Name</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="site_name"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Site Name</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="site_description"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Site Description</FormLabel>
-                                    <FormControl><Textarea {...field} rows={4} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <FormField control={form.control} name="full_name" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="username" render={({ field }) => (<FormItem><FormLabel>Username</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <FormField control={form.control} name="site_name" render={({ field }) => (<FormItem><FormLabel>Site Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="domain" render={({ field }) => (<FormItem><FormLabel>Domain</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                            <FormField control={form.control} name="site_description" render={({ field }) => (<FormItem><FormLabel>Site Description</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Save Changes

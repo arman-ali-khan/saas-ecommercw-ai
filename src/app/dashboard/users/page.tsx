@@ -1,6 +1,13 @@
+
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { supabase } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   Card,
   CardContent,
@@ -19,11 +26,8 @@ import {
 } from '@/components/ui/table';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -34,79 +38,101 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-type UserProfile = {
-    id: string;
-    username: string;
-    full_name: string;
-    email: string;
-    domain: string;
-    site_name: string;
-    site_description: string;
-    subscription_status: string;
-};
-
 const USERS_PER_PAGE = 10;
 
+const createAdminSchema = z.object({
+    fullName: z.string().min(2, "Name is too short"),
+    username: z.string().min(3, "Username is too short").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    domain: z.string().min(3, "Domain is too short").regex(/^[a-z0-9-]+$/, "Domain can only contain lowercase letters, numbers, and hyphens"),
+    siteName: z.string().min(2, "Site name is too short"),
+});
+
 export default function UsersAdminPage() {
-    const [users, setUsers] = useState<UserProfile[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+    const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isBlockOpen, setIsBlockOpen] = useState(false);
     const [isBlocking, setIsBlocking] = useState(false);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
     const [baseDomain, setBaseDomain] = useState('schoolbd.top');
     const [currentPage, setCurrentPage] = useState(1);
 
-    const fetchUsersAndSettings = useCallback(async () => {
+    const form = useForm<z.infer<typeof createAdminSchema>>({
+        resolver: zodResolver(createAdminSchema),
+        defaultValues: { fullName: '', username: '', email: '', password: '', domain: '', siteName: '' },
+    });
+
+    const fetchUsersData = useCallback(async () => {
         setLoading(true);
         try {
-            const usersPromise = supabase.from('profiles').select(`
-                id,
-                username,
-                full_name,
-                email,
-                domain,
-                site_name,
-                site_description,
-                subscription_status
-            `).order('full_name', { ascending: true });
-            const settingsPromise = supabase.from('saas_settings').select('base_domain').eq('id', 1).single();
-
-            const [{ data: usersData, error: usersError }, { data: settingsData }] = await Promise.all([usersPromise, settingsPromise]);
+            const response = await fetch('/api/saas/admins/list');
+            const result = await response.json();
             
-            if (usersData) {
-                setUsers(usersData as UserProfile[]);
-            } else if (usersError) {
-                toast({ variant: 'destructive', title: 'Error fetching users', description: usersError.message });
+            if (response.ok) {
+                setUsers(result.users || []);
+            } else {
+                throw new Error(result.error);
             }
 
-            if (settingsData && settingsData.base_domain) {
+            const { data: settingsData } = await supabase.from('saas_settings').select('base_domain').eq('id', 1).single();
+            if (settingsData?.base_domain) {
                 setBaseDomain(settingsData.base_domain);
             }
 
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+            toast({ variant: 'destructive', title: 'Error fetching users', description: e.message });
         } finally {
             setLoading(false);
         }
     }, [toast]);
 
     useEffect(() => {
-        fetchUsersAndSettings();
-    }, [fetchUsersAndSettings]);
+        fetchUsersData();
+    }, [fetchUsersData]);
 
+    const onSubmitCreate = async (values: z.infer<typeof createAdminSchema>) => {
+        setIsSubmitting(true);
+        try {
+            const response = await fetch('/api/saas/admins/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(values),
+            });
+            const result = await response.json();
 
-    const handleDeleteClick = (user: UserProfile) => {
+            if (response.ok) {
+                toast({ title: 'Success', description: 'New store owner created successfully.' });
+                setIsCreateOpen(false);
+                form.reset();
+                await fetchUsersData();
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    const handleDeleteClick = (user: any) => {
         setSelectedUser(user);
         setIsDeleteOpen(true);
     }
     
-    const handleBlockClick = (user: UserProfile) => {
+    const handleBlockClick = (user: any) => {
         setSelectedUser(user);
         setIsBlockOpen(true);
     }
@@ -121,19 +147,21 @@ export default function UsersAdminPage() {
         
         setIsDeleting(true);
         try {
-            const { error } = await supabase.from('profiles').delete().eq('id', selectedUser.id);
+            const response = await fetch('/api/saas/admins/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: selectedUser.id }),
+            });
 
-            if (error) {
-                toast({ variant: 'destructive', title: 'Failed to delete user profile', description: error.message });
+            if (response.ok) {
+                toast({ title: 'User deleted!' });
+                await fetchUsersData();
             } else {
-                toast({ title: 'User profile deleted!' });
-                if (paginatedUsers.length === 1 && currentPage > 1) {
-                    setCurrentPage(currentPage - 1);
-                }
-                await fetchUsersAndSettings();
+                const res = await response.json();
+                throw new Error(res.error);
             }
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
         } finally {
             setIsDeleting(false);
             setIsDeleteOpen(false);
@@ -152,14 +180,12 @@ export default function UsersAdminPage() {
                 .update({ subscription_status: newStatus })
                 .eq('id', selectedUser.id);
 
-            if (error) {
-                toast({ variant: 'destructive', title: 'Failed to update status', description: error.message });
-            } else {
-                toast({ title: `Store has been ${newStatus === 'active' ? 'unblocked' : 'blocked'}.` });
-                await fetchUsersAndSettings();
-            }
+            if (error) throw error;
+            
+            toast({ title: `Store has been ${newStatus === 'active' ? 'unblocked' : 'blocked'}.` });
+            await fetchUsersData();
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+            toast({ variant: 'destructive', title: 'Action failed', description: e.message });
         } finally {
             setIsBlocking(false);
             setIsBlockOpen(false);
@@ -173,7 +199,6 @@ export default function UsersAdminPage() {
             case 'pending': return 'secondary';
             case 'pending_verification': return 'secondary';
             case 'inactive': return 'destructive';
-            case 'canceled': return 'destructive';
             default: return 'outline';
         }
     };
@@ -181,30 +206,23 @@ export default function UsersAdminPage() {
     const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
     
     if (loading) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Store Management</CardTitle>
-                    <CardDescription>Loading store data from the database...</CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-center items-center py-16">
-                    <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-                </CardContent>
-            </Card>
-        );
+        return <div className="flex justify-center items-center py-20"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>;
     }
     
     return (
-        <>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Store Management</h1>
+                    <p className="text-muted-foreground">View and manage all registered user stores.</p>
+                </div>
+                <Button onClick={() => setIsCreateOpen(true)}><Plus className="mr-2 h-4 w-4" /> Add New Store</Button>
+            </div>
+
             <Card>
-                <CardHeader>
-                    <CardTitle>Store Management</CardTitle>
-                    <CardDescription>View and manage all registered user stores.</CardDescription>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                     {users.length > 0 ? (
                         <>
-                            {/* Desktop View: Table */}
                             <div className="hidden md:block">
                                 <Table>
                                     <TableHeader>
@@ -220,9 +238,7 @@ export default function UsersAdminPage() {
                                             <TableRow key={user.id}>
                                                 <TableCell className="font-medium">
                                                     <div className="flex items-center gap-3">
-                                                        <Avatar>
-                                                            <AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback>
-                                                        </Avatar>
+                                                        <Avatar><AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar>
                                                         <div>
                                                             <p className="font-semibold">{user.full_name}</p>
                                                             <p className="text-sm text-muted-foreground">@{user.username}</p>
@@ -239,9 +255,7 @@ export default function UsersAdminPage() {
                                                 <TableCell className="text-right">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
+                                                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
@@ -275,49 +289,41 @@ export default function UsersAdminPage() {
                                 </Table>
                             </div>
                             
-                            {/* Mobile View: Cards */}
-                            <div className="grid gap-4 md:hidden">
+                            <div className="grid gap-4 md:hidden p-4">
                                 {paginatedUsers.map(user => (
-                                    <Card key={user.id} className='flex flex-col'>
-                                        <CardHeader>
-                                            <div className="flex items-center justify-between gap-3">
+                                    <Card key={user.id}>
+                                        <CardHeader className="pb-2">
+                                            <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <Avatar className="h-10 w-10">
-                                                        <AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback>
-                                                    </Avatar>
+                                                    <Avatar className="h-10 w-10"><AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar>
                                                     <div>
                                                         <CardTitle className="text-lg">{user.full_name}</CardTitle>
                                                         <CardDescription>@{user.username}</CardDescription>
                                                     </div>
                                                 </div>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem asChild><a href={`//${user.domain}.${baseDomain}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer"><Globe className="mr-2 h-4 w-4" /> View Site</a></DropdownMenuItem>
-                                                        <DropdownMenuItem asChild><Link href={`/dashboard/users/${user.id}/edit`} className="cursor-pointer"><Edit className="mr-2 h-4 w-4" /> Edit</Link></DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleBlockClick(user)} className="cursor-pointer">{user.subscription_status === 'active' ? <><ShieldOff className="mr-2 h-4 w-4" /> Block</> : <><ShieldCheck className="mr-2 h-4 w-4" /> Unblock</>}</DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleDeleteClick(user)} className="text-destructive cursor-pointer"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent className="flex-grow space-y-2 text-sm">
-                                            <div className="flex justify-between items-center">
-                                                <p><span className="font-medium text-foreground">Site:</span> {user.site_name}</p>
                                                 <Badge variant={getStatusBadgeVariant(user.subscription_status)}>{user.subscription_status || 'N/A'}</Badge>
                                             </div>
-                                            <p className="text-muted-foreground"><span className="font-medium text-foreground">Domain:</span> {user.domain}.{baseDomain}</p>
+                                        </CardHeader>
+                                        <CardContent className="pb-4">
+                                            <div className="space-y-1 text-sm">
+                                                <p><span className="font-medium text-foreground">Site:</span> {user.site_name}</p>
+                                                <p className="text-muted-foreground"><span className="font-medium text-foreground">Domain:</span> {user.domain}.{baseDomain}</p>
+                                            </div>
                                         </CardContent>
+                                        <CardFooter className="flex justify-end gap-2 border-t pt-4">
+                                            <Button variant="outline" size="sm" asChild><Link href={`/dashboard/users/${user.id}/edit`}>Edit</Link></Button>
+                                            <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(user)}>Delete</Button>
+                                        </CardFooter>
                                     </Card>
                                 ))}
                             </div>
                         </>
                     ) : (
-                        <p className="text-muted-foreground text-center py-8">No users found.</p>
+                        <p className="text-muted-foreground text-center py-16">No users found.</p>
                     )}
                 </CardContent>
                  {users.length > USERS_PER_PAGE && (
-                  <CardFooter className="justify-center">
+                  <CardFooter className="justify-center border-t py-4">
                       <div className="flex items-center gap-4 text-sm">
                           <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
                           <span className="text-muted-foreground">Page {currentPage} of {totalPages}</span>
@@ -327,55 +333,68 @@ export default function UsersAdminPage() {
                 )}
             </Card>
 
-            {/* Delete User Alert */}
+            {/* Create Admin Dialog */}
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogContent className="sm:max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>Add New Store Owner</DialogTitle>
+                        <DialogDescription>Create a new admin account and a store at once.</DialogDescription>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmitCreate)} className="space-y-4 pt-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="fullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="username" render={({ field }) => (<FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="johndoe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="password" render={({ field }) => (<FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" placeholder="••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="siteName" render={({ field }) => (<FormItem><FormLabel>Store Name</FormLabel><FormControl><Input placeholder="My Nature Shop" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="domain" render={({ field }) => (<FormItem><FormLabel>Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="nature-shop" className="rounded-r-none" {...field} /></FormControl><span className="bg-muted px-3 h-10 flex items-center border border-l-0 rounded-r-md text-xs text-muted-foreground">.{baseDomain}</span></div><FormMessage /></FormItem>)} />
+                            </div>
+                            <DialogFooter className="pt-4">
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Create Account
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
             <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This will permanently delete the user profile for <span className="font-bold">{selectedUser?.full_name}</span>. This action cannot be undone. This will only remove their site profile, not their authentication record.
-                        </AlertDialogDescription>
+                        <AlertDialogDescription>This will permanently delete the user profile for <span className="font-bold">{selectedUser?.full_name}</span>.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={performDelete} className={cn(buttonVariants({ variant: "destructive" }))} disabled={isDeleting}>
-                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Delete Profile
+                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Profile
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
             
-            {/* Block/Unblock User Alert */}
-            {isBlockOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0">
-                    <div className="w-full max-w-md p-6 bg-background rounded-lg shadow-xl border animate-in zoom-in-95">
-                        <div className="text-center sm:text-left">
-                            <h3 className="text-lg font-semibold text-foreground">Are you sure?</h3>
-                            <div className="mt-2">
-                                <p className="text-sm text-muted-foreground">
-                                    You are about to <span className="font-bold">{selectedUser?.subscription_status === 'active' ? 'block' : 'unblock'}</span> the store for <span className="font-bold">{selectedUser?.full_name}</span>.
-                                    {selectedUser?.subscription_status === 'active'
-                                    ? " This will set their subscription status to 'inactive' and may prevent them from accessing certain features."
-                                    : " This will set their subscription status to 'active'."
-                                    }
-                                </p>
-                            </div>
-                        </div>
-                        <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-                            <Button variant="outline" onClick={() => setIsBlockOpen(false)}>Cancel</Button>
-                            <Button
-                            onClick={performBlock}
-                            className={cn(buttonVariants({ variant: selectedUser?.subscription_status === 'active' ? 'destructive' : 'default' }))}
-                            disabled={isBlocking}
-                            >
-                                {isBlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {selectedUser?.subscription_status === 'active' ? 'Block Store' : 'Unblock Store'}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </>
+            <AlertDialog open={isBlockOpen} onOpenChange={setIsBlockOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+                        <AlertDialogDescription>You are about to {selectedUser?.subscription_status === 'active' ? 'block' : 'unblock'} the store for <span className="font-bold">{selectedUser?.full_name}</span>.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <Button onClick={performBlock} variant={selectedUser?.subscription_status === 'active' ? 'destructive' : 'default'} disabled={isBlocking}>
+                            {isBlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {selectedUser?.subscription_status === 'active' ? 'Block Store' : 'Unblock Store'}
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
     )
 }
