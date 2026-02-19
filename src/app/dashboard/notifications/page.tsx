@@ -32,82 +32,63 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, ArrowRight, Search, X } from 'lucide-react';
+import { Loader2, Plus, ArrowRight, Search, X, CheckCircle2, Clock } from 'lucide-react';
 import type { Notification } from '@/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
-type NotificationWithRecipient = Notification & {
-  profiles: {
+type NotificationWithDetails = Notification & {
+  profiles?: {
     full_name: string;
     username: string;
+    email: string;
+    site_name: string;
+    domain: string;
   } | null;
 };
 
-const NOTIFICATIONS_PER_PAGE = 10;
+const NOTIFICATIONS_PER_PAGE = 15;
 
 export default function SaasNotificationsPage() {
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<NotificationWithRecipient[]>([]);
+  const [notifications, setNotifications] = useState<NotificationWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all'); // 'all', 'admin', 'customer'
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'read', 'unread'
+  const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
-        // Fetch using service role admin client directly for SaaS admin since they see everything
-        const { data: notificationsData, error: notificationsError } = await supabase
-            .from('notifications')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (notificationsError) throw notificationsError;
-
-        if (!notificationsData || notificationsData.length === 0) {
-            setNotifications([]);
-            setIsLoading(false);
-            return;
-        }
-
-        // Manually join profiles for the list
-        const adminRecipientIds = [...new Set(notificationsData.filter(n => n.recipient_type === 'admin').map(n => n.recipient_id))];
-        const customerRecipientIds = [...new Set(notificationsData.filter(n => n.recipient_type === 'customer').map(n => n.recipient_id))];
-
-        const adminProfilesPromise = adminRecipientIds.length > 0 
-            ? supabase.from('profiles').select('id, full_name, username').in('id', adminRecipientIds)
-            : Promise.resolve({ data: [] });
-
-        const customerProfilesPromise = customerRecipientIds.length > 0
-            ? supabase.from('customer_profiles').select('id, full_name, email').in('id', customerRecipientIds)
-            : Promise.resolve({ data: [] });
-        
-        const [adminProfilesRes, customerProfilesRes] = await Promise.all([adminProfilesPromise, customerProfilesPromise]);
-
-        const profilesMap = new Map((adminProfilesRes.data || []).map((p: any) => [p.id, p]));
-        const customerProfilesMap = new Map((customerProfilesRes.data || []).map((p: any) => [p.id, { full_name: p.full_name, username: p.email.split('@')[0] }]));
-
-        const combinedData = notificationsData.map(notification => {
-            const profileInfo = notification.recipient_type === 'admin' 
-                ? profilesMap.get(notification.recipient_id) 
-                : customerProfilesMap.get(notification.recipient_id);
-            return {
-                ...notification,
-                profiles: profileInfo || null,
-            };
+        const response = await fetch('/api/notifications/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recipientType: 'admin', limit: 500 }),
         });
+        const result = await response.json();
+        
+        if (!response.ok) throw new Error(result.error);
 
-        setNotifications(combinedData as NotificationWithRecipient[]);
+        const notificationsData = result.notifications || [];
+
+        // Fetch profiles via our secure API to ensure decryption
+        const profileRes = await fetch('/api/saas/admins/list');
+        const profileResult = await profileRes.json();
+        
+        if (!profileRes.ok) throw new Error(profileResult.error);
+        const profiles = profileResult.users || [];
+        const profilesMap = new Map(profiles.map((p: any) => [p.id, p]));
+
+        const combinedData = notificationsData.map((n: any) => ({
+            ...n,
+            profiles: profilesMap.get(n.recipient_id) || null
+        }));
+
+        setNotifications(combinedData);
 
     } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Error fetching notifications',
-            description: error.message,
-        });
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
     } finally {
         setIsLoading(false);
     }
@@ -117,51 +98,31 @@ export default function SaasNotificationsPage() {
     fetchNotifications();
   }, [fetchNotifications]);
   
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery, filterType, filterStatus]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterType, filterStatus]);
 
-    const filteredNotifications = useMemo(() => {
-        return notifications.filter(n => {
-            const typeMatch = filterType === 'all' || n.recipient_type === filterType;
-            const statusMatch = filterStatus === 'all' || (filterStatus === 'read' && n.is_read) || (filterStatus === 'unread' && !n.is_read);
-            const searchMatch = searchQuery === '' ||
-                n.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                n.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                n.profiles?.username?.toLowerCase().includes(searchQuery.toLowerCase());
-            
-            return typeMatch && statusMatch && searchMatch;
-        });
-    }, [notifications, searchQuery, filterType, filterStatus]);
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(n => {
+        const statusMatch = filterStatus === 'all' || (filterStatus === 'read' && n.is_read) || (filterStatus === 'unread' && !n.is_read);
+        const searchMatch = searchQuery === '' ||
+            n.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            n.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            n.profiles?.site_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            n.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        return statusMatch && searchMatch;
+    });
+  }, [notifications, searchQuery, filterStatus]);
 
-    const totalPages = Math.ceil(filteredNotifications.length / NOTIFICATIONS_PER_PAGE);
-    const paginatedNotifications = filteredNotifications.slice(
-        (currentPage - 1) * NOTIFICATIONS_PER_PAGE,
-        currentPage * NOTIFICATIONS_PER_PAGE
-    );
-
-    const clearFilters = () => {
-        setSearchQuery('');
-        setFilterType('all');
-        setFilterStatus('all');
-    };
-
-    const getRecipientTypeBadgeVariant = (type: string): "default" | "secondary" | "outline" | "destructive" => {
-        return type === 'admin' ? 'secondary' : 'outline';
-    };
+  const totalPages = Math.ceil(filteredNotifications.length / NOTIFICATIONS_PER_PAGE);
+  const paginatedNotifications = filteredNotifications.slice(
+    (currentPage - 1) * NOTIFICATIONS_PER_PAGE,
+    currentPage * NOTIFICATIONS_PER_PAGE
+  );
 
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Platform Notifications</CardTitle>
-          <CardDescription>Loading all notifications sent across the platform...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-16">
-          <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
+    return <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>;
   }
 
   return (
@@ -169,87 +130,78 @@ export default function SaasNotificationsPage() {
       <CardHeader>
         <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
             <div>
-            <CardTitle>Platform Notifications</CardTitle>
-            <CardDescription>View all notifications sent to users and admins.</CardDescription>
+            <CardTitle>Admin Notifications Tracking</CardTitle>
+            <CardDescription>Monitor announcements sent to site admins and track if they have been dismissed.</CardDescription>
             </div>
             <Button asChild>
             <Link href="/dashboard/notifications/new">
-                <Plus className="mr-2 h-4 w-4" /> Create Notification
+                <Plus className="mr-2 h-4 w-4" /> Send Announcement
             </Link>
             </Button>
         </div>
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="relative">
+        <div className="mt-6 flex flex-wrap gap-4">
+            <div className="relative flex-grow max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                    placeholder="Search notifications..."
+                    placeholder="Search by name, site, or message..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10"
                 />
             </div>
-            <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="customer">Customer</SelectItem>
-                </SelectContent>
-            </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Filter by status" />
+                <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="read">Read</SelectItem>
-                    <SelectItem value="unread">Unread</SelectItem>
+                    <SelectItem value="read">Dismissed</SelectItem>
+                    <SelectItem value="unread">Pending</SelectItem>
                 </SelectContent>
             </Select>
-            <Button variant="ghost" onClick={clearFilters}>
-                <X className="mr-2 h-4 w-4" /> Clear Filters
-            </Button>
+            {(searchQuery || filterStatus !== 'all') && (
+                <Button variant="ghost" onClick={() => { setSearchQuery(''); setFilterStatus('all'); }}>
+                    <X className="mr-2 h-4 w-4" /> Clear
+                </Button>
+            )}
         </div>
       </CardHeader>
       <CardContent>
         {paginatedNotifications.length > 0 ? (
           <>
-            {/* Desktop View */}
             <div className="hidden md:block">
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead>Recipient</TableHead>
+                        <TableHead>Admin & Site</TableHead>
                         <TableHead>Message</TableHead>
+                        <TableHead>Sent At</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead className="text-right">View</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {paginatedNotifications.map((notification) => (
-                        <TableRow key={notification.id}>
+                    {paginatedNotifications.map((n) => (
+                        <TableRow key={n.id}>
                         <TableCell>
-                            <div className="font-medium">{notification.profiles?.full_name || 'N/A'}</div>
-                            <div className="text-sm text-muted-foreground">@{notification.profiles?.username || 'unknown'}</div>
-                            <Badge variant={getRecipientTypeBadgeVariant(notification.recipient_type)} className="mt-1">{notification.recipient_type}</Badge>
+                            <div className="font-bold">{n.profiles?.full_name || 'Deleted User'}</div>
+                            <div className="text-xs text-muted-foreground">{n.profiles?.email}</div>
+                            <div className="text-[10px] mt-1 bg-muted px-1.5 py-0.5 rounded w-fit">{n.profiles?.site_name} ({n.profiles?.domain})</div>
                         </TableCell>
-                        <TableCell className="max-w-sm truncate">{notification.message}</TableCell>
+                        <TableCell className="max-w-xs">
+                            <p className="text-sm line-clamp-2" title={n.message}>{n.message}</p>
+                        </TableCell>
+                        <TableCell className="text-xs">
+                            {format(new Date(n.created_at), 'MMM d, p')}
+                        </TableCell>
                         <TableCell>
-                            <Badge variant={notification.is_read ? 'outline' : 'default'}>
-                            {notification.is_read ? 'Read' : 'Unread'}
-                            </Badge>
-                        </TableCell>
-                        <TableCell>{format(new Date(notification.created_at), 'PPp')}</TableCell>
-                        <TableCell className="text-right">
-                            {notification.link && (
-                                <Button asChild variant="ghost" size="sm">
-                                    <a href={notification.link} target="_blank" rel="noopener noreferrer">
-                                        View <ArrowRight className="ml-2 h-4 w-4" />
-                                    </a>
-                                </Button>
+                            {n.is_read ? (
+                                <Badge variant="default" className="bg-green-500 hover:bg-green-600 gap-1">
+                                    <CheckCircle2 className="h-3 w-3" /> Dismissed
+                                </Badge>
+                            ) : (
+                                <Badge variant="secondary" className="gap-1">
+                                    <Clock className="h-3 w-3" /> Pending
+                                </Badge>
                             )}
                         </TableCell>
                         </TableRow>
@@ -258,72 +210,46 @@ export default function SaasNotificationsPage() {
                 </Table>
             </div>
             
-            {/* Mobile View */}
             <div className="grid gap-4 md:hidden">
-                {paginatedNotifications.map((notification) => (
-                    <Card key={notification.id}>
-                        <CardHeader>
+                {paginatedNotifications.map((n) => (
+                    <Card key={n.id} className={cn(n.is_read ? 'opacity-70' : 'border-primary/20')}>
+                        <CardHeader className="p-4 pb-2">
                             <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-3">
-                                    <Avatar className="h-10 w-10">
-                                        <AvatarFallback>{notification.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <CardTitle className="text-base">{notification.profiles?.full_name || 'N/A'}</CardTitle>
-                                        <CardDescription>@{notification.profiles?.username || 'unknown'}</CardDescription>
-                                    </div>
+                                <div>
+                                    <CardTitle className="text-sm">{n.profiles?.full_name}</CardTitle>
+                                    <CardDescription className="text-xs">{n.profiles?.site_name}</CardDescription>
                                 </div>
-                                <div className="flex flex-col items-end gap-2">
-                                     <Badge variant={notification.is_read ? 'outline' : 'default'}>
-                                        {notification.is_read ? 'Read' : 'Unread'}
-                                    </Badge>
-                                    <Badge variant={getRecipientTypeBadgeVariant(notification.recipient_type)}>{notification.recipient_type}</Badge>
-                                </div>
+                                {n.is_read ? (
+                                    <Badge variant="default" className="bg-green-500"><CheckCircle2 className="h-3 w-3 mr-1" /> Dismissed</Badge>
+                                ) : (
+                                    <Badge variant="secondary">Pending</Badge>
+                                )}
                             </div>
                         </CardHeader>
-                        <CardContent>
-                             <p className="text-sm text-muted-foreground">{notification.message}</p>
-                             <p className="text-xs text-muted-foreground mt-2">{format(new Date(notification.created_at), 'PPp')}</p>
+                        <CardContent className="p-4 pt-0">
+                             <p className="text-sm italic mt-2 border-l-2 pl-3">"{n.message}"</p>
+                             <div className="flex justify-between items-center mt-4">
+                                <span className="text-[10px] text-muted-foreground">{n.profiles?.email}</span>
+                                <span className="text-[10px] text-muted-foreground">{format(new Date(n.created_at), 'p, d MMM')}</span>
+                             </div>
                         </CardContent>
-                        {notification.link && (
-                            <CardContent>
-                                <Button asChild variant="outline" size="sm" className="w-full">
-                                    <a href={notification.link} target="_blank" rel="noopener noreferrer">
-                                        View <ArrowRight className="ml-2 h-4 w-4" />
-                                    </a>
-                                </Button>
-                            </CardContent>
-                        )}
                     </Card>
                 ))}
             </div>
           </>
         ) : (
-          <p className="text-muted-foreground text-center py-8">No notifications found matching your criteria.</p>
+          <div className="text-center py-20 text-muted-foreground border-2 border-dashed rounded-xl">
+            <Search className="mx-auto h-10 w-10 mb-4 opacity-20" />
+            <p>No matching tracking records found.</p>
+          </div>
         )}
       </CardContent>
       {totalPages > 1 && (
-        <CardFooter className="justify-center pt-6">
+        <CardFooter className="justify-center border-t py-4">
           <div className="flex items-center gap-4 text-sm">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <span className="text-muted-foreground">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+            <span className="text-muted-foreground">Page {currentPage} of {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
           </div>
         </CardFooter>
       )}
