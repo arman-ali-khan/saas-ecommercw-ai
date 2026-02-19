@@ -4,6 +4,12 @@ export interface ProductImage {
   imageHint: string;
 }
 
+export interface ProductVariant {
+  unit: string;
+  price: number;
+  stock: number;
+}
+
 export interface Product {
   id: string; // This is the slug, e.g., 'mango-himsagar'
   site_id: string; // The user's ID
@@ -28,6 +34,7 @@ export interface Product {
   flash_deal_range?: { from?: Date; to?: Date };
   avg_rating?: number;
   review_count?: number;
+  variants?: ProductVariant[] | null;
 }
 
 export interface ProductReview {
@@ -59,6 +66,7 @@ export interface ProductQna {
 
 export interface CartItem extends Product {
   quantity: number;
+  selected_unit?: string;
 }
 
 export interface FlashDeal {
@@ -94,6 +102,7 @@ export interface Order {
     quantity: number;
     price: number;
     imageUrl: string;
+    selected_unit?: string;
   }[];
   created_at: string;
   total: number;
@@ -171,6 +180,7 @@ export interface UncompletedOrder {
     quantity: number;
     price: number;
     imageUrl: string;
+    selected_unit?: string;
   }[];
   cart_total: number;
   status: string;

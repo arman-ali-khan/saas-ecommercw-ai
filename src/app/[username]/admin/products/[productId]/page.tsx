@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -25,7 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, PackageCheck, Wand2, RotateCcw, CheckCircle2, Star, Info, Sparkles } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, PackageCheck, Wand2, RotateCcw, CheckCircle2, Star, Info, Sparkles, Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -44,6 +45,7 @@ import RichTextEditor from '@/components/rich-text-editor';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
 const productFormSchema = z.object({
   id: z.string().min(3, 'ID/Slug must be at least 3 characters.').regex(/^[a-z0-9\u0980-\u09FF-]+$/, 'Slug can only contain lowercase letters, numbers, hyphens, and Bengali characters.'),
@@ -65,6 +67,12 @@ const productFormSchema = z.object({
   has_flash_deal: z.boolean().default(false),
   flash_deal_price: z.preprocess((val) => (val === '' || val == null ? undefined : parseFloat(String(val))), z.number().positive('Discount price must be a positive number.').optional()),
   flash_deal_range: z.object({ startDate: z.any().optional(), endDate: z.any().optional() }).optional(),
+  use_variants: z.boolean().default(false),
+  variants: z.array(z.object({
+    unit: z.string().min(1, 'Unit is required'),
+    price: z.preprocess((a) => parseFloat(String(a)), z.number().positive('Price must be positive')),
+    stock: z.preprocess((a) => parseInt(String(a), 10), z.number().min(0).default(0)),
+  })).optional().or(z.null()),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -99,10 +107,13 @@ export default function ManageProductPage() {
       id: '', name: '', price: 0, stock: 0, currency: 'BDT', description: '', long_description: '',
       categories: [], origin: '', story: '', is_featured: false, images: [], brand: [], unit: [], size: [], color: [],
       has_flash_deal: false, flash_deal_price: undefined, flash_deal_range: { startDate: undefined, endDate: undefined },
+      use_variants: false, variants: []
     },
   });
 
-  const { fields, append, remove, move } = useFieldArray({ control: form.control, name: 'images' });
+  const { fields: imageFields, append: appendImage, remove: removeImage, move: moveImage } = useFieldArray({ control: form.control, name: 'images' });
+  const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({ control: form.control, name: 'variants' });
+  
   const watchedValues = form.watch();
   
   useEffect(() => {
@@ -205,6 +216,8 @@ export default function ManageProductPage() {
                 has_flash_deal: !!flashDealData,
                 flash_deal_price: flashDealData?.discount_price,
                 flash_deal_range: flashDealData ? { startDate: new Date(flashDealData.start_date), endDate: new Date(flashDealData.end_date) } : { startDate: undefined, endDate: undefined },
+                use_variants: !!(productData.variants && productData.variants.length > 0),
+                variants: productData.variants || []
             });
         } else {
             throw new Error(result.error || 'Product not found.');
@@ -259,7 +272,13 @@ export default function ManageProductPage() {
   const onSubmit = async (values: ProductFormData) => {
     if (!user) return;
     setIsSubmitting(true);
-    const { has_flash_deal, flash_deal_price, flash_deal_range, ...productValues } = values;
+    const { has_flash_deal, flash_deal_price, flash_deal_range, use_variants, ...productValues } = values;
+    
+    // If not using variants, clear them
+    if (!use_variants) {
+        productValues.variants = null;
+    }
+
     try {
         const response = await fetch('/api/products/save', {
             method: 'POST',
@@ -284,7 +303,7 @@ export default function ManageProductPage() {
 
   const handleSetMainImage = (index: number) => {
     if (index === 0) return;
-    move(index, 0);
+    moveImage(index, 0);
     toast({ title: 'থাম্বনেইল সেট করা হয়েছে' });
   };
 
@@ -416,7 +435,7 @@ export default function ManageProductPage() {
                         <CardContent className="pt-6">
                             <FormItem>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                    {fields.map((imageItem, imageIndex) => (
+                                    {imageFields.map((imageItem, imageIndex) => (
                                         <div key={imageItem.id} className={cn(
                                             "relative aspect-square rounded-xl overflow-hidden border-2 group transition-all",
                                             imageIndex === 0 ? "border-primary ring-4 ring-primary/10 shadow-lg" : "border-border"
@@ -440,7 +459,7 @@ export default function ManageProductPage() {
                                                     variant="destructive" 
                                                     size="icon" 
                                                     className="h-8 w-8 rounded-full" 
-                                                    onClick={() => remove(imageIndex)}
+                                                    onClick={() => removeImage(imageIndex)}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -452,7 +471,7 @@ export default function ManageProductPage() {
                                         </div>
                                     ))}
                                     <div className="aspect-square flex flex-col items-center justify-center border-2 border-dashed rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                                        <ImageUploader multiple onUpload={(res) => append({ imageUrl: res.info.secure_url, imageHint: '' })} label="ছবি যোগ করুন" />
+                                        <ImageUploader multiple onUpload={(res) => appendImage({ imageUrl: res.info.secure_url, imageHint: '' })} label="ছবি যোগ করুন" />
                                     </div>
                                 </div>
                                 <FormMessage className="mt-4">{form.formState.errors.images?.message}</FormMessage>
@@ -512,21 +531,94 @@ export default function ManageProductPage() {
                             <CardTitle>মূল্য এবং স্টক</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
-                            <FormField control={form.control} name="price" render={({ field: priceField }) => (
-                                <FormItem>
-                                    <FormLabel>বিক্রয় মূল্য (BDT)</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" {...priceField} className="h-11 font-bold text-lg" /></FormControl>
-                                    <FormMessage />
+                            <FormField control={form.control} name="use_variants" render={({ field: variantSwitchField }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-muted/20">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-sm font-bold">একাধিক মূল্য ব্যবহার করুন</FormLabel>
+                                        <FormDescription className="text-[10px]">ওজন বা মাপ অনুযায়ী আলাদা দাম সেট করুন।</FormDescription>
+                                    </div>
+                                    <FormControl><Switch checked={variantSwitchField.value} onCheckedChange={variantSwitchField.onChange} /></FormControl>
                                 </FormItem>
                             )} />
-                            <FormField control={form.control} name="stock" render={({ field: stockField }) => (
-                                <FormItem>
-                                    <FormLabel>স্টক পরিমাণ (Stock)</FormLabel>
-                                    <FormControl><Input type="number" step="1" {...stockField} className="h-11" /></FormControl>
-                                    <FormDescription className="text-[10px]">আপনার কাছে কতগুলো পণ্য বিক্রয়ের জন্য রয়েছে।</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+
+                            {!watchedValues.use_variants ? (
+                                <div className="space-y-6 animate-in fade-in duration-300">
+                                    <FormField control={form.control} name="price" render={({ field: priceField }) => (
+                                        <FormItem>
+                                            <FormLabel>বিক্রয় মূল্য (BDT)</FormLabel>
+                                            <FormControl><Input type="number" step="0.01" {...priceField} className="h-11 font-bold text-lg" /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="stock" render={({ field: stockField }) => (
+                                        <FormItem>
+                                            <FormLabel>স্টক পরিমাণ (Stock)</FormLabel>
+                                            <FormControl><Input type="number" step="1" {...stockField} className="h-11" /></FormControl>
+                                            <FormDescription className="text-[10px]">আপনার কাছে কতগুলো পণ্য বিক্রয়ের জন্য রয়েছে।</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+                            ) : (
+                                <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                    <div className="space-y-3">
+                                        {variantFields.map((v, i) => (
+                                            <div key={v.id} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-xl bg-card relative group">
+                                                <div className="col-span-4">
+                                                    <FormField control={form.control} name={`variants.${i}.unit`} render={({ field: vUnitField }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[10px] uppercase font-bold">ইউনিট</FormLabel>
+                                                            <FormControl>
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <Button variant="outline" size="sm" className="w-full justify-between font-normal h-9">
+                                                                            <span className="truncate">{vUnitField.value || "সিলেক্ট"}</span>
+                                                                            <ChevronDown className="h-3 w-3 opacity-50" />
+                                                                        </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent className="w-40">
+                                                                        {(groupedAttributes['unit'] || []).map((u) => (
+                                                                            <DropdownMenuCheckboxItem key={u} checked={vUnitField.value === u} onCheckedChange={() => form.setValue(`variants.${i}.unit` as any, u)}>
+                                                                                {u}
+                                                                            </DropdownMenuCheckboxItem>
+                                                                        ))}
+                                                                        <DropdownMenuCheckboxItem checked={false} onSelect={() => { const custom = prompt("নতুন ইউনিট লিখুন (উদা: ৫ কেজি)"); if(custom) form.setValue(`variants.${i}.unit` as any, custom); }}>
+                                                                            + কাস্টম ইউনিট
+                                                                        </DropdownMenuCheckboxItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </FormControl>
+                                                        </FormItem>
+                                                    )} />
+                                                </div>
+                                                <div className="col-span-4">
+                                                    <FormField control={form.control} name={`variants.${i}.price`} render={({ field: vPriceField }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[10px] uppercase font-bold">মূল্য</FormLabel>
+                                                            <FormControl><Input type="number" step="0.01" {...vPriceField} className="h-9 px-2 font-bold" /></FormControl>
+                                                        </FormItem>
+                                                    )} />
+                                                </div>
+                                                <div className="col-span-3">
+                                                    <FormField control={form.control} name={`variants.${i}.stock`} render={({ field: vStockField }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-[10px] uppercase font-bold">স্টক</FormLabel>
+                                                            <FormControl><Input type="number" step="1" {...vStockField} className="h-9 px-2" /></FormControl>
+                                                        </FormItem>
+                                                    )} />
+                                                </div>
+                                                <div className="col-span-1 pb-1">
+                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeVariant(i)}><Trash2 className="h-4 w-4" /></Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ unit: '', price: 0, stock: 0 })}>
+                                        <Plus className="mr-2 h-4 w-4" /> নতুন ইউনিট যোগ করুন
+                                    </Button>
+                                    <FormMessage>{form.formState.errors.variants?.message}</FormMessage>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 

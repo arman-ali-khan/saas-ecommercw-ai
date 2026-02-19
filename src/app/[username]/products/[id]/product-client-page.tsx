@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
@@ -29,7 +30,7 @@ import {
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
-import type { Product, FlashDeal, ProductReview, ProductQna } from '@/types';
+import type { Product, FlashDeal, ProductReview, ProductQna, ProductVariant } from '@/types';
 import { cn } from '@/lib/utils';
 import RichTextRenderer from '@/components/saas-page-renderer';
 import { supabase } from '@/lib/supabase/client';
@@ -288,6 +289,9 @@ const QnaForm = ({ product, onQuestionSubmitted, setDialogOpen }: { product: Pro
 
 export default function ProductClientPage({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    product.variants && product.variants.length > 0 ? product.variants[0] : null
+  );
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
@@ -447,10 +451,21 @@ export default function ProductClientPage({ product }: { product: Product }) {
   }
 
   const handleAddToCart = () => {
-    const productWithDealPrice = flashDeal
-      ? { ...product, price: flashDeal.discount_price }
-      : product;
-    addToCart(productWithDealPrice, quantity);
+    // Determine the base product data to add
+    let productToAdd = { ...product };
+    
+    // If a variant is selected, update price and selected_unit
+    if (selectedVariant) {
+        productToAdd.price = selectedVariant.price;
+        (productToAdd as any).selected_unit = selectedVariant.unit;
+    }
+
+    // Apply flash deal price if applicable (Flash deal usually applies to the main price)
+    if (flashDeal && !selectedVariant) {
+        productToAdd.price = flashDeal.discount_price;
+    }
+
+    addToCart(productToAdd as any, quantity);
     toast({
       title: t_toast.addedToBag,
       description: t_toast.addedToBagDesc.replace('{quantity}', quantity.toString()).replace('{productName}', product.name),
@@ -459,7 +474,10 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
   const shareText = `Check out ${product.name} from ${siteName}!`;
   const images = product.images || [];
-  const displayPrice = flashDeal ? flashDeal.discount_price : product.price;
+  
+  // Calculate display price: Priority -> Variant > Flash Deal > Main Price
+  const displayPrice = selectedVariant ? selectedVariant.price : (flashDeal ? flashDeal.discount_price : product.price);
+  const currentStock = selectedVariant ? selectedVariant.stock : (product.stock || 0);
 
   const filteredQna = useMemo(() => 
     qna.filter(item => 
@@ -492,7 +510,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                 {images.length > 1 && (
                     <>
                     <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
-                    <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
+                    <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:flex" />
                     </>
                 )}
                 </Carousel>
@@ -538,7 +556,8 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
             <div className="flex flex-col">
                 <h1 className="text-4xl font-headline font-bold">{product.name}</h1>
-                {flashDeal && (
+                
+                {flashDeal && !selectedVariant && (
                     <div className='mt-4 space-y-2'>
                         <p className="text-lg font-semibold text-muted-foreground line-through">
                             {product.price.toFixed(2)} {product.currency}
@@ -548,13 +567,41 @@ export default function ProductClientPage({ product }: { product: Product }) {
                         </div>
                     </div>
                 )}
-                <p className="text-2xl font-semibold text-primary mt-1">
-                {displayPrice.toFixed(2)} {product.currency}
+
+                <p className="text-3xl font-black text-primary mt-2">
+                    {displayPrice.toFixed(2)} {product.currency}
                 </p>
 
-                <p className="text-lg text-muted-foreground mt-4">
-                {product.description}
+                {/* Variant Selector */}
+                {product.variants && product.variants.length > 0 && (
+                    <div className="mt-8 space-y-3">
+                        <h3 className="font-bold text-sm uppercase tracking-widest text-muted-foreground">পছন্দসই সাইজ/ইউনিট বেছে নিন:</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {product.variants.map((v, i) => (
+                                <Button 
+                                    key={i} 
+                                    variant={selectedVariant?.unit === v.unit ? 'default' : 'outline'} 
+                                    className={cn("h-12 px-6 rounded-xl border-2", selectedVariant?.unit === v.unit ? 'border-primary' : 'hover:border-primary/50')}
+                                    onClick={() => setSelectedVariant(v)}
+                                >
+                                    {v.unit} - {v.price} {product.currency}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <p className="text-lg text-muted-foreground mt-6 leading-relaxed">
+                    {product.description}
                 </p>
+
+                <div className="mt-4">
+                    {currentStock > 0 ? (
+                        <Badge variant="outline" className="text-green-500 border-green-500/30 bg-green-500/5">স্টক আছে ({currentStock})</Badge>
+                    ) : (
+                        <Badge variant="destructive">স্টক আউট</Badge>
+                    )}
+                </div>
 
                 {hasOriginOrStory && <Separator className="my-6" />}
 
@@ -573,105 +620,112 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     </div>
                 )}
 
-                <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <div className="flex items-center gap-2">
-                    <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    aria-label="Decrease quantity"
+                <div className="mt-10 flex flex-col sm:flex-row gap-4">
+                    <div className="flex items-center gap-2">
+                        <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-12 w-12 rounded-xl border-2"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        aria-label="Decrease quantity"
+                        >
+                        <Minus className="h-5 w-5" />
+                        </Button>
+                        <Input
+                        type="number"
+                        value={quantity}
+                        onChange={(e) =>
+                            setQuantity(Math.max(1, parseInt(e.target.value) || 1))
+                        }
+                        className="w-20 h-12 text-center text-lg font-bold rounded-xl border-2"
+                        min="1"
+                        />
+                        <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-12 w-12 rounded-xl border-2"
+                        onClick={() => setQuantity(quantity + 1)}
+                        aria-label="Increase quantity"
+                        >
+                        <Plus className="h-5 w-5" />
+                        </Button>
+                    </div>
+                    <Button 
+                        size="lg" 
+                        onClick={handleAddToCart} 
+                        className="flex-grow h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/20"
+                        disabled={currentStock <= 0}
                     >
-                    <Minus className="h-4 w-4" />
+                        <ShoppingBag className="mr-2 h-5 w-5" /> {t_product.addToBag}
                     </Button>
-                    <Input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) =>
-                        setQuantity(Math.max(1, parseInt(e.target.value) || 1))
-                    }
-                    className="w-16 text-center"
-                    min="1"
-                    />
-                    <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setQuantity(quantity + 1)}
-                    aria-label="Increase quantity"
-                    >
-                    <Plus className="h-4 w-4" />
-                    </Button>
-                </div>
-                <Button size="lg" onClick={handleAddToCart} className="flex-grow">
-                    <ShoppingBag className="mr-2 h-5 w-5" /> {t_product.addToBag}
-                </Button>
                 </div>
 
-                <div className="mt-8">
-                <h3 className="font-semibold mb-2">{t_product.shareThisProduct}</h3>
-                <div className="flex gap-2">
-                    <Button asChild variant="outline" size="icon" disabled={!shareUrl}>
-                    <a
-                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                        shareUrl
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Share on Facebook"
-                    >
-                        <Facebook className="h-5 w-5" />
-                    </a>
-                    </Button>
-                    <Button asChild variant="outline" size="icon" disabled={!shareUrl}>
-                    <a
-                        href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
-                        shareUrl
-                        )}&text=${encodeURIComponent(shareText)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Share on Twitter"
-                    >
-                        <Twitter className="h-5 w-5" />
-                    </a>
-                    </Button>
-                    <Button variant="outline" size="icon" disabled aria-label="Share on TikTok">
-                    <TikTokIcon />
-                    </Button>
-                    <Button
-                    variant="outline"
-                    onClick={() => setIsAiModalOpen(true)}
-                    className="px-3"
-                    >
-                    <Wand2 className="h-5 w-5 mr-2" />
-                    {t_product.aiShare}
-                    </Button>
-                </div>
+                <div className="mt-10 p-6 rounded-2xl bg-muted/30 border-2 border-dashed">
+                    <h3 className="font-bold mb-3 flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> {t_product.shareThisProduct}</h3>
+                    <div className="flex flex-wrap gap-3">
+                        <Button asChild variant="outline" size="icon" className="rounded-full h-10 w-10" disabled={!shareUrl}>
+                        <a
+                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                            shareUrl
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Share on Facebook"
+                        >
+                            <Facebook className="h-5 w-5" />
+                        </a>
+                        </Button>
+                        <Button asChild variant="outline" size="icon" className="rounded-full h-10 w-10" disabled={!shareUrl}>
+                        <a
+                            href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
+                            shareUrl
+                            )}&text=${encodeURIComponent(shareText)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Share on Twitter"
+                        >
+                            <Twitter className="h-5 w-5" />
+                        </a>
+                        </Button>
+                        <Button variant="outline" size="icon" className="rounded-full h-10 w-10" disabled aria-label="Share on TikTok">
+                            <TikTokIcon />
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setIsAiModalOpen(true)}
+                            className="rounded-full px-5 h-10 font-bold"
+                        >
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            {t_product.aiShare}
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
         
         {longDescContent && (
             <div className="mt-16">
-                <Card>
-                    <CardHeader>
+                <Card className="rounded-[2rem] border-2 shadow-sm overflow-hidden">
+                    <CardHeader className="bg-muted/30 border-b">
                         <CardTitle className="text-2xl font-headline font-bold">{t_product.productDetails}</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-6 md:p-10">
                         <div className="relative">
                             <div
                                 className={cn(
-                                    'prose dark:prose-invert max-w-full transition-all duration-300 overflow-hidden',
-                                    !isDescriptionExpanded ? 'max-h-32' : 'max-h-none'
+                                    'prose dark:prose-invert max-w-full transition-all duration-500 overflow-hidden',
+                                    !isDescriptionExpanded ? 'max-h-48' : 'max-h-none'
                                 )}
                             >
                                 <RichTextRenderer content={longDescContent} />
                             </div>
                             {!isDescriptionExpanded && (
-                               <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                               <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-background to-transparent pointer-events-none" />
                             )}
                         </div>
                         <Button
-                            variant="link"
-                            className="mt-2 px-0 text-primary hover:text-primary/80"
+                            variant="secondary"
+                            className="mt-6 rounded-full px-8 mx-auto flex"
                             onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
                         >
                             {isDescriptionExpanded ? (
@@ -695,9 +749,9 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     <h2 className="text-3xl font-headline font-bold">{t_product.customerReviews}</h2>
                     <Dialog open={isReviewFormOpen} onOpenChange={setIsReviewFormOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="outline">{t_product.leaveReview}</Button>
+                            <Button variant="outline" className="rounded-xl">{t_product.leaveReview}</Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="rounded-[2rem]">
                             <DialogHeader>
                                 <DialogTitle>{t_product.leaveReview}</DialogTitle>
                             </DialogHeader>
@@ -705,11 +759,11 @@ export default function ProductClientPage({ product }: { product: Product }) {
                         </DialogContent>
                     </Dialog>
                 </div>
-                {isLoadingReviews ? <Skeleton className="h-40 w-full" /> : (
+                {isLoadingReviews ? <Skeleton className="h-40 w-full rounded-2xl" /> : (
                     reviews.length > 0 ? (
                         <div className="space-y-6">
                             {reviews.map(review => (
-                                <Card key={review.id}>
+                                <Card key={review.id} className="rounded-2xl border-2">
                                     <CardHeader className="flex flex-row items-center gap-4">
                                         <div className="flex items-center gap-1">
                                             {Array.from({ length: 5 }).map((_, i) => (
@@ -720,12 +774,12 @@ export default function ProductClientPage({ product }: { product: Product }) {
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-muted-foreground italic">"{review.review_text}"</p>
-                                        <p className="text-sm font-semibold mt-4">- {review.customer_name}</p>
+                                        <p className="text-sm font-semibold mt-4 text-primary">- {review.customer_name}</p>
                                     </CardContent>
                                 </Card>
                             ))}
                         </div>
-                    ) : <p className="text-muted-foreground text-center py-8">{t_product.noReviews}</p>
+                    ) : <p className="text-muted-foreground text-center py-12 border-2 border-dashed rounded-2xl">{t_product.noReviews}</p>
                 )}
             </div>
 
@@ -734,9 +788,9 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     <h2 className="text-3xl font-headline font-bold">{t_product.qna}</h2>
                     <Dialog open={isQnaFormOpen} onOpenChange={setIsQnaFormOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="outline">{t_product.askQuestion}</Button>
+                            <Button variant="outline" className="rounded-xl">{t_product.askQuestion}</Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="rounded-[2rem]">
                              <DialogHeader>
                                 <DialogTitle>{t_product.askQuestion}</DialogTitle>
                             </DialogHeader>
@@ -744,21 +798,24 @@ export default function ProductClientPage({ product }: { product: Product }) {
                         </DialogContent>
                     </Dialog>
                 </div>
-                 {isLoadingQna ? <Skeleton className="h-60 w-full" /> : (
+                 {isLoadingQna ? <Skeleton className="h-60 w-full rounded-2xl" /> : (
                     <>
-                        <input 
-                            placeholder={t_product.searchQna}
-                            value={qnaSearch}
-                            onChange={(e) => setQnaSearch(e.target.value)}
-                            className="mb-6 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        />
+                        <div className="relative mb-6">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <input 
+                                placeholder={t_product.searchQna}
+                                value={qnaSearch}
+                                onChange={(e) => setQnaSearch(e.target.value)}
+                                className="w-full h-12 rounded-xl border-2 border-input bg-background pl-10 pr-4 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            />
+                        </div>
                         {filteredQna.length > 0 ? (
                             <Accordion type="single" collapsible className="w-full space-y-4">
                                 {filteredQna.map(item => (
-                                    <AccordionItem value={item.id} key={item.id} className="border rounded-lg bg-muted/20">
+                                    <AccordionItem value={item.id} key={item.id} className="border-2 rounded-2xl bg-card overflow-hidden">
                                         <AccordionTrigger className="text-left font-semibold p-4 hover:no-underline">
                                             <div className="flex items-start gap-3">
-                                                <div className="bg-background rounded-full p-2 mt-1">
+                                                <div className="bg-primary/10 rounded-full p-2 mt-1">
                                                     <HelpCircle className="h-5 w-5 text-primary"/>
                                                 </div>
                                                 <div>
@@ -767,41 +824,42 @@ export default function ProductClientPage({ product }: { product: Product }) {
                                                 </div>
                                             </div>
                                         </AccordionTrigger>
-                                        <AccordionContent className="p-4 pt-0 pl-14">
-                                            <p className="text-foreground/80">{item.answer}</p>
+                                        <AccordionContent className="p-4 pt-0 pl-14 text-muted-foreground leading-relaxed">
+                                            <div className="p-4 rounded-xl bg-muted/30 italic">
+                                                {item.answer || "এই প্রশ্নের উত্তর এখনো দেওয়া হয়নি।"}
+                                            </div>
                                         </AccordionContent>
                                     </AccordionItem>
                                 ))}
                             </Accordion>
                         ) : (
-                            <p className="text-muted-foreground text-center py-8">{t_product.noQna}</p>
+                            <p className="text-muted-foreground text-center py-12 border-2 border-dashed rounded-2xl">{t_product.noQna}</p>
                         )}
                     </>
                 )}
             </div>
         </div>
 
-        <div className="mt-16">
-            <h2 className="text-3xl font-headline font-bold mb-8">{t_product.relatedProducts}</h2>
+        <div className="mt-20">
+            <h2 className="text-3xl font-headline font-bold mb-10 text-center">{t_product.relatedProducts}</h2>
             {isLoadingRelated ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="space-y-2">
-                            <Skeleton className="h-56 w-full" />
+                        <div key={i} className="space-y-3">
+                            <Skeleton className="h-56 w-full rounded-2xl" />
                             <Skeleton className="h-6 w-3/4" />
                             <Skeleton className="h-4 w-1/2" />
-                            <Skeleton className="h-10 w-full" />
                         </div>
                     ))}
                 </div>
             ) : relatedProducts.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {relatedProducts.map((p) => (
                         <ProductCard key={p.id} product={p} />
                     ))}
                 </div>
             ) : (
-                <p className="text-muted-foreground">{t_product.noRelated}</p>
+                <p className="text-muted-foreground text-center py-12">{t_product.noRelated}</p>
             )}
         </div>
         
