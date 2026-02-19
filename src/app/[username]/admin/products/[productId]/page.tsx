@@ -478,31 +478,33 @@ export default function ManageProductPage() {
                                 </FormItem>
                             )} />
 
-                            {['brand', 'color', 'size', 'unit'].map((attrName) => (
-                                <FormField key={attrName} control={form.control} name={attrName as any} render={({ field: attrValField }) => (
-                                    <FormItem>
-                                        <FormLabel className="capitalize">{attrName === 'unit' ? 'পরিমাপের একক (Unit)' : attrName}</FormLabel>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="outline" className="w-full h-11 justify-between font-normal">
-                                                    <span className="truncate pr-2">{attrValField.value?.length ? attrValField.value.join(', ') : `সিলেক্ট ${attrName}`}</span>
-                                                    <ChevronDown className="h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                                {(groupedAttributes[attrName] || []).map((opt) => (
-                                                    <DropdownMenuCheckboxItem 
-                                                        key={opt} 
-                                                        checked={attrValField.value?.includes(opt)} 
-                                                        onCheckedChange={(checked) => attrValField.onChange(checked ? [...(attrValField.value || []), opt] : attrValField.value.filter((v: string) => v !== opt))}
-                                                    >
-                                                        {opt}
-                                                    </DropdownMenuCheckboxItem>
-                                                ))}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                        <FormMessage />
-                                    </FormItem>
+                            <div className="space-y-4">
+                                {['brand', 'color', 'size', 'unit'].map((attrName) => (
+                                    <FormField key={attrName} control={form.control} name={attrName as any} render={({ field: attrValField }) => (
+                                        <FormItem>
+                                            <FormLabel className="capitalize">{attrName === 'unit' ? 'পরিমাপের একক (Unit)' : attrName}</FormLabel>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" className="w-full h-11 justify-between font-normal">
+                                                        <span className="truncate pr-2">{attrValField.value?.length ? attrValField.value.join(', ') : `সিলেক্ট ${attrName}`}</span>
+                                                        <ChevronDown className="h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                                    {(groupedAttributes[attrName] || []).map((opt) => (
+                                                        <DropdownMenuCheckboxItem 
+                                                            key={opt} 
+                                                            checked={attrValField.value?.includes(opt)} 
+                                                            onCheckedChange={(checked) => attrValField.onChange(checked ? [...(attrValField.value || []), opt] : attrValField.value.filter((v: string) => v !== opt))}
+                                                        >
+                                                            {opt}
+                                                        </DropdownMenuCheckboxItem>
+                                                    ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
                                 ))}
                             </div>
                         </CardContent>
