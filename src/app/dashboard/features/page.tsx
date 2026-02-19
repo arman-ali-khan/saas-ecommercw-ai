@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -89,21 +90,19 @@ export default function FeaturesAdminPage() {
   const fetchFeatures = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('saas_features')
-        .select('*')
-        .order('name', { ascending: true });
-      if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error fetching features',
-          description: error.message,
-        });
+      const response = await fetch('/api/saas/fetch-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity: 'features' }),
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setFeatures(result.data as SaasFeature[]);
       } else {
-        setFeatures(data as SaasFeature[]);
+        throw new Error(result.error || 'Failed to fetch features');
       }
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+      toast({ variant: 'destructive', title: 'Error fetching features', description: e.message });
     } finally {
       setIsLoading(false);
     }

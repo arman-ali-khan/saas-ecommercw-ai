@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -51,17 +52,23 @@ export default function ShowcaseAdminPage() {
 
     const fetchItems = useCallback(async () => {
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from('saas_showcase')
-            .select('*')
-            .order('order', { ascending: true });
-        
-        if (error) {
+        try {
+            const response = await fetch('/api/saas/fetch-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ entity: 'showcase' }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setItems(result.data as SaasShowcaseItem[]);
+            } else {
+                throw new Error(result.error || 'Failed to fetch showcase items');
+            }
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching showcase items', description: error.message });
-        } else {
-            setItems(data as SaasShowcaseItem[]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [toast]);
 
     useEffect(() => {
@@ -143,7 +150,6 @@ export default function ShowcaseAdminPage() {
         const newItems = [...items];
         [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
 
-        // Include the entire item object to satisfy DB constraints during upsert
         const updates = newItems.map((item, idx) => ({
             ...item,
             order: idx
@@ -153,7 +159,7 @@ export default function ShowcaseAdminPage() {
         const { error } = await supabase.from('saas_showcase').upsert(updates);
         if (error) {
             toast({ variant: 'destructive', title: 'Failed to reorder items', description: error.message });
-            setItems(items); // Revert on failure
+            fetchItems(); // Revert on failure
         } else {
             setItems(newItems);
         }

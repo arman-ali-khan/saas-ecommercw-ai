@@ -60,17 +60,23 @@ export default function SaasPagesAdminPage() {
 
   const fetchPages = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('saas_pages')
-      .select('id, title, slug, is_published, updated_at')
-      .order('title', { ascending: true });
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error fetching pages', description: error.message });
-    } else {
-      setPages(data as SaasPage[]);
+    try {
+        const response = await fetch('/api/saas/fetch-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entity: 'pages' }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            setPages(result.data as SaasPage[]);
+        } else {
+            throw new Error(result.error || 'Failed to fetch pages');
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error fetching pages', description: error.message });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, [toast]);
 
   useEffect(() => {

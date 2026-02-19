@@ -94,21 +94,19 @@ export default function PlansAdminPage() {
   const fetchPlans = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('plans')
-        .select('*')
-        .order('price', { ascending: true });
-      if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error fetching plans',
-          description: error.message,
-        });
+      const response = await fetch('/api/saas/fetch-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity: 'plans' }),
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setPlans(result.data as Plan[]);
       } else {
-        setPlans(data as Plan[]);
+        throw new Error(result.error || 'Failed to fetch plans');
       }
     } catch(e: any) {
-        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+        toast({ variant: 'destructive', title: 'Error fetching plans', description: e.message });
     } finally {
         setIsLoading(false);
     }

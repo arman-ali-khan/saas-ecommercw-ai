@@ -24,17 +24,23 @@ export default function SaasReviewsPage() {
 
   const fetchReviews = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('saas_reviews')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error fetching reviews', description: error.message });
-    } else {
-      setReviews(data as SaaSReview[]);
+    try {
+        const response = await fetch('/api/saas/fetch-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entity: 'reviews' }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            setReviews(result.data as SaaSReview[]);
+        } else {
+            throw new Error(result.error || 'Failed to fetch reviews');
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error fetching reviews', description: error.message });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, [toast]);
 
   useEffect(() => {

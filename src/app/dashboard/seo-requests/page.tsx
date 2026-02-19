@@ -43,17 +43,23 @@ export default function SeoRequestsPage() {
   
   const fetchRequests = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('seo_requests')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error fetching requests', description: error.message });
-    } else {
-      setRequests(data as SeoRequest[]);
+    try {
+        const response = await fetch('/api/saas/fetch-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entity: 'seo_requests' }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            setRequests(result.data as SeoRequest[]);
+        } else {
+            throw new Error(result.error || 'Failed to fetch SEO requests');
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error fetching requests', description: error.message });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, [toast]);
 
   useEffect(() => {

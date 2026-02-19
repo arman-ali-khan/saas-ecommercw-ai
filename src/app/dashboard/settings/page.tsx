@@ -110,13 +110,15 @@ export default function SaasSettingsPage() {
   const fetchSettings = useCallback(async () => {
     setIsLoading(true);
     try {
-        const { data, error } = await supabase
-            .from('saas_settings')
-            .select('*')
-            .eq('id', 1)
-            .single();
+        const response = await fetch('/api/saas/fetch-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entity: 'settings' }),
+        });
+        const result = await response.json();
 
-        if (data) {
+        if (response.ok && result.data) {
+            const data = result.data;
             generalForm.reset({
                 platformName: data.platform_name || '',
                 platformDescription: data.platform_description || '',
@@ -137,11 +139,11 @@ export default function SaasSettingsPage() {
                 mobileBankingNumber: data.mobile_banking_number || '',
                 acceptedBankingMethods: data.accepted_banking_methods || [],
             });
-        } else if (error && error.code !== 'PGRST116') { 
-            toast({ variant: 'destructive', title: 'Error fetching settings', description: `Could not load settings. This is likely a database permissions issue. Error: ${error.message}` });
+        } else {
+            throw new Error(result.error || 'Failed to fetch settings');
         }
     } catch (e: any) {
-        toast({ variant: 'destructive', title: 'An unexpected error occurred', description: e.message });
+        toast({ variant: 'destructive', title: 'Error fetching settings', description: e.message });
     } finally {
         setIsLoading(false);
     }
@@ -169,7 +171,7 @@ export default function SaasSettingsPage() {
         });
 
       if (error) {
-        toast({ variant: 'destructive', title: 'Error Saving General Settings', description: `Failed to save settings. Please check database permissions. Error: ${error.message}` });
+        toast({ variant: 'destructive', title: 'Error Saving General Settings', description: error.message });
       } else {
         toast({ title: 'General Settings Saved!' });
         await fetchSettings();
@@ -194,7 +196,7 @@ export default function SaasSettingsPage() {
             });
 
         if (error) {
-            toast({ variant: 'destructive', title: 'Error Saving SEO Settings', description: `Failed to save settings. Please check database permissions. Error: ${error.message}` });
+            toast({ variant: 'destructive', title: 'Error Saving SEO Settings', description: error.message });
         } else {
             toast({ title: 'SEO Settings Saved!' });
             await fetchSettings();
@@ -220,16 +222,9 @@ export default function SaasSettingsPage() {
             });
 
         if (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Error Saving Settings',
-                description: `Failed to save payment settings. Please check database permissions. Error: ${error.message}`,
-            });
+            toast({ variant: 'destructive', title: 'Error Saving Settings', description: error.message });
         } else {
-            toast({
-                title: 'Payment Settings Saved!',
-                description: 'Subscription payment settings have been updated.',
-            });
+            toast({ title: 'Payment Settings Saved!', description: 'Subscription payment settings have been updated.' });
             await fetchSettings();
         }
     } catch (e: any) {

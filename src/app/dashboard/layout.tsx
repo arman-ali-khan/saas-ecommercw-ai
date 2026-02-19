@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { PanelLeft, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
-import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -36,24 +35,27 @@ export default function DashboardLayout({
   useEffect(() => {
     const fetchInfo = async () => {
       setIsInfoLoading(true);
-      const { data } = await supabase
-        .from('saas_settings')
-        .select('platform_name, logo_url')
-        .eq('id', 1)
-        .single();
-      
-      if (data) {
-        setSiteInfo({
-          name: data.platform_name || 'SaaS Admin',
-          logoUrl: data.logo_url || null,
+      try {
+        const response = await fetch('/api/saas/fetch-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entity: 'settings' }),
         });
-      } else {
-         setSiteInfo({
-          name: 'SaaS Admin',
-          logoUrl: null,
-        })
+        const result = await response.json();
+        
+        if (response.ok && result.data) {
+            setSiteInfo({
+                name: result.data.platform_name || 'SaaS Admin',
+                logoUrl: result.data.logo_url || null,
+            });
+        } else {
+            setSiteInfo({ name: 'SaaS Admin', logoUrl: null });
+        }
+      } catch (e) {
+        setSiteInfo({ name: 'SaaS Admin', logoUrl: null });
+      } finally {
+        setIsInfoLoading(false);
       }
-      setIsInfoLoading(false);
     };
     fetchInfo();
   }, []);
