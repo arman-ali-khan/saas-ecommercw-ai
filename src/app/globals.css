@@ -110,6 +110,10 @@ ul[data-type="taskList"] {
   @apply bg-muted rounded-full hover:bg-muted-foreground/30 transition-colors;
 }
 
+.tiptap {
+  font-size: 15px;
+}
+
 /* Smooth Scrolling */
 html {
   scroll-behavior: smooth;

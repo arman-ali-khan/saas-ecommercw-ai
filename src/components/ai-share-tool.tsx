@@ -1,4 +1,3 @@
-
 'use client';
 import { useState } from 'react';
 import {
@@ -22,12 +21,14 @@ import { cn } from '@/lib/utils';
 
 interface AiShareToolProps {
   product: Product;
+  siteName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function AiShareTool({
   product,
+  siteName,
   open,
   onOpenChange,
 }: AiShareToolProps) {
@@ -40,25 +41,35 @@ export function AiShareTool({
 
   const handleGenerate = () => {
     setIsLoading(true);
-    // Simulation of AI generation logic
+    
+    // Create a dynamic post based on actual database info
     setTimeout(() => {
-      const interestsPart = interests ? `${interests} ভালোবাসেন? ` : 'প্রাকৃতিক পণ্যের খোঁজে আছেন? ';
-      const post = `${interestsPart}তাহলে আপনি বাংলা ন্যাচারালস-এর "${product.name}" এর প্রতি আসক্ত হয়ে যাবেন! 🌿 
+      const intro = interests 
+        ? `${interests} প্রিয় মানুষদের জন্য দারুণ খবর! ` 
+        : 'আপনি কি সেরা এবং বিশুদ্ধ প্রাকৃতিক পণ্যের সন্ধানে আছেন? ';
+      
+      const originPart = product.origin 
+        ? `এটি সরাসরি ${product.origin} থেকে সংগৃহীত। ` 
+        : '';
 
-এটি ${product.origin || 'বাংলাদেশের সেরা উৎস'} থেকে আসা বিশুদ্ধ এবং প্রাকৃতিক স্বাদের এক অনন্য সম্ভার। 
+      const post = `${intro}
 
-✨ কেন কিনবেন?
+"${siteName}" আপনাদের জন্য নিয়ে এলো শতভাগ খাঁটি এবং প্রিমিয়াম কোয়ালিটির "${product.name}"। ${originPart}
+
+✨ কেন আমাদের পণ্যটি সেরা?
 - ${product.description}
-- ১০০% প্রাকৃতিক ও স্বাস্থ্যসম্মত
-- সরাসরি কৃষক থেকে সংগৃহীত
+- কোনো রকম কেমিক্যাল বা ভেজাল নেই
+- সরাসরি উৎপাদনকারীর কাছ থেকে আপনার হাতে পৌঁছে দিচ্ছি
 
-এখনই আপনারটি সংগ্রহ করতে ভিজিট করুন আমাদের ওয়েবসাইট। 
+আপনার সুস্থ ও সুন্দর জীবনের জন্য আজই সংগ্রহ করুন।
 
-#BanglaNaturals #OrganicFood #HealthyLiving #${product.name.replace(/\s+/g, '')} #NatureLover`;
+অর্ডার করতে ভিজিট করুন আমাদের ওয়েবসাইট। 
+
+#${siteName.replace(/\s+/g, '')} #NatureLover #PureProduct #HealthyLiving #${product.name.replace(/\s+/g, '')} #OrganicBD`;
       
       setGeneratedPost(post);
       setIsLoading(false);
-    }, 1500);
+    }, 1200);
   };
 
   const handleCopy = () => {
@@ -120,7 +131,7 @@ export function AiShareTool({
                 <Textarea 
                     value={generatedPost} 
                     readOnly 
-                    rows={8} 
+                    rows={10} 
                     className="resize-none bg-muted/30 border-2 focus-visible:ring-0 p-4 text-sm leading-relaxed"
                 />
                 <Button 

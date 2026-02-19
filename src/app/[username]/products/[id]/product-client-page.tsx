@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
@@ -313,6 +312,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
   const [isQnaFormOpen, setIsQnaFormOpen] = useState(false);
+  const [siteName, setSiteName] = useState('Your Store');
 
   const fetchReviews = useCallback(async () => {
     setIsLoadingReviews(true);
@@ -356,6 +356,10 @@ export default function ProductClientPage({ product }: { product: Product }) {
     setShareUrl(window.location.href);
 
     const fetchAdditionalData = async () => {
+        // Fetch Site Name
+        const { data: profile } = await supabase.from('profiles').select('site_name').eq('id', product.site_id).single();
+        if (profile) setSiteName(profile.site_name || 'Your Store');
+
         // Fetch Flash Deal
         try {
             const fdRes = await fetch('/api/flash-deals/list', {
@@ -453,7 +457,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
     });
   };
 
-  const shareText = `Check out ${product.name} from this store!`;
+  const shareText = `Check out ${product.name} from ${siteName}!`;
   const images = product.images || [];
   const displayPrice = flashDeal ? flashDeal.discount_price : product.price;
 
@@ -804,6 +808,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
         {product && (
             <AiShareTool
             product={product}
+            siteName={siteName}
             open={isAiModalOpen}
             onOpenChange={setIsAiModalOpen}
             />
