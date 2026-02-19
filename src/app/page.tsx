@@ -38,6 +38,70 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
+// Showcase Carousel Component
+function PlatformShowcase({ items, isLoading }: { items: SaasShowcaseItem[], isLoading: boolean }) {
+  if (!isLoading && items.length === 0) return null;
+
+  return (
+    <section id="showcase" className="relative">
+      <div className="text-center mb-16">
+        <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4">প্ল্যাটফর্ম শোকেস</h2>
+        <p className="text-muted-foreground text-lg">আমাদের শক্তিশালী ড্যাশবোর্ড এবং ফিচারগুলোর এক ঝলক দেখে নিন।</p>
+      </div>
+
+      <div className="px-4">
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full max-w-5xl mx-auto rounded-3xl" />
+        ) : (
+          <div className="max-w-5xl mx-auto">
+            <Carousel
+              opts={{ align: 'start', loop: true }}
+              className="w-full"
+            >
+              <CarouselContent>
+                {items.map((item) => (
+                  <CarouselItem key={item.id} className="basis-full">
+                    <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden border-2 border-border/50 shadow-2xl group">
+                      {item.image_url ? (
+                        <Image 
+                          src={item.image_url} 
+                          alt={item.title} 
+                          fill 
+                          className="object-cover transition-transform duration-700 group-hover:scale-105" 
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <DynamicIcon name={item.icon} className="w-20 h-20 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-12 text-white">
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          <h3 className="text-2xl md:text-4xl font-bold font-headline mb-3">{item.title}</h3>
+                          <p className="text-white/80 text-sm md:text-lg max-w-3xl line-clamp-2 md:line-clamp-none leading-relaxed">
+                            {item.description}
+                          </p>
+                        </motion.div>
+                      </div>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <div className="hidden md:block">
+                <CarouselPrevious className="-left-16 hover:bg-primary hover:text-primary-foreground border-primary/20" />
+                <CarouselNext className="-right-16 hover:bg-primary hover:text-primary-foreground border-primary/20" />
+              </div>
+            </Carousel>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function SaasLandingPage() {
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
   const [features, setFeatures] = useState<SaasFeature[]>([]);
@@ -237,6 +301,9 @@ export default function SaasLandingPage() {
               )}
             </motion.div>
           </section>
+
+          {/* Platform Showcase Section */}
+          <PlatformShowcase items={showcaseItems} isLoading={isLoading} />
 
           {/* Quick Stats / Highlights */}
           <section className="grid grid-cols-2 md:grid-cols-4 gap-8 py-12 border-y border-border/50">
