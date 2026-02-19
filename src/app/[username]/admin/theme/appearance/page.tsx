@@ -85,7 +85,7 @@ const hslStringToHex = (hslStr: string) => {
         if (0 <= h && h < 60) { [r, g, b] = [c, x, 0]; }
         else if (60 <= h && h < 120) { [r, g, b] = [x, c, 0]; }
         else if (120 <= h && h < 180) { [r, g, b] = [0, c, x]; }
-        else if (180 <= h && h < 240) { [r, g, b] = [0, x, c]; }
+        else if (180 <= h && h < 240) { [r, g, b] = [0, x, 0]; }
         else if (240 <= h && h < 300) { [r, g, b] = [x, 0, c]; }
         else if (300 <= h && h <= 360) { [r, g, b] = [c, 0, x]; }
         r = Math.round((r + m) * 255);
@@ -124,7 +124,16 @@ const ColorInput = ({ field, label }: { field: any, label: string }) => {
 
 const palettes = [
     { name: 'Default Dark', colors: { theme_primary: '207 90% 61%', theme_secondary: '217 33% 17%', theme_accent: '207 92% 77%', theme_background: '224 71% 4%', theme_foreground: '210 40% 98%', theme_card: '224 71% 6%' } },
-    { name: 'Amazon Inspired', colors: { theme_primary: '36 100% 50%', theme_secondary: '200 8% 18%', theme_accent: '199 95% 58%', theme_background: '200 10% 8%', theme_foreground: '0 0% 98%', theme_card: '200 9% 12%' } },
+    { name: 'Corporate Blue', colors: { theme_primary: '210 100% 20%', theme_secondary: '206 33% 90%', theme_accent: '36 100% 50%', theme_background: '206 33% 97%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%' } },
+    { name: 'Luxury Gold', colors: { theme_primary: '46 65% 52%', theme_secondary: '0 0% 15%', theme_accent: '0 0% 46%', theme_background: '0 0% 7%', theme_foreground: '0 0% 98%', theme_card: '0 0% 10%' } },
+    { name: 'Modern Tech', colors: { theme_primary: '258 83% 58%', theme_secondary: '215 25% 17%', theme_accent: '189 94% 43%', theme_background: '220 29% 6%', theme_foreground: '0 0% 98%', theme_card: '215 25% 12%' } },
+    { name: 'Organic Eco', colors: { theme_primary: '113 39% 25%', theme_secondary: '82 20% 62%', theme_accent: '22 47% 18%', theme_background: '33 51% 89%', theme_foreground: '22 47% 10%', theme_card: '33 51% 95%' } },
+    { name: 'Energetic Retail', colors: { theme_primary: '346 77% 50%', theme_secondary: '45 96% 56%', theme_accent: '0 0% 20%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 98%' } },
+    { name: 'Clean Soft', colors: { theme_primary: '218 100% 81%', theme_secondary: '346 100% 91%', theme_accent: '197 24% 85%', theme_background: '0 0% 100%', theme_foreground: '218 20% 20%', theme_card: '197 24% 97%' } },
+    { name: 'Creative Indigo', colors: { theme_primary: '243 75% 59%', theme_secondary: '175 84% 32%', theme_accent: '215 19% 35%', theme_background: '250 100% 98%', theme_foreground: '243 20% 10%', theme_card: '0 0% 100%' } },
+    { name: 'Bold Trendy', colors: { theme_primary: '82 84% 67%', theme_secondary: '330 81% 70%', theme_accent: '0 0% 100%', theme_background: '0 0% 0%', theme_foreground: '210 20% 98%', theme_card: '0 0% 10%' } },
+    { name: 'Warm Cozy', colors: { theme_primary: '1 48% 53%', theme_secondary: '33 94% 44%', theme_accent: '9 28% 19%', theme_background: '40 82% 97%', theme_foreground: '9 28% 10%', theme_card: '40 82% 94%' } },
+    { name: 'Royal Premium', colors: { theme_primary: '263 67% 35%', theme_secondary: '244 47% 21%', theme_accent: '250 95% 92%', theme_background: '214 15% 91%', theme_foreground: '263 67% 5%', theme_card: '0 0% 100%' } },
     { name: 'Crimson Night', colors: { theme_primary: '355 70% 58%', theme_secondary: '0 0% 13%', theme_accent: '346 41% 57%', theme_background: '0 0% 4%', theme_foreground: '0 0% 98%', theme_card: '0 0% 8%' } },
     { name: 'Oceanic', colors: { theme_primary: '221 41% 45%', theme_secondary: '221 59% 24%', theme_accent: '216 21% 77%', theme_background: '221 39% 11%', theme_foreground: '218 14% 86%', theme_card: '221 39% 15%' } },
     { name: 'Lavender Light', colors: { theme_primary: '255 26% 54%', theme_secondary: '251 29% 96%', theme_accent: '251 51% 80%', theme_background: '0 0% 100%', theme_foreground: '251 14% 11%', theme_card: '251 29% 98%' } },
@@ -225,81 +234,136 @@ export default function AppearanceManagerPage() {
 
   if (isLoading) {
     return (
-        <Card>
-            <CardHeader><Skeleton className="h-8 w-64" /></CardHeader>
-            <CardContent className="space-y-8">
-                <Skeleton className="h-40 w-full" />
-                <Skeleton className="h-40 w-full" />
-                <Skeleton className="h-10 w-32" />
-            </CardContent>
-        </Card>
+        <div className="space-y-6">
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-5 w-96" />
+            <Card>
+                <CardHeader><Skeleton className="h-8 w-64" /></CardHeader>
+                <CardContent className="space-y-8">
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-10 w-32" />
+                </CardContent>
+            </Card>
+        </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Appearance Manager</CardTitle>
-        <CardDescription>
-          Customize the look and feel of your store with custom colors and fonts.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            
-            <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2"><Palette className="h-5 w-5"/> Color Palettes</h3>
-                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    {palettes.map((palette) => (
-                        <button
-                            key={palette.name}
-                            type="button"
-                            onClick={() => handlePaletteSelect(palette)}
-                            className="p-3 border rounded-lg hover:ring-2 hover:ring-primary focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                            <div className="flex gap-1 h-12 w-full mb-2">
-                                {Object.values(palette.colors).map((color, i) => (
-                                    <div key={i} className="flex-1 rounded-sm" style={{ backgroundColor: `hsl(${color})` }} />
-                                ))}
-                            </div>
-                            <p className="text-sm font-medium">{palette.name}</p>
-                        </button>
-                    ))}
-                 </div>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold tracking-tight">Appearance Manager</h1>
+        <p className="text-muted-foreground">Customize the look and feel of your store with custom colors and fonts.</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5"/> Predefined Palettes</CardTitle>
+          <CardDescription>Quickly switch between professionally designed color themes.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {palettes.map((palette) => (
+                    <button
+                        key={palette.name}
+                        type="button"
+                        onClick={() => handlePaletteSelect(palette)}
+                        className="p-3 border rounded-xl hover:ring-2 hover:ring-primary focus:outline-none focus:ring-2 focus:ring-ring transition-all group bg-card/50"
+                    >
+                        <div className="flex gap-1 h-12 w-full mb-3 rounded-lg overflow-hidden shadow-inner">
+                            {Object.values(palette.colors).map((color, i) => (
+                                <div key={i} className="flex-1" style={{ backgroundColor: `hsl(${color})` }} />
+                            ))}
+                        </div>
+                        <p className="text-xs font-semibold truncate group-hover:text-primary">{palette.name}</p>
+                    </button>
+                ))}
             </div>
+        </CardContent>
+      </Card>
 
-            <Separator />
-            
-            <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">Customize Colors</h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <FormField control={form.control} name="theme_primary" render={({ field }) => <ColorInput field={field} label="Primary" />} />
-                    <FormField control={form.control} name="theme_secondary" render={({ field }) => <ColorInput field={field} label="Secondary" />} />
-                    <FormField control={form.control} name="theme_accent" render={({ field }) => <ColorInput field={field} label="Accent" />} />
-                    <FormField control={form.control} name="theme_background" render={({ field }) => <ColorInput field={field} label="Background" />} />
-                    <FormField control={form.control} name="theme_foreground" render={({ field }) => <ColorInput field={field} label="Foreground" />} />
-                    <FormField control={form.control} name="theme_card" render={({ field }) => <ColorInput field={field} label="Card" />} />
-                </div>
-            </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Custom Styling</CardTitle>
+          <CardDescription>Manually adjust specific colors and typography.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
+              
+              <div className="space-y-6">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Brand Colors</h3>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <FormField control={form.control} name="theme_primary" render={({ field }) => <ColorInput field={field} label="Primary Color" />} />
+                      <FormField control={form.control} name="theme_secondary" render={({ field }) => <ColorInput field={field} label="Secondary Color" />} />
+                      <FormField control={form.control} name="theme_accent" render={({ field }) => <ColorInput field={field} label="Accent Color" />} />
+                  </div>
+              </div>
 
-            <Separator />
+              <Separator />
 
-            <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Fonts</h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <FormField control={form.control} name="font_primary" render={({ field }) => (<FormItem><FormLabel>Primary Font (Body)</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{fontOptions.map(font => <SelectItem key={font} value={font}>{font}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
-                    <FormField control={form.control} name="font_secondary" render={({ field }) => (<FormItem><FormLabel>Secondary Font (Headlines)</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{fontOptions.map(font => <SelectItem key={font} value={font}>{font}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
-                </div>
-            </div>
+              <div className="space-y-6">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Interface Colors</h3>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <FormField control={form.control} name="theme_background" render={({ field }) => <ColorInput field={field} label="Background" />} />
+                      <FormField control={form.control} name="theme_foreground" render={({ field }) => <ColorInput field={field} label="Text / Foreground" />} />
+                      <FormField control={form.control} name="theme_card" render={({ field }) => <ColorInput field={field} label="Card / Surfaces" />} />
+                  </div>
+              </div>
 
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Appearance
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+              <Separator />
+
+              <div className="space-y-6">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Typography</h3>
+                  <div className="grid md:grid-cols-2 gap-6">
+                      <FormField control={form.control} name="font_primary" render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Primary Font (Body)</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                      <SelectTrigger>
+                                          <SelectValue placeholder="Select body font" />
+                                      </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                      {fontOptions.map(font => <SelectItem key={font} value={font}>{font}</SelectItem>)}
+                                  </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                      )}/>
+                      <FormField control={form.control} name="font_secondary" render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Secondary Font (Headlines)</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                      <SelectTrigger>
+                                          <SelectValue placeholder="Select headline font" />
+                                      </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                      {fontOptions.map(font => <SelectItem key={font} value={font}>{font}</SelectItem>)}
+                                  </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                      )}/>
+                  </div>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <Button type="submit" size="lg" disabled={isSubmitting} className="min-w-[200px]">
+                  {isSubmitting ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Changes...</>
+                  ) : (
+                    'Save Appearance'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
