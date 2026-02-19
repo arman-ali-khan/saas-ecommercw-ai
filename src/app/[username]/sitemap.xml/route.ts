@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Product, Page } from '@/types';
@@ -11,22 +12,23 @@ const supabase = createClient(
 
 const generateSitemap = (urls: { loc: string; lastmod: string }[]) => {
     const urlset = urls.map(url => `
-        <url>
-            <loc>${url.loc}</loc>
-            <lastmod>${url.lastmod}</lastmod>
-        </url>
-    `).join('');
+    <url>
+        <loc>${url.loc}</loc>
+        <lastmod>${url.lastmod}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>`).join('');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    ${urlset}
+${urlset}
 </urlset>`;
 };
 
-export async function GET(request: Request, { params }: { params: { username: string } }) {
-    const { username } = params;
+export async function GET(request: Request, { params }: { params: Promise<{ username: string }> }) {
+    const { username } = await params;
     
-    // Determine the base URL from environment variable or request headers.
+    // Determine the base URL from request headers.
     const host = request.headers.get('host');
     const protocol = host?.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
@@ -83,7 +85,8 @@ export async function GET(request: Request, { params }: { params: { username: st
 
     return new NextResponse(sitemap, {
         headers: {
-            'Content-Type': 'application/xml'
+            'Content-Type': 'application/xml',
+            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600'
         }
     });
 }

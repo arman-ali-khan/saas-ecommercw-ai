@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export async function GET(request: Request, { params }: { params: { username: string } }) {
-  const { username } = params;
-  const cookieStore = cookies();
+export async function GET(request: Request, { params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params;
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -49,9 +49,9 @@ export async function GET(request: Request, { params }: { params: { username: st
   const siteInitial = (profile.site_name || 'S').charAt(0).toUpperCase();
 
   const manifest = {
-    name: profile.site_name || 'My Awesome Store',
+    name: profile.site_name || 'Store',
     short_name: profile.site_name || 'Store',
-    description: profile.site_description || `The best products from ${profile.site_name}.`,
+    description: profile.site_description || `E-commerce store.`,
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

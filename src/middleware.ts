@@ -7,21 +7,27 @@ export function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
 
   // 1. SKIP REWRITES FOR SYSTEM PATHS AND ALL API ROUTES
-  // Next.js 15 compatibility: explicit checks
   if (
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/_next') || 
     url.pathname.startsWith('/_static') ||
-    url.pathname.startsWith('/_vercel') ||
-    url.pathname.includes('.') // Skip files with extensions (favicon.ico, images, etc.)
+    url.pathname.startsWith('/_vercel')
   ) {
+    return NextResponse.next();
+  }
+
+  // Handle static files. 
+  // We want to skip them UNLESS they are our specific dynamic files that vary by subdomain.
+  const dynamicFiles = ['/sitemap.xml', '/robots.txt', '/manifest.json'];
+  const isStaticFile = url.pathname.includes('.');
+  
+  if (isStaticFile && !dynamicFiles.includes(url.pathname)) {
     return NextResponse.next();
   }
 
   const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
 
   // 2. Extract subdomain
-  // Use a more robust way to check for root domain including optional port
   const hostWithoutPort = hostname.split(':')[0];
   const isRoot = hostWithoutPort === rootDomain || hostWithoutPort === `www.${rootDomain}`;
 
@@ -37,7 +43,7 @@ export function middleware(request: NextRequest) {
   }
 
   // 3. The Rewrite Rule: Rewrite subdomain to dynamic route /[username]/...
-  // This maps sam.schoolbd.top/admin to /sam/admin internally
+  // This maps sam.schoolbd.top/sitemap.xml to /sam/sitemap.xml internally
   const targetPath = `/${subdomain}${url.pathname}${url.search}`;
   return NextResponse.rewrite(new URL(targetPath, request.url));
 }
