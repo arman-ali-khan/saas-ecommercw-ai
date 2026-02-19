@@ -206,7 +206,7 @@ export default function DashboardTables({
                         <p className="text-xs text-muted-foreground truncate">"{q.question}"</p>
                       </CardContent>
                       <CardFooter className="p-4 pt-0 justify-end">
-                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/qna`}>{t.view}</Link></Button>
+                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/qna`}>{t.view} View</Link></Button>
                       </CardFooter>
                     </Card>
                   ))}
