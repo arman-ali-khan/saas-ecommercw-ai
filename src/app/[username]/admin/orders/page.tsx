@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import en from '@/locales/en.json';
@@ -31,46 +30,33 @@ import { Eye, Loader2 } from 'lucide-react';
 
 const translations = { en, bn };
 
-type Order = {
-    id: string;
-    order_number: string;
-    shipping_info: {
-        name: string;
-        address: string;
-        city: string;
-        phone: string;
-    };
-    customer_email: string;
-    cart_items: {
-        id: string;
-        name: string;
-        quantity: number;
-        price: number;
-        imageUrl: string;
-    }[];
-    created_at: string;
-    total: number;
-    status: string;
-};
-
 export default function OrdersAdminPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
+    const { orders, setOrders } = useAdminStore();
     const { toast } = useToast();
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     
     const lang = user?.language || 'bn';
     const t = translations[lang].orders;
     const statusTranslations = translations[lang].statuses;
     
-    const fetchOrders = useCallback(async () => {
-        if (!user?.id) return;
+    const fetchOrders = useCallback(async (force = false) => {
+        const siteId = user?.id;
+        if (!siteId) return;
+
+        const store = useAdminStore.getState();
+        const isFresh = Date.now() - store.lastFetched.orders < 300000;
+        if (!force && store.orders.length > 0 && isFresh) {
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         try {
             const response = await fetch('/api/orders/list', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ siteId: user.id }),
+                body: JSON.stringify({ siteId }),
             });
             const result = await response.json();
             if (response.ok) {
@@ -83,15 +69,13 @@ export default function OrdersAdminPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [user?.id, toast]);
+    }, [user?.id, setOrders, toast]);
 
     useEffect(() => {
-        if (!authLoading && user) {
+        if (user?.id) {
             fetchOrders();
-        } else if (!authLoading && !user) {
-            setIsLoading(false);
         }
-    }, [user, authLoading, fetchOrders]);
+    }, [user?.id, fetchOrders]);
     
     const translateStatus = (status: string): string => {
         const lowerStatus = status.toLowerCase();
@@ -112,7 +96,7 @@ export default function OrdersAdminPage() {
         }
     };
     
-    if (isLoading) {
+    if (isLoading && orders.length === 0) {
         return (
             <Card>
                 <CardHeader>

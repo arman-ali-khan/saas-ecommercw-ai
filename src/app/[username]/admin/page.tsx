@@ -1,9 +1,9 @@
-
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/stores/auth';
-import type { Order, Product, FlashDeal, ProductReview, ProductQna } from '@/types';
+import { useAdminStore } from '@/stores/useAdminStore';
+import type { Order, Product } from '@/types';
 import Link from 'next/link';
 import { format, subDays } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -13,48 +13,36 @@ import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 
 // Modular Components
-        import DashboardStats from '@/components/admin/dashboard-stats';
-        import DashboardCharts from '@/components/admin/dashboard-charts';
-        import DashboardTables from '@/components/admin/dashboard-tables';
+import DashboardStats from '@/components/admin/dashboard-stats';
+import DashboardCharts from '@/components/admin/dashboard-charts';
+import DashboardTables from '@/components/admin/dashboard-tables';
 
 const translations = { en, bn };
 
 export default function AdminDashboard() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const { dashboard, setDashboard } = useAdminStore();
   const { toast } = useToast();
-  const [stats, setStats] = useState({
-    totalRevenue: 0,
-    totalProducts: 0,
-    uncompletedOrders: 0,
-    totalUncompletedOrders: 0,
-    totalCustomers: 0,
-    ordersThisMonth: 0,
-    activeFlashDeals: 0,
-  });
-  const [allOrders, setAllOrders] = useState<any[]>([]);
-  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
-  const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
-  const [pendingReviews, setPendingReviews] = useState<ProductReview[]>([]);
-  const [unansweredQuestions, setPendingQuestions] = useState<ProductQna[]>([]);
-  const [revenueChartData, setRevenueChartData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const lang = user?.language || 'bn';
   const t = translations[lang].dashboard;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user) {
+  const fetchData = useCallback(async (force = false) => {
+    const siteId = user?.id;
+    if (!siteId) return;
+
+    const store = useAdminStore.getState();
+    const isFresh = Date.now() - store.lastFetched.dashboard < 300000; // 5 mins cache
+    if (!force && store.dashboard && isFresh) {
         setIsLoading(false);
         return;
-      }
-      
-      setIsLoading(true);
-      try {
-        const siteId = user.id;
+    }
+
+    setIsLoading(true);
+    try {
         const sevenDaysAgo = subDays(new Date(), 7);
 
-        // Fetch using created secure APIs
         const [ordersRes, productsRes, uncompletedRes, customersRes, flashDealsRes, reviewsRes, qnaRes] = await Promise.all([
           fetch('/api/orders/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId }) }),
           fetch('/api/products/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId }) }),
@@ -72,18 +60,15 @@ export default function AdminDashboard() {
         const fetchedOrders = ordersResult.orders || [];
         const fetchedProducts = productsResult.products || [];
         const fetchedUncompleted = uncompletedResult.orders || [];
-        const fetchedCustomers = customersResult.customers || [];
         const fetchedDeals = flashDealsResult.deals || [];
         const fetchedReviews = reviewsResult.reviews || [];
         const fetchedQna = qnaResult.qna || [];
 
-        // Stats calculation
         const totalRevenue = fetchedOrders.filter((o: any) => o.status === 'delivered').reduce((acc: number, o: any) => acc + o.total, 0);
         const monthlyOrdersCount = fetchedOrders.filter((o: any) => new Date(o.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && o.status !== 'canceled').length;
         const unviewedCount = fetchedUncompleted.filter((o: any) => !o.is_viewed).length;
         const activeDealsCount = fetchedDeals.filter((d: any) => d.is_active && new Date(d.end_date) > new Date()).length;
 
-        // Revenue Chart (Last 7 days)
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
           const dateStr = format(subDays(new Date(), i), 'MMM d');
@@ -94,39 +79,52 @@ export default function AdminDashboard() {
           if (dailyRevenue.hasOwnProperty(dateStr)) dailyRevenue[dateStr] += o.total;
         });
 
-        setStats({
+        const newDashboardData = {
           totalRevenue,
           totalProducts: fetchedProducts.length,
           uncompletedOrders: unviewedCount,
           totalUncompletedOrders: fetchedUncompleted.length,
-          totalCustomers: fetchedCustomers.length,
+          totalCustomers: (customersResult.customers || []).length,
           ordersThisMonth: monthlyOrdersCount,
           activeFlashDeals: activeDealsCount,
-        });
+          revenueChartData: Object.keys(dailyRevenue).map(date => ({ date, Revenue: dailyRevenue[date] })),
+          pendingOrders: fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5),
+          lowStockProducts: fetchedProducts.filter((p: any) => p.stock !== null && p.stock < 10).slice(0, 5),
+          pendingReviews: fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5),
+          unansweredQuestions: fetchedQna.filter((q: any) => !q.is_approved).slice(0, 5),
+        };
 
-        setAllOrders(fetchedOrders);
-        setRevenueChartData(Object.keys(dailyRevenue).map(date => ({ date, Revenue: dailyRevenue[date] })));
-        setPendingOrders(fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5));
-        setLowStockProducts(fetchedProducts.filter((p: any) => p.stock !== null && p.stock < 10).slice(0, 5));
-        setPendingReviews(fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5));
-        setPendingQuestions(fetchedQna.filter((q: any) => !q.is_approved).slice(0, 5));
-
+        setDashboard(newDashboardData);
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Failed to load dashboard', description: error.message });
       } finally {
         setIsLoading(false);
       }
-    };
-    
-    if (!authLoading) fetchData();
-  }, [user, authLoading, toast]);
+  }, [user?.id, setDashboard, toast]);
+
+  useEffect(() => {
+    if (user?.id) {
+        fetchData();
+    }
+  }, [user?.id, fetchData]);
 
   const productLimit = user?.product_limit;
-  const customerLimit = user?.customer_limit;
-  const orderLimit = user?.order_limit;
-  const isLimitReached = (productLimit !== null && stats.totalProducts >= productLimit) || 
-                         (customerLimit !== null && stats.totalCustomers >= customerLimit) || 
-                         (orderLimit !== null && stats.ordersThisMonth >= orderLimit);
+  const stats = dashboard || {
+    totalRevenue: 0,
+    totalProducts: 0,
+    uncompletedOrders: 0,
+    totalUncompletedOrders: 0,
+    totalCustomers: 0,
+    ordersThisMonth: 0,
+    activeFlashDeals: 0,
+    revenueChartData: [],
+    pendingOrders: [],
+    lowStockProducts: [],
+    pendingReviews: [],
+    unansweredQuestions: [],
+  };
+
+  const isLimitReached = (productLimit !== null && stats.totalProducts >= productLimit);
 
   return (
     <div className="space-y-6">
@@ -150,17 +148,17 @@ export default function AdminDashboard() {
       />
 
       <DashboardCharts 
-        revenueChartData={revenueChartData} 
-        allOrders={allOrders} 
+        revenueChartData={stats.revenueChartData} 
+        allOrders={[]} // This would ideally come from store or separate fetch if needed for detail
         isLoading={isLoading} 
         t={t} 
       />
 
       <DashboardTables 
-        pendingOrders={pendingOrders} 
-        lowStockProducts={lowStockProducts} 
-        pendingReviews={pendingReviews} 
-        unansweredQuestions={unansweredQuestions} 
+        pendingOrders={stats.pendingOrders} 
+        lowStockProducts={stats.lowStockProducts} 
+        pendingReviews={stats.pendingReviews} 
+        unansweredQuestions={stats.unansweredQuestions} 
         isLoading={isLoading} 
         t={t} 
       />

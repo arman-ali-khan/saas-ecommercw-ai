@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -26,13 +25,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2 } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { useEffect, useState, useCallback } from 'react';
 import type { Product } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
@@ -40,10 +39,10 @@ import bn from '@/locales/bn.json';
 const translations = { en, bn };
 
 export default function ProductsAdminPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const { products, setProducts } = useAdminStore();
   const { toast } = useToast();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
@@ -51,14 +50,23 @@ export default function ProductsAdminPage() {
   const t = translations[lang].products;
   const common = translations[lang].common;
 
-  const fetchProducts = useCallback(async () => {
-    if (!user) return;
+  const fetchProducts = useCallback(async (force = false) => {
+    const siteId = user?.id;
+    if (!siteId) return;
+
+    const store = useAdminStore.getState();
+    const isFresh = Date.now() - store.lastFetched.products < 300000;
+    if (!force && store.products.length > 0 && isFresh) {
+        setIsLoading(false);
+        return;
+    }
+
     setIsLoading(true);
     try {
         const response = await fetch('/api/products/list', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId: user.id }),
+            body: JSON.stringify({ siteId }),
         });
         const result = await response.json();
         if (response.ok) {
@@ -75,15 +83,13 @@ export default function ProductsAdminPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [user, toast]);
+  }, [user?.id, setProducts, toast]);
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (user?.id) {
       fetchProducts();
-    } else if (!authLoading && !user) {
-      setIsLoading(false);
     }
-  }, [user, authLoading, fetchProducts]);
+  }, [user?.id, fetchProducts]);
 
   const handleDelete = async () => {
     if (!productToDelete || !user) return;
@@ -106,7 +112,7 @@ export default function ProductsAdminPage() {
         }
 
       toast({ title: 'Product deleted' });
-      await fetchProducts();
+      await fetchProducts(true);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -119,7 +125,7 @@ export default function ProductsAdminPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && products.length === 0) {
     return (
       <div className="flex items-center justify-center p-16">
         <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
@@ -213,6 +219,7 @@ export default function ProductsAdminPage() {
                               <Link
                                 href={`/products/${product.id}`}
                                 target="_blank"
+                                className="cursor-pointer"
                               >
                                 <Eye className="mr-2 h-4 w-4" /> {t.view}
                               </Link>
@@ -220,12 +227,13 @@ export default function ProductsAdminPage() {
                             <DropdownMenuItem asChild>
                               <Link
                                 href={`/admin/products/${product.id}`}
+                                className="cursor-pointer"
                               >
                                 <Edit className="mr-2 h-4 w-4" /> {t.edit}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="text-destructive"
+                              className="text-destructive cursor-pointer"
                               onClick={() => setProductToDelete(product)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -259,17 +267,17 @@ export default function ProductsAdminPage() {
                       />
                     </div>
                     <div className="flex-grow">
-                      <CardTitle>{product.name}</CardTitle>
+                      <CardTitle className="text-base">{product.name}</CardTitle>
                       <CardDescription>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {product.categories?.map((cat) => (
-                            <Badge key={cat} variant="outline">
+                            <Badge key={cat} variant="outline" className="text-[10px]">
                               {cat}
                             </Badge>
                           ))}
                         </div>
                       </CardDescription>
-                      <p className="font-semibold text-lg mt-2">
+                      <p className="font-semibold text-lg mt-2 text-primary">
                         {product.price.toFixed(2)} {product.currency}
                       </p>
                     </div>
@@ -284,6 +292,7 @@ export default function ProductsAdminPage() {
                           <Link
                             href={`/products/${product.id}`}
                             target="_blank"
+                            className="cursor-pointer"
                           >
                             <Eye className="mr-2 h-4 w-4" /> {t.view}
                           </Link>
@@ -291,12 +300,13 @@ export default function ProductsAdminPage() {
                         <DropdownMenuItem asChild>
                           <Link
                             href={`/admin/products/${product.id}`}
+                            className="cursor-pointer"
                           >
                             <Edit className="mr-2 h-4 w-4" /> {t.edit}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-destructive"
+                          className="text-destructive cursor-pointer"
                           onClick={() => setProductToDelete(product)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -311,28 +321,32 @@ export default function ProductsAdminPage() {
           </div>
         </>
       )}
+
+      {/* Raw Tailwind Delete Modal */}
       {productToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0">
-            <div className="w-full max-w-md p-6 bg-background rounded-lg shadow-xl border animate-in zoom-in-95">
-                <div className="text-center sm:text-left">
-                    <h3 className="text-lg font-semibold text-foreground">{common.confirmDelete}</h3>
-                    <div className="mt-2">
-                        <p className="text-sm text-muted-foreground">
-                            {common.deleteWarning} "{productToDelete.name}" মুছে ফেলা হবে।
-                        </p>
-                    </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setProductToDelete(null)} />
+            <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center gap-3 mb-4 text-destructive">
+                    <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                    <h3 className="text-xl font-bold text-foreground">{common.confirmDelete}</h3>
                 </div>
-                <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-                    <Button variant="outline" onClick={() => setProductToDelete(null)}>
-                    {common.cancel}
+                <div className="mb-8">
+                    <p className="text-muted-foreground leading-relaxed">
+                        {common.deleteWarning} <strong>"{productToDelete?.name}"</strong> মুছে ফেলা হবে।
+                    </p>
+                </div>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                    <Button variant="outline" onClick={() => setProductToDelete(null)} disabled={isDeleting}>
+                        {common.cancel}
                     </Button>
                     <Button
+                        variant="destructive"
                         onClick={handleDelete}
                         disabled={isDeleting}
-                        className={cn(buttonVariants({ variant: 'destructive' }))}
                     >
-                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {common.delete}
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {common.delete}
                     </Button>
                 </div>
             </div>
