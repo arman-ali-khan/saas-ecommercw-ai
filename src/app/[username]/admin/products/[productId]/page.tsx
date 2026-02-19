@@ -39,12 +39,21 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import RichTextEditor from '@/components/rich-text-editor';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+
+const UNIT_TYPES = ['KG', 'Litter', 'GM', 'ML', 'Pcs', 'Pkt', 'Box', 'Dozen'];
 
 const productFormSchema = z.object({
   id: z.string().min(3, 'ID/Slug must be at least 3 characters.').regex(/^[a-z0-9\u0980-\u09FF-]+$/, 'Slug can only contain lowercase letters, numbers, hyphens, and Bengali characters.'),
@@ -68,7 +77,8 @@ const productFormSchema = z.object({
   flash_deal_range: z.object({ startDate: z.any().optional(), endDate: z.any().optional() }).optional(),
   use_variants: z.boolean().default(false),
   variants: z.array(z.object({
-    unit: z.string().min(1, 'Unit is required'),
+    amount: z.string().min(1, 'Amount is required'),
+    unitType: z.string().min(1, 'Unit is required'),
     price: z.preprocess((a) => parseFloat(String(a)), z.number().positive('Price must be positive')),
     stock: z.preprocess((a) => parseInt(String(a), 10), v => v == null ? 0 : v).optional(),
   })).optional().or(z.null()),
@@ -131,8 +141,6 @@ export default function ManageProductPage() {
     if (isNew && draftKey && !isLoading && form.formState.isDirty) {
         const timeout = setTimeout(() => { 
             const dataToSave = { ...form.getValues() };
-            if (dataToSave.flash_deal_range?.startDate instanceof Date) dataToSave.flash_deal_range.startDate = dataToSave.flash_deal_range.startDate.toISOString();
-            if (dataToSave.flash_deal_range?.endDate instanceof Date) dataToSave.flash_deal_range.endDate = dataToSave.flash_deal_range.endDate.toISOString();
             localStorage.setItem(draftKey, JSON.stringify(dataToSave)); 
         }, 1000);
         return () => clearTimeout(timeout);
@@ -157,10 +165,6 @@ export default function ManageProductPage() {
     if (savedDraft) {
         try {
             const parsed = JSON.parse(savedDraft);
-            if (parsed.flash_deal_range) {
-                if (parsed.flash_deal_range.startDate) parsed.flash_deal_range.startDate = new Date(parsed.flash_deal_range.startDate);
-                if (parsed.flash_deal_range.endDate) parsed.flash_deal_range.endDate = new Date(parsed.flash_deal_range.endDate);
-            }
             form.reset(parsed);
             setHasDraft(false);
             toast({ title: 'ড্রাফট রিকভার করা হয়েছে!' });
@@ -177,25 +181,17 @@ export default function ManageProductPage() {
                 fetch('/api/attributes/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } }),
                 fetch('/api/categories/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } })
             ]);
-            
             const attrResult = await attrResponse.json();
             const catResult = await catResponse.json();
-
             if (attrResponse.ok) setAttributes(attrResult.attributes as ProductAttribute[]);
             if (catResponse.ok) setCategories(catResult.categories as Category[]);
-        } catch (error) {
-            console.error("Lookup fetch error:", error);
-        }
+        } catch (error) { console.error("Lookup fetch error:", error); }
     };
 
     if (isNew) {
         fetchLookups();
         setIsLoading(false);
         return;
-    }
-
-    if (!form.getValues('name')) {
-        setIsLoading(true);
     }
 
     try {
@@ -209,14 +205,26 @@ export default function ManageProductPage() {
 
         if (response.ok) {
             const { product: productData, flashDeal: flashDealData } = result;
+            
+            // Map variants back to UI format (splitting "1 KG" into amount="1" unitType="KG")
+            const mappedVariants = (productData.variants || []).map((v: any) => {
+                const parts = v.unit.split(' ');
+                return {
+                    amount: parts[0] || '1',
+                    unitType: parts[1] || 'KG',
+                    price: v.price,
+                    stock: v.stock
+                };
+            });
+
             form.reset({
                 ...productData,
                 images: (productData.images || []).map((img: any) => ({ imageUrl: img.imageUrl || '', imageHint: img.imageHint || '' })),
                 has_flash_deal: !!flashDealData,
                 flash_deal_price: flashDealData?.discount_price,
                 flash_deal_range: flashDealData ? { startDate: new Date(flashDealData.start_date), endDate: new Date(flashDealData.end_date) } : { startDate: undefined, endDate: undefined },
-                use_variants: !!(productData.variants && productData.variants.length > 0),
-                variants: productData.variants || []
+                use_variants: !!(mappedVariants.length > 0),
+                variants: mappedVariants
             });
         } else {
             throw new Error(result.error || 'Product not found.');
@@ -230,9 +238,7 @@ export default function ManageProductPage() {
   }, [productId, isNew, user, router, toast, form, setAttributes, setCategories]);
 
   useEffect(() => {
-    if (user) {
-        fetchProductData();
-    }
+    if (user) fetchProductData();
   }, [user, fetchProductData]);
 
   const groupedAttributes = useMemo(() => attributes.reduce((acc, attr) => { (acc[attr.type] = acc[attr.type] || []).push(attr.value); return acc; }, {} as Record<string, string[]>), [attributes]);
@@ -253,24 +259,16 @@ export default function ManageProductPage() {
                 categories: watchedValues.categories
             }),
         });
-
         const result = await response.json();
-
         if (response.ok) {
             form.setValue('name', result.name, { shouldValidate: true, shouldDirty: true });
             form.setValue('description', result.description, { shouldValidate: true, shouldDirty: true });
             form.setValue('story', result.story, { shouldValidate: true, shouldDirty: true });
             form.setValue('origin', result.origin, { shouldValidate: true, shouldDirty: true });
             form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
-            toast({ title: 'SEO Beautification সম্পন্ন!', description: 'সকল তথ্য আপডেট করা হয়েছে।' });
-        } else {
-            throw new Error(result.error || 'AI Beautification failed');
-        }
-    } catch (e: any) {
-        toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message });
-    } finally {
-        setIsBeautifying(false);
-    }
+            toast({ title: 'SEO Beautification সম্পন্ন!' });
+        } else { throw new Error(result.error); }
+    } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsBeautifying(false); }
   };
 
   const handleGenerateDescription = async () => {
@@ -288,20 +286,12 @@ export default function ManageProductPage() {
                 origin: watchedValues.origin
             }),
         });
-
         const result = await response.json();
-
         if (response.ok) {
             form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
-            toast({ title: 'AI ম্যাজিক সম্পন্ন!', description: 'বিস্তারিত বিবরণ সফলভাবে তৈরি হয়েছে।' });
-        } else {
-            throw new Error(result.error || 'AI generation failed');
-        }
-    } catch (e: any) { 
-        toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); 
-    } finally { 
-        setIsGenerating(false); 
-    }
+            toast({ title: 'AI ম্যাজিক সম্পন্ন!' });
+        } else { throw new Error(result.error); }
+    } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsGenerating(false); }
   };
 
   const onSubmit = async (values: ProductFormData) => {
@@ -309,7 +299,14 @@ export default function ManageProductPage() {
     setIsSubmitting(true);
     const { has_flash_deal, flash_deal_price, flash_deal_range, use_variants, ...productValues } = values;
     
-    if (!use_variants) {
+    // Process variants to combine amount and unitType into unit string for DB
+    if (use_variants && values.variants) {
+        productValues.variants = values.variants.map(v => ({
+            unit: `${v.amount} ${v.unitType}`,
+            price: v.price,
+            stock: v.stock || 0
+        }));
+    } else {
         productValues.variants = null;
     }
 
@@ -320,7 +317,7 @@ export default function ManageProductPage() {
             body: JSON.stringify({
                 isNew, siteId: user.id, productId: isNew ? undefined : decodeURIComponent(productId),
                 productData: { ...productValues, images: productValues.images.filter((img) => img.imageUrl) },
-                flashDealData: has_flash_deal ? { discount_price: flash_deal_price, start_date: flash_deal_range?.startDate instanceof Date ? flash_deal_range.startDate.toISOString() : flash_deal_range?.startDate, end_date: flash_deal_range?.endDate instanceof Date ? flash_deal_range.endDate.toISOString() : flash_deal_range?.endDate } : null
+                flashDealData: has_flash_deal ? { discount_price: flash_deal_price, start_date: flash_deal_range?.startDate, end_date: flash_deal_range?.endDate } : null
             })
         });
         if (!response.ok) {
@@ -335,28 +332,13 @@ export default function ManageProductPage() {
     } catch (error: any) { setIsSubmitting(false); toast({ variant: 'destructive', title: `Error`, description: error.message }); }
   };
 
-  const handleSetMainImage = (index: number) => {
-    if (index === 0) return;
-    moveImage(index, 0);
-    toast({ title: 'থাম্বনেইল সেট করা হয়েছে' });
-  };
-
-  const isActuallyLoading = isNew ? (isLoading && categories.length === 0) : isLoading;
-  const isAuthBlocked = authLoading && !user;
-
-  if (isActuallyLoading || isAuthBlocked) {
+  if (isLoading || (authLoading && !user)) {
       return (
         <div className="space-y-6">
             <Skeleton className="h-10 w-48" />
             <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                    <Skeleton className="h-64 w-full" />
-                    <Skeleton className="h-40 w-full" />
-                </div>
-                <div className="space-y-8">
-                    <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-64 w-full" />
-                </div>
+                <div className="lg:col-span-2 space-y-8"><Skeleton className="h-64 w-full" /><Skeleton className="h-40 w-full" /></div>
+                <div className="space-y-8"><Skeleton className="h-48 w-full" /><Skeleton className="h-64 w-full" /></div>
             </div>
         </div>
       );
@@ -370,9 +352,7 @@ export default function ManageProductPage() {
   return (
     <div className="pb-20">
       <div className="flex items-center justify-between mb-6">
-        <Button variant="ghost" asChild className="-ml-4">
-            <Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" />পণ্য তালিকায় ফিরে যান</Link>
-        </Button>
+        <Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" />পণ্য তালিকায় ফিরে যান</Link></Button>
         <div className="flex gap-2">
              <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>বাতিল</Button>
              <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
@@ -383,15 +363,12 @@ export default function ManageProductPage() {
       </div>
 
       {isNew && hasDraft && (
-        <Alert className="mb-6 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500">
+        <Alert className="mb-6 border-primary bg-primary/5">
             <RotateCcw className="h-4 w-4 text-primary" />
             <AlertTitle className="font-bold">অসম্পূর্ণ ডাটা পাওয়া গেছে!</AlertTitle>
-            <AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <span className="text-foreground/90">আপনার কাছে একটি অসম্পূর্ণ পণ্যের তথ্য রয়েছে। আপনি কি সেটি রিকভার করতে চান?</span>
-                <div className="flex gap-2 shrink-0">
-                    <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(draftKey!); setHasDraft(false); }} className="h-8 border-destructive text-destructive hover:bg-destructive/10">মুছে ফেলুন</Button>
-                    <Button size="sm" onClick={applyDraft} className="h-8">রিকভার করুন</Button>
-                </div>
+            <AlertDescription className="mt-2 flex justify-between items-center gap-4">
+                <span>আপনি কি আগের অসম্পূর্ণ ডাটা রিকভার করতে চান?</span>
+                <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(draftKey!); setHasDraft(false); }}>মুছে ফেলুন</Button><Button size="sm" onClick={applyDraft}>রিকভার করুন</Button></div>
             </AlertDescription>
         </Alert>
       )}
@@ -402,309 +379,102 @@ export default function ManageProductPage() {
                 <div className="lg:col-span-2 space-y-8">
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30 flex flex-row items-center justify-between space-y-0">
-                            <div>
-                                <CardTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary" /> সাধারণ তথ্য</CardTitle>
-                                <CardDescription>পণ্যের নাম, স্লাগ এবং সংক্ষিপ্ত বর্ণনা প্রদান করুন।</CardDescription>
-                            </div>
-                            <Button 
-                                type="button" 
-                                variant="secondary" 
-                                size="sm" 
-                                onClick={handleBeautify}
-                                disabled={isBeautifying}
-                                className="bg-primary/10 text-primary hover:bg-primary/20"
-                            >
-                                {isBeautifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                Beautify Product Details
-                            </Button>
+                            <div><CardTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary" /> সাধারণ তথ্য</CardTitle><CardDescription>পণ্যের নাম এবং বর্ণনা প্রদান করুন।</CardDescription></div>
+                            <Button type="button" variant="secondary" size="sm" onClick={handleBeautify} disabled={isBeautifying}>{isBeautifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />} Beautify Details</Button>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
-                            <FormField control={form.control} name="name" render={({ field: nameField }) => (
-                                <FormItem>
-                                    <FormLabel className="font-bold">পণ্যের নাম</FormLabel>
-                                    <FormControl><Input {...nameField} placeholder="যেমন: হিমসাগর আম (৫ কেজি)" className="h-12 text-lg font-medium" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            
-                            <FormField control={form.control} name="id" render={({ field: idField }) => (
-                                <FormItem>
-                                    <FormLabel className="flex items-center gap-2">ইউনিক আইডি / স্লাগ (Slug) <Badge variant="secondary" className="text-[10px] h-4">স্বয়ংক্রিয়</Badge></FormLabel>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <Input {...idField} placeholder="যেমন: himsagar-mango-5kg" disabled={!isNew} className="pl-8 font-mono text-sm bg-muted/20" />
-                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">/</span>
-                                        </div>
-                                    </FormControl>
-                                    <FormDescription className="text-[11px]">এটি আপনার পণ্যের ইউআরএল হিসেবে ব্যবহৃত হবে।</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-
-                            <FormField control={form.control} name="description" render={({ field: descField }) => (
-                                <FormItem>
-                                    <FormLabel className="font-bold">সংক্ষিপ্ত বিবরণ (Short Description)</FormLabel>
-                                    <FormControl><Textarea {...descField} placeholder="পণ্য সম্পর্কে ছোট করে ২-৩ লাইন লিখুন যা গ্রাহক প্রথমেই দেখবে।" rows={3} className="resize-none" /></FormControl>
-                                    <FormDescription className="text-[11px]">এটি পণ্যের নামের নিচে প্রদর্শিত হবে।</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-
-                            <FormField control={form.control} name="story" render={({ field: storyField }) => (
-                                <FormItem>
-                                    <FormLabel className="font-bold">আমাদের গল্প (Our Story)</FormLabel>
-                                    <FormControl><Textarea {...storyField} placeholder="পণ্যটি সম্পর্কে কোনো বিশেষ গল্প বা প্রেক্ষাপট থাকলে এখানে লিখুন।" rows={3} className="resize-none" /></FormControl>
-                                    <FormDescription className="text-[11px]">এটি পণ্যের বিস্তারিত পাতায় প্রদর্শিত হবে।</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+                            <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel className="font-bold">পণ্যের নাম</FormLabel><FormControl><Input {...field} placeholder="যেমন: হিমসাগর আম (৫ কেজি)" className="h-12 text-lg font-medium" /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="id" render={({ field }) => (<FormItem><FormLabel>ইউনিক আইডি / স্লাগ (Slug)</FormLabel><FormControl><div className="relative"><Input {...field} placeholder="যেমন: himsagar-mango-5kg" disabled={!isNew} className="pl-8 font-mono text-sm bg-muted/20" /><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">/</span></div></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel className="font-bold">সংক্ষিপ্ত বিবরণ</FormLabel><FormControl><Textarea {...field} placeholder="২-৩ লাইনে পণ্যের হাইলাইট লিখুন।" rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="story" render={({ field }) => (<FormItem><FormLabel className="font-bold">আমাদের গল্প (Our Story)</FormLabel><FormControl><Textarea {...field} placeholder="পণ্যটি সম্পর্কে কোনো বিশেষ প্রেক্ষাপট থাকলে এখানে লিখুন।" rows={3} /></FormControl><FormMessage /></FormItem>)} />
                         </CardContent>
                     </Card>
 
                     <Card className="shadow-sm border-2">
-                        <CardHeader className="bg-muted/30">
-                            <CardTitle className="flex items-center gap-2"><Star className="h-5 w-5 text-primary" /> পণ্যের ছবিসমূহ</CardTitle>
-                            <CardDescription>পণ্যের পরিষ্কার এবং আকর্ষণীয় ছবি আপলোড করুন।</CardDescription>
-                        </CardHeader>
+                        <CardHeader className="bg-muted/30"><CardTitle className="flex items-center gap-2"><Star className="h-5 w-5 text-primary" /> পণ্যের ছবিসমূহ</CardTitle></CardHeader>
                         <CardContent className="pt-6">
-                            <FormItem>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                    {imageFields.map((imageItem, imageIndex) => (
-                                        <div key={imageItem.id} className={cn(
-                                            "relative aspect-square rounded-xl overflow-hidden border-2 group transition-all",
-                                            imageIndex === 0 ? "border-primary ring-4 ring-primary/10 shadow-lg" : "border-border"
-                                        )}>
-                                            <Image src={imageItem.imageUrl} alt={`Product ${imageIndex + 1}`} fill className="object-cover" />
-                                            
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                                {imageIndex !== 0 && (
-                                                    <Button 
-                                                        type="button" 
-                                                        variant="secondary" 
-                                                        size="sm" 
-                                                        className="h-8 text-[10px] rounded-full"
-                                                        onClick={() => handleSetMainImage(imageIndex)}
-                                                    >
-                                                        <Star className="h-3 w-3 mr-1" /> থাম্বনেইল করুন
-                                                    </Button>
-                                                )}
-                                                <Button 
-                                                    type="button" 
-                                                    variant="destructive" 
-                                                    size="icon" 
-                                                    className="h-8 w-8 rounded-full" 
-                                                    onClick={() => removeImage(imageIndex)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-
-                                            {imageIndex === 0 && (
-                                                <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] shadow-sm">থাম্বনেইল</Badge>
-                                            )}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {imageFields.map((imageItem, imageIndex) => (
+                                    <div key={imageItem.id} className={cn("relative aspect-square rounded-xl overflow-hidden border-2 group", imageIndex === 0 ? "border-primary ring-4 ring-primary/10" : "border-border")}>
+                                        <Image src={imageItem.imageUrl} alt={`Product ${imageIndex + 1}`} fill className="object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                            {imageIndex !== 0 && <Button type="button" variant="secondary" size="sm" className="h-8 text-[10px] rounded-full" onClick={() => moveImage(imageIndex, 0)}><Star className="h-3 w-3 mr-1" /> থাম্বনেইল করুন</Button>}
+                                            <Button type="button" variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => removeImage(imageIndex)}><Trash2 className="h-4 w-4" /></Button>
                                         </div>
-                                    ))}
-                                    <div className="aspect-square flex flex-col items-center justify-center border-2 border-dashed rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                                        <ImageUploader multiple onUpload={(res) => appendImage({ imageUrl: res.info.secure_url, imageHint: '' })} label="ছবি যোগ করুন" />
+                                        {imageIndex === 0 && <Badge className="absolute top-2 left-2">থাম্বনেইল</Badge>}
                                     </div>
-                                </div>
-                                <FormMessage className="mt-4">{form.formState.errors.images?.message}</FormMessage>
-                            </FormItem>
+                                ))}
+                                <div className="aspect-square flex flex-col items-center justify-center border-2 border-dashed rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"><ImageUploader multiple onUpload={(res) => appendImage({ imageUrl: res.info.secure_url, imageHint: '' })} label="ছবি যোগ করুন" /></div>
+                            </div>
+                            <FormMessage className="mt-4">{form.formState.errors.images?.message}</FormMessage>
                         </CardContent>
                     </Card>
 
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30 flex flex-row items-center justify-between space-y-0">
-                            <div>
-                                <CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> বিস্তারিত বিবরণ</CardTitle>
-                                <CardDescription>পণ্যের বিস্তারিত তথ্য এবং গল্প শেয়ার করুন।</CardDescription>
-                            </div>
-                            <Button 
-                                type="button" 
-                                variant="outline" 
-                                size="sm" 
-                                className="bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
-                                onClick={handleGenerateDescription} 
-                                disabled={isGenerating}
-                            >
-                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                                AI দিয়ে জেনারেট করুন
-                            </Button>
+                            <div><CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> বিস্তারিত বিবরণ</CardTitle></div>
+                            <Button type="button" variant="outline" size="sm" onClick={handleGenerateDescription} disabled={isGenerating}>{isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />} AI দিয়ে জেনারেট করুন</Button>
                         </CardHeader>
-                        <CardContent className="pt-6">
-                            <FormField control={form.control} name="long_description" render={({ field: longDescField }) => (
-                                <FormItem>
-                                    <FormControl><RichTextEditor value={longDescField.value || ''} onChange={longDescField.onChange} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                        </CardContent>
+                        <CardContent className="pt-6"><FormField control={form.control} name="long_description" render={({ field }) => (<FormItem><FormControl><RichTextEditor value={field.value || ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} /></CardContent>
                     </Card>
                 </div>
 
                 <div className="space-y-8">
                     <Card className="shadow-sm border-2">
-                        <CardHeader className="bg-muted/30">
-                            <CardTitle>মূল্য এবং স্টক</CardTitle>
-                        </CardHeader>
+                        <CardHeader className="bg-muted/30"><CardTitle>মূল্য এবং স্টক</CardTitle></CardHeader>
                         <CardContent className="space-y-6 pt-6">
-                            <FormField control={form.control} name="use_variants" render={({ field: variantSwitchField }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-muted/20">
-                                    <div className="space-y-0.5">
-                                        <FormLabel className="text-sm font-bold">একাধিক মূল্য ব্যবহার করুন</FormLabel>
-                                        <FormDescription className="text-[10px]">ওজন বা মাপ অনুযায়ী আলাদা দাম সেট করুন।</FormDescription>
-                                    </div>
-                                    <FormControl><Switch checked={variantSwitchField.value} onCheckedChange={variantSwitchField.onChange} /></FormControl>
-                                </FormItem>
-                            )} />
+                            <FormField control={form.control} name="use_variants" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-muted/20"><div className="space-y-0.5"><FormLabel className="text-sm font-bold">একাধিক মূল্য ব্যবহার করুন</FormLabel><FormDescription className="text-[10px]">ওজন বা মাপ অনুযায়ী আলাদা দাম।</FormDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
 
                             {!watchedValues.use_variants ? (
-                                <div className="space-y-6 animate-in fade-in duration-300">
-                                    <FormField control={form.control} name="price" render={({ field: priceField }) => (
-                                        <FormItem>
-                                            <FormLabel>বিক্রয় মূল্য (BDT)</FormLabel>
-                                            <FormControl><Input type="number" step="0.01" {...priceField} className="h-11 font-bold text-lg" /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="stock" render={({ field: stockField }) => (
-                                        <FormItem>
-                                            <FormLabel>স্টক পরিমাণ (Stock)</FormLabel>
-                                            <FormControl><Input type="number" step="1" {...stockField} className="h-11" /></FormControl>
-                                            <FormDescription className="text-[10px]">আপনার কাছে কতগুলো পণ্য বিক্রয়ের জন্য রয়েছে।</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
+                                <div className="space-y-6 animate-in fade-in">
+                                    <FormField control={form.control} name="price" render={({ field }) => (<FormItem><FormLabel>বিক্রয় মূল্য (BDT)</FormLabel><FormControl><Input type="number" step="0.01" {...field} className="h-11 font-bold text-lg" /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="stock" render={({ field }) => (<FormItem><FormLabel>স্টক পরিমাণ (Stock)</FormLabel><FormControl><Input type="number" {...field} className="h-11" /></FormControl><FormMessage /></FormItem>)} />
                                 </div>
                             ) : (
-                                <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                <div className="space-y-4 animate-in slide-in-from-top-2">
                                     <div className="space-y-3">
                                         {variantFields.map((v, i) => (
-                                            <div key={v.id} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-xl bg-card relative group">
-                                                <div className="col-span-4">
-                                                    <FormField control={form.control} name={`variants.${i}.unit`} render={({ field: vUnitField }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="text-[10px] uppercase font-bold">ইউনিট</FormLabel>
-                                                            <FormControl>
-                                                                <DropdownMenu>
-                                                                    <DropdownMenuTrigger asChild>
-                                                                        <Button variant="outline" size="sm" className="w-full justify-between font-normal h-9">
-                                                                            <span className="truncate">{vUnitField.value || "সিলেক্ট"}</span>
-                                                                            <ChevronDown className="h-3 w-3 opacity-50" />
-                                                                        </Button>
-                                                                    </DropdownMenuTrigger>
-                                                                    <DropdownMenuContent className="w-40">
-                                                                        {(groupedAttributes['unit'] || []).map((u) => (
-                                                                            <DropdownMenuCheckboxItem key={u} checked={vUnitField.value === u} onCheckedChange={() => form.setValue(`variants.${i}.unit` as any, u)}>
-                                                                                {u}
-                                                                            </DropdownMenuCheckboxItem>
-                                                                        ))}
-                                                                        <DropdownMenuCheckboxItem checked={false} onSelect={() => { const custom = prompt("নতুন ইউনিট লিখুন (উদা: ৫ কেজি)"); if(custom) form.setValue(`variants.${i}.unit` as any, custom); }}>
-                                                                            + কাস্টম ইউনিট
-                                                                        </DropdownMenuCheckboxItem>
-                                                                    </DropdownMenuContent>
-                                                                </DropdownMenu>
-                                                            </FormControl>
-                                                        </FormItem>
+                                            <div key={v.id} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-xl bg-card relative">
+                                                <div className="col-span-3">
+                                                    <FormField control={form.control} name={`variants.${i}.amount`} render={({ field }) => (
+                                                        <FormItem><FormLabel className="text-[10px] uppercase font-bold">পরিমাণ</FormLabel><FormControl><Input placeholder="1" {...field} className="h-9 px-2" /></FormControl></FormItem>
                                                     )} />
                                                 </div>
-                                                <div className="col-span-4">
-                                                    <FormField control={form.control} name={`variants.${i}.price`} render={({ field: vPriceField }) => (
+                                                <div className="col-span-3">
+                                                    <FormField control={form.control} name={`variants.${i}.unitType`} render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel className="text-[10px] uppercase font-bold">মূল্য</FormLabel>
-                                                            <FormControl><Input type="number" step="0.01" {...vPriceField} className="h-9 px-2 font-bold" /></FormControl>
+                                                            <FormLabel className="text-[10px] uppercase font-bold">একক</FormLabel>
+                                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                                <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="কেজি" /></SelectTrigger></FormControl>
+                                                                <SelectContent>{UNIT_TYPES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                                                            </Select>
                                                         </FormItem>
                                                     )} />
                                                 </div>
                                                 <div className="col-span-3">
-                                                    <FormField control={form.control} name={`variants.${i}.stock`} render={({ field: vStockField }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="text-[10px] uppercase font-bold">স্টক</FormLabel>
-                                                            <FormControl><Input type="number" step="1" {...vStockField} className="h-9 px-2" /></FormControl>
-                                                        </FormItem>
-                                                    )} />
+                                                    <FormField control={form.control} name={`variants.${i}.price`} render={({ field }) => (<FormItem><FormLabel className="text-[10px] uppercase font-bold">মূল্য</FormLabel><FormControl><Input type="number" step="0.01" {...field} className="h-9 px-2 font-bold" /></FormControl></FormItem>)} />
                                                 </div>
-                                                <div className="col-span-1 pb-1">
-                                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeVariant(i)}><Trash2 className="h-4 w-4" /></Button>
+                                                <div className="col-span-2">
+                                                    <FormField control={form.control} name={`variants.${i}.stock`} render={({ field }) => (<FormItem><FormLabel className="text-[10px] uppercase font-bold">স্টক</FormLabel><FormControl><Input type="number" {...field} className="h-9 px-2 text-xs" /></FormControl></FormItem>)} />
                                                 </div>
+                                                <div className="col-span-1 pb-1"><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeVariant(i)}><Trash2 className="h-4 w-4" /></Button></div>
                                             </div>
                                         ))}
                                     </div>
-                                    <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ unit: '', price: 0, stock: 0 })}>
-                                        <Plus className="mr-2 h-4 w-4" /> নতুন ইউনিট যোগ করুন
-                                    </Button>
-                                    <FormMessage>{form.formState.errors.variants?.message}</FormMessage>
+                                    <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ amount: '1', unitType: 'KG', price: 0, stock: 0 })}><Plus className="mr-2 h-4 w-4" /> নতুন ইউনিট যোগ করুন</Button>
                                 </div>
                             )}
                         </CardContent>
                     </Card>
 
                     <Card className="shadow-sm border-2">
-                        <CardHeader className="bg-muted/30">
-                            <CardTitle>ক্যাটাগরি এবং ফিল্টার</CardTitle>
-                        </CardHeader>
+                        <CardHeader className="bg-muted/30"><CardTitle>ক্যাটাগরি এবং ফিল্টার</CardTitle></CardHeader>
                         <CardContent className="space-y-6 pt-6">
-                            <FormField control={form.control} name="categories" render={({ field: catField }) => (
-                                <FormItem>
-                                    <FormLabel>ক্যাটাগরি সিলেক্ট করুন</FormLabel>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" className="w-full h-11 justify-between font-normal">
-                                                <span className="truncate pr-2">{catField.value?.length ? catField.value.join(', ') : "সিলেক্ট করুন"}</span>
-                                                <ChevronDown className="h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                            {categories.map((cat) => (
-                                                <DropdownMenuCheckboxItem 
-                                                    key={cat.id} 
-                                                    checked={catField.value?.includes(cat.name)} 
-                                                    onCheckedChange={(checked) => catField.onChange(checked ? [...(catField.value || []), cat.name] : catField.value.filter((v) => v !== cat.name))}
-                                                >
-                                                    {cat.name}
-                                                </DropdownMenuCheckboxItem>
-                                            ))}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-
-                            <FormField control={form.control} name="origin" render={({ field: originField }) => (
-                                <FormItem>
-                                    <FormLabel>উৎপত্তি স্থল (Origin)</FormLabel>
-                                    <FormControl><Input {...originField} placeholder="যেমন: রাজশাহী, খুলনা" className="h-11" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-
+                            <FormField control={form.control} name="categories" render={({ field }) => (<FormItem><FormLabel>ক্যাটাগরি সিলেক্ট করুন</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full h-11 justify-between font-normal"><span className="truncate">{field.value?.length ? field.value.join(', ') : "সিলেক্ট করুন"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((cat) => (<DropdownMenuCheckboxItem key={cat.id} checked={field.value?.includes(cat.name)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), cat.name] : field.value.filter((v) => v !== cat.name))}>{cat.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu></FormItem>)} />
+                            <FormField control={form.control} name="origin" render={({ field }) => (<FormItem><FormLabel>উৎপত্তি স্থল (Origin)</FormLabel><FormControl><Input {...field} placeholder="যেমন: রাজশাহী, খুলনা" className="h-11" /></FormControl></FormItem>)} />
                             <div className="space-y-4">
                                 {(['brand', 'color', 'size', 'unit'] as const).map((attrName) => (
-                                    <FormField key={attrName} control={form.control} name={attrName as any} render={({ field: attrValField }) => (
-                                        <FormItem>
-                                            <FormLabel className="capitalize">{attrName === 'unit' ? 'পরিমাপের একক (Unit)' : attrName}</FormLabel>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="outline" className="w-full h-11 justify-between font-normal">
-                                                        <span className="truncate pr-2">{attrValField.value?.length ? attrValField.value.join(', ') : `সিলেক্ট ${attrName}`}</span>
-                                                        <ChevronDown className="h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                                    {(groupedAttributes[attrName] || []).map((opt) => (
-                                                        <DropdownMenuCheckboxItem 
-                                                            key={opt} 
-                                                            checked={attrValField.value?.includes(opt)} 
-                                                            onCheckedChange={(checked) => attrValField.onChange(checked ? [...(attrValField.value || []), opt] : attrValField.value.filter((v: string) => v !== opt))}
-                                                        >
-                                                            {opt}
-                                                        </DropdownMenuCheckboxItem>
-                                                    ))}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
+                                    <FormField key={attrName} control={form.control} name={attrName as any} render={({ field }) => (<FormItem><FormLabel className="capitalize">{attrName === 'unit' ? 'পরিমাপের একক (Unit)' : attrName}</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full h-11 justify-between font-normal"><span className="truncate">{field.value?.length ? field.value.join(', ') : `সিলেক্ট ${attrName}`}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes[attrName] || []).map((opt) => (<DropdownMenuCheckboxItem key={opt} checked={field.value?.includes(opt)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), opt] : field.value.filter((v: string) => v !== opt))}>{opt}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu></FormItem>)} />
                                 ))}
                             </div>
                         </CardContent>
@@ -715,13 +485,7 @@ export default function ManageProductPage() {
             <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-40 md:left-[220px] lg:left-[280px]">
                 <div className="container max-w-5xl mx-auto flex justify-end gap-4">
                     <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>বাতিল করুন</Button>
-                    <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-lg shadow-primary/20">
-                        {isSubmitting ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> সেভ হচ্ছে...</>
-                        ) : (
-                            <><CheckCircle2 className="mr-2 h-4 w-4" /> {isNew ? 'পণ্যটি তৈরি করুন' : 'পরিবর্তনগুলো সেভ করুন'}</>
-                        )}
-                    </Button>
+                    <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-lg shadow-primary/20">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><CheckCircle2 className="mr-2 h-4 w-4" /> {isNew ? 'পণ্যটি তৈরি করুন' : 'সেভ করুন'}</>}</Button>
                 </div>
             </div>
         </form>
