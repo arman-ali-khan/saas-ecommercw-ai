@@ -94,8 +94,8 @@ const productFormSchema = z.object({
     z.number().positive('Discount price must be a positive number.').optional()
   ),
   flash_deal_range: z.object({
-    startDate: z.date().optional(),
-    endDate: z.date().optional(),
+    startDate: z.any().optional(),
+    endDate: z.any().optional(),
   }).optional(),
 }).superRefine((data, ctx) => {
     if (data.has_flash_deal) {
@@ -120,12 +120,16 @@ const productFormSchema = z.object({
                 path: ['flash_deal_range', 'endDate'],
             });
         }
-        if (data.flash_deal_range?.startDate && data.flash_deal_range?.endDate && data.flash_deal_range.endDate <= data.flash_deal_range.startDate) {
-             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "End date must be after the start date.",
-                path: ['flash_deal_range', 'endDate'],
-            });
+        if (data.flash_deal_range?.startDate && data.flash_deal_range?.endDate) {
+            const start = new Date(data.flash_deal_range.startDate);
+            const end = new Date(data.flash_deal_range.endDate);
+            if (end <= start) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "End date must be after the start date.",
+                    path: ['flash_deal_range', 'endDate'],
+                });
+            }
         }
         if (data.flash_deal_price && data.price && data.flash_deal_price >= data.price) {
             ctx.addIssue({
@@ -201,23 +205,32 @@ export default function ManageProductPage() {
 
   const nameValue = form.watch('name');
   const watchedValues = form.watch();
+  const isDirty = form.formState.isDirty;
   
-  // Auto-save draft to localStorage
+  // Auto-save draft to localStorage only if the form has been touched or is new and has content
   useEffect(() => {
-    if (isNew && draftKey && !isLoading) {
+    if (isNew && draftKey && !isLoading && (isDirty || watchedValues.name || watchedValues.images.length > 0)) {
         const timeout = setTimeout(() => {
             localStorage.setItem(draftKey, JSON.stringify(watchedValues));
         }, 1000);
         return () => clearTimeout(timeout);
     }
-  }, [watchedValues, isNew, draftKey, isLoading]);
+  }, [watchedValues, isNew, draftKey, isLoading, isDirty]);
 
   // Check for existing draft on load
   useEffect(() => {
     if (isNew && draftKey) {
         const savedDraft = localStorage.getItem(draftKey);
         if (savedDraft) {
-            setHasDraft(true);
+            try {
+                const parsed = JSON.parse(savedDraft);
+                // Only show alert if it's not just default values
+                if (parsed.name || (parsed.images && parsed.images.length > 0)) {
+                    setHasDraft(true);
+                }
+            } catch (e) {
+                console.error("Draft check failed", e);
+            }
         }
     }
   }, [isNew, draftKey]);
@@ -228,15 +241,24 @@ export default function ManageProductPage() {
     if (savedDraft) {
         try {
             const parsed = JSON.parse(savedDraft);
-            // Convert date strings back to Date objects
-            if (parsed.flash_deal_range?.startDate) parsed.flash_deal_range.startDate = new Date(parsed.flash_deal_range.startDate);
-            if (parsed.flash_deal_range?.endDate) parsed.flash_deal_range.endDate = new Date(parsed.flash_deal_range.endDate);
             
+            // CRITICAL: Convert ISO strings back to Date objects for the form
+            if (parsed.flash_deal_range) {
+                if (parsed.flash_deal_range.startDate) {
+                    parsed.flash_deal_range.startDate = new Date(parsed.flash_deal_range.startDate);
+                }
+                if (parsed.flash_deal_range.endDate) {
+                    parsed.flash_deal_range.endDate = new Date(parsed.flash_deal_range.endDate);
+                }
+            }
+            
+            // Reset the form with the recovered data
             form.reset(parsed);
             setHasDraft(false);
             toast({ title: 'ড্রাফট রিকভার করা হয়েছে!' });
         } catch (e) {
-            console.error("Failed to parse draft", e);
+            console.error("Failed to recover draft", e);
+            toast({ variant: 'destructive', title: 'ড্রাফট রিকভার করতে সমস্যা হয়েছে' });
         }
     }
   };
@@ -250,7 +272,7 @@ export default function ManageProductPage() {
   };
   
   useEffect(() => {
-    if (isNew && nameValue) {
+    if (isNew && nameValue && !isDirty && !hasDraft) {
       const slug = nameValue
         .toLowerCase()
         .replace(/&/g, 'and')
@@ -261,7 +283,7 @@ export default function ManageProductPage() {
       
       form.setValue('id', `${slug}-${Math.random().toString(36).substring(2, 7)}`, { shouldValidate: true });
     }
-  }, [nameValue, isNew, form]);
+  }, [nameValue, isNew, form, isDirty, hasDraft]);
 
 
   const fetchProduct = useCallback(async () => {
@@ -412,8 +434,8 @@ export default function ManageProductPage() {
                 productData: finalProductValues,
                 flashDealData: has_flash_deal ? {
                     discount_price: flash_deal_price,
-                    start_date: flash_deal_range?.startDate?.toISOString(),
-                    end_date: flash_deal_range?.endDate?.toISOString(),
+                    start_date: flash_deal_range?.startDate instanceof Date ? flash_deal_range.startDate.toISOString() : flash_deal_range?.startDate,
+                    end_date: flash_deal_range?.endDate instanceof Date ? flash_deal_range.endDate.toISOString() : flash_deal_range?.endDate,
                 } : null
             })
         });
@@ -870,12 +892,12 @@ export default function ManageProductPage() {
                                                         )}
                                                     >
                                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                        {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
                                                     </Button>
                                                 </FormControl>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} />
+                                                <Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} />
                                             </PopoverContent>
                                         </Popover>
                                         <FormMessage />
@@ -899,12 +921,15 @@ export default function ManageProductPage() {
                                                         )}
                                                     >
                                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                        {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
                                                     </Button>
                                                 </FormControl>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={(date) => date < (form.getValues("flash_deal_range.startDate") || new Date())} />
+                                                <Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus disabled={(date) => {
+                                                    const startDate = form.getValues("flash_deal_range.startDate");
+                                                    return date < (startDate ? new Date(startDate) : new Date());
+                                                }} />
                                             </PopoverContent>
                                         </Popover>
                                         <FormMessage />
