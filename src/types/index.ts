@@ -26,7 +26,7 @@ export interface Product {
   stock?: number;
   created_at: string;
   brand?: string[] | null;
-  unit?: string[] | null;
+  unit?: string | null;
   size?: string[] | null;
   color?: string[] | null;
   has_flash_deal?: boolean;

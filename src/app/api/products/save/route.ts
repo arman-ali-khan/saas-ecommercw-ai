@@ -18,11 +18,17 @@ export async function POST(request: Request) {
 
     let resultProduct;
 
+    // Ensure variants is handled as JSONB
+    const sanitizedProductData = {
+        ...productData,
+        variants: productData.variants || null
+    };
+
     if (isNew) {
       // Create new product
       const { data, error } = await supabaseAdmin
         .from('products')
-        .insert({ ...productData, site_id: siteId })
+        .insert({ ...sanitizedProductData, site_id: siteId })
         .select()
         .single();
 
@@ -37,7 +43,7 @@ export async function POST(request: Request) {
       // Update existing product
       const { data, error } = await supabaseAdmin
         .from('products')
-        .update(productData)
+        .update(sanitizedProductData)
         .match({ id: productId, site_id: siteId })
         .select()
         .single();
@@ -49,7 +55,6 @@ export async function POST(request: Request) {
     // Handle Flash Deal logic
     const targetProductId = isNew ? resultProduct.id : productId;
     
-    // Check for existing flash deal
     const { data: existingDeal } = await supabaseAdmin
         .from('flash_deals')
         .select('id')
@@ -78,7 +83,6 @@ export async function POST(request: Request) {
             if (flashInsertError) throw flashInsertError;
         }
     } else if (existingDeal) {
-        // If flash deal disabled, delete the existing one
         const { error: flashDeleteError } = await supabaseAdmin
             .from('flash_deals')
             .delete()

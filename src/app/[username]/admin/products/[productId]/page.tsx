@@ -71,7 +71,7 @@ const productFormSchema = z.object({
   is_featured: z.boolean().default(false),
   brand: z.array(z.string()).optional(),
   color: z.array(z.string()).optional(),
-  unit: z.string().optional(), // For single price unit
+  unit: z.string().optional(),
   images: z.array(z.object({ imageUrl: z.string().url('Must be a valid URL.'), imageHint: z.string().optional() })).min(1, 'At least one image is required.'),
   has_flash_deal: z.boolean().default(false),
   flash_deal_price: z.preprocess((val) => (val === '' || val == null ? undefined : parseFloat(String(val))), z.number().positive('Discount price must be a positive number.').optional()),
@@ -84,20 +84,7 @@ const productFormSchema = z.object({
     size: z.string().optional(),
     price: z.preprocess((a) => (a === '' || a == null ? 0 : parseFloat(String(a))), z.number().positive('Price must be positive')),
     stock: z.preprocess((a) => (a === '' || a == null ? 0 : parseInt(String(a), 10)), z.number().min(0).default(0)),
-  })).optional().or(z.null()),
-}).refine(data => {
-    if (data.use_variants && data.variants) {
-        if (data.variant_type === 'unit') {
-            return data.variants.every(v => v.amount && v.unitType);
-        }
-        if (data.variant_type === 'size') {
-            return data.variants.every(v => v.size);
-        }
-    }
-    return true;
-}, {
-    message: "Required fields missing for variants.",
-    path: ["variants"]
+  })).optional(),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -107,7 +94,7 @@ export default function ManageProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { attributes, categories, setAttributes, setCategories, dashboard, invalidateEntity } = useAdminStore();
+  const { attributes, categories, setAttributes, setCategories, invalidateEntity } = useAdminStore();
 
   const productId = params.productId as string;
   const isNew = productId === 'new';
@@ -151,41 +138,6 @@ export default function ManageProductPage() {
     }
   }, [watchedValues.name, isNew, form]);
 
-  useEffect(() => {
-    if (isNew && draftKey && !isLoading && form.formState.isDirty) {
-        const timeout = setTimeout(() => { 
-            const dataToSave = { ...form.getValues() };
-            localStorage.setItem(draftKey, JSON.stringify(dataToSave)); 
-        }, 1000);
-        return () => clearTimeout(timeout);
-    }
-  }, [watchedValues, isNew, draftKey, isLoading, form.formState.isDirty, form]);
-
-  useEffect(() => {
-    if (isNew && draftKey) {
-        const savedDraft = localStorage.getItem(draftKey);
-        if (savedDraft) {
-            try {
-                const parsed = JSON.parse(savedDraft);
-                if (parsed.name || (parsed.images && parsed.images.length > 0)) setHasDraft(true);
-            } catch (e) { console.error("Draft check failed", e); }
-        }
-    }
-  }, [isNew, draftKey]);
-
-  const applyDraft = () => {
-    if (!draftKey) return;
-    const savedDraft = localStorage.getItem(draftKey);
-    if (savedDraft) {
-        try {
-            const parsed = JSON.parse(savedDraft);
-            form.reset(parsed);
-            setHasDraft(false);
-            toast({ title: 'ড্রাফট রিকভার করা হয়েছে!' });
-        } catch (e) { toast({ variant: 'destructive', title: 'ড্রাফট রিকভার করতে সমস্যা হয়েছে' }); }
-    }
-  };
-
   const fetchProductData = useCallback(async () => {
     if (!user) return;
 
@@ -223,7 +175,7 @@ export default function ManageProductPage() {
             let detectedType: 'unit' | 'size' = 'unit';
             const mappedVariants = (productData.variants || []).map((v: any) => {
                 const variantString = v.unit || '';
-                const unitMatch = variantString.match(/^([\d.]+)\s+(\w+)$/);
+                const unitMatch = variantString.match(/^([\d.]+)\s+(.+)$/);
                 if (unitMatch) {
                     detectedType = 'unit';
                     return { amount: unitMatch[1], unitType: unitMatch[2], size: '', price: v.price, stock: v.stock };
@@ -327,14 +279,13 @@ export default function ManageProductPage() {
     setIsSubmitting(true);
     const { has_flash_deal, flash_deal_price, flash_deal_range, use_variants, variant_type, ...productValues } = values;
     
-    if (use_variants && values.variants) {
-        productValues.variants = values.variants.map(v => ({
-            unit: variant_type === 'unit' ? `${v.amount} ${v.unitType}` : v.size || '',
+    let processedVariants = null;
+    if (use_variants && values.variants && values.variants.length > 0) {
+        processedVariants = values.variants.map(v => ({
+            unit: variant_type === 'unit' ? `${v.amount || '1'} ${v.unitType || unitOptions[0]}` : v.size || sizeOptions[0],
             price: v.price,
             stock: v.stock || 0
         }));
-    } else {
-        productValues.variants = null;
     }
 
     try {
@@ -343,7 +294,11 @@ export default function ManageProductPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 isNew, siteId: user.id, productId: isNew ? undefined : decodeURIComponent(productId),
-                productData: { ...productValues, images: productValues.images.filter((img) => img.imageUrl) },
+                productData: { 
+                    ...productValues, 
+                    variants: processedVariants,
+                    images: productValues.images.filter((img) => img.imageUrl) 
+                },
                 flashDealData: has_flash_deal ? { discount_price: flash_deal_price, start_date: flash_deal_range?.startDate, end_date: flash_deal_range?.endDate } : null
             })
         });
@@ -383,17 +338,6 @@ export default function ManageProductPage() {
             </Button>
         </div>
       </div>
-
-      {isNew && hasDraft && (
-        <Alert className="mb-6 border-primary bg-primary/5">
-            <RotateCcw className="h-4 w-4 text-primary" />
-            <AlertTitle className="font-bold">অসম্পূর্ণ ডাটা পাওয়া গেছে!</AlertTitle>
-            <AlertDescription className="mt-2 flex justify-between items-center gap-4">
-                <span>আপনি কি আগের অসম্পূর্ণ ডাটা রিকভার করতে চান?</span>
-                <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(draftKey!); setHasDraft(false); }}>মুছে ফেলুন</Button><Button size="sm" onClick={applyDraft}>রিকভার করুন</Button></div>
-            </AlertDescription>
-        </Alert>
-      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -520,7 +464,6 @@ export default function ManageProductPage() {
                                             <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ amount: '', unitType: '', size: sizeOptions[0], price: 0, stock: 0 })}><Plus className="mr-2 h-4 w-4" /> নতুন সাইজ যোগ করুন</Button>
                                         </TabsContent>
                                     </Tabs>
-                                    <FormMessage className="text-xs">{form.formState.errors.variants?.message}</FormMessage>
                                 </div>
                             )}
                         </CardContent>
