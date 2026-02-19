@@ -105,7 +105,7 @@ export default function ManageProductPage() {
         const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
         return !(store.dashboard && isFresh);
     }
-    return true; // Always load for existing product
+    return true; 
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -265,12 +265,12 @@ export default function ManageProductPage() {
                     )} />
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {['brand', 'color', 'size', 'unit'].map((attr) => (
-                            <FormField key={attr} control={form.control} name={attr as any} render={({ field }) => (
-                                <FormItem><FormLabel className="capitalize">{attr}</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : `Select ${attr}`}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes[attr] || []).map((opt) => (<DropdownMenuCheckboxItem key={opt} checked={field.value?.includes(opt)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), opt] : field.value.filter((v: string) => v !== opt))}>{opt}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>
+                            <FormField key={attr} control={form.control} name={attr as any} render={({ field: attrField }) => (
+                                <FormItem><FormLabel className="capitalize">{attr}</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{attrField.value?.length ? attrField.value.join(', ') : `Select ${attr}`}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes[attr] || []).map((opt) => (<DropdownMenuCheckboxItem key={opt} checked={attrField.value?.includes(opt)} onCheckedChange={(checked) => attrField.onChange(checked ? [...(attrField.value || []), opt] : attrField.value.filter((v: string) => v !== opt))}>{opt}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>
                             )} />
                         ))}
                     </div>
-                    <FormField control={form.control} name="long_description" render={({ field }) => (
+                    <FormField control={form.control} name="long_description" render={({ field: descField }) => (
                         <FormItem><div className="flex justify-between items-center mb-2"><FormLabel>Long Description</FormLabel><Button type="button" variant="outline" size="sm" onClick={async () => {
                             if (!watchedValues.name) return toast({ variant: 'destructive', title: 'পণ্যর নাম প্রয়োজন' });
                             setIsGenerating(true);
@@ -282,7 +282,7 @@ export default function ManageProductPage() {
                                 form.setValue('long_description', result.longDescription, { shouldValidate: true });
                                 toast({ title: 'এআই ডেসক্রিপশন তৈরি হয়েছে!' });
                             } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsGenerating(false); }
-                        }} disabled={isGenerating}>{isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}Generate with AI</Button></div><FormControl><RichTextEditor value={field.value || ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                        }} disabled={isGenerating}>{isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}Generate with AI</Button></div><FormControl><RichTextEditor value={descField.value || ''} onChange={descField.onChange} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </CardContent>
             </Card>

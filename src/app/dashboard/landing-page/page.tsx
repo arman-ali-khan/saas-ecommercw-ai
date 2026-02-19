@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -34,17 +33,12 @@ import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const landingPageSchema = z.object({
-  // Hero Section
   hero_title: z.string().min(1, "Hero title is required"),
   hero_description: z.string().min(1, "Hero description is required"),
   hero_image_url: z.string().url("Must be a valid URL").optional().or(z.literal('')),
-  
-  // CTA Section
   cta_title: z.string().min(1, "CTA title is required"),
   cta_description: z.string().min(1, "CTA description is required"),
   cta_bg_color: z.string().min(1, "CTA background color is required"),
-
-  // Header & Footer (Platform settings)
   platform_name: z.string().min(1, "Platform name is required"),
   logo_url: z.string().url("Must be a valid URL").optional().or(z.literal('')),
   platform_description: z.string().optional(),
@@ -181,7 +175,6 @@ export default function LandingPageManager() {
               <TabsTrigger value="footer" className="py-2.5">Footer & Socials</TabsTrigger>
             </TabsList>
 
-            {/* Hero Section */}
             <TabsContent value="hero" className="mt-6">
               <Card>
                 <CardHeader>
@@ -192,10 +185,10 @@ export default function LandingPageManager() {
                   <FormField
                     control={form.control}
                     name="hero_title"
-                    render={({ field }) => (
+                    render={({ field: titleField }) => (
                       <FormItem>
                         <FormLabel>Hero Title</FormLabel>
-                        <FormControl><Input placeholder="Headline" {...field} /></FormControl>
+                        <FormControl><Input placeholder="Headline" {...titleField} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -203,10 +196,10 @@ export default function LandingPageManager() {
                   <FormField
                     control={form.control}
                     name="hero_description"
-                    render={({ field }) => (
+                    render={({ field: descField }) => (
                       <FormItem>
                         <FormLabel>Hero Description</FormLabel>
-                        <FormControl><Textarea rows={4} placeholder="Description text..." {...field} /></FormControl>
+                        <FormControl><Textarea rows={4} placeholder="Description text..." {...descField} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -214,15 +207,15 @@ export default function LandingPageManager() {
                   <FormField
                     control={form.control}
                     name="hero_image_url"
-                    render={({ field }) => (
+                    render={({ field: imgField }) => (
                       <FormItem>
                         <FormLabel>Hero Image (Background/Mockup)</FormLabel>
                         <div className="flex flex-col sm:flex-row items-start gap-4">
                             <div className="relative h-32 w-full sm:w-56 rounded-lg border bg-muted overflow-hidden shrink-0">
-                                {field.value ? <Image src={field.value} alt="Hero Preview" fill className="object-cover" /> : <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">Preview</div>}
+                                {imgField.value ? <Image src={imgField.value} alt="Hero Preview" fill className="object-cover" /> : <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">Preview</div>}
                             </div>
                             <div className="flex-grow w-full space-y-2">
-                                <FormControl><Input placeholder="Image URL" {...field} /></FormControl>
+                                <FormControl><Input placeholder="Image URL" {...imgField} /></FormControl>
                                 <ImageUploader onUpload={(res) => form.setValue('hero_image_url', res.info.secure_url, { shouldValidate: true })} label="Upload New" />
                             </div>
                         </div>
@@ -234,21 +227,20 @@ export default function LandingPageManager() {
               </Card>
             </TabsContent>
 
-            {/* CTA Section */}
             <TabsContent value="cta" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5 text-primary" /> "আপনার অনলাইন যাত্রা আজই শুরু হোক" Section</CardTitle>
+                  <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5 text-primary" /> CTA Section</CardTitle>
                   <CardDescription>Customize the call-to-action section near the bottom.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <FormField
                     control={form.control}
                     name="cta_title"
-                    render={({ field }) => (
+                    render={({ field: ctaTitleField }) => (
                       <FormItem>
                         <FormLabel>Section Title</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <FormControl><Input {...ctaTitleField} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -256,10 +248,10 @@ export default function LandingPageManager() {
                   <FormField
                     control={form.control}
                     name="cta_description"
-                    render={({ field }) => (
+                    render={({ field: ctaDescField }) => (
                       <FormItem>
                         <FormLabel>Description Text</FormLabel>
-                        <FormControl><Textarea rows={3} {...field} /></FormControl>
+                        <FormControl><Textarea rows={3} {...ctaDescField} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -267,19 +259,19 @@ export default function LandingPageManager() {
                   <FormField
                     control={form.control}
                     name="cta_bg_color"
-                    render={({ field }) => (
+                    render={({ field: ctaColorField }) => (
                       <FormItem>
                         <FormLabel>Background Color</FormLabel>
                         <div className="flex items-center gap-4">
                             <div 
                                 className="h-14 w-full sm:w-40 rounded-xl border-2 shadow-inner flex items-center justify-center text-[10px] font-bold uppercase tracking-widest text-white drop-shadow-md"
-                                style={{ backgroundColor: field.value }}
+                                style={{ backgroundColor: ctaColorField.value }}
                             >
                                 Preview
                             </div>
                             <div className="flex-grow space-y-2">
                                 <div className="flex items-center gap-2">
-                                    <FormControl><Input placeholder="Hex or HSL" {...field} /></FormControl>
+                                    <FormControl><Input placeholder="Hex or HSL" {...ctaColorField} /></FormControl>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0">
@@ -315,7 +307,6 @@ export default function LandingPageManager() {
               </Card>
             </TabsContent>
 
-            {/* Header */}
             <TabsContent value="header" className="mt-6">
               <Card>
                 <CardHeader>
@@ -326,10 +317,10 @@ export default function LandingPageManager() {
                   <FormField
                     control={form.control}
                     name="platform_name"
-                    render={({ field }) => (
+                    render={({ field: nameField }) => (
                       <FormItem>
                         <FormLabel>Platform Name</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <FormControl><Input {...nameField} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -337,14 +328,14 @@ export default function LandingPageManager() {
                   <FormField
                     control={form.control}
                     name="logo_url"
-                    render={({ field }) => (
+                    render={({ field: logoField }) => (
                       <FormItem>
                         <FormLabel>Logo Image URL</FormLabel>
                         <div className="flex items-center gap-4">
                             <div className="relative h-12 w-12 rounded-lg border flex items-center justify-center bg-muted overflow-hidden shrink-0">
-                                {field.value ? <Image src={field.value} alt="Logo" fill className="object-contain p-1" /> : <div className="text-[10px]">Logo</div>}
+                                {logoField.value ? <Image src={logoField.value} alt="Logo" fill className="object-contain p-1" /> : <div className="text-[10px]">Logo</div>}
                             </div>
-                            <FormControl><Input placeholder="URL" {...field} /></FormControl>
+                            <FormControl><Input placeholder="URL" {...logoField} /></FormControl>
                             <ImageUploader onUpload={(res) => form.setValue('logo_url', res.info.secure_url, { shouldValidate: true })} label="Upload" />
                         </div>
                         <FormMessage />
@@ -355,7 +346,6 @@ export default function LandingPageManager() {
               </Card>
             </TabsContent>
 
-            {/* Footer */}
             <TabsContent value="footer" className="mt-6">
               <Card>
                 <CardHeader>
@@ -366,10 +356,10 @@ export default function LandingPageManager() {
                   <FormField
                     control={form.control}
                     name="platform_description"
-                    render={({ field }) => (
+                    render={({ field: footDescField }) => (
                       <FormItem>
                         <FormLabel>Footer About Text</FormLabel>
-                        <FormControl><Textarea rows={3} placeholder="A short blurb for the footer..." {...field} /></FormControl>
+                        <FormControl><Textarea rows={3} placeholder="A short blurb for the footer..." {...footDescField} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -380,10 +370,10 @@ export default function LandingPageManager() {
                     <FormField
                         control={form.control}
                         name="social_facebook"
-                        render={({ field }) => (
+                        render={({ field: fbField }) => (
                         <FormItem>
                             <FormLabel className="flex items-center gap-2"><Facebook className="h-4 w-4" /> Facebook</FormLabel>
-                            <FormControl><Input placeholder="URL" {...field} /></FormControl>
+                            <FormControl><Input placeholder="URL" {...fbField} /></FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -391,10 +381,10 @@ export default function LandingPageManager() {
                     <FormField
                         control={form.control}
                         name="social_twitter"
-                        render={({ field }) => (
+                        render={({ field: twField }) => (
                         <FormItem>
                             <FormLabel className="flex items-center gap-2"><Twitter className="h-4 w-4" /> Twitter / X</FormLabel>
-                            <FormControl><Input placeholder="URL" {...field} /></FormControl>
+                            <FormControl><Input placeholder="URL" {...twField} /></FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
