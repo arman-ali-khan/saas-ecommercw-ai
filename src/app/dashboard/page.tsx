@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -36,13 +35,15 @@ import { useSaasStore } from '@/stores/useSaasStore';
 
 export default function SaasAdminDashboard() {
   const { user } = useAuth();
-  const { dashboardData, lastFetched, setDashboardData } = useSaasStore();
+  const { dashboardData, setDashboardData } = useSaasStore();
   const [isLoading, setIsLoading] = useState(!dashboardData);
   const { toast } = useToast();
 
   const fetchDashboardData = useCallback(async (force = false) => {
-    // If not forced and data exists and is fresh (within last 5 mins), skip
-    if (!force && dashboardData && Date.now() - lastFetched.dashboard < 300000) {
+    // Check cache strictly before triggering loading or fetch
+    const store = useSaasStore.getState();
+    const isFresh = Date.now() - store.lastFetched.dashboard < 300000; // 5 mins
+    if (!force && store.dashboardData && isFresh) {
         setIsLoading(false);
         return;
     }
@@ -63,7 +64,7 @@ export default function SaasAdminDashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [dashboardData, lastFetched.dashboard, setDashboardData, toast]);
+  }, [setDashboardData, toast]);
 
   useEffect(() => {
     if (user) {

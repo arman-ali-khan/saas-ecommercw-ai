@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -33,7 +32,7 @@ const PAYMENTS_PER_PAGE = 10;
 
 export default function SubscriptionPaymentsPage() {
   const { user } = useAuth();
-  const { subscriptions: payments, lastFetched, setSubscriptions } = useSaasStore();
+  const { subscriptions: payments, setSubscriptions } = useSaasStore();
   const [isLoading, setIsLoading] = useState(!payments.length);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
@@ -41,7 +40,9 @@ export default function SubscriptionPaymentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const fetchPayments = useCallback(async (force = false) => {
-    if (!force && payments.length > 0 && Date.now() - lastFetched.subscriptions < 300000) {
+    const store = useSaasStore.getState();
+    const isFresh = Date.now() - store.lastFetched.subscriptions < 300000;
+    if (!force && store.subscriptions.length > 0 && isFresh) {
         setIsLoading(false);
         return;
     }
@@ -61,7 +62,7 @@ export default function SubscriptionPaymentsPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [payments.length, lastFetched.subscriptions, setSubscriptions, toast]);
+  }, [setSubscriptions, toast]);
   
   useEffect(() => {
     if (user) {

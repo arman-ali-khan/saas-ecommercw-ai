@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -54,7 +53,7 @@ type FeatureFormData = z.infer<typeof featureSchema>;
 
 export default function FeaturesAdminPage() {
   const { user } = useAuth();
-  const { features, lastFetched, setFeatures } = useSaasStore();
+  const { features, setFeatures } = useSaasStore();
   const [isLoading, setIsLoading] = useState(!features.length);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -73,7 +72,9 @@ export default function FeaturesAdminPage() {
   });
 
   const fetchFeatures = useCallback(async (force = false) => {
-    if (!force && features.length > 0 && Date.now() - lastFetched.features < 3600000) {
+    const store = useSaasStore.getState();
+    const isFresh = Date.now() - store.lastFetched.features < 3600000;
+    if (!force && store.features.length > 0 && isFresh) {
         setIsLoading(false);
         return;
     }
@@ -96,7 +97,7 @@ export default function FeaturesAdminPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [features.length, lastFetched.features, setFeatures, toast]);
+  }, [setFeatures, toast]);
 
   useEffect(() => {
     if (user) {
@@ -134,7 +135,7 @@ export default function FeaturesAdminPage() {
       const result = await response.json();
 
       if (response.ok) {
-        toast({ title: typeof selectedFeature?.id !== 'undefined' ? 'Feature Updated' : 'Feature Created' });
+        toast({ title: selectedFeature ? 'Feature Updated' : 'Feature Created' });
         await fetchFeatures(true);
         setIsFormOpen(false);
         setSelectedFeature(null);
@@ -303,7 +304,7 @@ export default function FeaturesAdminPage() {
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsFormOpen(false)} />
             <div className="relative w-full max-w-xl bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
                 <div className="p-6 border-b flex justify-between items-center shrink-0">
-                    <h2 className="text-xl font-bold">{typeof selectedFeature?.id !== 'undefined' ? 'Edit Feature' : 'Add New Feature'}</h2>
+                    <h2 className="text-xl font-bold">{selectedFeature ? 'Edit Feature' : 'Add New Feature'}</h2>
                     <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>
                         <X className="h-5 w-5" />
                     </Button>

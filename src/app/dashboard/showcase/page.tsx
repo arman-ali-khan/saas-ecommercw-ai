@@ -21,6 +21,7 @@ import ImageUploader from '@/components/image-uploader';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/stores/auth';
+import { useSaasStore } from '@/stores/useSaasStore';
 
 const showcaseSchema = z.object({
     title: z.string().min(1, 'Title is required.'),
@@ -34,9 +35,9 @@ type ShowcaseFormData = z.infer<typeof showcaseSchema>;
 
 export default function ShowcaseAdminPage() {
     const { user } = useAuth();
+    const { showcase: items, setShowcase } = useSaasStore();
     const { toast } = useToast();
-    const [items, setItems] = useState<SaasShowcaseItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(!items.length);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -47,7 +48,14 @@ export default function ShowcaseAdminPage() {
         defaultValues: { title: '', description: '', icon: 'Sparkles', image_url: '', is_enabled: true },
     });
 
-    const fetchItems = useCallback(async () => {
+    const fetchItems = useCallback(async (force = false) => {
+        const store = useSaasStore.getState();
+        const isFresh = Date.now() - store.lastFetched.showcase < 3600000;
+        if (!force && store.showcase.length > 0 && isFresh) {
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         try {
             const response = await fetch('/api/saas/fetch-data', {
@@ -57,7 +65,7 @@ export default function ShowcaseAdminPage() {
             });
             const result = await response.json();
             if (response.ok) {
-                setItems(result.data as SaasShowcaseItem[]);
+                setShowcase(result.data as SaasShowcaseItem[]);
             } else {
                 throw new Error(result.error || 'Failed to fetch showcase items');
             }
@@ -66,7 +74,7 @@ export default function ShowcaseAdminPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [toast]);
+    }, [setShowcase, toast]);
 
     useEffect(() => {
         if (user) {
@@ -106,8 +114,8 @@ export default function ShowcaseAdminPage() {
             });
 
             if (response.ok) {
-                toast({ title: typeof selectedItem?.id !== 'undefined' ? 'Showcase Item Updated' : 'Showcase Item Created' });
-                await fetchItems();
+                toast({ title: selectedItem ? 'Showcase Item Updated' : 'Showcase Item Created' });
+                await fetchItems(true);
                 setIsFormOpen(false);
                 setSelectedItem(null);
             } else {
@@ -143,7 +151,7 @@ export default function ShowcaseAdminPage() {
 
             if (response.ok) {
                 toast({ title: 'Showcase Item Deleted' });
-                await fetchItems();
+                await fetchItems(true);
             } else {
                 const result = await response.json();
                 throw new Error(result.error || 'Failed to delete item');
@@ -178,14 +186,14 @@ export default function ShowcaseAdminPage() {
             });
 
             if (response.ok) {
-                setItems(newItems);
+                setShowcase(newItems);
             } else {
                 const result = await response.json();
                 throw new Error(result.error || 'Failed to reorder');
             }
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Failed to reorder items', description: error.message });
-            fetchItems();
+            fetchItems(true);
         } finally {
             setIsLoading(false);
         }
@@ -251,7 +259,7 @@ export default function ShowcaseAdminPage() {
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsFormOpen(false)} />
                     <div className="relative w-full max-w-xl bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
                         <div className="p-6 border-b flex justify-between items-center shrink-0">
-                            <h2 className="text-xl font-bold">{typeof selectedItem?.id !== 'undefined' ? 'Edit' : 'Add'} Showcase Item</h2>
+                            <h2 className="text-xl font-bold">{selectedItem ? 'Edit' : 'Add'} Showcase Item</h2>
                             <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>
                                 <X className="h-5 w-5" />
                             </Button>

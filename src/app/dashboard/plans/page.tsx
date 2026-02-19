@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -59,7 +58,7 @@ type PlanFormData = z.infer<typeof planSchema>;
 
 export default function PlansAdminPage() {
   const { user } = useAuth();
-  const { plans, lastFetched, setPlans } = useSaasStore();
+  const { plans, setPlans } = useSaasStore();
   const [isLoading, setIsLoading] = useState(!plans.length);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -76,7 +75,9 @@ export default function PlansAdminPage() {
   });
 
   const fetchPlans = useCallback(async (force = false) => {
-    if (!force && plans.length > 0 && Date.now() - lastFetched.plans < 3600000) {
+    const store = useSaasStore.getState();
+    const isFresh = Date.now() - store.lastFetched.plans < 3600000;
+    if (!force && store.plans.length > 0 && isFresh) {
         setIsLoading(false);
         return;
     }
@@ -99,7 +100,7 @@ export default function PlansAdminPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [plans.length, lastFetched.plans, setPlans, toast]);
+  }, [setPlans, toast]);
 
   useEffect(() => {
     if (user) {

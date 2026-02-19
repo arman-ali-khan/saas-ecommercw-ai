@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -26,7 +25,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSeparator as Separator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X, AlertTriangle } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -47,7 +46,7 @@ const createAdminSchema = z.object({
 
 export default function UsersAdminPage() {
     const { user: currentUser } = useAuth();
-    const { admins: users, lastFetched, setAdmins, invalidateEntity } = useSaasStore();
+    const { admins: users, setAdmins } = useSaasStore();
     const [loading, setLoading] = useState(!users.length);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -66,7 +65,9 @@ export default function UsersAdminPage() {
     });
 
     const fetchUsersData = useCallback(async (force = false) => {
-        if (!force && users.length > 0 && Date.now() - lastFetched.admins < 600000) {
+        const store = useSaasStore.getState();
+        const isFresh = Date.now() - store.lastFetched.admins < 600000;
+        if (!force && store.admins.length > 0 && isFresh) {
             setLoading(false);
             return;
         }
@@ -97,7 +98,7 @@ export default function UsersAdminPage() {
         } finally {
             setLoading(false);
         }
-    }, [toast, users.length, lastFetched.admins, setAdmins]);
+    }, [toast, setAdmins]);
 
     useEffect(() => {
         if (currentUser) {
