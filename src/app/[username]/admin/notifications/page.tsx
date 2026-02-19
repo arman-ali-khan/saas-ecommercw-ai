@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -16,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, BellOff, CheckCheck, Eye } from 'lucide-react';
+import { Loader2, BellOff, CheckCheck, Eye, X, MessageSquare, ShoppingCart } from 'lucide-react';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +41,7 @@ export default function AdminNotificationsPage() {
         });
         const result = await response.json();
         if (response.ok) {
+            // Here we show all historical notifications, but SaaS ones are prominently shown in Layout too.
             setNotifications(result.notifications || []);
         } else {
             throw new Error(result.error);
@@ -74,7 +74,6 @@ export default function AdminNotificationsPage() {
             body: JSON.stringify({ notificationId, recipientId: user?.id }),
         });
         if (!response.ok) throw new Error('Failed to update');
-        toast({ title: 'নোটিফিকেশনটি Dismiss করা হয়েছে।' });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
         fetchNotifications();
@@ -98,11 +97,17 @@ export default function AdminNotificationsPage() {
     }
   }
 
+  const getIcon = (message: string) => {
+      if (message.includes('অর্ডার')) return <ShoppingCart className="h-5 w-5 text-primary" />;
+      if (message.includes('প্রশ্ন') || message.includes('রিভিউ')) return <MessageSquare className="h-5 w-5 text-primary" />;
+      return <Bell className="h-5 w-5 text-primary" />;
+  }
+
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>নোটিফিকেশন</CardTitle>
+          <CardTitle>অ্যাক্টিভিটি নোটিফিকেশন</CardTitle>
           <CardDescription>আপনার সাইটের সকল নোটিফিকেশন এখানে দেখুন।</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-16">
@@ -116,16 +121,16 @@ export default function AdminNotificationsPage() {
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="flex flex-row items-center justify-between px-0">
         <div>
-            <CardTitle className="text-2xl">নোটিফিকেশন</CardTitle>
-            <CardDescription>আপনার সাইটের সকল আপডেট এখানে পাবেন।</CardDescription>
+            <CardTitle className="text-2xl font-bold">নোটিফিকেশন হিস্ট্রি</CardTitle>
+            <CardDescription>অর্ডার, রিভিউ এবং অন্যান্য আপডেটের ইতিহাস।</CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={handleMarkAllAsRead} disabled={notifications.every(n => n.is_read)} className="rounded-full">
-            <CheckCheck className="mr-2 h-4 w-4" /> Mark all as read
+            <CheckCheck className="mr-2 h-4 w-4" /> Mark all read
         </Button>
       </CardHeader>
       <CardContent className="px-0">
         {notifications.length === 0 ? (
-          <div className="text-center py-20 bg-card rounded-xl border border-dashed">
+          <div className="text-center py-20 bg-card rounded-xl border border-dashed border-border/50">
             <BellOff className="mx-auto h-12 w-12 mb-4 opacity-20" />
             <p className="text-muted-foreground">আপনার কোনো নোটিফিকেশন নেই।</p>
           </div>
@@ -135,38 +140,42 @@ export default function AdminNotificationsPage() {
               <div
                 key={notification.id}
                 className={cn(
-                  'flex items-start gap-4 p-5 rounded-xl border transition-all duration-200',
+                  'flex items-center gap-4 p-4 rounded-xl border transition-all duration-200',
                   notification.is_read ? 'bg-background/50 border-border/50 text-muted-foreground opacity-70' : 'bg-card border-primary/20 shadow-sm'
                 )}
               >
                 <div className={cn(
-                    'mt-1.5 h-3 w-3 shrink-0 rounded-full',
-                    !notification.is_read ? 'bg-primary animate-pulse' : 'bg-muted'
-                )}></div>
-                <div className="flex-grow">
-                  <p className={cn("text-sm sm:text-base leading-relaxed", !notification.is_read ? "font-bold text-foreground" : "font-medium")}>
+                    'h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-primary/10',
+                    !notification.is_read && 'ring-2 ring-primary/20'
+                )}>
+                    {getIcon(notification.message)}
+                </div>
+                <div className="flex-grow min-w-0">
+                  <p className={cn("text-sm sm:text-base leading-snug truncate", !notification.is_read ? "font-bold text-foreground" : "font-medium")}>
                     {notification.message}
                   </p>
-                  <p className="text-[10px] sm:text-xs mt-2 uppercase tracking-wider font-semibold opacity-60">
+                  <p className="text-[10px] sm:text-xs mt-1 uppercase tracking-wider font-semibold opacity-60">
                     {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: bn })}
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   {notification.link && (
-                    <Button asChild variant="secondary" size="sm" className="h-8 rounded-lg">
+                    <Button asChild variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full">
                       <Link href={notification.link} onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}>
-                        <Eye className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">দেখুন</span>
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">দেখুন</span>
                       </Link>
                     </Button>
                   )}
                   {!notification.is_read && (
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="h-8 rounded-lg border-primary/20 hover:bg-primary/10 hover:text-primary"
+                      className="h-8 w-8 p-0 rounded-full text-destructive hover:bg-destructive/10"
                       onClick={() => handleMarkAsRead(notification.id)}
                     >
-                      <X className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Dismiss</span>
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Dismiss</span>
                     </Button>
                   )}
                 </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import AdminSidebar from '@/components/admin-sidebar';
@@ -7,9 +6,12 @@ import AdminHeader from '@/components/admin-header';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Loader2, AlertCircle } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { Terminal, Loader2, AlertCircle, Bell, X } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { differenceInDays, isBefore, format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import type { Notification } from '@/types';
 
 export default function AdminLayout({
   children,
@@ -21,6 +23,51 @@ export default function AdminLayout({
   const router = useRouter();
   const username = params.username as string;
   const { user, loading } = useAuth();
+  
+  const [saasNotifications, setSaasNotifications] = useState<Notification[]>([]);
+
+  const fetchSaasNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const response = await fetch('/api/notifications/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientId: user.id,
+          recipientType: 'admin',
+          siteId: user.id
+        }),
+      });
+      const result = await response.json();
+      if (response.ok) {
+        // Show only unread notifications at the top
+        setSaasNotifications(result.notifications?.filter((n: any) => !n.is_read) || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch layout notifications:", error);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user && pathname !== `/admin/login`) {
+      fetchSaasNotifications();
+    }
+  }, [user, pathname, fetchSaasNotifications]);
+
+  const dismissNotification = async (id: string) => {
+    // Optimistic UI update
+    setSaasNotifications(prev => prev.filter(n => n.id !== id));
+    
+    try {
+        await fetch('/api/notifications/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notificationId: id, recipientId: user?.id }),
+        });
+    } catch (error) {
+        console.error("Failed to mark notification as read:", error);
+    }
+  };
   
   const { isSubscriptionExpired, isExpiringSoon, daysRemaining } = useMemo(() => {
     if (!user?.subscription_end_date) {
@@ -65,12 +112,10 @@ export default function AdminLayout({
   }
 
   // After loading, if the user is invalid, we're about to redirect.
-  // Render nothing to avoid errors from child components trying to access a null user.
   if (!user || user.domain !== username) {
       return null;
   }
   
-  // If we reach here, the user is valid and loaded. Render the full dashboard layout.
   return (
     <div className="fixed inset-0 bg-background z-50">
       <div className="grid w-full h-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -78,6 +123,32 @@ export default function AdminLayout({
         <div className="flex flex-col h-full overflow-hidden">
           <AdminHeader />
           <main className="flex-1 overflow-auto p-4 lg:p-6 pb-20 md:pb-6">
+            {/* SaaS Global Notifications (Alert Style) */}
+            {saasNotifications.map((notif) => (
+              <Alert key={notif.id} className="mb-6 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500">
+                <Bell className="h-4 w-4 text-primary" />
+                <AlertTitle className="font-bold flex items-center justify-between">
+                    সিস্টেম ঘোষণা
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 rounded-full hover:bg-primary/10 -mt-1 -mr-2" 
+                        onClick={() => dismissNotification(notif.id)}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                </AlertTitle>
+                <AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <span className="text-foreground/90">{notif.message}</span>
+                  {notif.link && (
+                    <Button asChild variant="secondary" size="sm" className="h-8 shrink-0">
+                      <Link href={notif.link}>বিস্তারিত দেখুন</Link>
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            ))}
+
             {isPending && (
               <Alert variant="destructive" className="mb-6">
                   <Terminal className="h-4 w-4" />
