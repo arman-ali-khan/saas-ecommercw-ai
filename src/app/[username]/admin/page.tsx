@@ -23,8 +23,11 @@ export default function AdminDashboard() {
   const { dashboard, setDashboard } = useAdminStore();
   const { toast } = useToast();
 
-  // Defensive initialization to avoid "access before initialization" errors
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    const store = useAdminStore.getState();
+    const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
+    return !(store.dashboard && isFresh);
+  });
 
   const fetchData = useCallback(async (force = false) => {
     const siteId = user?.id;
@@ -64,19 +67,19 @@ export default function AdminDashboard() {
         const fetchedReviews = reviewsResult.reviews || [];
         const fetchedQna = qnaResult.qna || [];
 
-        const totalRevenue = fetchedOrders.filter((o: any) => o.status === 'delivered').reduce((acc: number, o: any) => acc + o.total, 0);
-        const monthlyOrdersCount = fetchedOrders.filter((o: any) => new Date(o.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && o.status !== 'canceled').length;
-        const unviewedCount = fetchedUncompleted.filter((o: any) => !o.is_viewed).length;
-        const activeDealsCount = fetchedDeals.filter((d: any) => d.is_active && new Date(d.end_date) > new Date()).length;
+        const totalRevenue = fetchedOrders.filter((ord: any) => ord.status === 'delivered').reduce((acc: number, ord: any) => acc + ord.total, 0);
+        const monthlyOrdersCount = fetchedOrders.filter((ord: any) => new Date(ord.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && ord.status !== 'canceled').length;
+        const unviewedCount = fetchedUncompleted.filter((ord: any) => !ord.is_viewed).length;
+        const activeDealsCount = fetchedDeals.filter((deal: any) => deal.is_active && new Date(deal.end_date) > new Date()).length;
 
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
           const dateStr = format(subDays(new Date(), i), 'MMM d');
           dailyRevenue[dateStr] = 0;
         }
-        fetchedOrders.filter((o: any) => new Date(o.created_at) >= sevenDaysAgo && o.status === 'delivered').forEach((o: any) => {
-          const dateStr = format(new Date(o.created_at), 'MMM d');
-          if (dailyRevenue.hasOwnProperty(dateStr)) dailyRevenue[dateStr] += o.total;
+        fetchedOrders.filter((ord: any) => new Date(ord.created_at) >= sevenDaysAgo && ord.status === 'delivered').forEach((ord: any) => {
+          const dateStr = format(new Date(ord.created_at), 'MMM d');
+          if (dailyRevenue.hasOwnProperty(dateStr)) dailyRevenue[dateStr] += ord.total;
         });
 
         const newDashboardData = {
@@ -87,11 +90,12 @@ export default function AdminDashboard() {
           totalCustomers: (customersResult.customers || []).length,
           ordersThisMonth: monthlyOrdersCount,
           activeFlashDeals: activeDealsCount,
+          allOrders: fetchedOrders,
           revenueChartData: Object.keys(dailyRevenue).map(date => ({ date, Revenue: dailyRevenue[date] })),
-          pendingOrders: fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5),
-          lowStockProducts: fetchedProducts.filter((p: any) => p.stock !== null && p.stock < 10).slice(0, 5),
-          pendingReviews: fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5),
-          unansweredQuestions: fetchedQna.filter((q: any) => !q.is_approved).slice(0, 5),
+          pendingOrders: fetchedOrders.filter((ord: any) => ord.status === 'pending').slice(0, 5),
+          lowStockProducts: fetchedProducts.filter((prod: any) => prod.stock !== null && prod.stock < 10).slice(0, 5),
+          pendingReviews: fetchedReviews.filter((rev: any) => !rev.is_approved).slice(0, 5),
+          unansweredQuestions: fetchedQna.filter((qnaItem: any) => !qnaItem.is_approved).slice(0, 5),
         };
 
         setDashboard(newDashboardData);
@@ -104,12 +108,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (user?.id) {
-        // Quick cache check to avoid spinner flicker
-        const store = useAdminStore.getState();
-        const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
-        if (store.dashboard && isFresh) {
-            setIsLoading(false);
-        }
         fetchData();
     }
   }, [user?.id, fetchData]);
@@ -125,6 +123,7 @@ export default function AdminDashboard() {
   const lang = user?.language || 'bn';
   const t = translations[lang as keyof typeof translations]?.dashboard || translations.bn.dashboard;
   const productLimit = user?.product_limit;
+  
   const stats = dashboard || {
     totalRevenue: 0,
     totalProducts: 0,
@@ -133,6 +132,7 @@ export default function AdminDashboard() {
     totalCustomers: 0,
     ordersThisMonth: 0,
     activeFlashDeals: 0,
+    allOrders: [],
     revenueChartData: [],
     pendingOrders: [],
     lowStockProducts: [],
@@ -165,7 +165,7 @@ export default function AdminDashboard() {
 
       <DashboardCharts 
         revenueChartData={stats.revenueChartData} 
-        allOrders={[]} 
+        allOrders={stats.allOrders || []} 
         isLoading={isLoading && !dashboard} 
         t={t} 
       />

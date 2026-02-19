@@ -22,6 +22,7 @@ interface DashboardStats {
     totalCustomers: number;
     ordersThisMonth: number;
     activeFlashDeals: number;
+    allOrders: Order[];
     revenueChartData: any[];
     pendingOrders: Order[];
     lowStockProducts: Product[];
