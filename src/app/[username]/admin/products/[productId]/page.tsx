@@ -29,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, PackageCheck, Ban, CalendarIcon, Wand2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, PackageCheck, Ban, CalendarIcon, Wand2, RotateCcw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -147,6 +147,7 @@ export default function ManageProductPage() {
 
   const productId = params.productId as string;
   const isNew = productId === 'new';
+  const draftKey = useMemo(() => user ? `unsaved_product_draft_${user.id}` : null, [user]);
 
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -155,6 +156,7 @@ export default function ManageProductPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [productCount, setProductCount] = useState(0);
   const [isLoadingProductCount, setIsLoadingProductCount] = useState(!isNew);
+  const [hasDraft, setHasDraft] = useState(false);
   
   const isSubscriptionPending =
     user?.subscription_status === 'pending' ||
@@ -192,7 +194,60 @@ export default function ManageProductPage() {
     },
   });
 
+  const { fields, append, remove, swap } = useFieldArray({
+    control: form.control,
+    name: 'images',
+  });
+
   const nameValue = form.watch('name');
+  const watchedValues = form.watch();
+  
+  // Auto-save draft to localStorage
+  useEffect(() => {
+    if (isNew && draftKey && !isLoading) {
+        const timeout = setTimeout(() => {
+            localStorage.setItem(draftKey, JSON.stringify(watchedValues));
+        }, 1000);
+        return () => clearTimeout(timeout);
+    }
+  }, [watchedValues, isNew, draftKey, isLoading]);
+
+  // Check for existing draft on load
+  useEffect(() => {
+    if (isNew && draftKey) {
+        const savedDraft = localStorage.getItem(draftKey);
+        if (savedDraft) {
+            setHasDraft(true);
+        }
+    }
+  }, [isNew, draftKey]);
+
+  const applyDraft = () => {
+    if (!draftKey) return;
+    const savedDraft = localStorage.getItem(draftKey);
+    if (savedDraft) {
+        try {
+            const parsed = JSON.parse(savedDraft);
+            // Convert date strings back to Date objects
+            if (parsed.flash_deal_range?.startDate) parsed.flash_deal_range.startDate = new Date(parsed.flash_deal_range.startDate);
+            if (parsed.flash_deal_range?.endDate) parsed.flash_deal_range.endDate = new Date(parsed.flash_deal_range.endDate);
+            
+            form.reset(parsed);
+            setHasDraft(false);
+            toast({ title: 'ড্রাফট রিকভার করা হয়েছে!' });
+        } catch (e) {
+            console.error("Failed to parse draft", e);
+        }
+    }
+  };
+
+  const clearDraft = () => {
+    if (draftKey) {
+        localStorage.removeItem(draftKey);
+        setHasDraft(false);
+        toast({ title: 'ড্রাফট মুছে ফেলা হয়েছে।' });
+    }
+  };
   
   useEffect(() => {
     if (isNew && nameValue) {
@@ -208,11 +263,6 @@ export default function ManageProductPage() {
     }
   }, [nameValue, isNew, form]);
 
-
-  const { fields, append, remove, swap } = useFieldArray({
-    control: form.control,
-    name: 'images',
-  });
 
   const fetchProduct = useCallback(async () => {
     if (isNew || !user) return;
@@ -372,6 +422,11 @@ export default function ManageProductPage() {
 
         if (!response.ok) {
             throw new Error(result.error || 'Failed to save product');
+        }
+
+        // Success - clear draft
+        if (isNew && draftKey) {
+            localStorage.removeItem(draftKey);
         }
 
         toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
@@ -540,6 +595,21 @@ export default function ManageProductPage() {
           Back to Products
         </Link>
       </Button>
+
+      {isNew && hasDraft && (
+        <Alert className="mb-6 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500">
+            <RotateCcw className="h-4 w-4 text-primary" />
+            <AlertTitle className="font-bold">ড্রাফট পাওয়া গিয়েছে!</AlertTitle>
+            <AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <span className="text-foreground/90">আপনার কাছে একটি অসম্পূর্ণ পণ্যের তথ্য রয়েছে। আপনি কি সেটি ফিরিয়ে আনতে চান?</span>
+                <div className="flex gap-2 shrink-0">
+                    <Button variant="outline" size="sm" onClick={clearDraft} className="h-8 border-destructive text-destructive hover:bg-destructive/10">মুছে ফেলুন</Button>
+                    <Button size="sm" onClick={applyDraft} className="h-8">ড্রাফট রিকভার করুন</Button>
+                </div>
+            </AlertDescription>
+        </Alert>
+      )}
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Card>
