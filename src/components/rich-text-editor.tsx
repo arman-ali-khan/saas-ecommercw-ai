@@ -4,6 +4,7 @@ import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import { useEffect } from 'react';
 import {
   Bold,
   Italic,
@@ -102,20 +103,16 @@ interface RichTextEditorProps {
 
 export default function RichTextEditor({ value, onChange, isEditable = true }: RichTextEditorProps) {
   
-  let content: any = value;
+  let initialContent: any = value;
   try {
-    // Ensure value is a non-empty string before trying to parse
-    if (value && typeof value === 'string') {
+    if (value && typeof value === 'string' && value.startsWith('{')) {
       const parsed = JSON.parse(value);
-      // Make sure the parsed content is a valid Tiptap object
       if (typeof parsed === 'object' && parsed !== null && parsed.type === 'doc') {
-        content = parsed;
+        initialContent = parsed;
       }
     }
   } catch (error) {
-    // Not a valid JSON string, treat it as plain text content.
-    // This allows backward compatibility with old data.
-    content = value;
+    initialContent = value;
   }
   
   const editor = useEditor({
@@ -126,7 +123,7 @@ export default function RichTextEditor({ value, onChange, isEditable = true }: R
         nested: true,
       }),
     ],
-    content: content,
+    content: initialContent,
     editable: isEditable,
     onUpdate: ({ editor }) => {
       onChange(JSON.stringify(editor.getJSON()));
@@ -137,6 +134,25 @@ export default function RichTextEditor({ value, onChange, isEditable = true }: R
         }
     }
   });
+
+  // Reactive update when 'value' prop changes (e.g., from AI generation)
+  useEffect(() => {
+    if (!editor || value === undefined) return;
+
+    const currentContent = JSON.stringify(editor.getJSON());
+    if (value !== currentContent) {
+      try {
+        if (value.startsWith('{')) {
+          const parsed = JSON.parse(value);
+          editor.commands.setContent(parsed);
+        } else {
+          editor.commands.setContent(value);
+        }
+      } catch (e) {
+        editor.commands.setContent(value);
+      }
+    }
+  }, [value, editor]);
 
   return (
     <div className="space-y-2">

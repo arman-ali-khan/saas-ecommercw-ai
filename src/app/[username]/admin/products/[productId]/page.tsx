@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -255,17 +254,49 @@ export default function ManageProductPage() {
             categories: watchedValues.categories
         });
 
-        form.setValue('name', result.name, { shouldValidate: true });
-        form.setValue('description', result.description, { shouldValidate: true });
-        form.setValue('story', result.story, { shouldValidate: true });
-        form.setValue('origin', result.origin, { shouldValidate: true });
-        form.setValue('long_description', result.longDescription, { shouldValidate: true });
-
-        toast({ title: 'SEO Beautification সম্পন্ন!', description: 'সকল তথ্য আপডেট করা হয়েছে।' });
+        if (result.success) {
+            form.setValue('name', result.name, { shouldValidate: true, shouldDirty: true });
+            form.setValue('description', result.description, { shouldValidate: true, shouldDirty: true });
+            form.setValue('story', result.story, { shouldValidate: true, shouldDirty: true });
+            form.setValue('origin', result.origin, { shouldValidate: true, shouldDirty: true });
+            form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
+            toast({ title: 'SEO Beautification সম্পন্ন!', description: 'সকল তথ্য আপডেট করা হয়েছে।' });
+        } else {
+            throw new Error(result.error);
+        }
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message });
     } finally {
         setIsBeautifying(false);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!watchedValues.name) return toast({ variant: 'destructive', title: 'আগে পণ্যের নাম প্রদান করুন' });
+    setIsGenerating(true);
+    try {
+        const res = await fetch('/api/ai-settings/get', { method: 'POST', body: JSON.stringify({ siteId: user?.id }), headers: { 'Content-Type': 'application/json' } });
+        const settings = await res.json();
+        if (!res.ok || !settings.gemini_api_key) throw new Error('এআই সেটিংস থেকে Gemini API Key কনফিগার করুন।');
+        
+        const result = await generateProductDescription({ 
+            apiKey: settings.gemini_api_key, 
+            name: watchedValues.name, 
+            description: watchedValues.description, 
+            categories: watchedValues.categories, 
+            origin: watchedValues.origin 
+        });
+
+        if (result.success) {
+            form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
+            toast({ title: 'AI ম্যাজিক সম্পন্ন!', description: 'বিস্তারিত বিবরণ সফলভাবে তৈরি হয়েছে।' });
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (e: any) { 
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); 
+    } finally { 
+        setIsGenerating(false); 
     }
   };
 
@@ -274,7 +305,6 @@ export default function ManageProductPage() {
     setIsSubmitting(true);
     const { has_flash_deal, flash_deal_price, flash_deal_range, use_variants, ...productValues } = values;
     
-    // If not using variants, clear them
     if (!use_variants) {
         productValues.variants = null;
     }
@@ -490,24 +520,7 @@ export default function ManageProductPage() {
                                 variant="outline" 
                                 size="sm" 
                                 className="bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
-                                onClick={async () => {
-                                    if (!watchedValues.name) return toast({ variant: 'destructive', title: 'আগে পণ্যের নাম প্রদান করুন' });
-                                    setIsGenerating(true);
-                                    try {
-                                        const res = await fetch('/api/ai-settings/get', { method: 'POST', body: JSON.stringify({ siteId: user?.id }), headers: { 'Content-Type': 'application/json' } });
-                                        const settings = await res.json();
-                                        if (!res.ok || !settings.gemini_api_key) throw new Error('এআই সেটিংস থেকে Gemini API Key কনফিগার করুন।');
-                                        const result = await generateProductDescription({ 
-                                            apiKey: settings.gemini_api_key, 
-                                            name: watchedValues.name, 
-                                            description: watchedValues.description, 
-                                            categories: watchedValues.categories, 
-                                            origin: watchedValues.origin 
-                                        });
-                                        form.setValue('long_description', result.longDescription, { shouldValidate: true });
-                                        toast({ title: 'AI ম্যাজিক সম্পন্ন!', description: ' বিস্তারিত বিবরণ সফলভাবে তৈরি হয়েছে।' });
-                                    } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsGenerating(false); }
-                                }} 
+                                onClick={handleGenerateDescription} 
                                 disabled={isGenerating}
                             >
                                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
