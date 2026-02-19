@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -41,6 +42,7 @@ import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/stores/auth';
+import { useSaasStore } from '@/stores/useSaasStore';
 
 const featureSchema = z.object({
   name: z.string().min(1, "Feature name is required."),
@@ -52,8 +54,8 @@ type FeatureFormData = z.infer<typeof featureSchema>;
 
 export default function FeaturesAdminPage() {
   const { user } = useAuth();
-  const [features, setFeatures] = useState<SaasFeature[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { features, lastFetched, setFeatures } = useSaasStore();
+  const [isLoading, setIsLoading] = useState(!features.length);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -70,7 +72,12 @@ export default function FeaturesAdminPage() {
     },
   });
 
-  const fetchFeatures = useCallback(async () => {
+  const fetchFeatures = useCallback(async (force = false) => {
+    if (!force && features.length > 0 && Date.now() - lastFetched.features < 3600000) {
+        setIsLoading(false);
+        return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch('/api/saas/fetch-data', {
@@ -89,7 +96,7 @@ export default function FeaturesAdminPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [features.length, lastFetched.features, setFeatures, toast]);
 
   useEffect(() => {
     if (user) {
@@ -128,7 +135,7 @@ export default function FeaturesAdminPage() {
 
       if (response.ok) {
         toast({ title: typeof selectedFeature?.id !== 'undefined' ? 'Feature Updated' : 'Feature Created' });
-        await fetchFeatures();
+        await fetchFeatures(true);
         setIsFormOpen(false);
         setSelectedFeature(null);
       } else {
@@ -163,7 +170,7 @@ export default function FeaturesAdminPage() {
 
       if (response.ok) {
         toast({ title: 'Feature Deleted' });
-        await fetchFeatures();
+        await fetchFeatures(true);
       } else {
         const result = await response.json();
         throw new Error(result.error || 'Failed to delete feature');

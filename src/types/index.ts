@@ -1,5 +1,4 @@
 
-
 export interface ProductImage {
   imageUrl: string;
   imageHint: string;
@@ -195,6 +194,7 @@ export interface SubscriptionPaymentWithDetails extends SubscriptionPayment {
   profiles: {
     full_name: string;
     username: string;
+    email?: string;
   } | null;
   plans: {
     name: string;

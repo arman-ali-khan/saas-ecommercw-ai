@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -7,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
+import { useSaasStore } from '@/stores/useSaasStore';
 import {
   Card,
   CardContent,
@@ -45,8 +47,8 @@ const createAdminSchema = z.object({
 
 export default function UsersAdminPage() {
     const { user: currentUser } = useAuth();
-    const [users, setUsers] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { admins: users, lastFetched, setAdmins, invalidateEntity } = useSaasStore();
+    const [loading, setLoading] = useState(!users.length);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -63,14 +65,19 @@ export default function UsersAdminPage() {
         defaultValues: { fullName: '', username: '', email: '', password: '', domain: '', siteName: '' },
     });
 
-    const fetchUsersData = useCallback(async () => {
+    const fetchUsersData = useCallback(async (force = false) => {
+        if (!force && users.length > 0 && Date.now() - lastFetched.admins < 600000) {
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
             const response = await fetch('/api/saas/admins/list');
             const result = await response.json();
             
             if (response.ok) {
-                setUsers(result.users || []);
+                setAdmins(result.users || []);
             } else {
                 throw new Error(result.error);
             }
@@ -90,7 +97,7 @@ export default function UsersAdminPage() {
         } finally {
             setLoading(false);
         }
-    }, [toast]);
+    }, [toast, users.length, lastFetched.admins, setAdmins]);
 
     useEffect(() => {
         if (currentUser) {
@@ -112,7 +119,7 @@ export default function UsersAdminPage() {
                 toast({ title: 'Success', description: 'New store owner created successfully.' });
                 setIsCreateOpen(false);
                 form.reset();
-                await fetchUsersData();
+                await fetchUsersData(true);
             } else {
                 throw new Error(result.error);
             }
@@ -151,7 +158,7 @@ export default function UsersAdminPage() {
 
             if (response.ok) {
                 toast({ title: 'User deleted!' });
-                await fetchUsersData();
+                await fetchUsersData(true);
             } else {
                 const res = await response.json();
                 throw new Error(res.error);
@@ -181,7 +188,7 @@ export default function UsersAdminPage() {
 
             if (response.ok) {
                 toast({ title: `Store has been ${newStatus === 'active' ? 'unblocked' : 'blocked'}.` });
-                await fetchUsersData();
+                await fetchUsersData(true);
             } else {
                 throw new Error(result.error);
             }

@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -28,34 +29,31 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { SubscriptionPaymentWithDetails } from '@/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
+import { useSaasStore } from '@/stores/useSaasStore';
 
 export default function SaasAdminDashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalRevenue: 0,
-    activeSubscriptions: 0,
-    pendingReviews: 0,
-    pendingSubscriptions: 0,
-  });
-  const [pendingPayments, setPendingPayments] = useState<SubscriptionPaymentWithDetails[]>([]);
-  const [unreadNotifications, setUnreadNotifications] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { dashboardData, lastFetched, setDashboardData } = useSaasStore();
+  const [isLoading, setIsLoading] = useState(!dashboardData);
   const { toast } = useToast();
 
-  const fetchDashboardData = useCallback(async () => {
+  const fetchDashboardData = useCallback(async (force = false) => {
+    // If not forced and data exists and is fresh (within last 5 mins), skip
+    if (!force && dashboardData && Date.now() - lastFetched.dashboard < 300000) {
+        setIsLoading(false);
+        return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch('/api/saas/dashboard-data');
       const result = await response.json();
 
       if (response.ok) {
-        setStats(result.stats);
-        setPendingPayments(result.recentPendingPayments || []);
-        setUnreadNotifications(result.unreadNotifications || []);
+        setDashboardData(result);
       } else {
         throw new Error(result.error || 'Failed to fetch dashboard data');
       }
@@ -65,7 +63,7 @@ export default function SaasAdminDashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [dashboardData, lastFetched.dashboard, setDashboardData, toast]);
 
   useEffect(() => {
     if (user) {
@@ -73,6 +71,15 @@ export default function SaasAdminDashboard() {
     }
   }, [fetchDashboardData, user]);
   
+  const stats = dashboardData?.stats || {
+    totalRevenue: 0,
+    activeSubscriptions: 0,
+    pendingReviews: 0,
+    pendingSubscriptions: 0,
+  };
+  const pendingPayments = dashboardData?.recentPendingPayments || [];
+  const unreadNotifications = dashboardData?.unreadNotifications || [];
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">SaaS Dashboard</h1>

@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import type { SubscriptionPaymentWithDetails } from '@/types';
 import { useAuth } from '@/stores/auth';
+import { useSaasStore } from '@/stores/useSaasStore';
 
 import {
   Card,
@@ -32,31 +33,35 @@ const PAYMENTS_PER_PAGE = 10;
 
 export default function SubscriptionPaymentsPage() {
   const { user } = useAuth();
-  const [payments, setPayments] = useState<SubscriptionPaymentWithDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { subscriptions: payments, lastFetched, setSubscriptions } = useSaasStore();
+  const [isLoading, setIsLoading] = useState(!payments.length);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
 
-  const fetchPayments = useCallback(async () => {
+  const fetchPayments = useCallback(async (force = false) => {
+    if (!force && payments.length > 0 && Date.now() - lastFetched.subscriptions < 300000) {
+        setIsLoading(false);
+        return;
+    }
+
     setIsLoading(true);
     try {
         const response = await fetch('/api/saas/subscriptions/list');
         const result = await response.json();
 
         if (response.ok) {
-            setPayments(result.payments || []);
+            setSubscriptions(result.payments || []);
         } else {
             throw new Error(result.error || 'Failed to fetch payments');
         }
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'Error', description: e.message });
-        setPayments([]);
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, [payments.length, lastFetched.subscriptions, setSubscriptions, toast]);
   
   useEffect(() => {
     if (user) {
@@ -83,7 +88,7 @@ export default function SubscriptionPaymentsPage() {
 
         if (response.ok) {
             toast({ title: 'Success', description: `Payment reviewed and status updated.` });
-            await fetchPayments();
+            await fetchPayments(true);
             setSelectedPayment(null);
         } else {
             throw new Error(result.error || 'Failed to update subscription status');

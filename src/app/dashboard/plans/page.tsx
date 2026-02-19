@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -37,6 +38,7 @@ import { Plus, Edit, Trash2, Loader2, X, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type Plan } from '@/types';
 import { useAuth } from '@/stores/auth';
+import { useSaasStore } from '@/stores/useSaasStore';
 import { Badge } from '@/components/ui/badge';
 
 const planSchema = z.object({
@@ -57,8 +59,8 @@ type PlanFormData = z.infer<typeof planSchema>;
 
 export default function PlansAdminPage() {
   const { user } = useAuth();
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { plans, lastFetched, setPlans } = useSaasStore();
+  const [isLoading, setIsLoading] = useState(!plans.length);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -73,7 +75,12 @@ export default function PlansAdminPage() {
     }
   });
 
-  const fetchPlans = useCallback(async () => {
+  const fetchPlans = useCallback(async (force = false) => {
+    if (!force && plans.length > 0 && Date.now() - lastFetched.plans < 3600000) {
+        setIsLoading(false);
+        return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch('/api/saas/fetch-data', {
@@ -92,7 +99,7 @@ export default function PlansAdminPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, [plans.length, lastFetched.plans, setPlans, toast]);
 
   useEffect(() => {
     if (user) {
@@ -153,7 +160,7 @@ export default function PlansAdminPage() {
 
       if (response.ok) {
         toast({ title: selectedPlan ? 'Plan Updated' : 'Plan Created' });
-        await fetchPlans();
+        await fetchPlans(true);
         setIsFormOpen(false);
         setSelectedPlan(null);
       } else {
@@ -188,7 +195,7 @@ export default function PlansAdminPage() {
 
       if (response.ok) {
         toast({ title: 'Plan Deleted' });
-        await fetchPlans();
+        await fetchPlans(true);
       } else {
         const result = await response.json();
         throw new Error(result.error || 'Failed to delete plan');
