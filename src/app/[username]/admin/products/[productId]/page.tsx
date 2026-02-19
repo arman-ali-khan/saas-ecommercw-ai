@@ -435,12 +435,12 @@ export default function ManageProductPage() {
                                     <div className="space-y-3">
                                         {variantFields.map((v, i) => (
                                             <div key={v.id} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-xl bg-card relative">
-                                                <div className="col-span-3">
+                                                <div className="col-span-4">
                                                     <FormField control={form.control} name={`variants.${i}.amount`} render={({ field }) => (
                                                         <FormItem><FormLabel className="text-[10px] uppercase font-bold">পরিমাণ</FormLabel><FormControl><Input placeholder="1" {...field} className="h-9 px-2" /></FormControl></FormItem>
                                                     )} />
                                                 </div>
-                                                <div className="col-span-3">
+                                                <div className="col-span-4">
                                                     <FormField control={form.control} name={`variants.${i}.unitType`} render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel className="text-[10px] uppercase font-bold">একক</FormLabel>
@@ -451,13 +451,13 @@ export default function ManageProductPage() {
                                                         </FormItem>
                                                     )} />
                                                 </div>
-                                                <div className="col-span-3">
+                                                <div className="col-span-4">
                                                     <FormField control={form.control} name={`variants.${i}.price`} render={({ field }) => (<FormItem><FormLabel className="text-[10px] uppercase font-bold">মূল্য</FormLabel><FormControl><Input type="number" step="0.01" {...field} className="h-9 px-2 font-bold" /></FormControl></FormItem>)} />
                                                 </div>
-                                                <div className="col-span-2">
+                                                <div className="col-span-4">
                                                     <FormField control={form.control} name={`variants.${i}.stock`} render={({ field }) => (<FormItem><FormLabel className="text-[10px] uppercase font-bold">স্টক</FormLabel><FormControl><Input type="number" {...field} className="h-9 px-2 text-xs" /></FormControl></FormItem>)} />
                                                 </div>
-                                                <div className="col-span-1 pb-1"><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeVariant(i)}><Trash2 className="h-4 w-4" /></Button></div>
+                                                <div className="col-span-2 pb-1"><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeVariant(i)}><Trash2 className="h-4 w-4" /></Button></div>
                                             </div>
                                         ))}
                                     </div>
