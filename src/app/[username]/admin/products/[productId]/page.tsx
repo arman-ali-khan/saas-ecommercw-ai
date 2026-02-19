@@ -98,14 +98,14 @@ export default function ManageProductPage() {
   const isNew = productId === 'new';
   const draftKey = useMemo(() => user ? `unsaved_product_draft_${user.id}` : null, [user]);
 
-  // Instant Loading State Check
+  // Instant check for cache to avoid spinner
   const [isLoading, setIsLoading] = useState(() => {
     if (isNew) {
         const store = useAdminStore.getState();
         const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
         return !(store.dashboard && isFresh);
     }
-    return true; // Always load for existing product fetch
+    return true; // Always load for existing product
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -238,7 +238,7 @@ export default function ManageProductPage() {
     } catch (error: any) { setIsSubmitting(false); toast({ variant: 'destructive', title: `Error`, description: error.message }); }
   };
 
-  if (isLoading || authLoading) return <div className="space-y-6"><Skeleton className="h-8 w-1/2" /><Card><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
+  if ((isLoading && !dashboard) || authLoading) return <div className="space-y-6"><Skeleton className="h-8 w-1/2" /><Card><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
 
   const isLimitReached = user?.product_limit !== null && (dashboard?.totalProducts || 0) >= user?.product_limit!;
   if (isNew && isLimitReached) return <div className="space-y-6"><Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button><Alert variant="destructive"><PackageCheck className="h-4 w-4" /><AlertTitle>Product Limit Reached</AlertTitle><AlertDescription>You have reached your limit of {user?.product_limit} products.</AlertDescription></Alert></div>;

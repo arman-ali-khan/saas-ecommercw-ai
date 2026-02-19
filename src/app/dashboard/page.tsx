@@ -38,7 +38,7 @@ export default function SaasAdminDashboard() {
   const { dashboardData, setDashboardData } = useSaasStore();
   const { toast } = useToast();
 
-  // Instant loading state check
+  // Instant check for cache to prevent tab-switch flicker
   const [isLoading, setIsLoading] = useState(() => {
     const store = useSaasStore.getState();
     const isFresh = Date.now() - store.lastFetched.dashboard < 300000; // 5 mins
@@ -46,6 +46,9 @@ export default function SaasAdminDashboard() {
   });
 
   const fetchDashboardData = useCallback(async (force = false) => {
+    const siteId = user?.id;
+    if (!siteId) return;
+
     const store = useSaasStore.getState();
     const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
     
@@ -71,7 +74,7 @@ export default function SaasAdminDashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [setDashboardData, toast]);
+  }, [user?.id, setDashboardData, toast]);
 
   useEffect(() => {
     if (user) {
@@ -198,7 +201,7 @@ export default function SaasAdminDashboard() {
             <div className="divide-y divide-border">
               {isLoading ? (
                 [...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4">
+                  <div key={i} className="flex items-start gap-4 p-4">
                     <Skeleton className="h-9 w-9 rounded-full" />
                     <div className="flex-1 space-y-1">
                       <Skeleton className="h-4 w-full" />

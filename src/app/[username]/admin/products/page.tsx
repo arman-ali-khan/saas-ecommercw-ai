@@ -216,7 +216,7 @@ export default function ProductsAdminPage() {
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="-mt-2 -mr-2"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild><Link href={`/admin/products/${product.id}`} className="cursor-pointer"><Edit className="mr-2 h-4 w-4" /> {t.edit}</Link></DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => setProductToDelete(product)}><Trash2 className="mr-2 h-4 w-4" />{t.delete}</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => setProductToDelete(product)}><Trash2 className="mr-2 h-4 w-4" /> {t.delete}</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -227,7 +227,6 @@ export default function ProductsAdminPage() {
         </>
       )}
 
-      {/* Delete Modal Omitted for Brevity but retained in component logic */}
       {productToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setProductToDelete(null)} />

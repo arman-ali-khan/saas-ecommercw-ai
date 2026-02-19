@@ -33,21 +33,30 @@ const PAYMENTS_PER_PAGE = 10;
 export default function SubscriptionPaymentsPage() {
   const { user } = useAuth();
   const { subscriptions: payments, setSubscriptions } = useSaasStore();
-  const [isLoading, setIsLoading] = useState(!payments.length);
-  const [isActionLoading, setIsActionLoading] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Instant check for cache to avoid spinner on tab switch
+  const [isLoading, setIsLoading] = useState(() => {
+    const store = useSaasStore.getState();
+    const isFresh = Date.now() - store.lastFetched.subscriptions < 300000;
+    return !(store.subscriptions.length > 0 && isFresh);
+  });
+
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
 
   const fetchPayments = useCallback(async (force = false) => {
     const store = useSaasStore.getState();
     const isFresh = Date.now() - store.lastFetched.subscriptions < 300000;
+    
     if (!force && store.subscriptions.length > 0 && isFresh) {
         setIsLoading(false);
         return;
     }
 
-    setIsLoading(true);
+    if (force || !store.subscriptions.length) setIsLoading(true);
+
     try {
         const response = await fetch('/api/saas/subscriptions/list');
         const result = await response.json();
@@ -120,7 +129,7 @@ export default function SubscriptionPaymentsPage() {
     return method || 'Unknown';
   }
 
-  if (isLoading) {
+  if (isLoading && payments.length === 0) {
       return (
         <Card>
             <CardHeader>

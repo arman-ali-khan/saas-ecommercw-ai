@@ -49,10 +49,10 @@ export default function UsersAdminPage() {
     const { admins: users, setAdmins } = useSaasStore();
     const { toast } = useToast();
     
-    // Instant loading state check
+    // Instant check for cache to avoid spinner on tab switch
     const [loading, setLoading] = useState(() => {
         const store = useSaasStore.getState();
-        const isFresh = Date.now() - store.lastFetched.admins < 600000;
+        const isFresh = Date.now() - store.lastFetched.admins < 600000; // 10 mins
         return !(store.admins.length > 0 && isFresh);
     });
 
@@ -343,7 +343,53 @@ export default function UsersAdminPage() {
                 )}
             </Card>
 
-            {/* Custom Modals Omitted for Brevity but retained in logic */}
+            {/* Delete Modal */}
+            {isDeleteOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setIsDeleteOpen(false)} />
+                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center gap-3 mb-4 text-destructive">
+                            <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                            <h3 className="text-xl font-bold text-foreground">Delete User?</h3>
+                        </div>
+                        <div className="mb-8"><p className="text-muted-foreground leading-relaxed">This will permanently delete <strong>"{selectedUser?.full_name}"</strong> and their store data. This action cannot be undone.</p></div>
+                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>Cancel</Button>
+                            <Button variant="destructive" onClick={performDelete} disabled={isDeleting}>{isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete User</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Block/Unblock Modal */}
+            {isBlockOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isBlocking && setIsBlockOpen(false)} />
+                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center gap-3 mb-4 text-primary">
+                            <div className="p-2 bg-primary/10 rounded-full">
+                                {selectedUser?.subscription_status === 'active' ? <ShieldOff className="h-6 w-6" /> : <ShieldCheck className="h-6 w-6" />}
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground">{selectedUser?.subscription_status === 'active' ? 'Block Store?' : 'Unblock Store?'}</h3>
+                        </div>
+                        <div className="mb-8">
+                            <p className="text-muted-foreground leading-relaxed">
+                                Are you sure you want to {selectedUser?.subscription_status === 'active' ? 'block' : 'unblock'} the store for <strong>"{selectedUser?.site_name}"</strong>? 
+                                {selectedUser?.subscription_status === 'active' ? ' The admin will no longer be able to access the dashboard.' : ' The admin will regain full access.'}
+                            </p>
+                        </div>
+                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsBlockOpen(false)} disabled={isBlocking}>Cancel</Button>
+                            <Button onClick={performBlock} disabled={isBlocking}>
+                                {isBlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Confirm {selectedUser?.subscription_status === 'active' ? 'Block' : 'Unblock'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Create Modal */}
             {isCreateOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsCreateOpen(false)} />

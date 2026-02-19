@@ -34,7 +34,13 @@ export default function OrdersAdminPage() {
     const { user } = useAuth();
     const { orders, setOrders } = useAdminStore();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
+    
+    // Instant check for cache to avoid spinner on tab switch
+    const [isLoading, setIsLoading] = useState(() => {
+        const store = useAdminStore.getState();
+        const isFresh = Date.now() - store.lastFetched.orders < 300000;
+        return !(store.orders.length > 0 && isFresh);
+    });
     
     const lang = user?.language || 'bn';
     const t = translations[lang].orders;
@@ -47,10 +53,12 @@ export default function OrdersAdminPage() {
         const store = useAdminStore.getState();
         const isFresh = Date.now() - store.lastFetched.orders < 300000;
         if (!force && store.orders.length > 0 && isFresh) {
+            setIsLoading(false);
             return;
         }
 
-        setIsLoading(true);
+        if (force || !store.orders.length) setIsLoading(true);
+
         try {
             const response = await fetch('/api/orders/list', {
                 method: 'POST',
