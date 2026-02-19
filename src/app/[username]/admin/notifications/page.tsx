@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, BellOff, CheckCheck, Eye, X, MessageSquare, ShoppingCart } from 'lucide-react';
+import { Loader2, BellOff, CheckCheck, Eye, X, MessageSquare, ShoppingCart, Bell } from 'lucide-react';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 
