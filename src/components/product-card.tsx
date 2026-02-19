@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import Image from 'next/image';
@@ -14,6 +12,7 @@ import { Badge } from './ui/badge';
 import Countdown from './countdown';
 import { useTranslation } from '@/hooks/use-translation';
 import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
 
 interface ProductCardProps {
   product: Product;
@@ -27,6 +26,12 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
   const { productCard: t_card } = t;
 
   const handleAddToCart = () => {
+    // If product has variants, redirect to details page instead of direct add
+    if (product.variants && product.variants.length > 0) {
+        window.location.href = `/products/${product.id}`;
+        return;
+    }
+
     const productWithDealPrice = flashDeal
       ? { ...product, price: flashDeal.discount_price }
       : product;
@@ -38,7 +43,23 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
   };
 
   const productUrl = `/products/${product.id}`;
-  const displayPrice = flashDeal ? flashDeal.discount_price : product.price;
+
+  // Logic to determine display price or range
+  const priceDisplay = useMemo(() => {
+    if (product.variants && product.variants.length > 0) {
+      const prices = product.variants.map(v => v.price);
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      
+      if (minPrice === maxPrice) {
+        return `${minPrice.toFixed(2)} ${product.currency}`;
+      }
+      return `${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)} ${product.currency}`;
+    }
+    
+    const basePrice = flashDeal ? flashDeal.discount_price : product.price;
+    return `${basePrice.toFixed(2)} ${product.currency}`;
+  }, [product, flashDeal]);
 
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
@@ -46,9 +67,9 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
         <CardHeader className="p-0">
           <div className="relative w-full aspect-[6/5]">
             <Image
-              src={product.images[0].imageUrl}
+              src={product.images[0]?.imageUrl || 'https://placehold.co/400x300'}
               alt={product.name}
-              data-ai-hint={product.images[0].imageHint}
+              data-ai-hint={product.images[0]?.imageHint || 'product image'}
               fill
               className="object-cover"
             />
@@ -56,7 +77,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
           {flashDeal && <Badge className="absolute top-2 left-2" variant="destructive">Sale</Badge>}
         </CardHeader>
         <CardContent className="p-1 sm:p-4 flex-grow">
-          <h3 className="text-sm sm:text-lg font-headline font-semibold">{product.name}</h3>
+          <h3 className="text-sm sm:text-lg font-headline font-semibold line-clamp-1">{product.name}</h3>
            {product.review_count && product.review_count > 0 && (
             <div className="flex items-center gap-1.5 mt-1">
               <div className="flex items-center">
@@ -75,7 +96,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
               <span className="text-xs text-muted-foreground">({product.review_count})</span>
             </div>
           )}
-          <p className="text-muted-foreground mt-1 text-sm truncate">{product.description}</p>
+          <p className="text-muted-foreground mt-1 text-xs sm:text-sm line-clamp-2">{product.description}</p>
           {flashDeal && (
             <div className="mt-2">
               <Countdown endDate={flashDeal.end_date} />
@@ -84,19 +105,23 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
         </CardContent>
       </Link>
       <CardFooter className="p-1 block sm:p-4 !pt-1 sm:mt-auto items-center">
-        <div className="flex flex-col w-full justify-start sm:justify-center">
-            {flashDeal && (
-                <p className="text-sm font-bold text-muted-foreground line-through">
+        <div className="flex flex-col w-full mb-3">
+            {flashDeal && !product.variants?.length && (
+                <p className="text-xs font-bold text-muted-foreground line-through">
                     {product.price.toFixed(2)} {product.currency}
                 </p>
             )}
             <p className="text-sm sm:text-lg font-bold text-primary">
-                {displayPrice.toFixed(2)} {product.currency}
+                {priceDisplay}
             </p>
         </div>
-        <Button onClick={handleAddToCart}>
+        <Button 
+            onClick={handleAddToCart} 
+            className="w-full h-9 sm:h-10 text-xs sm:text-sm"
+            variant={product.variants && product.variants.length > 0 ? "outline" : "default"}
+        >
           <ShoppingBag className="w-4 h-4 mr-2" />
-          {t_card.addToBag}
+          {product.variants && product.variants.length > 0 ? "অপশন দেখুন" : t_card.addToBag}
         </Button>
       </CardFooter>
     </Card>
