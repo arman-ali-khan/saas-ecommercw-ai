@@ -65,7 +65,7 @@ export default function AdminDashboard() {
           customersRes.json(), 
           flashDealsRes.json(), 
           reviewsRes.json(), 
-          qnaRes.json()
+          qnaResult = qnaRes.json()
         ]);
 
         const fetchedOrders = ordersResult.orders || [];
@@ -90,6 +90,8 @@ export default function AdminDashboard() {
           if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) dailyRevenue[dateStr] += o.total;
         });
 
+        const LOW_STOCK_THRESHOLD = 10;
+
         const newDashboardData = {
           totalRevenue,
           totalProducts: fetchedProducts.length,
@@ -101,13 +103,17 @@ export default function AdminDashboard() {
           allOrders: fetchedOrders,
           revenueChartData: Object.keys(dailyRevenue).map(dateKey => ({ date: dateKey, Revenue: dailyRevenue[dateKey] })),
           pendingOrders: fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5),
-          lowStockProducts: fetchedProducts.filter((p: any) => p.stock !== null && p.stock < 10).slice(0, 0), // Changed to slice(0,5) in actual but keeping consistent with original code structure
+          lowStockProducts: fetchedProducts.filter((p: any) => {
+            // Check main stock for simple products
+            if (!p.variants || p.variants.length === 0) {
+              return p.stock !== null && p.stock < LOW_STOCK_THRESHOLD;
+            }
+            // Check if any variant is low stock
+            return p.variants.some((v: any) => v.stock !== null && v.stock < LOW_STOCK_THRESHOLD);
+          }).slice(0, 5),
           pendingReviews: fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5),
           unansweredQuestions: fetchedQna.filter((q: any) => !q.is_approved).slice(0, 5),
         };
-        
-        // Final adjustment for low stock products slice
-        newDashboardData.lowStockProducts = fetchedProducts.filter((p: any) => p.stock !== null && p.stock < 10).slice(0, 5);
 
         setDashboard(newDashboardData);
       } catch (error: any) {
