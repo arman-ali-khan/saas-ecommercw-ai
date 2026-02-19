@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -52,24 +51,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
 
-
 const productFormSchema = z.object({
-  id: z
-    .string()
-    .min(3, 'ID/Slug must be at least 3 characters.')
-    .regex(
-      /^[a-z0-9\u0980-\u09FF-]+$/,
-      'Slug can only contain lowercase letters, numbers, hyphens, and Bengali characters.'
-    ),
+  id: z.string().min(3, 'ID/Slug must be at least 3 characters.').regex(/^[a-z0-9\u0980-\u09FF-]+$/, 'Slug can only contain lowercase letters, numbers, hyphens, and Bengali characters.'),
   name: z.string().min(1, 'Name is required.'),
-  price: z.preprocess(
-    (a) => parseFloat(String(a)),
-    z.number().positive('Price must be a positive number.')
-  ),
-  stock: z.preprocess(
-    (a) => parseInt(String(a), 10),
-    z.number().min(0, "Stock can't be negative.").default(0)
-  ),
+  price: z.preprocess((a) => parseFloat(String(a)), z.number().positive('Price must be a positive number.')),
+  stock: z.preprocess((a) => parseInt(String(a), 10), z.number().min(0, "Stock can't be negative.").default(0)),
   currency: z.string().default('BDT'),
   description: z.string().optional(),
   long_description: z.string().optional(),
@@ -81,64 +67,21 @@ const productFormSchema = z.object({
   unit: z.array(z.string()).optional(),
   size: z.array(z.string()).optional(),
   color: z.array(z.string()).optional(),
-  images: z
-    .array(
-      z.object({
-        imageUrl: z.string().url('Must be a valid URL.'),
-        imageHint: z.string().optional(),
-      })
-    )
-    .min(1, 'At least one image is required.'),
+  images: z.array(z.object({ imageUrl: z.string().url('Must be a valid URL.'), imageHint: z.string().optional() })).min(1, 'At least one image is required.'),
   has_flash_deal: z.boolean().default(false),
-  flash_deal_price: z.preprocess(
-    (val) => (val === '' || val == null ? undefined : parseFloat(String(val))),
-    z.number().positive('Discount price must be a positive number.').optional()
-  ),
-  flash_deal_range: z.object({
-    startDate: z.any().optional(),
-    endDate: z.any().optional(),
-  }).optional(),
+  flash_deal_price: z.preprocess((val) => (val === '' || val == null ? undefined : parseFloat(String(val))), z.number().positive('Discount price must be a positive number.').optional()),
+  flash_deal_range: z.object({ startDate: z.any().optional(), endDate: z.any().optional() }).optional(),
 }).superRefine((data, ctx) => {
     if (data.has_flash_deal) {
-        if (!data.flash_deal_price || data.flash_deal_price <= 0) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Discount price is required and must be positive.",
-                path: ['flash_deal_price'],
-            });
-        }
-        if (!data.flash_deal_range?.startDate) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Start date is required for the flash deal.",
-                path: ['flash_deal_range', 'startDate'],
-            });
-        }
-        if (!data.flash_deal_range?.endDate) {
-             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "End date is required for the flash deal.",
-                path: ['flash_deal_range', 'endDate'],
-            });
-        }
+        if (!data.flash_deal_price || data.flash_deal_price <= 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Discount price is required and must be positive.", path: ['flash_deal_price'] });
+        if (!data.flash_deal_range?.startDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Start date is required for the flash deal.", path: ['flash_deal_range', 'startDate'] });
+        if (!data.flash_deal_range?.endDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "End date is required for the flash deal.", path: ['flash_deal_range', 'endDate'] });
         if (data.flash_deal_range?.startDate && data.flash_deal_range?.endDate) {
             const start = new Date(data.flash_deal_range.startDate);
             const end = new Date(data.flash_deal_range.endDate);
-            if (end <= start) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "End date must be after the start date.",
-                    path: ['flash_deal_range', 'endDate'],
-                });
-            }
+            if (end <= start) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "End date must be after the start date.", path: ['flash_deal_range', 'endDate'] });
         }
-        if (data.flash_deal_price && data.price && data.flash_deal_price >= data.price) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Discount price must be less than the regular price.",
-                path: ['flash_deal_price'],
-            });
-        }
+        if (data.flash_deal_price && data.price && data.flash_deal_price >= data.price) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Discount price must be less than the regular price.", path: ['flash_deal_price'] });
     }
 });
 
@@ -149,95 +92,54 @@ export default function ManageProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  
-  // Use Admin Store for Caching
-  const { 
-    attributes, 
-    categories, 
-    setAttributes, 
-    setCategories, 
-    dashboard, 
-    lastFetched,
-    invalidateEntity 
-  } = useAdminStore();
+  const { attributes, categories, setAttributes, setCategories, dashboard, lastFetched, invalidateEntity } = useAdminStore();
 
   const productId = params.productId as string;
   const isNew = productId === 'new';
   const draftKey = useMemo(() => user ? `unsaved_product_draft_${user.id}` : null, [user]);
 
-  const [isLoading, setIsLoading] = useState(true);
+  // Instant Loading State Check
+  const [isLoading, setIsLoading] = useState(() => {
+    if (isNew) {
+        const store = useAdminStore.getState();
+        const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
+        return !(store.dashboard && isFresh);
+    }
+    return true; // Always load for existing product fetch
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
   
-  const isSubscriptionPending =
-    user?.subscription_status === 'pending' ||
-    user?.subscription_status === 'pending_verification';
-
-  const isSubscriptionExpired = useMemo(() => {
-    if (!user?.subscription_end_date) return false;
-    const now = new Date();
-    const endDate = new Date(user.subscription_end_date);
-    return isBefore(endDate, now);
-  }, [user?.subscription_end_date]);
-
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
-      id: '',
-      name: '',
-      price: 0,
-      stock: 0,
-      currency: 'BDT',
-      description: '',
-      long_description: '',
-      categories: [],
-      origin: '',
-      story: '',
-      is_featured: false,
-      images: [],
-      brand: [],
-      unit: [],
-      size: [],
-      color: [],
-      has_flash_deal: false,
-      flash_deal_price: undefined,
-      flash_deal_range: { startDate: undefined, endDate: undefined },
+      id: '', name: '', price: 0, stock: 0, currency: 'BDT', description: '', long_description: '',
+      categories: [], origin: '', story: '', is_featured: false, images: [], brand: [], unit: [], size: [], color: [],
+      has_flash_deal: false, flash_deal_price: undefined, flash_deal_range: { startDate: undefined, endDate: undefined },
     },
   });
 
-  const { fields, append, remove, swap } = useFieldArray({
-    control: form.control,
-    name: 'images',
-  });
-
-  const nameValue = form.watch('name');
+  const { fields, append, remove, swap } = useFieldArray({ control: form.control, name: 'images' });
   const watchedValues = form.watch();
   const isDirty = form.formState.isDirty;
   
-  // Auto-save draft to localStorage
   useEffect(() => {
     if (isNew && draftKey && !isLoading && (isDirty || watchedValues.name || watchedValues.images.length > 0)) {
-        const timeout = setTimeout(() => {
-            localStorage.setItem(draftKey, JSON.stringify(watchedValues));
-        }, 1000);
+        const timeout = setTimeout(() => { localStorage.setItem(draftKey, JSON.stringify(watchedValues)); }, 1000);
         return () => clearTimeout(timeout);
     }
   }, [watchedValues, isNew, draftKey, isLoading, isDirty]);
 
-  // Check for existing draft on load
   useEffect(() => {
     if (isNew && draftKey) {
         const savedDraft = localStorage.getItem(draftKey);
         if (savedDraft) {
             try {
                 const parsed = JSON.parse(savedDraft);
-                if (parsed.name || (parsed.images && parsed.images.length > 0)) {
-                    setHasDraft(true);
-                }
-            } catch (e) {
-                console.error("Draft check failed", e);
-            }
+                if (parsed.name || (parsed.images && parsed.images.length > 0)) setHasDraft(true);
+            } catch (e) { console.error("Draft check failed", e); }
         }
     }
   }, [isNew, draftKey]);
@@ -255,55 +157,18 @@ export default function ManageProductPage() {
             form.reset(parsed);
             setHasDraft(false);
             toast({ title: 'ড্রাফট রিকভার করা হয়েছে!' });
-        } catch (e) {
-            toast({ variant: 'destructive', title: 'ড্রাফট রিকভার করতে সমস্যা হয়েছে' });
-        }
+        } catch (e) { toast({ variant: 'destructive', title: 'ড্রাফট রিকভার করতে সমস্যা হয়েছে' }); }
     }
   };
-
-  const clearDraft = () => {
-    if (draftKey) {
-        localStorage.removeItem(draftKey);
-        setHasDraft(false);
-        toast({ title: 'ড্রাফট মুছে ফেলা হয়েছে।' });
-    }
-  };
-  
-  useEffect(() => {
-    if (isNew && nameValue && !isDirty && !hasDraft) {
-      const slug = nameValue
-        .toLowerCase()
-        .replace(/&/g, 'and')
-        .replace(/[^a-z0-9\u0980-\u09FF\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
-      
-      form.setValue('id', `${slug}-${Math.random().toString(36).substring(2, 7)}`, { shouldValidate: true });
-    }
-  }, [nameValue, isNew, form, isDirty, hasDraft]);
-
 
   const fetchProduct = useCallback(async () => {
     if (isNew || !user) return;
-    
-    const decodedProductId = decodeURIComponent(productId);
     setIsLoading(true);
-    
-    const productPromise = supabase
-      .from('products')
-      .select('*')
-      .match({ id: decodedProductId, site_id: user.id })
-      .single();
-    
-    const flashDealPromise = supabase
-      .from('flash_deals')
-      .select('*')
-      .eq('product_id', decodedProductId)
-      .eq('site_id', user.id)
-      .single();
-
-    const [{ data: productData, error }, { data: flashDealData }] = await Promise.all([productPromise, flashDealPromise]);
+    const decodedProductId = decodeURIComponent(productId);
+    const [{ data: productData, error }, { data: flashDealData }] = await Promise.all([
+      supabase.from('products').select('*').match({ id: decodedProductId, site_id: user.id }).single(),
+      supabase.from('flash_deals').select('*').eq('product_id', decodedProductId).eq('site_id', user.id).single()
+    ]);
 
     if (error || !productData) {
       toast({ variant: 'destructive', title: 'Error', description: 'Product not found.' });
@@ -311,32 +176,13 @@ export default function ManageProductPage() {
       return;
     }
     
-    const sanitizedData = {
+    form.reset({
       ...productData,
-      stock: productData.stock || 0,
-      description: productData.description || '',
-      long_description: productData.long_description || '',
-      categories: productData.categories || [],
-      origin: productData.origin || '',
-      story: productData.story || '',
-      is_featured: productData.is_featured || false,
-      images: (productData.images || []).map((img: any) => ({
-        imageUrl: img.imageUrl || '',
-        imageHint: img.imageHint || '',
-      })),
-      brand: productData.brand || [],
-      unit: productData.unit || [],
-      size: productData.size || [],
-      color: productData.color || [],
+      images: (productData.images || []).map((img: any) => ({ imageUrl: img.imageUrl || '', imageHint: img.imageHint || '' })),
       has_flash_deal: !!flashDealData,
       flash_deal_price: flashDealData?.discount_price,
-      flash_deal_range: flashDealData ? {
-        startDate: new Date(flashDealData.start_date),
-        endDate: new Date(flashDealData.end_date)
-      } : { startDate: undefined, endDate: undefined },
-    };
-
-    form.reset(sanitizedData);
+      flash_deal_range: flashDealData ? { startDate: new Date(flashDealData.start_date), endDate: new Date(flashDealData.end_date) } : { startDate: undefined, endDate: undefined },
+    });
     setIsLoading(false);
   }, [productId, isNew, user, router, toast, form]);
   
@@ -345,8 +191,7 @@ export default function ManageProductPage() {
     const store = useAdminStore.getState();
     const isFresh = Date.now() - store.lastFetched.attributes < 300000;
     if (!force && store.attributes.length > 0 && isFresh) return;
-
-    const { data, error } = await supabase.from('product_attributes').select('*').eq('site_id', user.id);
+    const { data } = await supabase.from('product_attributes').select('*').eq('site_id', user.id);
     if (data) setAttributes(data);
   }, [user, setAttributes]);
   
@@ -355,634 +200,95 @@ export default function ManageProductPage() {
     const store = useAdminStore.getState();
     const isFresh = Date.now() - store.lastFetched.categories < 300000;
     if (!force && store.categories.length > 0 && isFresh) return;
-
-    const { data, error } = await supabase.from('categories').select('*').eq('site_id', user.id);
+    const { data } = await supabase.from('categories').select('*').eq('site_id', user.id);
     if (data) setCategories(data as Category[]);
   }, [user, setCategories]);
 
   useEffect(() => {
     if (!authLoading && user) {
-        // Cache-aware fetching
         fetchAttributes();
         fetchCategories();
-        
-        if (isNew) {
-            // If we have dashboard stats, use them for the initial check to avoid a redundant count call
-            const store = useAdminStore.getState();
-            if (!store.dashboard) {
-                // Only if dashboard isn't loaded, we fetch count manually
-                supabase
-                    .from('products')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('site_id', user.id)
-                    .then(({ count }) => {
-                        // Just for internal count if needed
-                    });
-            }
-            setIsLoading(false);
-        } else {
-            fetchProduct();
-        }
+        if (isNew) setIsLoading(false);
+        else fetchProduct();
     }
   }, [authLoading, user, isNew, fetchProduct, fetchAttributes, fetchCategories]);
 
-  const groupedAttributes = useMemo(() => {
-    return attributes.reduce((acc, attr) => {
-        (acc[attr.type] = acc[attr.type] || []).push(attr.value);
-        return acc;
-    }, {} as Record<string, string[]>);
-  }, [attributes]);
+  const groupedAttributes = useMemo(() => attributes.reduce((acc, attr) => { (acc[attr.type] = acc[attr.type] || []).push(attr.value); return acc; }, {} as Record<string, string[]>), [attributes]);
 
   const onSubmit = async (values: ProductFormData) => {
-    if (isSubscriptionPending || isSubscriptionExpired) return;
     if (!user) return;
-    
     setIsSubmitting(true);
     const { has_flash_deal, flash_deal_price, flash_deal_range, ...productValues } = values;
-    const finalProductValues = {
-      ...productValues,
-      images: productValues.images.filter((img) => img.imageUrl),
-    };
-
     try {
         const response = await fetch('/api/products/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                isNew,
-                siteId: user.id,
-                productId: isNew ? undefined : decodeURIComponent(productId),
-                productData: finalProductValues,
-                flashDealData: has_flash_deal ? {
-                    discount_price: flash_deal_price,
-                    start_date: flash_deal_range?.startDate instanceof Date ? flash_deal_range.startDate.toISOString() : flash_deal_range?.startDate,
-                    end_date: flash_deal_range?.endDate instanceof Date ? flash_deal_range.endDate.toISOString() : flash_deal_range?.endDate,
-                } : null
+                isNew, siteId: user.id, productId: isNew ? undefined : decodeURIComponent(productId),
+                productData: { ...productValues, images: productValues.images.filter((img) => img.imageUrl) },
+                flashDealData: has_flash_deal ? { discount_price: flash_deal_price, start_date: flash_deal_range?.startDate instanceof Date ? flash_deal_range.startDate.toISOString() : flash_deal_range?.startDate, end_date: flash_deal_range?.endDate instanceof Date ? flash_deal_range.endDate.toISOString() : flash_deal_range?.endDate } : null
             })
         });
-
         if (!response.ok) throw new Error('Failed to save');
-
         if (isNew && draftKey) localStorage.removeItem(draftKey);
-        
         invalidateEntity('products');
         invalidateEntity('dashboard');
-        
         toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
         router.push(`/admin/products`);
-    } catch (error: any) {
-        setIsSubmitting(false);
-        toast({ variant: 'destructive', title: `Error`, description: error.message });
-    }
+    } catch (error: any) { setIsSubmitting(false); toast({ variant: 'destructive', title: `Error`, description: error.message }); }
   };
 
-  const handleSetFeatured = (fromIndex: number) => {
-    if (fromIndex === 0) return;
-    swap(0, fromIndex);
-    toast({ title: 'Featured image updated.' });
-  };
-  
-  const handleRemoveImage = (indexToRemove: number) => {
-    if (fields.length <= 1) return;
-    remove(indexToRemove);
-  };
+  if (isLoading || authLoading) return <div className="space-y-6"><Skeleton className="h-8 w-1/2" /><Card><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
 
-  const handleImageUpload = (result: any) => {
-    if (result.event === 'success') {
-      append({ imageUrl: result.info.secure_url, imageHint: '' });
-    }
-  };
-
-  const handleGenerateDescription = async () => {
-      if (!user) return;
-      const productName = form.getValues('name');
-      if (!productName) {
-          toast({ variant: 'destructive', title: 'পণ্যর নাম প্রয়োজন' });
-          return;
-      }
-
-      setIsGenerating(true);
-      try {
-          const response = await fetch('/api/ai-settings/get', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ siteId: user.id }),
-          });
-          const resultSettings = await response.json();
-          
-          if (!response.ok || !resultSettings.gemini_api_key) {
-              toast({ variant: 'destructive', title: 'এআই ত্রুটি', description: 'Gemini API কী সেট আপ করা নেই।' });
-              setIsGenerating(false);
-              return;
-          }
-
-          const productData = form.getValues();
-          const result = await generateProductDescription({
-              apiKey: resultSettings.gemini_api_key,
-              name: productData.name,
-              description: productData.description,
-              categories: productData.categories,
-              origin: productData.origin,
-          });
-
-          form.setValue('long_description', result.longDescription, { shouldValidate: true });
-          toast({ title: 'এআই ডেসক্রিপশন তৈরি হয়েছে!' });
-      } catch (error: any) {
-          toast({ variant: 'destructive', title: 'তৈরি করতে ব্যর্থ হয়েছে', description: error.message });
-      } finally {
-          setIsGenerating(false);
-      }
-  };
-
-  if (isLoading || authLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-1/2" />
-        <Card><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-40 w-full" /></CardContent></Card>
-      </div>
-    );
-  }
-
-  const productLimit = user?.product_limit;
-  const productCount = dashboard?.totalProducts || 0;
-  const isLimitReached = productLimit !== null && productCount >= productLimit;
-  
-  if (isNew && isLimitReached && !isSubscriptionExpired) {
-    return (
-        <div className="space-y-6">
-            <Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button>
-            <Alert variant="destructive"><PackageCheck className="h-4 w-4" /><AlertTitle>Product Limit Reached</AlertTitle><AlertDescription>You have reached your limit of {productLimit} products.</AlertDescription></Alert>
-        </div>
-    )
-  }
+  const isLimitReached = user?.product_limit !== null && (dashboard?.totalProducts || 0) >= user?.product_limit!;
+  if (isNew && isLimitReached) return <div className="space-y-6"><Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button><Alert variant="destructive"><PackageCheck className="h-4 w-4" /><AlertTitle>Product Limit Reached</AlertTitle><AlertDescription>You have reached your limit of {user?.product_limit} products.</AlertDescription></Alert></div>;
 
   return (
     <div>
-      <Button variant="ghost" asChild className="mb-4 -ml-4">
-        <Link href={`/admin/products`}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Products
-        </Link>
-      </Button>
-
+      <Button variant="ghost" asChild className="mb-4 -ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" />Back to Products</Link></Button>
       {isNew && hasDraft && (
-        <Alert className="mb-6 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500">
-            <RotateCcw className="h-4 w-4 text-primary" />
-            <AlertTitle className="font-bold">ড্রাফট পাওয়া গিয়েছে!</AlertTitle>
-            <AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <span className="text-foreground/90">আপনার কাছে একটি অসম্পূর্ণ পণ্যের তথ্য রয়েছে।</span>
-                <div className="flex gap-2 shrink-0">
-                    <Button variant="outline" size="sm" onClick={clearDraft} className="h-8 border-destructive text-destructive hover:bg-destructive/10">মুছে ফেলুন</Button>
-                    <Button size="sm" onClick={applyDraft} className="h-8">ড্রাফট রিকভার করুন</Button>
-                </div>
-            </AlertDescription>
-        </Alert>
+        <Alert className="mb-6 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500"><RotateCcw className="h-4 w-4 text-primary" /><AlertTitle className="font-bold">ড্রাফট পাওয়া গিয়েছে!</AlertTitle><AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><span className="text-foreground/90">আপনার কাছে একটি অসম্পূর্ণ পণ্যের তথ্য রয়েছে।</span><div className="flex gap-2 shrink-0"><Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(draftKey!); setHasDraft(false); }} className="h-8 border-destructive text-destructive hover:bg-destructive/10">মুছে ফেলুন</Button><Button size="sm" onClick={applyDraft} className="h-8">ড্রাফট রিকভার করুন</Button></div></AlertDescription></Alert>
       )}
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Card>
-                <CardHeader>
-                <CardTitle>
-                    {isNew ? 'Add New Product' : `Edit: ${form.getValues('name')}`}
-                </CardTitle>
-                <CardDescription>
-                    Fill in the details for your product below.
-                </CardDescription>
-                </CardHeader>
+                <CardHeader><CardTitle>{isNew ? 'Add New Product' : `Edit: ${watchedValues.name}`}</CardTitle><CardDescription>Fill in the details for your product below.</CardDescription></CardHeader>
                 <CardContent className="space-y-8">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Product Name</FormLabel>
-                            <FormControl>
-                            <Input
-                                {...field}
-                                placeholder="e.g., হিমসাগর আম (১ কেজি)"
-                            />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="id"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Product ID / Slug</FormLabel>
-                            <FormControl>
-                            <Input
-                                {...field}
-                                placeholder="e.g., himsagar-mango"
-                                disabled={!isNew}
-                            />
-                            </FormControl>
-                            <FormDescription>
-                                A unique, URL-friendly identifier. Auto-generated from name for new products.
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+                    <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field} placeholder="e.g., হিমসাগর আম (১ কেজি)" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="id" render={({ field }) => (<FormItem><FormLabel>Product ID / Slug</FormLabel><FormControl><Input {...field} placeholder="e.g., himsagar-mango" disabled={!isNew} /></FormControl><FormDescription>A unique identifier. Auto-generated for new products.</FormDescription><FormMessage /></FormItem>)} />
                     <div className="grid md:grid-cols-2 gap-6">
-                        <FormField
-                        control={form.control}
-                        name="price"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Price</FormLabel>
-                            <FormControl>
-                                <Input type="number" step="0.01" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                        <FormField
-                        control={form.control}
-                        name="stock"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Stock Quantity</FormLabel>
-                            <FormControl>
-                                <Input type="number" step="1" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
+                        <FormField control={form.control} name="price" render={({ field }) => (<FormItem><FormLabel>Price</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="stock" render={({ field }) => (<FormItem><FormLabel>Stock Quantity</FormLabel><FormControl><Input type="number" step="1" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
-                    
-                    <FormField
-                        control={form.control}
-                        name="categories"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Categories</FormLabel>
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-full justify-between font-normal">
-                                <span className="truncate pr-2">
-                                    {field.value?.length ? field.value.join(', ') : "Select categories"}
-                                </span>
-                                <ChevronDown className="h-4 w-4 opacity-50" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                {categories.map((cat) => (
-                                <DropdownMenuCheckboxItem
-                                    key={cat.id}
-                                    checked={field.value?.includes(cat.name)}
-                                    onCheckedChange={(checked) => {
-                                    const currentValues = field.value || [];
-                                    return checked
-                                        ? field.onChange([...currentValues, cat.name])
-                                        : field.onChange(currentValues.filter((value) => value !== cat.name));
-                                    }}
-                                >
-                                    {cat.name}
-                                </DropdownMenuCheckboxItem>
-                                ))}
-                                {categories.length === 0 && <div className="p-2 text-sm text-muted-foreground">No categories found. Create them in the Category Manager.</div>}
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-
+                    <FormField control={form.control} name="categories" render={({ field }) => (
+                        <FormItem><FormLabel>Categories</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select categories"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((cat) => (<DropdownMenuCheckboxItem key={cat.id} checked={field.value?.includes(cat.name)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), cat.name] : field.value.filter((v) => v !== cat.name))}>{cat.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>
+                    )} />
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <FormField control={form.control} name="brand" render={({ field }) => (<FormItem><FormLabel>Brands</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select brands"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes.brand || []).map((option) => (<DropdownMenuCheckboxItem key={option} checked={field.value?.includes(option)} onCheckedChange={(checked) => { const currentValues = field.value || []; return checked ? field.onChange([...currentValues, option]) : field.onChange(currentValues.filter((value: string) => value !== option)); }}>{option}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="color" render={({ field }) => (<FormItem><FormLabel>Colors</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select colors"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes.color || []).map((option) => (<DropdownMenuCheckboxItem key={option} checked={field.value?.includes(option)} onCheckedChange={(checked) => { const currentValues = field.value || []; return checked ? field.onChange([...currentValues, option]) : field.onChange(currentValues.filter((value: string) => value !== option)); }}>{option}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="size" render={({ field }) => (<FormItem><FormLabel>Sizes</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select sizes"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes.size || []).map((option) => (<DropdownMenuCheckboxItem key={option} checked={field.value?.includes(option)} onCheckedChange={(checked) => { const currentValues = field.value || []; return checked ? field.onChange([...currentValues, option]) : field.onChange(currentValues.filter((value: string) => value !== option)); }}>{option}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="unit" render={({ field }) => (<FormItem><FormLabel>Units</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : "Select units"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes.unit || []).map((option) => (<DropdownMenuCheckboxItem key={option} checked={field.value?.includes(option)} onCheckedChange={(checked) => { const currentValues = field.value || []; return checked ? field.onChange([...currentValues, option]) : field.onChange(currentValues.filter((value: string) => value !== option)); }}>{option}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>)} />
+                        {['brand', 'color', 'size', 'unit'].map((attr) => (
+                            <FormField key={attr} control={form.control} name={attr as any} render={({ field }) => (
+                                <FormItem><FormLabel className="capitalize">{attr}</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full justify-between font-normal"><span className="truncate pr-2">{field.value?.length ? field.value.join(', ') : `Select ${attr}`}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes[attr] || []).map((opt) => (<DropdownMenuCheckboxItem key={opt} checked={field.value?.includes(opt)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), opt] : field.value.filter((v: string) => v !== opt))}>{opt}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu><FormMessage /></FormItem>
+                            )} />
+                        ))}
                     </div>
-
-                    <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Short Description</FormLabel>
-                            <FormControl>
-                            <Textarea
-                                {...field}
-                                rows={2}
-                                placeholder="A brief, catchy description for product cards."
-                            />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="long_description"
-                        render={({ field }) => (
-                        <FormItem>
-                            <div className="flex justify-between items-center mb-2">
-                                <FormLabel>Long Description</FormLabel>
-                                <Button type="button" variant="outline" size="sm" onClick={handleGenerateDescription} disabled={isGenerating}>
-                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                                    Generate with AI
-                                </Button>
-                            </div>
-                            <FormControl>
-                            <RichTextEditor value={field.value || ''} onChange={field.onChange} />
-                            </FormControl>
-                            <FormDescription>
-                            Use the rich text editor for detailed product information.
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <FormField
-                        control={form.control}
-                        name="origin"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Origin</FormLabel>
-                            <FormControl>
-                                <Input
-                                {...field}
-                                placeholder="e.g., রাজশাহী, বাংলাদেশ"
-                                />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                        <FormField
-                        control={form.control}
-                        name="story"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Story</FormLabel>
-                            <FormControl>
-                                <Input
-                                {...field}
-                                placeholder="A short story about the product."
-                                />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                    </div>
+                    <FormField control={form.control} name="long_description" render={({ field }) => (
+                        <FormItem><div className="flex justify-between items-center mb-2"><FormLabel>Long Description</FormLabel><Button type="button" variant="outline" size="sm" onClick={async () => {
+                            if (!watchedValues.name) return toast({ variant: 'destructive', title: 'পণ্যর নাম প্রয়োজন' });
+                            setIsGenerating(true);
+                            try {
+                                const res = await fetch('/api/ai-settings/get', { method: 'POST', body: JSON.stringify({ siteId: user.id }) });
+                                const settings = await res.json();
+                                if (!res.ok || !settings.gemini_api_key) throw new Error('Gemini API key is missing.');
+                                const result = await generateProductDescription({ apiKey: settings.gemini_api_key, name: watchedValues.name, description: watchedValues.description, categories: watchedValues.categories, origin: watchedValues.origin });
+                                form.setValue('long_description', result.longDescription, { shouldValidate: true });
+                                toast({ title: 'এআই ডেসক্রিপশন তৈরি হয়েছে!' });
+                            } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsGenerating(false); }
+                        }} disabled={isGenerating}>{isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}Generate with AI</Button></div><FormControl><RichTextEditor value={field.value || ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                    )} />
                 </CardContent>
             </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Flash Deal</CardTitle>
-                    <CardDescription>
-                        Create a limited-time discount for this product.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <FormField
-                        control={form.control}
-                        name="has_flash_deal"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                <div className="space-y-0.5">
-                                    <FormLabel className="text-base">Enable Flash Deal</FormLabel>
-                                    <FormDescription>
-                                        Turn this on to set a special discounted price for a limited time.
-                                    </FormDescription>
-                                </div>
-                                <FormControl>
-                                    <Switch
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                    />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
-                    {form.watch('has_flash_deal') && (
-                        <div className="grid md:grid-cols-2 gap-6 pt-4 border-t">
-                            <FormField
-                                control={form.control}
-                                name="flash_deal_price"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Discount Price</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" step="0.01" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="flash_deal_range.startDate"
-                                    render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>Start Date</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button
-                                                        variant={"outline"}
-                                                        className={cn(
-                                                            "w-full justify-start text-left font-normal",
-                                                            !field.value && "text-muted-foreground"
-                                                        )}
-                                                    >
-                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="flash_deal_range.endDate"
-                                    render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>End Date</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button
-                                                        variant={"outline"}
-                                                        className={cn(
-                                                            "w-full justify-start text-left font-normal",
-                                                            !field.value && "text-muted-foreground"
-                                                        )}
-                                                    >
-                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={field.onChange} initialFocus disabled={(date) => {
-                                                    const startDate = form.getValues("flash_deal_range.startDate");
-                                                    return date < (startDate ? new Date(startDate) : new Date());
-                                                }} />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle>Publishing</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <FormField
-                        control={form.control}
-                        name="is_featured"
-                        render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                            <FormLabel className="text-base">
-                                Featured Product
-                            </FormLabel>
-                            <FormDescription>
-                                Display this product on the homepage's featured section.
-                            </FormDescription>
-                            </div>
-                            <FormControl>
-                            <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                            />
-                            </FormControl>
-                        </FormItem>
-                        )}
-                    />
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Product Images</CardTitle>
-                    <CardDescription>
-                        Upload images for your product. The first image in the list will be the featured image.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <FormField
-                        control={form.control}
-                        name="images"
-                        render={() => (
-                            <FormItem>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                    {fields.map((field, index) => (
-                                    <div key={field.id} className="space-y-2">
-                                        <Card className="overflow-hidden">
-                                        <CardContent className="p-0">
-                                            <div className="relative group aspect-square w-full">
-                                            {field.imageUrl ? (
-                                                <Image
-                                                src={field.imageUrl}
-                                                alt={`Product Image ${index + 1}`}
-                                                fill
-                                                className="object-cover"
-                                                />
-                                            ) : (
-                                                <div className="h-full w-full flex items-center justify-center bg-muted">
-                                                <p className="text-xs text-muted-foreground">No image</p>
-                                                </div>
-                                            )}
-
-                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {index > 0 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="secondary"
-                                                    size="icon"
-                                                    className="h-8 w-8"
-                                                    onClick={() => handleSetFeatured(index)}
-                                                    title="Set as featured"
-                                                >
-                                                    <Star className="h-4 w-4" />
-                                                </Button>
-                                                )}
-                                                <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                                onClick={() => handleRemoveImage(index)}
-                                                title="Delete image"
-                                                >
-                                                <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-
-                                            {index === 0 && (
-                                                <Badge className="absolute top-2 left-2">
-                                                Featured
-                                                </Badge>
-                                            )}
-                                            </div>
-                                        </CardContent>
-                                        </Card>
-
-                                        <FormField
-                                        control={form.control}
-                                        name={`images.${index}.imageHint`}
-                                        render={({ field: hintField }) => (
-                                            <FormItem>
-                                            <FormLabel className="sr-only">Image Hint</FormLabel>
-                                            <FormControl>
-                                                <Input {...hintField} placeholder="AI Image Hint" />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                        />
-                                    </div>
-                                    ))}
-                                </div>
-                                <FormMessage className="pt-2" />
-                            </FormItem>
-                        )}
-                    />
-                </CardContent>
-                <CardFooter>
-                    <ImageUploader
-                    onUpload={handleImageUpload}
-                    label="Upload Images"
-                    multiple={true}
-                    />
-                </CardFooter>
-            </Card>
-              
-              <Button type="submit" disabled={isSubmitting || isSubscriptionPending}>
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isNew ? 'Create Product' : 'Save Changes'}
-              </Button>
-            </form>
-          </Form>
+            <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{isNew ? 'Create Product' : 'Save Changes'}</Button>
+        </form>
+      </Form>
     </div>
   );
 }

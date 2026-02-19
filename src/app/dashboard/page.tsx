@@ -1,4 +1,17 @@
 'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@/stores/auth';
+import { useSaasStore } from '@/stores/useSaasStore';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { 
+  DollarSign, 
+  CreditCard, 
+  ArrowRight, 
+  Clock, 
+  Star 
+} from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -6,14 +19,6 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import {
-  Users,
-  DollarSign,
-  CreditCard,
-  ArrowRight,
-  Clock,
-  Star,
-} from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -24,31 +29,33 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
-import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/stores/auth';
-import { useSaasStore } from '@/stores/useSaasStore';
 
 export default function SaasAdminDashboard() {
   const { user } = useAuth();
   const { dashboardData, setDashboardData } = useSaasStore();
-  const [isLoading, setIsLoading] = useState(!dashboardData);
   const { toast } = useToast();
 
-  const fetchDashboardData = useCallback(async (force = false) => {
-    // Check cache strictly before triggering loading or fetch
+  // Instant loading state check
+  const [isLoading, setIsLoading] = useState(() => {
     const store = useSaasStore.getState();
     const isFresh = Date.now() - store.lastFetched.dashboard < 300000; // 5 mins
+    return !(store.dashboardData && isFresh);
+  });
+
+  const fetchDashboardData = useCallback(async (force = false) => {
+    const store = useSaasStore.getState();
+    const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
+    
     if (!force && store.dashboardData && isFresh) {
         setIsLoading(false);
         return;
     }
 
-    setIsLoading(true);
+    if (force || !store.dashboardData) setIsLoading(true);
+
     try {
       const response = await fetch('/api/saas/dashboard-data');
       const result = await response.json();
@@ -92,9 +99,7 @@ export default function SaasAdminDashboard() {
           </CardHeader>
           <CardContent>
             {isLoading ? <Skeleton className="h-8 w-24" /> : <div className="text-2xl font-bold">BDT {stats.totalRevenue.toFixed(2)}</div>}
-            <p className="text-xs text-muted-foreground">
-              All time from subscriptions
-            </p>
+            <p className="text-xs text-muted-foreground">All time from subscriptions</p>
           </CardContent>
         </Card>
         <Card>
@@ -104,9 +109,7 @@ export default function SaasAdminDashboard() {
           </CardHeader>
           <CardContent>
             {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.activeSubscriptions}</div>}
-            <p className="text-xs text-muted-foreground">
-              Currently active plans
-            </p>
+            <p className="text-xs text-muted-foreground">Currently active plans</p>
           </CardContent>
         </Card>
          <Card>
@@ -116,9 +119,7 @@ export default function SaasAdminDashboard() {
           </CardHeader>
           <CardContent>
             {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.pendingReviews}</div>}
-            <p className="text-xs text-muted-foreground">
-              Require approval
-            </p>
+            <p className="text-xs text-muted-foreground">Require approval</p>
           </CardContent>
         </Card>
         <Card>
@@ -128,9 +129,7 @@ export default function SaasAdminDashboard() {
           </CardHeader>
           <CardContent>
             {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{stats.pendingSubscriptions}</div>}
-            <p className="text-xs text-muted-foreground">
-              Require manual approval
-            </p>
+            <p className="text-xs text-muted-foreground">Require manual approval</p>
           </CardContent>
         </Card>
       </div>
@@ -140,14 +139,10 @@ export default function SaasAdminDashboard() {
           <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Pending Subscriptions</CardTitle>
-                <CardDescription>
-                  The most recent payments awaiting approval.
-                </CardDescription>
+                <CardDescription>The most recent payments awaiting approval.</CardDescription>
               </div>
               <Button asChild variant="outline" size="sm">
-                  <Link href="/dashboard/subscriptions">
-                    View All <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
+                  <Link href="/dashboard/subscriptions">View All <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
           </CardHeader>
           <CardContent>
@@ -177,20 +172,12 @@ export default function SaasAdminDashboard() {
                                 <span className="text-[10px] text-muted-foreground">@{sub.profiles?.username}</span>
                             </div>
                         </TableCell>
-                        <TableCell>
-                        <Badge variant="secondary">
-                            {sub.plans?.name || 'N/A'}
-                        </Badge>
-                        </TableCell>
-                        <TableCell>
-                          ৳{sub.amount.toFixed(2)}
-                        </TableCell>
+                        <TableCell><Badge variant="secondary">{sub.plans?.name || 'N/A'}</Badge></TableCell>
+                        <TableCell>৳{sub.amount.toFixed(2)}</TableCell>
                     </TableRow>
                     ))
                 ) : (
-                    <TableRow>
-                        <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">No pending subscriptions.</TableCell>
-                    </TableRow>
+                    <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground">No pending subscriptions.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -201,14 +188,10 @@ export default function SaasAdminDashboard() {
            <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Recent Unread Notifications</CardTitle>
-                <CardDescription>
-                  Latest updates from store administrators.
-                </CardDescription>
+                <CardDescription>Latest updates from store administrators.</CardDescription>
               </div>
               <Button asChild variant="outline" size="sm">
-                  <Link href="/dashboard/notifications">
-                    View All <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
+                  <Link href="/dashboard/notifications">View All <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
           </CardHeader>
           <CardContent className="p-0">
@@ -230,22 +213,14 @@ export default function SaasAdminDashboard() {
                       <AvatarFallback>{notif.profiles?.full_name?.charAt(0) || 'S'}</AvatarFallback>
                     </Avatar>
                     <div className="grid gap-1 flex-1">
-                      <p className="text-sm font-medium leading-none">
-                          From: {notif.profiles?.full_name || 'System'}
-                      </p>
-                      <p className="text-sm text-muted-foreground line-clamp-1 max-w-xs">
-                        {notif.message}
-                      </p>
+                      <p className="text-sm font-medium leading-none">From: {notif.profiles?.full_name || 'System'}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-1 max-w-xs">{notif.message}</p>
                     </div>
-                    <div className="ml-auto text-xs text-muted-foreground">
-                      {format(new Date(notif.created_at), 'MMM d')}
-                    </div>
+                    <div className="ml-auto text-xs text-muted-foreground">{format(new Date(notif.created_at), 'MMM d')}</div>
                   </div>
                 ))
               ) : (
-                <div className="p-12 text-center text-muted-foreground">
-                  No unread notifications.
-                </div>
+                <div className="p-12 text-center text-muted-foreground">No unread notifications.</div>
               )}
             </div>
           </CardContent>

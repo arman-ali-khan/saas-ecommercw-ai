@@ -22,23 +22,28 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const { dashboard, setDashboard } = useAdminStore();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const lang = user?.language || 'bn';
-  const t = translations[lang].dashboard;
+  // Instant check for loading to prevent tab-switch flicker
+  const [isLoading, setIsLoading] = useState(() => {
+    const store = useAdminStore.getState();
+    const isFresh = Date.now() - store.lastFetched.dashboard < 300000; // 5 mins
+    return !(store.dashboard && isFresh);
+  });
 
   const fetchData = useCallback(async (force = false) => {
     const siteId = user?.id;
     if (!siteId) return;
 
-    // Cache check: 5 minutes
     const store = useAdminStore.getState();
     const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
+    
     if (!force && store.dashboard && isFresh) {
+        setIsLoading(false);
         return;
     }
 
-    setIsLoading(true);
+    if (force || !store.dashboard) setIsLoading(true);
+
     try {
         const sevenDaysAgo = subDays(new Date(), 7);
 
@@ -53,7 +58,7 @@ export default function AdminDashboard() {
         ]);
 
         const [ordersResult, productsResult, uncompletedResult, customersResult, flashDealsResult, reviewsResult, qnaResult] = await Promise.all([
-          ordersRes.json(), productsRes.json(), uncompletedRes.json(), customersRes.json(), flashDealsRes.json(), reviewsRes.json(), qnaRes.json()
+          ordersRes.json(), productsRes.json(), uncompletedRes.json(), customersRes.json(), flashDealsResult.json(), reviewsRes.json(), qnaRes.json()
         ]);
 
         const fetchedOrders = ordersResult.orders || [];
@@ -115,6 +120,8 @@ export default function AdminDashboard() {
     );
   }
 
+  const lang = user?.language || 'bn';
+  const t = translations[lang].dashboard;
   const productLimit = user?.product_limit;
   const stats = dashboard || {
     totalRevenue: 0,
