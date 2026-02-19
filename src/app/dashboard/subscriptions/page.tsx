@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { supabase } from '@/lib/supabase/client';
 import type { SubscriptionPaymentWithDetails } from '@/types';
 import { useAuth } from '@/stores/auth';
 
@@ -34,7 +33,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Loader2, User, CreditCard, FileText, Anchor } from 'lucide-react';
+import { Eye, Loader2, User, CreditCard, FileText, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const PAYMENTS_PER_PAGE = 10;
@@ -76,39 +75,24 @@ export default function SubscriptionPaymentsPage() {
     currentPage * PAYMENTS_PER_PAGE
   );
 
-  const handleUpdateStatus = async (payment: SubscriptionPaymentWithDetails, newPaymentStatus: 'completed' | 'failed') => {
+  const handleUpdateStatus = async (paymentId: string, newPaymentStatus: 'completed' | 'failed') => {
     setIsActionLoading(true);
     try {
-        const { error: paymentError } = await supabase
-            .from('subscription_payments')
-            .update({ status: newPaymentStatus })
-            .eq('id', payment.id);
-        
-        if (paymentError) throw paymentError;
-        
-        let profileUpdate = {};
-        if (newPaymentStatus === 'completed') {
-            profileUpdate = { 
-                subscription_status: 'active',
-                subscription_plan: payment.plan_id
-            };
-        } else { // 'failed'
-             profileUpdate = { 
-                subscription_status: 'inactive'
-            };
+        const response = await fetch('/api/saas/subscriptions/update-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId, newStatus: newPaymentStatus }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            toast({ title: 'Success', description: `Payment reviewed and status updated.` });
+            await fetchPayments();
+            setSelectedPayment(null);
+        } else {
+            throw new Error(result.error || 'Failed to update subscription status');
         }
-
-        const { error: profileError } = await supabase
-            .from('profiles')
-            .update(profileUpdate)
-            .eq('id', payment.user_id);
-            
-        if (profileError) throw profileError;
-        
-        toast({ title: 'Success', description: `Payment reviewed and status updated.` });
-        fetchPayments();
-        setSelectedPayment(null);
-
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'Action failed', description: e.message });
     } finally {
@@ -202,7 +186,7 @@ export default function SubscriptionPaymentsPage() {
               {/* Mobile View: Cards */}
               <div className="grid gap-4 md:hidden">
                 {paginatedPayments.map(payment => (
-                  <Card key={payment.id} onClick={() => setSelectedPayment(payment)} className="cursor-pointer hover:bg-muted/50">
+                  <Card key={payment.id} onClick={() => setSelectedPayment(payment)} className="cursor-pointer hover:bg-muted/50 transition-colors">
                       <CardHeader className="p-4">
                         <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">
@@ -263,28 +247,33 @@ export default function SubscriptionPaymentsPage() {
 
       <Dialog open={!!selectedPayment} onOpenChange={(open) => !open && setSelectedPayment(null)}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Review Payment</DialogTitle>
-            <DialogDescription>
-                Review and approve or reject transaction #{selectedPayment?.transaction_id || selectedPayment?.id}
-            </DialogDescription>
+          <DialogHeader className="flex flex-row items-center justify-between">
+            <div>
+                <DialogTitle>Review Payment</DialogTitle>
+                <DialogDescription>
+                    Review and approve or reject transaction #{selectedPayment?.transaction_id || selectedPayment?.id}
+                </DialogDescription>
+            </div>
+            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setSelectedPayment(null)}>
+                <X className="h-5 w-5" />
+            </Button>
           </DialogHeader>
           {selectedPayment && (
             <>
                 <div className="space-y-4 py-4 text-sm">
                     <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                        <h4 className="font-semibold flex items-center gap-2"><User className="h-4 w-4" /> User Information</h4>
+                        <h4 className="font-semibold flex items-center gap-2 text-primary"><User className="h-4 w-4" /> User Information</h4>
                         <p><strong>Name:</strong> {selectedPayment.profiles?.full_name}</p>
                         <p><strong>Username:</strong> @{selectedPayment.profiles?.username}</p>
                         <p><strong>Email:</strong> {(selectedPayment.profiles as any)?.email}</p>
                     </div>
                     <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                        <h4 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Subscription Details</h4>
+                        <h4 className="font-semibold flex items-center gap-2 text-primary"><FileText className="h-4 w-4" /> Subscription Details</h4>
                         <p><strong>Plan:</strong> {selectedPayment.plans?.name}</p>
                         <p><strong>Amount:</strong> {selectedPayment.amount.toFixed(2)} BDT</p>
                     </div>
                     <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                        <h4 className="font-semibold flex items-center gap-2"><CreditCard className="h-4 w-4" /> Payment Information</h4>
+                        <h4 className="font-semibold flex items-center gap-2 text-primary"><CreditCard className="h-4 w-4" /> Payment Information</h4>
                         <p><strong>Method:</strong> {formatPaymentMethod(selectedPayment.payment_method)}</p>
                         <p><strong>Transaction ID:</strong> {selectedPayment.transaction_id || 'N/A'}</p>
                         <div className="flex items-center gap-2">
@@ -294,18 +283,27 @@ export default function SubscriptionPaymentsPage() {
                         <p><strong>Date:</strong> {format(new Date(selectedPayment.created_at), 'PPpp')}</p>
                     </div>
                 </div>
-                <DialogFooter className="sm:justify-between pt-4 gap-2">
-                    <div className="flex gap-2">
-                        <Button onClick={() => handleUpdateStatus(selectedPayment, 'completed')} disabled={isActionLoading || selectedPayment.status === 'completed'}>
-                            {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                    <div className="grid grid-cols-2 gap-3 w-full sm:w-auto flex-grow">
+                        <Button 
+                            onClick={() => handleUpdateStatus(selectedPayment.id.toString(), 'completed')} 
+                            disabled={isActionLoading || selectedPayment.status === 'completed'}
+                            className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20"
+                        >
+                            {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Approve
                         </Button>
-                        <Button variant="destructive" onClick={() => handleUpdateStatus(selectedPayment, 'failed')} disabled={isActionLoading || selectedPayment.status === 'failed'}>
-                            {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Button 
+                            variant="destructive" 
+                            onClick={() => handleUpdateStatus(selectedPayment.id.toString(), 'failed')} 
+                            disabled={isActionLoading || selectedPayment.status === 'failed'}
+                            className="shadow-lg shadow-destructive/20"
+                        >
+                            {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Reject
                         </Button>
                     </div>
-                    <Button variant="outline" onClick={() => setSelectedPayment(null)}>Close</Button>
+                    <Button variant="outline" onClick={() => setSelectedPayment(null)} className="w-full sm:w-auto">Cancel</Button>
                 </DialogFooter>
             </>
           )}
