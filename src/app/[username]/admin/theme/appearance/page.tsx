@@ -123,6 +123,7 @@ const ColorInput = ({ field, label }: { field: any, label: string }) => {
 };
 
 const palettes = [
+    { name: 'Simple White', colors: { theme_primary: '0 0% 0%', theme_secondary: '0 0% 96%', theme_accent: '0 0% 40%', theme_background: '0 0% 100%', theme_foreground: '0 0% 0%', theme_card: '0 0% 100%' } },
     { name: 'Default Dark', colors: { theme_primary: '207 90% 61%', theme_secondary: '217 33% 17%', theme_accent: '207 92% 77%', theme_background: '224 71% 4%', theme_foreground: '210 40% 98%', theme_card: '224 71% 6%' } },
     { name: 'Corporate Blue', colors: { theme_primary: '210 100% 20%', theme_secondary: '206 33% 90%', theme_accent: '36 100% 50%', theme_background: '206 33% 97%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%' } },
     { name: 'Luxury Gold', colors: { theme_primary: '46 65% 52%', theme_secondary: '0 0% 15%', theme_accent: '0 0% 46%', theme_background: '0 0% 7%', theme_foreground: '0 0% 98%', theme_card: '0 0% 10%' } },
