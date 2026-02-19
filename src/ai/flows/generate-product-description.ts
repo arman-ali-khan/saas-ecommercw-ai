@@ -2,23 +2,34 @@
 
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
-import { z } from 'zod';
 
-const ai = genkit({
-    plugins: [
-        googleAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY })
-    ],
-});
-
+/**
+ * Helper to extract JSON from AI response
+ */
 function extractJson(text: string) {
     try {
+        // Find the first { and last }
         const firstBrace = text.indexOf('{');
         const lastBrace = text.lastIndexOf('}');
-        if (firstBrace === -1 || lastBrace === -1) throw new Error('No JSON found');
-        return text.substring(firstBrace, lastBrace + 1);
+        if (firstBrace === -1 || lastBrace === -1) return null;
+        
+        const jsonStr = text.substring(firstBrace, lastBrace + 1);
+        return JSON.parse(jsonStr);
     } catch (e) {
+        console.error("JSON Parse Error. Raw text was:", text);
         return null;
     }
+}
+
+/**
+ * Initializes a scoped genkit instance with a specific API key
+ */
+function getScopedAi(apiKey: string) {
+    return genkit({
+        plugins: [
+            googleAI({ apiKey })
+        ],
+    });
 }
 
 /**
@@ -26,11 +37,13 @@ function extractJson(text: string) {
  */
 export async function generateProductDescription(input: any) {
     try {
-        if (!process.env.GOOGLE_GENAI_API_KEY) {
-            throw new Error("SERVER_CONFIG_ERROR: Missing API Key");
+        const { apiKey, name, description, categories, origin } = input;
+        
+        if (!apiKey) {
+            throw new Error("Missing API Key");
         }
 
-        const { name, description, categories, origin } = input;
+        const scopedAi = getScopedAi(apiKey);
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
         const prompt = `You are a premium e-commerce copywriter for "Bangla Naturals", specializing in organic and natural products.
@@ -49,16 +62,16 @@ export async function generateProductDescription(input: any) {
         
         DO NOT include any markdown code blocks (like \`\`\`json) in your response. Just the raw JSON object.`;
 
-        const response = await ai.generate({
+        const response = await scopedAi.generate({
             model: 'googleai/gemini-1.5-flash',
             prompt,
             config: { temperature: 0.8, maxOutputTokens: 4096 },
         });
 
-        const jsonStr = extractJson(response.text);
-        if (!jsonStr) throw new Error("AI failed to return valid JSON. Response text was: " + response.text.substring(0, 100));
+        const resultJson = extractJson(response.text);
+        if (!resultJson) throw new Error("AI failed to return valid JSON.");
 
-        return { success: true, longDescription: jsonStr };
+        return { success: true, longDescription: JSON.stringify(resultJson) };
     } catch (e: any) {
         console.error("AI Generation Error:", e);
         return { success: false, error: e.message };
@@ -70,7 +83,13 @@ export async function generateProductDescription(input: any) {
  */
 export async function beautifyProductDetails(input: any) {
     try {
-        const { name, description, story, origin, categories } = input;
+        const { apiKey, name, description, story, origin, categories } = input;
+        
+        if (!apiKey) {
+            throw new Error("Missing API Key");
+        }
+
+        const scopedAi = getScopedAi(apiKey);
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
         const prompt = `You are an expert SEO copywriter. Optimize and "Beautify" the following product information for high sales conversion and search ranking.
@@ -105,16 +124,14 @@ export async function beautifyProductDetails(input: any) {
 
         DO NOT include any markdown code blocks. Just the raw JSON object.`;
 
-        const response = await ai.generate({
+        const response = await scopedAi.generate({
             model: 'googleai/gemini-1.5-flash',
             prompt,
             config: { temperature: 0.7, maxOutputTokens: 4096 },
         });
 
-        const cleanJson = extractJson(response.text);
-        if (!cleanJson) throw new Error("Could not parse AI response as JSON");
-        
-        const resultJson = JSON.parse(cleanJson);
+        const resultJson = extractJson(response.text);
+        if (!resultJson) throw new Error("Could not parse AI response as JSON");
         
         return {
             success: true,

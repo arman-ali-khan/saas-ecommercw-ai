@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
