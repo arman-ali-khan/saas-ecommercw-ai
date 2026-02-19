@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -48,29 +47,35 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
   const faviconUrl = settings?.favicon_url;
   const siteInitial = (profile.site_name || 'S').charAt(0).toUpperCase();
 
+  // Ensure we have a proper icon URL. If it's a Cloudinary URL, it's already a high-res image.
+  // We use the same icon for different sizes as browsers will scale it.
+  const iconUrl = faviconUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`;
+
   const manifest = {
     name: profile.site_name || 'Store',
     short_name: profile.site_name || 'Store',
     description: profile.site_description || `E-commerce store.`,
     start_url: '/',
+    scope: '/',
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#ffffff',
+    orientation: 'portrait',
     icons: [
       {
-        src: faviconUrl || `https://placehold.co/192/FFFFFF/000000?text=${siteInitial}`,
+        src: iconUrl,
         sizes: '192x192',
         type: 'image/png',
         purpose: 'any'
       },
       {
-        src: faviconUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`,
+        src: iconUrl,
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any'
       },
        {
-        src: faviconUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`,
+        src: iconUrl,
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable'
@@ -78,5 +83,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     ],
   };
 
-  return NextResponse.json(manifest);
+  return NextResponse.json(manifest, {
+    headers: {
+        'Content-Type': 'application/manifest+json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+    }
+  });
 }

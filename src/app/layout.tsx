@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -9,9 +8,10 @@ import { cookies } from 'next/headers';
 import CustomTopLoader from '@/components/custom-top-loader';
 import { allFontVariables } from '@/lib/fonts';
 import { Analytics } from "@vercel/analytics/next"
+import Script from 'next/script';
  
 export async function generateMetadata(): Promise<Metadata> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,6 +70,21 @@ export default async function RootLayout({
           <SiteLayout>{children}</SiteLayout>
         </AuthProvider>
         <Toaster />
+        
+        {/* PWA Service Worker Registration */}
+        <Script id="register-sw" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                  console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, function(err) {
+                  console.log('ServiceWorker registration failed: ', err);
+                });
+              });
+            }
+          `}
+        </Script>
       </body>
     </html>
   );
