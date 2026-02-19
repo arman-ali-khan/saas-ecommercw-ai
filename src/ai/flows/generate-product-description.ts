@@ -1,4 +1,3 @@
-
 'use server';
 
 import { genkit } from 'genkit';
@@ -6,11 +5,10 @@ import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
 
 /**
- * @fileOverview Product description generation flow.
+ * @fileOverview Product content generation and optimization flows.
  * 
- * - generateProductDescription - Wrapper function to call the AI generation logic.
- * - GenerateProductDescriptionInput - Input schema for the flow.
- * - GenerateProductDescriptionOutput - Output schema for the flow.
+ * - generateProductDescription - Generates a structured long description.
+ * - beautifyProductDetails - Optimizes all product fields (Title, Short Desc, Story, Origin, Long Desc).
  */
 
 const GenerateProductDescriptionInputSchema = z.object({
@@ -27,90 +25,136 @@ const GenerateProductDescriptionOutputSchema = z.object({
 });
 export type GenerateProductDescriptionOutput = z.infer<typeof GenerateProductDescriptionOutputSchema>;
 
+// Schema for Beautifying all details
+const BeautifyProductInputSchema = z.object({
+    apiKey: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    story: z.string().optional(),
+    origin: z.string().optional(),
+    categories: z.array(z.string()).optional(),
+});
+export type BeautifyProductInput = z.infer<typeof BeautifyProductInputSchema>;
+
+const BeautifyProductOutputSchema = z.object({
+    name: z.string(),
+    description: z.string(),
+    story: z.string(),
+    origin: z.string(),
+    longDescription: z.string(), // This will be Tiptap JSON string
+});
+export type BeautifyProductOutput = z.infer<typeof BeautifyProductOutputSchema>;
+
+/**
+ * Robustly extract JSON from AI response string.
+ */
+function extractJson(text: string) {
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1) {
+        throw new Error('AI produced an invalid response format.');
+    }
+    return text.substring(firstBrace, lastBrace + 1);
+}
+
 /**
  * Generates a DETAILED and LONG product description in Bengali using Gemini AI.
- * This function handles dynamic API keys and ensures valid Tiptap JSON output.
  */
 export async function generateProductDescription(input: GenerateProductDescriptionInput): Promise<GenerateProductDescriptionOutput> {
   try {
     const { apiKey, name, description, categories, origin } = input;
+    if (!apiKey) throw new Error('Gemini API key is missing.');
 
-    if (!apiKey) {
-      throw new Error('Gemini API key is missing. Please configure it in AI Settings.');
-    }
+    const ai = genkit({ plugins: [googleAI({ apiKey })] });
+    const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
-    // Initialize Genkit dynamically with the user's specific API key
-    const ai = genkit({
-      plugins: [googleAI({ apiKey })],
-    });
-    
-    const categoryString = categories && categories.length > 0 ? categories.join(', ') : 'সাধারণ';
+    const prompt = `You are a premium e-commerce copywriter for "Bangla Naturals".
+Generate an EXTENSIVE, DETAILED, and ENGAGING product description in Bengali for "${name}".
 
-    const prompt = `You are a premium e-commerce copywriter for "Bangla Naturals", a high-end organic brand in Bangladesh.
-Your task is to write an EXTENSIVE, DETAILED, and ENGAGING product description in Bengali.
-
-Product Information:
-- Name: ${name}
+Context:
 - Short Summary: ${description || 'A pure natural product.'}
 - Categories: ${categoryString}
 - Sourcing/Origin: ${origin || 'Bangladesh'}
 
-WRITING INSTRUCTIONS:
-1. TONE: Persuasive, trustworthy, and informative.
-2. LENGTH: The description must be LONG and thorough (at least 500-700 words).
-3. STRUCTURE: You MUST include the following sections with headings:
-   - "পণ্য পরিচিতি" (Detailed Introduction): Talk about the heritage and purity.
-   - "প্রাকৃতিক বৈশিষ্ট্য ও গুণাগুণ" (Natural Features): Describe why this is unique.
-   - "স্বাস্থ্য উপকারিতা" (Detailed Health Benefits): Provide at least 6-8 bullet points explaining the benefits.
-   - "কেন আমাদের পণ্যটি সেরা?" (Our Quality Commitment): Focus on "direct from farmer" and "no chemicals".
-   - "সংরক্ষণ পদ্ধতি ও ব্যবহারের নিয়ম" (Usage & Storage Tips).
-4. FORMAT: Return the response ONLY as a valid Tiptap/ProseMirror JSON object.
-   - Root MUST be: {"type": "doc", "content": [...]}.
-   - Use headings (level 2) for section titles.
-   - Use paragraphs for body text.
-   - Use bulleted lists for benefits.
-   - Use Bold marks for emphasis within text.
+STRUCTURE:
+1. "পণ্য পরিচিতি" (Introduction)
+2. "প্রাকৃতিক বৈশিষ্ট্য ও গুণাগুণ" (Features)
+3. "স্বাস্থ্য উপকারিতা" (6-8 bullet points)
+4. "কেন আমাদের পণ্যটি সেরা?" (Quality Commitment)
+5. "সংরক্ষণ পদ্ধতি ও ব্যবহারের নিয়ম" (Tips)
 
-CRITICAL: Output ONLY the raw JSON. Do NOT include markdown code fences (like \`\`\`json), no preamble, and no conversational filler. Start with { and end with }.`;
+FORMAT: Return ONLY a valid Tiptap/ProseMirror JSON object: {"type": "doc", "content": [...]}.
+Do NOT use markdown code fences.`;
 
     const response = await ai.generate({
       model: 'googleai/gemini-1.5-flash',
       prompt,
-      config: { 
-        temperature: 0.8,
-        maxOutputTokens: 4096, // Increased for longer descriptions
-      },
+      config: { temperature: 0.8, maxOutputTokens: 4096 },
     });
 
-    const text = response.text;
-    
-    // Robust JSON extraction: handle markdown fences or accidental text
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
-    
-    if (firstBrace === -1 || lastBrace === -1) {
-        console.error("AI output did not contain valid braces:", text);
-        throw new Error('AI produced an invalid response format.');
-    }
-    
-    const jsonString = text.substring(firstBrace, lastBrace + 1);
-    
-    try {
-        // Validate if the output is a valid JSON.
-        JSON.parse(jsonString);
-        return { longDescription: jsonString };
-    } catch (parseError) {
-        console.error("Failed to parse AI JSON. Raw response length:", text.length);
-        throw new Error('AI generated content was not in a valid JSON format. Please try again.');
-    }
-
+    return { longDescription: extractJson(response.text) };
   } catch (e: any) {
-    console.error("AI Generation Error (Flow):", e);
-    
-    if (e.message.includes('API key not valid') || e.message.includes('API_KEY_INVALID')) {
-        throw new Error('The provided Gemini API key is not valid. Please check your AI settings.');
-    }
-
-    throw new Error(e.message || 'An unexpected error occurred during AI generation.');
+    console.error("AI Generation Error:", e);
+    throw new Error(e.message || 'AI generation failed.');
   }
+}
+
+/**
+ * Optimizes all product details for SEO and conversion.
+ */
+export async function beautifyProductDetails(input: BeautifyProductInput): Promise<BeautifyProductOutput> {
+    try {
+        const { apiKey, name, description, story, origin, categories } = input;
+        if (!apiKey) throw new Error('Gemini API key is missing.');
+
+        const ai = genkit({ plugins: [googleAI({ apiKey })] });
+        const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
+
+        const prompt = `You are an expert SEO copywriter and e-commerce strategist.
+Your task is to take the following raw product information and "BEAUTIFY" it for a premium organic brand.
+
+Raw Details:
+- Current Name: ${name}
+- Current Short Desc: ${description || 'N/A'}
+- Current Story: ${story || 'N/A'}
+- Current Origin: ${origin || 'N/A'}
+- Categories: ${categoryString}
+
+INSTRUCTIONS:
+1. NAME: Make it catchy, SEO-friendly, and professional in Bengali.
+2. SHORT DESCRIPTION: Write a 2-3 sentence persuasive summary.
+3. STORY: Rewrite the "Our Story" section to be emotionally resonant and trustworthy.
+4. ORIGIN: Format the origin nicely (e.g., "রাজশাহীর বাগান থেকে সরাসরি").
+5. LONG DESCRIPTION: Generate a full, structured description in Tiptap JSON format.
+
+OUTPUT FORMAT: Return ONLY a raw JSON object with these keys:
+{
+  "name": "optimized name",
+  "description": "optimized short summary",
+  "story": "optimized story",
+  "origin": "formatted origin",
+  "longDescription": {"type": "doc", "content": [...]}
+}
+
+CRITICAL: Everything except keys must be in Bengali. Return ONLY the JSON object. No preamble.`;
+
+        const response = await ai.generate({
+            model: 'googleai/gemini-1.5-flash',
+            prompt,
+            config: { temperature: 0.7, maxOutputTokens: 4096 },
+        });
+
+        const resultJson = JSON.parse(extractJson(response.text));
+        
+        return {
+            name: resultJson.name,
+            description: resultJson.description,
+            story: resultJson.story,
+            origin: resultJson.origin,
+            longDescription: JSON.stringify(resultJson.longDescription),
+        };
+    } catch (e: any) {
+        console.error("Beautify Error:", e);
+        throw new Error(e.message || 'Beautification failed.');
+    }
 }

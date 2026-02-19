@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, PackageCheck, Wand2, RotateCcw, CheckCircle2, Star, Info } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, PackageCheck, Wand2, RotateCcw, CheckCircle2, Star, Info, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -39,7 +39,7 @@ import {
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { generateProductDescription } from '@/ai/flows/generate-product-description';
+import { generateProductDescription, beautifyProductDetails } from '@/ai/flows/generate-product-description';
 import RichTextEditor from '@/components/rich-text-editor';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -80,11 +80,9 @@ export default function ManageProductPage() {
   const isNew = productId === 'new';
   const draftKey = useMemo(() => user ? `unsaved_product_draft_${user.id}` : null, [user]);
 
-  // INSTANT STATE: Check store immediately. Do not show loader if data is present.
   const [isLoading, setIsLoading] = useState(() => {
     if (isNew) {
         const store = useAdminStore.getState();
-        // If we have categories and attributes, we don't need to show a loader for a "New" product
         return !(store.categories.length > 0 && store.attributes.length > 0);
     }
     return true;
@@ -92,6 +90,7 @@ export default function ManageProductPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isBeautifying, setIsBeautifying] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
   
   const form = useForm<ProductFormData>({
@@ -106,7 +105,6 @@ export default function ManageProductPage() {
   const { fields, append, remove, move } = useFieldArray({ control: form.control, name: 'images' });
   const watchedValues = form.watch();
   
-  // Auto-Slug Logic
   useEffect(() => {
     if (isNew && watchedValues.name) {
         const slug = watchedValues.name
@@ -119,7 +117,6 @@ export default function ManageProductPage() {
     }
   }, [watchedValues.name, isNew, form]);
 
-  // Draft Persistence
   useEffect(() => {
     if (isNew && draftKey && !isLoading && form.formState.isDirty) {
         const timeout = setTimeout(() => { 
@@ -182,13 +179,11 @@ export default function ManageProductPage() {
     };
 
     if (isNew) {
-        // Lookups happen in background, but we don't need a loader if we already have them
         fetchLookups();
         setIsLoading(false);
         return;
     }
 
-    // For editing, only set loading to true if the form is empty
     if (!form.getValues('name')) {
         setIsLoading(true);
     }
@@ -230,6 +225,37 @@ export default function ManageProductPage() {
 
   const groupedAttributes = useMemo(() => attributes.reduce((acc, attr) => { (acc[attr.type] = acc[attr.type] || []).push(attr.value); return acc; }, {} as Record<string, string[]>), [attributes]);
 
+  const handleBeautify = async () => {
+    if (!watchedValues.name) return toast({ variant: 'destructive', title: 'আগে পণ্যের নাম প্রদান করুন' });
+    setIsBeautifying(true);
+    try {
+        const res = await fetch('/api/ai-settings/get', { method: 'POST', body: JSON.stringify({ siteId: user?.id }), headers: { 'Content-Type': 'application/json' } });
+        const settings = await res.json();
+        if (!res.ok || !settings.gemini_api_key) throw new Error('এআই সেটিংস থেকে Gemini API Key কনফিগার করুন।');
+
+        const result = await beautifyProductDetails({
+            apiKey: settings.gemini_api_key,
+            name: watchedValues.name,
+            description: watchedValues.description,
+            story: watchedValues.story,
+            origin: watchedValues.origin,
+            categories: watchedValues.categories
+        });
+
+        form.setValue('name', result.name, { shouldValidate: true });
+        form.setValue('description', result.description, { shouldValidate: true });
+        form.setValue('story', result.story, { shouldValidate: true });
+        form.setValue('origin', result.origin, { shouldValidate: true });
+        form.setValue('long_description', result.longDescription, { shouldValidate: true });
+
+        toast({ title: 'SEO Beautification সম্পন্ন!', description: 'সকল তথ্য আপডেট করা হয়েছে।' });
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message });
+    } finally {
+        setIsBeautifying(false);
+    }
+  };
+
   const onSubmit = async (values: ProductFormData) => {
     if (!user) return;
     setIsSubmitting(true);
@@ -262,8 +288,6 @@ export default function ManageProductPage() {
     toast({ title: 'থাম্বনেইল সেট করা হয়েছে' });
   };
 
-  // SMART RENDER: Only block UI if we truly don't have enough to show the page
-  // If it's a new product, we render the form immediately.
   const isActuallyLoading = isNew ? (isLoading && categories.length === 0) : isLoading;
   const isAuthBlocked = authLoading && !user;
 
@@ -324,9 +348,22 @@ export default function ManageProductPage() {
             <div className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
                     <Card className="shadow-sm border-2">
-                        <CardHeader className="bg-muted/30">
-                            <CardTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary" /> সাধারণ তথ্য</CardTitle>
-                            <CardDescription>পণ্যের নাম, স্লাগ এবং সংক্ষিপ্ত বর্ণনা প্রদান করুন।</CardDescription>
+                        <CardHeader className="bg-muted/30 flex flex-row items-center justify-between space-y-0">
+                            <div>
+                                <CardTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary" /> সাধারণ তথ্য</CardTitle>
+                                <CardDescription>পণ্যের নাম, স্লাগ এবং সংক্ষিপ্ত বর্ণনা প্রদান করুন।</CardDescription>
+                            </div>
+                            <Button 
+                                type="button" 
+                                variant="secondary" 
+                                size="sm" 
+                                onClick={handleBeautify}
+                                disabled={isBeautifying}
+                                className="bg-primary/10 text-primary hover:bg-primary/20"
+                            >
+                                {isBeautifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                Beautify Product Details
+                            </Button>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             <FormField control={form.control} name="name" render={({ field: nameField }) => (
@@ -438,7 +475,7 @@ export default function ManageProductPage() {
                                     if (!watchedValues.name) return toast({ variant: 'destructive', title: 'আগে পণ্যের নাম প্রদান করুন' });
                                     setIsGenerating(true);
                                     try {
-                                        const res = await fetch('/api/ai-settings/get', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } });
+                                        const res = await fetch('/api/ai-settings/get', { method: 'POST', body: JSON.stringify({ siteId: user?.id }), headers: { 'Content-Type': 'application/json' } });
                                         const settings = await res.json();
                                         if (!res.ok || !settings.gemini_api_key) throw new Error('এআই সেটিংস থেকে Gemini API Key কনফিগার করুন।');
                                         const result = await generateProductDescription({ 
