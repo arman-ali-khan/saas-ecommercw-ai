@@ -125,7 +125,7 @@ export async function beautifyProductDetails(input: any) {
         DO NOT include any markdown code blocks. Just the raw JSON object.`;
 
         const response = await scopedAi.generate({
-            model: 'googleai/gemini-1.5-flash',
+            model: 'googleai/gemini-2.5-flash',
             prompt,
             config: { temperature: 0.7, maxOutputTokens: 4096 },
         });
