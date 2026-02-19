@@ -49,11 +49,10 @@ export default function UsersAdminPage() {
     const { admins: users, setAdmins } = useSaasStore();
     const { toast } = useToast();
     
-    // Instant check for cache to avoid spinner on tab switch
+    // Initialize loading to false if we already have admins in the store
     const [loading, setLoading] = useState(() => {
-        const store = useSaasStore.getState();
-        const isFresh = Date.now() - store.lastFetched.admins < 600000; // 10 mins
-        return !(store.admins.length > 0 && isFresh);
+        const currentStore = useSaasStore.getState();
+        return currentStore.admins.length === 0;
     });
 
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -72,15 +71,18 @@ export default function UsersAdminPage() {
     });
 
     const fetchUsersData = useCallback(async (force = false) => {
-        const store = useSaasStore.getState();
-        const isFresh = Date.now() - store.lastFetched.admins < 600000;
+        const currentStore = useSaasStore.getState();
+        const now = Date.now();
+        const isFresh = now - currentStore.lastFetched.admins < 600000; // 10 mins
         
-        if (!force && store.admins.length > 0 && isFresh) {
+        if (!force && currentStore.admins.length > 0 && isFresh) {
             setLoading(false);
             return;
         }
 
-        if (force || !store.admins.length) setLoading(true);
+        if (currentStore.admins.length === 0 || force) {
+            setLoading(true);
+        }
 
         try {
             const response = await fetch('/api/saas/admins/list');
@@ -140,13 +142,13 @@ export default function UsersAdminPage() {
         }
     }
 
-    const handleDeleteClick = (user: any) => {
-        setSelectedUser(user);
+    const handleDeleteClick = (userItem: any) => {
+        setSelectedUser(userItem);
         setIsDeleteOpen(true);
     }
     
-    const handleBlockClick = (user: any) => {
-        setSelectedUser(user);
+    const handleBlockClick = (userItem: any) => {
+        setSelectedUser(userItem);
         setIsBlockOpen(true);
     }
     
@@ -247,23 +249,23 @@ export default function UsersAdminPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {paginatedUsers.map(user => (
-                                            <TableRow key={user.id}>
+                                        {paginatedUsers.map(userItem => (
+                                            <TableRow key={userItem.id}>
                                                 <TableCell className="font-medium">
                                                     <div className="flex items-center gap-3">
-                                                        <Avatar><AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar>
+                                                        <Avatar><AvatarFallback>{userItem.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar>
                                                         <div>
-                                                            <p className="font-semibold">{user.full_name}</p>
-                                                            <p className="text-sm text-muted-foreground">@{user.username}</p>
+                                                            <p className="font-semibold">{userItem.full_name}</p>
+                                                            <p className="text-sm text-muted-foreground">@{userItem.username}</p>
                                                         </div>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <p className="font-semibold">{user.site_name}</p>
-                                                    <p className="text-sm text-muted-foreground">{user.domain}.{baseDomain}</p>
+                                                    <p className="font-semibold">{userItem.site_name}</p>
+                                                    <p className="text-sm text-muted-foreground">{userItem.domain}.{baseDomain}</p>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant={getStatusBadgeVariant(user.subscription_status)}>{user.subscription_status || 'N/A'}</Badge>
+                                                    <Badge variant={getStatusBadgeVariant(userItem.subscription_status)}>{userItem.subscription_status || 'N/A'}</Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <DropdownMenu>
@@ -272,22 +274,22 @@ export default function UsersAdminPage() {
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                             <DropdownMenuSeparator />
                                                              <DropdownMenuItem asChild>
-                                                                <a href={`//${user.domain}.${baseDomain}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                                                                <a href={`//${userItem.domain}.${baseDomain}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
                                                                     <Globe className="mr-2 h-4 w-4" /> View Site
                                                                 </a>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem asChild>
-                                                                <Link href={`/dashboard/users/${user.id}/edit`} className="cursor-pointer w-full"><Edit className="mr-2 h-4 w-4" /> Edit</Link>
+                                                                <Link href={`/dashboard/users/${userItem.id}/edit`} className="cursor-pointer w-full"><Edit className="mr-2 h-4 w-4" /> Edit</Link>
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem className="cursor-pointer" onClick={() => handleBlockClick(user)}>
-                                                                {user.subscription_status === 'active' ? (
+                                                            <DropdownMenuItem className="cursor-pointer" onClick={() => handleBlockClick(userItem)}>
+                                                                {userItem.subscription_status === 'active' ? (
                                                                     <><ShieldOff className="mr-2 h-4 w-4" /> Block</>
                                                                 ) : (
                                                                     <><ShieldCheck className="mr-2 h-4 w-4" /> Unblock</>
                                                                 )}
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => handleDeleteClick(user)}>
+                                                            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => handleDeleteClick(userItem)}>
                                                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
@@ -300,29 +302,29 @@ export default function UsersAdminPage() {
                             </div>
                             
                             <div className="grid gap-4 md:hidden p-4">
-                                {paginatedUsers.map(user => (
-                                    <Card key={user.id}>
+                                {paginatedUsers.map(userItem => (
+                                    <Card key={userItem.id}>
                                         <CardHeader className="pb-2">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <Avatar className="h-10 w-10"><AvatarFallback>{user.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar>
+                                                    <Avatar className="h-10 w-10"><AvatarFallback>{userItem.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar>
                                                     <div>
-                                                        <CardTitle className="text-lg">{user.full_name}</CardTitle>
-                                                        <CardDescription>@{user.username}</CardDescription>
+                                                        <CardTitle className="text-lg">{userItem.full_name}</CardTitle>
+                                                        <CardDescription>@{userItem.username}</CardDescription>
                                                     </div>
                                                 </div>
-                                                <Badge variant={getStatusBadgeVariant(user.subscription_status)}>{user.subscription_status || 'N/A'}</Badge>
+                                                <Badge variant={getStatusBadgeVariant(userItem.subscription_status)}>{userItem.subscription_status || 'N/A'}</Badge>
                                             </div>
                                         </CardHeader>
                                         <CardContent className="pb-4">
                                             <div className="space-y-1 text-sm">
-                                                <p><span className="font-medium text-foreground">Site:</span> {user.site_name}</p>
-                                                <p className="text-muted-foreground"><span className="font-medium text-foreground">Domain:</span> {user.domain}.{baseDomain}</p>
+                                                <p><span className="font-medium text-foreground">Site:</span> {userItem.site_name}</p>
+                                                <p className="text-muted-foreground"><span className="font-medium text-foreground">Domain:</span> {userItem.domain}.{baseDomain}</p>
                                             </div>
                                         </CardContent>
                                         <CardFooter className="flex justify-end gap-2 border-t pt-4">
-                                            <Button variant="outline" size="sm" asChild><Link href={`/dashboard/users/${user.id}/edit`}>Edit</Link></Button>
-                                            <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(user)}>Delete</Button>
+                                            <Button variant="outline" size="sm" asChild><Link href={`/dashboard/users/${userItem.id}/edit`}>Edit</Link></Button>
+                                            <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(userItem)}>Delete</Button>
                                         </CardFooter>
                                     </Card>
                                 ))}
@@ -335,9 +337,9 @@ export default function UsersAdminPage() {
                  {users.length > USERS_PER_PAGE && (
                   <CardFooter className="justify-center border-t py-4">
                       <div className="flex items-center gap-4 text-sm">
-                          <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+                          <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1}>Previous</Button>
                           <span className="text-muted-foreground">Page {currentPage} of {totalPages}</span>
-                          <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+                          <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))} disabled={currentPage === totalPages}>Next</Button>
                       </div>
                   </CardFooter>
                 )}
@@ -402,16 +404,16 @@ export default function UsersAdminPage() {
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmitCreate)} className="space-y-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="fullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={form.control} name="username" render={({ field }) => (<FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="johndoe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="fullName" render={({ field: nameField }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...nameField} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="username" render={({ field: userField }) => (<FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="johndoe" {...userField} /></FormControl><FormMessage /></FormItem>)} />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={form.control} name="password" render={({ field }) => (<FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" placeholder="••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="email" render={({ field: emailField }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...emailField} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="password" render={({ field: passField }) => (<FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" placeholder="••••••" {...passField} /></FormControl><FormMessage /></FormItem>)} />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="siteName" render={({ field }) => (<FormItem><FormLabel>Store Name</FormLabel><FormControl><Input placeholder="My Nature Shop" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={form.control} name="domain" render={({ field }) => (<FormItem><FormLabel>Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="nature-shop" className="rounded-r-none" {...field} /></FormControl><span className="bg-muted px-3 h-10 flex items-center border border-l-0 rounded-r-md text-xs text-muted-foreground">.{baseDomain}</span></div><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="siteName" render={({ field: siteField }) => (<FormItem><FormLabel>Store Name</FormLabel><FormControl><Input placeholder="My Nature Shop" {...siteField} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="domain" render={({ field: domField }) => (<FormItem><FormLabel>Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="nature-shop" className="rounded-r-none" {...domField} /></FormControl><span className="bg-muted px-3 h-10 flex items-center border border-l-0 rounded-r-md text-xs text-muted-foreground">.{baseDomain}</span></div><FormMessage /></FormItem>)} />
                                     </div>
                                 </form>
                             </Form>

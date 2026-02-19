@@ -36,26 +36,28 @@ export default function SubscriptionPaymentsPage() {
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Instant check for cache to avoid spinner on tab switch
+  // Initialize loading to false if we already have subscriptions in the store
   const [isLoading, setIsLoading] = useState(() => {
-    const store = useSaasStore.getState();
-    const isFresh = Date.now() - store.lastFetched.subscriptions < 300000;
-    return !(store.subscriptions.length > 0 && isFresh);
+    const currentStore = useSaasStore.getState();
+    return currentStore.subscriptions.length === 0;
   });
 
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
 
   const fetchPayments = useCallback(async (force = false) => {
-    const store = useSaasStore.getState();
-    const isFresh = Date.now() - store.lastFetched.subscriptions < 300000;
+    const currentStore = useSaasStore.getState();
+    const now = Date.now();
+    const isFresh = now - currentStore.lastFetched.subscriptions < 300000;
     
-    if (!force && store.subscriptions.length > 0 && isFresh) {
+    if (!force && currentStore.subscriptions.length > 0 && isFresh) {
         setIsLoading(false);
         return;
     }
 
-    if (force || !store.subscriptions.length) setIsLoading(true);
+    if (currentStore.subscriptions.length === 0 || force) {
+        setIsLoading(true);
+    }
 
     try {
         const response = await fetch('/api/saas/subscriptions/list');
@@ -111,8 +113,8 @@ export default function SubscriptionPaymentsPage() {
   };
 
 
-  const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" => {
-    switch (status?.toLowerCase()) {
+  const getStatusBadgeVariant = (statusValue: string): "default" | "secondary" | "destructive" => {
+    switch (statusValue?.toLowerCase()) {
       case 'completed':
         return 'default';
       case 'pending':
@@ -123,10 +125,10 @@ export default function SubscriptionPaymentsPage() {
     }
   };
 
-  const formatPaymentMethod = (method: string) => {
-    if (method === 'mobile_banking') return 'Mobile Banking';
-    if (method === 'credit_card') return 'Credit Card';
-    return method || 'Unknown';
+  const formatPaymentMethod = (methodValue: string) => {
+    if (methodValue === 'mobile_banking') return 'Mobile Banking';
+    if (methodValue === 'credit_card') return 'Credit Card';
+    return methodValue || 'Unknown';
   }
 
   if (isLoading && payments.length === 0) {
@@ -168,21 +170,21 @@ export default function SubscriptionPaymentsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedPayments.map(payment => (
-                      <TableRow key={payment.id}>
+                    {paginatedPayments.map(paymentItem => (
+                      <TableRow key={paymentItem.id}>
                         <TableCell className="font-medium">
                             <div className="flex flex-col">
-                                <span className="font-bold text-sm">{payment.profiles?.full_name || 'Deleted User'}</span>
-                                <span className="text-[10px] text-muted-foreground">@{payment.profiles?.username || 'unknown'}</span>
+                                <span className="font-bold text-sm">{paymentItem.profiles?.full_name || 'Deleted User'}</span>
+                                <span className="text-[10px] text-muted-foreground">@{paymentItem.profiles?.username || 'unknown'}</span>
                             </div>
                         </TableCell>
-                        <TableCell><Badge variant="secondary" className="text-[10px]">{payment.plans?.name || 'N/A'}</Badge></TableCell>
-                        <TableCell className="text-sm font-bold">৳{payment.amount.toFixed(2)}</TableCell>
-                        <TableCell className="font-mono text-xs">{payment.transaction_id || 'N/A'}</TableCell>
-                        <TableCell className="text-[10px] text-muted-foreground">{format(new Date(payment.created_at), 'PP')}</TableCell>
-                        <TableCell><Badge variant={getStatusBadgeVariant(payment.status)} className="text-[10px] h-5">{payment.status}</Badge></TableCell>
+                        <TableCell><Badge variant="secondary" className="text-[10px]">{paymentItem.plans?.name || 'N/A'}</Badge></TableCell>
+                        <TableCell className="text-sm font-bold">৳{paymentItem.amount.toFixed(2)}</TableCell>
+                        <TableCell className="font-mono text-xs">{paymentItem.transaction_id || 'N/A'}</TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">{format(new Date(paymentItem.created_at), 'PP')}</TableCell>
+                        <TableCell><Badge variant={getStatusBadgeVariant(paymentItem.status)} className="text-[10px] h-5">{paymentItem.status}</Badge></TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => setSelectedPayment(payment)} className="h-8 text-xs">
+                          <Button variant="ghost" size="sm" onClick={() => setSelectedPayment(paymentItem)} className="h-8 text-xs">
                             <Eye className="mr-2 h-3 w-3" /> Review
                           </Button>
                         </TableCell>
@@ -194,28 +196,28 @@ export default function SubscriptionPaymentsPage() {
               
               {/* Mobile View: Cards */}
               <div className="grid gap-4 md:hidden">
-                {paginatedPayments.map(payment => (
-                  <Card key={payment.id} onClick={() => setSelectedPayment(payment)} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                {paginatedPayments.map(paymentItem => (
+                  <Card key={paymentItem.id} onClick={() => setSelectedPayment(paymentItem)} className="cursor-pointer hover:bg-muted/50 transition-colors">
                       <CardHeader className="p-4">
                         <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">
                                 <Avatar>
-                                    <AvatarFallback>{payment.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
+                                    <AvatarFallback>{paymentItem.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <CardTitle className="text-sm font-bold">{payment.profiles?.full_name || 'Deleted User'}</CardTitle>
-                                    <CardDescription className="text-xs">@{payment.profiles?.username || 'unknown'}</CardDescription>
+                                    <CardTitle className="text-sm font-bold">{paymentItem.profiles?.full_name || 'Deleted User'}</CardTitle>
+                                    <CardDescription className="text-xs">@{paymentItem.profiles?.username || 'unknown'}</CardDescription>
                                 </div>
                             </div>
-                             <Badge variant={getStatusBadgeVariant(payment.status)} className="text-[10px] h-fit">{payment.status}</Badge>
+                             <Badge variant={getStatusBadgeVariant(paymentItem.status)} className="text-[10px] h-fit">{paymentItem.status}</Badge>
                         </div>
                       </CardHeader>
                       <CardContent className="p-4 pt-0 flex justify-between items-center">
                           <div className="space-y-1">
-                            <Badge variant="secondary" className="text-[10px]">{payment.plans?.name || 'N/A'}</Badge>
-                            <p className="text-[10px] text-muted-foreground">{format(new Date(payment.created_at), 'PP')}</p>
+                            <Badge variant="secondary" className="text-[10px]">{paymentItem.plans?.name || 'N/A'}</Badge>
+                            <p className="text-[10px] text-muted-foreground">{format(new Date(paymentItem.created_at), 'PP')}</p>
                           </div>
-                          <p className="font-bold text-base">৳{payment.amount.toFixed(2)}</p>
+                          <p className="font-bold text-base">৳{paymentItem.amount.toFixed(2)}</p>
                       </CardContent>
                   </Card>
                 ))}
@@ -233,7 +235,7 @@ export default function SubscriptionPaymentsPage() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))}
                         disabled={currentPage === 1}
                     >
                         Previous
@@ -244,7 +246,7 @@ export default function SubscriptionPaymentsPage() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))}
                         disabled={currentPage === totalPages}
                     >
                         Next

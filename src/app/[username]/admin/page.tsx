@@ -23,25 +23,29 @@ export default function AdminDashboard() {
   const { dashboard, setDashboard } = useAdminStore();
   const { toast } = useToast();
 
+  // Initialize loading to false if we already have dashboard data in the store
   const [isLoading, setIsLoading] = useState(() => {
-    const store = useAdminStore.getState();
-    const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
-    return !(store.dashboard && isFresh);
+    const currentStore = useAdminStore.getState();
+    return !currentStore.dashboard;
   });
 
   const fetchData = useCallback(async (force = false) => {
     const siteId = user?.id;
     if (!siteId) return;
 
-    const store = useAdminStore.getState();
-    const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
+    const currentStore = useAdminStore.getState();
+    const now = Date.now();
+    const isFresh = now - currentStore.lastFetched.dashboard < 300000; // 5 minutes
     
-    if (!force && store.dashboard && isFresh) {
-        setIsLoading(false);
+    // If not a forced refresh and data is fresh, do nothing
+    if (!force && currentStore.dashboard && isFresh) {
         return;
     }
 
-    if (force || !store.dashboard) setIsLoading(true);
+    // Only show loading spinner if we have NO data at all
+    if (!currentStore.dashboard || force) {
+        setIsLoading(true);
+    }
 
     try {
         const sevenDaysAgo = subDays(new Date(), 7);
@@ -67,19 +71,19 @@ export default function AdminDashboard() {
         const fetchedReviews = reviewsResult.reviews || [];
         const fetchedQna = qnaResult.qna || [];
 
-        const totalRevenue = fetchedOrders.filter((ord: any) => ord.status === 'delivered').reduce((acc: number, ord: any) => acc + ord.total, 0);
-        const monthlyOrdersCount = fetchedOrders.filter((ord: any) => new Date(ord.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && ord.status !== 'canceled').length;
-        const unviewedCount = fetchedUncompleted.filter((ord: any) => !ord.is_viewed).length;
-        const activeDealsCount = fetchedDeals.filter((deal: any) => deal.is_active && new Date(deal.end_date) > new Date()).length;
+        const totalRevenue = fetchedOrders.filter((orderItem: any) => orderItem.status === 'delivered').reduce((acc: number, orderItem: any) => acc + orderItem.total, 0);
+        const monthlyOrdersCount = fetchedOrders.filter((orderItem: any) => new Date(orderItem.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && orderItem.status !== 'canceled').length;
+        const unviewedCount = fetchedUncompleted.filter((orderItem: any) => !orderItem.is_viewed).length;
+        const activeDealsCount = fetchedDeals.filter((dealItem: any) => dealItem.is_active && new Date(dealItem.end_date) > new Date()).length;
 
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
           const dateStr = format(subDays(new Date(), i), 'MMM d');
           dailyRevenue[dateStr] = 0;
         }
-        fetchedOrders.filter((ord: any) => new Date(ord.created_at) >= sevenDaysAgo && ord.status === 'delivered').forEach((ord: any) => {
-          const dateStr = format(new Date(ord.created_at), 'MMM d');
-          if (dailyRevenue.hasOwnProperty(dateStr)) dailyRevenue[dateStr] += ord.total;
+        fetchedOrders.filter((orderItem: any) => new Date(orderItem.created_at) >= sevenDaysAgo && orderItem.status === 'delivered').forEach((orderItem: any) => {
+          const dateStr = format(new Date(orderItem.created_at), 'MMM d');
+          if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) dailyRevenue[dateStr] += orderItem.total;
         });
 
         const newDashboardData = {
@@ -91,10 +95,10 @@ export default function AdminDashboard() {
           ordersThisMonth: monthlyOrdersCount,
           activeFlashDeals: activeDealsCount,
           allOrders: fetchedOrders,
-          revenueChartData: Object.keys(dailyRevenue).map(date => ({ date, Revenue: dailyRevenue[date] })),
-          pendingOrders: fetchedOrders.filter((ord: any) => ord.status === 'pending').slice(0, 5),
-          lowStockProducts: fetchedProducts.filter((prod: any) => prod.stock !== null && prod.stock < 10).slice(0, 5),
-          pendingReviews: fetchedReviews.filter((rev: any) => !rev.is_approved).slice(0, 5),
+          revenueChartData: Object.keys(dailyRevenue).map(dateKey => ({ date: dateKey, Revenue: dailyRevenue[dateKey] })),
+          pendingOrders: fetchedOrders.filter((orderItem: any) => orderItem.status === 'pending').slice(0, 5),
+          lowStockProducts: fetchedProducts.filter((productItem: any) => productItem.stock !== null && productItem.stock < 10).slice(0, 5),
+          pendingReviews: fetchedReviews.filter((reviewItem: any) => !reviewItem.is_approved).slice(0, 5),
           unansweredQuestions: fetchedQna.filter((qnaItem: any) => !qnaItem.is_approved).slice(0, 5),
         };
 
@@ -121,7 +125,7 @@ export default function AdminDashboard() {
   }
 
   const lang = user?.language || 'bn';
-  const t = translations[lang as keyof typeof translations]?.dashboard || translations.bn.dashboard;
+  const currentTranslations = translations[lang as keyof typeof translations]?.dashboard || translations.bn.dashboard;
   const productLimit = user?.product_limit;
   
   const stats = dashboard || {
@@ -144,14 +148,14 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
+      <h1 className="text-3xl font-bold tracking-tight">{currentTranslations.title}</h1>
       
       {isLimitReached && (
         <Alert variant="destructive">
           <Ban className="h-4 w-4" />
-          <AlertTitle>{t.limitReached}</AlertTitle>
+          <AlertTitle>{currentTranslations.limitReached}</AlertTitle>
           <AlertDescription>
-            {t.limitDesc} <Link href="/admin/settings" className="font-semibold underline">{t.upgrade}</Link> {t.limitDesc2}
+            {currentTranslations.limitDesc} <Link href="/admin/settings" className="font-semibold underline">{currentTranslations.upgrade}</Link> {currentTranslations.limitDesc2}
           </AlertDescription>
         </Alert>
       )}
@@ -160,14 +164,14 @@ export default function AdminDashboard() {
         stats={stats} 
         limits={{ productLimit: user?.product_limit ?? null, customerLimit: user?.customer_limit ?? null, orderLimit: user?.order_limit ?? null }} 
         isLoading={isLoading && !dashboard} 
-        t={t} 
+        t={currentTranslations} 
       />
 
       <DashboardCharts 
         revenueChartData={stats.revenueChartData} 
         allOrders={stats.allOrders || []} 
         isLoading={isLoading && !dashboard} 
-        t={t} 
+        t={currentTranslations} 
       />
 
       <DashboardTables 
@@ -176,7 +180,7 @@ export default function AdminDashboard() {
         pendingReviews={stats.pendingReviews} 
         unansweredQuestions={stats.unansweredQuestions} 
         isLoading={isLoading && !dashboard} 
-        t={t} 
+        t={currentTranslations} 
       />
     </div>
   );

@@ -38,21 +38,28 @@ export default function SaasAdminDashboard() {
   const { dashboardData, setDashboardData } = useSaasStore();
   const { toast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(true);
+  // Initialize loading to false if we already have dashboard data in the store
+  const [isLoading, setIsLoading] = useState(() => {
+    const currentStore = useSaasStore.getState();
+    return !currentStore.dashboardData;
+  });
 
   const fetchDashboardData = useCallback(async (force = false) => {
     const siteId = user?.id;
     if (!siteId) return;
 
-    const store = useSaasStore.getState();
-    const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
+    const currentStore = useSaasStore.getState();
+    const now = Date.now();
+    const isFresh = now - currentStore.lastFetched.dashboard < 300000;
     
-    if (!force && store.dashboardData && isFresh) {
+    if (!force && currentStore.dashboardData && isFresh) {
         setIsLoading(false);
         return;
     }
 
-    if (force || !store.dashboardData) setIsLoading(true);
+    if (!currentStore.dashboardData || force) {
+        setIsLoading(true);
+    }
 
     try {
       const response = await fetch('/api/saas/dashboard-data');
@@ -73,11 +80,6 @@ export default function SaasAdminDashboard() {
 
   useEffect(() => {
     if (user) {
-      const store = useSaasStore.getState();
-      const isFresh = Date.now() - store.lastFetched.dashboard < 300000;
-      if (store.dashboardData && isFresh) {
-          setIsLoading(false);
-      }
       fetchDashboardData();
     }
   }, [fetchDashboardData, user]);
@@ -159,8 +161,8 @@ export default function SaasAdminDashboard() {
               </TableHeader>
               <TableBody>
                 {isLoading && !dashboardData ? (
-                    [...Array(3)].map((_, i) => (
-                        <TableRow key={i}>
+                    [...Array(3)].map((_, index) => (
+                        <TableRow key={index}>
                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-20" /></TableCell>
@@ -200,8 +202,8 @@ export default function SaasAdminDashboard() {
           <CardContent className="p-0">
             <div className="divide-y divide-border">
               {isLoading && !dashboardData ? (
-                [...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-start gap-4 p-4">
+                [...Array(3)].map((_, index) => (
+                  <div key={index} className="flex items-start gap-4 p-4">
                     <Skeleton className="h-9 w-9 rounded-full" />
                     <div className="flex-1 space-y-1">
                       <Skeleton className="h-4 w-full" />

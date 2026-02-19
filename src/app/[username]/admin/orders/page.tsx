@@ -35,24 +35,32 @@ export default function OrdersAdminPage() {
     const { orders, setOrders } = useAdminStore();
     const { toast } = useToast();
     
-    const [isLoading, setIsLoading] = useState(true);
+    // Initialize loading to false if we already have orders in the store
+    const [isLoading, setIsLoading] = useState(() => {
+        const currentStore = useAdminStore.getState();
+        return currentStore.orders.length === 0;
+    });
     
     const lang = user?.language || 'bn';
-    const t = translations[lang as keyof typeof translations]?.orders || translations.bn.orders;
+    const currentTranslations = translations[lang as keyof typeof translations]?.orders || translations.bn.orders;
     const statusTranslations = translations[lang as keyof typeof translations]?.statuses || translations.bn.statuses;
     
     const fetchOrders = useCallback(async (force = false) => {
         const siteId = user?.id;
         if (!siteId) return;
 
-        const store = useAdminStore.getState();
-        const isFresh = Date.now() - store.lastFetched.orders < 300000;
-        if (!force && store.orders.length > 0 && isFresh) {
+        const currentStore = useAdminStore.getState();
+        const now = Date.now();
+        const isFresh = now - currentStore.lastFetched.orders < 300000;
+        
+        if (!force && currentStore.orders.length > 0 && isFresh) {
             setIsLoading(false);
             return;
         }
 
-        if (force || !store.orders.length) setIsLoading(true);
+        if (force || currentStore.orders.length === 0) {
+            setIsLoading(true);
+        }
 
         try {
             const response = await fetch('/api/orders/list', {
@@ -75,11 +83,6 @@ export default function OrdersAdminPage() {
 
     useEffect(() => {
         if (user?.id) {
-            const store = useAdminStore.getState();
-            const isFresh = Date.now() - store.lastFetched.orders < 300000;
-            if (store.orders.length > 0 && isFresh) {
-                setIsLoading(false);
-            }
             fetchOrders();
         }
     }, [user?.id, fetchOrders]);
@@ -107,8 +110,8 @@ export default function OrdersAdminPage() {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>{t.title}</CardTitle>
-                    <CardDescription>{t.description}</CardDescription>
+                    <CardTitle>{currentTranslations.title}</CardTitle>
+                    <CardDescription>{currentTranslations.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center py-16">
                     <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
@@ -120,8 +123,8 @@ export default function OrdersAdminPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{t.title}</CardTitle>
-                <CardDescription>{t.description}</CardDescription>
+                <CardTitle>{currentTranslations.title}</CardTitle>
+                <CardDescription>{currentTranslations.description}</CardDescription>
             </CardHeader>
             <CardContent>
                 {orders.length > 0 ? (
@@ -130,32 +133,32 @@ export default function OrdersAdminPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>{t.orderId}</TableHead>
-                                    <TableHead>{t.customer}</TableHead>
-                                    <TableHead>{t.date}</TableHead>
-                                    <TableHead>{t.status}</TableHead>
-                                    <TableHead>{t.total}</TableHead>
-                                    <TableHead className="text-right">{t.actions}</TableHead>
+                                    <TableHead>{currentTranslations.orderId}</TableHead>
+                                    <TableHead>{currentTranslations.customer}</TableHead>
+                                    <TableHead>{currentTranslations.date}</TableHead>
+                                    <TableHead>{currentTranslations.status}</TableHead>
+                                    <TableHead>{currentTranslations.total}</TableHead>
+                                    <TableHead className="text-right">{currentTranslations.actions}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {orders.map(order => (
-                                    <TableRow key={order.id}>
-                                        <TableCell className="font-medium">{order.order_number}</TableCell>
+                                {orders.map(orderItem => (
+                                    <TableRow key={orderItem.id}>
+                                        <TableCell className="font-medium">{orderItem.order_number}</TableCell>
                                         <TableCell>
-                                            <div className="font-medium">{order.shipping_info?.name || 'Guest'}</div>
-                                            <div className="text-sm text-muted-foreground">{order.customer_email}</div>
+                                            <div className="font-medium">{orderItem.shipping_info?.name || 'Guest'}</div>
+                                            <div className="text-sm text-muted-foreground">{orderItem.customer_email}</div>
                                         </TableCell>
-                                        <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
+                                        <TableCell>{format(new Date(orderItem.created_at), 'PP')}</TableCell>
                                         <TableCell>
-                                            <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
+                                            <Badge variant={getStatusBadgeVariant(orderItem.status)}>{translateStatus(orderItem.status)}</Badge>
                                         </TableCell>
-                                        <TableCell>{order.total.toFixed(2)} BDT</TableCell>
+                                        <TableCell>{orderItem.total.toFixed(2)} BDT</TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="outline" size="sm" asChild>
-                                                <Link href={`/admin/orders/${order.id}`}>
+                                                <Link href={`/admin/orders/${orderItem.id}`}>
                                                     <Eye className="mr-2 h-4 w-4" />
-                                                    {t.viewOrder}
+                                                    {currentTranslations.viewOrder}
                                                 </Link>
                                             </Button>
                                         </TableCell>
@@ -166,30 +169,30 @@ export default function OrdersAdminPage() {
                     </div>
 
                     <div className="grid gap-4 md:hidden">
-                        {orders.map(order => (
-                            <Card key={order.id}>
+                        {orders.map(orderItem => (
+                            <Card key={orderItem.id}>
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <CardTitle className="text-lg">{order.order_number}</CardTitle>
-                                            <CardDescription>{order.shipping_info?.name || 'Guest'}</CardDescription>
-                                            <CardDescription className="text-xs">{order.customer_email}</CardDescription>
+                                            <CardTitle className="text-lg">{orderItem.order_number}</CardTitle>
+                                            <CardDescription>{orderItem.shipping_info?.name || 'Guest'}</CardDescription>
+                                            <CardDescription className="text-xs">{orderItem.customer_email}</CardDescription>
                                         </div>
                                         <Button variant="ghost" size="icon" asChild className="-mt-2 -mr-2">
-                                            <Link href={`/admin/orders/${order.id}`}>
+                                            <Link href={`/admin/orders/${orderItem.id}`}>
                                                 <Eye className="h-4 w-4" />
                                             </Link>
                                         </Button>
                                     </div>
-                                    <CardDescription className="pt-2">{format(new Date(order.created_at), 'PP')}</CardDescription>
+                                    <CardDescription className="pt-2">{format(new Date(orderItem.created_at), 'PP')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex justify-between items-center">
-                                    <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
+                                    <Badge variant={getStatusBadgeVariant(orderItem.status)}>{translateStatus(orderItem.status)}</Badge>
                                     <div className="text-right">
-                                        <p className="font-semibold text-lg">{order.total.toFixed(2)} BDT</p>
+                                        <p className="font-semibold text-lg">{orderItem.total.toFixed(2)} BDT</p>
                                         <Button variant="link" size="sm" asChild className="h-auto p-0 text-primary">
-                                            <Link href={`/admin/orders/${order.id}`}>
-                                                {t.viewOrder}
+                                            <Link href={`/admin/orders/${orderItem.id}`}>
+                                                {currentTranslations.viewOrder}
                                             </Link>
                                         </Button>
                                     </div>
@@ -199,7 +202,7 @@ export default function OrdersAdminPage() {
                     </div>
                 </>
                 ) : (
-                    <p className="text-muted-foreground text-center py-8">{t.noOrders}</p>
+                    <p className="text-muted-foreground text-center py-8">{currentTranslations.noOrders}</p>
                 )}
             </CardContent>
         </Card>

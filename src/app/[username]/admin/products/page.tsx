@@ -42,27 +42,33 @@ export default function ProductsAdminPage() {
   const { products, setProducts, invalidateEntity } = useAdminStore();
   const { toast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    const currentStore = useAdminStore.getState();
+    return currentStore.products.length === 0;
+  });
   const [isDeleting, setIsDeleting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const lang = user?.language || 'bn';
-  const t = translations[lang as keyof typeof translations]?.products || translations.bn.products;
-  const common = translations[lang as keyof typeof translations]?.common || translations.bn.common;
+  const currentTranslations = translations[lang as keyof typeof translations]?.products || translations.bn.products;
+  const commonTranslations = translations[lang as keyof typeof translations]?.common || translations.bn.common;
 
   const fetchProducts = useCallback(async (force = false) => {
     const siteId = user?.id;
     if (!siteId) return;
 
-    const store = useAdminStore.getState();
-    const isFresh = Date.now() - store.lastFetched.products < 300000;
+    const currentStore = useAdminStore.getState();
+    const now = Date.now();
+    const isFresh = now - currentStore.lastFetched.products < 300000;
     
-    if (!force && store.products.length > 0 && isFresh) {
+    if (!force && currentStore.products.length > 0 && isFresh) {
         setIsLoading(false);
         return;
     }
 
-    if (force || !store.products.length) setIsLoading(true);
+    if (force || currentStore.products.length === 0) {
+        setIsLoading(true);
+    }
 
     try {
         const response = await fetch('/api/products/list', {
@@ -89,11 +95,6 @@ export default function ProductsAdminPage() {
 
   useEffect(() => {
     if (user?.id) {
-      const store = useAdminStore.getState();
-      const isFresh = Date.now() - store.lastFetched.products < 300000;
-      if (store.products.length > 0 && isFresh) {
-          setIsLoading(false);
-      }
       fetchProducts();
     }
   }, [user?.id, fetchProducts]);
@@ -145,16 +146,16 @@ export default function ProductsAdminPage() {
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{t.title}</h1>
-          <p className="text-muted-foreground">{t.description}</p>
+          <h1 className="text-2xl font-bold">{currentTranslations.title}</h1>
+          <p className="text-muted-foreground">{currentTranslations.description}</p>
         </div>
         <Button asChild>
-          <Link href={`/admin/products/new`}><Plus className="mr-2 h-4 w-4" /> {t.addProduct}</Link>
+          <Link href={`/admin/products/new`}><Plus className="mr-2 h-4 w-4" /> {currentTranslations.addProduct}</Link>
         </Button>
       </div>
 
       {products.length === 0 && !isLoading ? (
-        <Card><CardContent className="text-center py-16"><p className="text-muted-foreground">{t.noProducts}</p></CardContent></Card>
+        <Card><CardContent className="text-center py-16"><p className="text-muted-foreground">{currentTranslations.noProducts}</p></CardContent></Card>
       ) : (
         <>
           <Card className="hidden md:block">
@@ -162,32 +163,32 @@ export default function ProductsAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px]">{t.image}</TableHead>
-                    <TableHead>{t.name}</TableHead>
-                    <TableHead>{t.category}</TableHead>
-                    <TableHead>{t.price}</TableHead>
-                    <TableHead className="text-right">{t.actions}</TableHead>
+                    <TableHead className="w-[80px]">{currentTranslations.image}</TableHead>
+                    <TableHead>{currentTranslations.name}</TableHead>
+                    <TableHead>{currentTranslations.category}</TableHead>
+                    <TableHead>{currentTranslations.price}</TableHead>
+                    <TableHead className="text-right">{currentTranslations.actions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((product) => (
-                    <TableRow key={product.id}>
+                  {products.map((productItem) => (
+                    <TableRow key={productItem.id}>
                       <TableCell>
                         <div className="relative h-12 w-12 rounded-md overflow-hidden">
-                          <Image src={product.images[0]?.imageUrl || 'https://placehold.co/100x100'} alt={product.name} fill className="object-cover" />
+                          <Image src={productItem.images[0]?.imageUrl || 'https://placehold.co/100x100'} alt={productItem.name} fill className="object-cover" />
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell><div className="flex flex-wrap gap-1">{product.categories?.map((cat) => <Badge key={cat} variant="outline">{cat}</Badge>)}</div></TableCell>
-                      <TableCell>{product.price.toFixed(2)} {product.currency}</TableCell>
+                      <TableCell className="font-medium">{productItem.name}</TableCell>
+                      <TableCell><div className="flex flex-wrap gap-1">{productItem.categories?.map((categoryName) => <Badge key={categoryName} variant="outline">{categoryName}</Badge>)}</div></TableCell>
+                      <TableCell>{productItem.price.toFixed(2)} {productItem.currency}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{t.actions}</DropdownMenuLabel>
-                            <DropdownMenuItem asChild><Link href={`/products/${product.id}`} target="_blank" className="cursor-pointer"><Eye className="mr-2 h-4 w-4" /> {t.view}</Link></DropdownMenuItem>
-                            <DropdownMenuItem asChild><Link href={`/admin/products/${product.id}`} className="cursor-pointer"><Edit className="mr-2 h-4 w-4" /> {t.edit}</Link></DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => setProductToDelete(product)}><Trash2 className="mr-2 h-4 w-4" />{t.delete}</DropdownMenuItem>
+                            <DropdownMenuLabel>{currentTranslations.actions}</DropdownMenuLabel>
+                            <DropdownMenuItem asChild><Link href={`/products/${productItem.id}`} target="_blank" className="cursor-pointer"><Eye className="mr-2 h-4 w-4" /> {currentTranslations.view}</Link></DropdownMenuItem>
+                            <DropdownMenuItem asChild><Link href={`/admin/products/${productItem.id}`} className="cursor-pointer"><Edit className="mr-2 h-4 w-4" /> {currentTranslations.edit}</Link></DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => setProductToDelete(productItem)}><Trash2 className="mr-2 h-4 w-4" />{currentTranslations.delete}</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -199,22 +200,22 @@ export default function ProductsAdminPage() {
           </Card>
 
           <div className="grid gap-4 md:hidden">
-            {products.map((product) => (
-              <Card key={product.id}>
+            {products.map((productItem) => (
+              <Card key={productItem.id}>
                 <CardHeader>
                   <div className="flex items-start gap-4">
                     <div className="relative h-20 w-20 rounded-md overflow-hidden">
-                      <Image src={product.images[0]?.imageUrl || 'https://placehold.co/100x100'} alt={product.name} fill className="object-cover" />
+                      <Image src={productItem.images[0]?.imageUrl || 'https://placehold.co/100x100'} alt={productItem.name} fill className="object-cover" />
                     </div>
                     <div className="flex-grow">
-                      <CardTitle className="text-base">{product.name}</CardTitle>
-                      <p className="font-semibold text-lg mt-2 text-primary">{product.price.toFixed(2)} {product.currency}</p>
+                      <CardTitle className="text-base">{productItem.name}</CardTitle>
+                      <p className="font-semibold text-lg mt-2 text-primary">{productItem.price.toFixed(2)} {productItem.currency}</p>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="-mt-2 -mr-2"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild><Link href={`/admin/products/${product.id}`} className="cursor-pointer"><Edit className="mr-2 h-4 w-4" /> {t.edit}</Link></DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => setProductToDelete(product)}><Trash2 className="mr-2 h-4 w-4" /> {t.delete}</DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href={`/admin/products/${productItem.id}`} className="cursor-pointer"><Edit className="mr-2 h-4 w-4" /> {currentTranslations.edit}</Link></DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => setProductToDelete(productItem)}><Trash2 className="mr-2 h-4 w-4" /> {currentTranslations.delete}</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -231,12 +232,12 @@ export default function ProductsAdminPage() {
             <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
                 <div className="flex items-center gap-3 mb-4 text-destructive">
                     <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
-                    <h3 className="text-xl font-bold text-foreground">{common.confirmDelete}</h3>
+                    <h3 className="text-xl font-bold text-foreground">{commonTranslations.confirmDelete}</h3>
                 </div>
-                <div className="mb-8"><p className="text-muted-foreground leading-relaxed">{common.deleteWarning} <strong>"{productToDelete?.name}"</strong> মুছে ফেলা হবে।</p></div>
+                <div className="mb-8"><p className="text-muted-foreground leading-relaxed">{commonTranslations.deleteWarning} <strong>"{productToDelete?.name}"</strong> মুছে ফেলা হবে।</p></div>
                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
-                    <Button variant="outline" onClick={() => setProductToDelete(null)} disabled={isDeleting}>{common.cancel}</Button>
-                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>{isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{common.delete}</Button>
+                    <Button variant="outline" onClick={() => setProductToDelete(null)} disabled={isDeleting}>{commonTranslations.cancel}</Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>{isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{commonTranslations.delete}</Button>
                 </div>
             </div>
         </div>
