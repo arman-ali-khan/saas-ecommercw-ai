@@ -38,37 +38,39 @@ export default function LiveQuestionsAdminPage() {
     if (!userId) return;
     if (isInitialLoad) setIsLoading(true);
     
-    const { data, error } = await supabase
-      .from('live_chat_messages')
-      .select('*')
-      .eq('site_id', userId)
-      .order('created_at', { ascending: true });
+    try {
+        const response = await fetch('/api/chat/messages/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: userId }),
+        });
+        const result = await response.json();
 
-    if (error) {
-      console.error("Error fetching messages:", error);
-    } else {
-      const grouped = new Map<string, LiveChatMessage[]>();
-      for (const message of data) {
-        const conversation = grouped.get(message.conversation_id) || [];
-        conversation.push(message);
-        grouped.set(message.conversation_id, conversation);
-      }
-      setMessagesByConversation(grouped);
+        if (response.ok) {
+            const data = result.messages || [];
+            const grouped = new Map<string, LiveChatMessage[]>();
+            for (const msg of data) {
+                const conversation = grouped.get(msg.conversation_id) || [];
+                conversation.push(msg);
+                grouped.set(msg.conversation_id, conversation);
+            }
+            setMessagesByConversation(grouped);
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (err) {
+        console.error("Error fetching chat messages via API:", err);
+    } finally {
+        if (isInitialLoad) setIsLoading(false);
     }
-    if (isInitialLoad) setIsLoading(false);
   }, [userId]);
 
 
-  // Re-architected data fetching and subscription logic.
   useEffect(() => {
-    if (authLoading || !userId) {
-      return;
-    }
+    if (authLoading || !userId) return;
     
-    // Perform initial fetch
     fetchAndGroupMessages(true);
 
-    // Set up subscription
     const channel = supabase
       .channel(`admin-live-chat-${userId}`)
       .on(
@@ -91,7 +93,6 @@ export default function LiveQuestionsAdminPage() {
   }, [authLoading, userId, fetchAndGroupMessages]);
 
 
-  // Scroll to bottom when a conversation is selected or a new message arrives
   useEffect(() => {
     if (selectedConversationId) {
       scrollViewportRef.current?.scrollTo({
@@ -104,7 +105,6 @@ export default function LiveQuestionsAdminPage() {
   const handleSelectConversation = useCallback(async (conversationId: string) => {
     setSelectedConversationId(conversationId);
     
-    // Optimistically update the UI to mark messages as read
     setMessagesByConversation(prevMap => {
         const newMap = new Map(prevMap);
         const conversation = newMap.get(conversationId);
@@ -117,7 +117,6 @@ export default function LiveQuestionsAdminPage() {
         return newMap;
     });
 
-    // Update the database in the background
     await supabase
         .from('live_chat_messages')
         .update({ is_read: true })
@@ -141,7 +140,6 @@ export default function LiveQuestionsAdminPage() {
         });
       }
     }
-    // Sort by most recent message
     return summaries.sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
   }, [messagesByConversation]);
 
@@ -159,7 +157,6 @@ export default function LiveQuestionsAdminPage() {
     if (!newMessage.trim() || !selectedConversationId || !user) return;
 
     const optimisticMessage: LiveChatMessage = {
-        id: Math.random(), // Temporary ID for the key
         conversation_id: selectedConversationId,
         site_id: user.id,
         sender_id: user.id,
@@ -170,29 +167,25 @@ export default function LiveQuestionsAdminPage() {
         is_read: true,
     };
     
-    // Optimistic update: Add new message AND mark customer messages as read.
     setMessagesByConversation(prevMap => {
         const newMap = new Map(prevMap);
         const conversation = newMap.get(selectedConversationId) || [];
-        
         const updatedConversationWithRead = conversation.map(msg => 
             msg.sender_type === 'customer' && !msg.is_read ? { ...msg, is_read: true } : msg
         );
-
         newMap.set(selectedConversationId, [...updatedConversationWithRead, optimisticMessage]);
         return newMap;
     });
 
     setNewMessage('');
 
-    // DB Operations in parallel
     const insertPromise = supabase.from('live_chat_messages').insert({
         conversation_id: selectedConversationId,
         site_id: user.id,
         sender_id: user.id,
         sender_name: user.fullName,
         sender_type: 'agent',
-        content: newMessage.trim(),
+        content: optimisticMessage.content,
     });
 
     const readPromise = supabase
@@ -202,13 +195,7 @@ export default function LiveQuestionsAdminPage() {
         .eq('sender_type', 'customer')
         .eq('is_read', false);
 
-    const [{ error: insertError }] = await Promise.all([insertPromise, readPromise]);
-
-
-    if (insertError) {
-        console.error("Failed to send message:", insertError);
-        // Here you could implement logic to show a "failed" state on the message
-    }
+    await Promise.all([insertPromise, readPromise]);
   };
 
   return (
@@ -279,12 +266,7 @@ export default function LiveQuestionsAdminPage() {
             {selectedConversationId ? (
             <>
                 <div className="p-4 border-b flex items-center gap-3">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="md:hidden mr-2"
-                    onClick={() => setSelectedConversationId(null)}
-                >
+                <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={() => setSelectedConversationId(null)}>
                     <ArrowLeft className="h-6 w-6" />
                 </Button>
                 <Avatar>
@@ -296,7 +278,6 @@ export default function LiveQuestionsAdminPage() {
                 <div className="flex-grow" />
                 <Button variant="ghost" size="icon" onClick={() => fetchAndGroupMessages(false)} className="text-muted-foreground">
                     <RefreshCw className="h-5 w-5" />
-                    <span className="sr-only">Refresh messages</span>
                 </Button>
                 </div>
                 <ScrollArea className="flex-grow h-20 p-4" viewportRef={scrollViewportRef}>
@@ -313,28 +294,17 @@ export default function LiveQuestionsAdminPage() {
                             )}
                             <div className={cn(
                                 'rounded-lg px-3 py-2 text-sm max-w-full break-words',
-                                message.sender_type === 'agent'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
+                                message.sender_type === 'agent' ? 'bg-primary text-primary-foreground' : 'bg-muted'
                             )}>
                                 <p>{message.content}</p>
-                                <p className={cn(
-                                    "text-xs mt-1",
-                                    message.sender_type === 'agent' ? 'text-primary-foreground/70' : 'text-muted-foreground/70'
-                                )}>
+                                <p className={cn("text-xs mt-1", message.sender_type === 'agent' ? 'text-primary-foreground/70' : 'text-muted-foreground/70')}>
                                     {format(new Date(message.created_at!), 'p', { locale: bn })}
                                 </p>
                             </div>
                         </div>
                     ))}
                 </div>
-                 {selectedConversationMessages.length > 0 && (
-                    <p className="text-xs text-muted-foreground text-center mt-4">
-                        নতুন বার্তা দেখতে পাচ্ছেন না? রিফ্রেশ বোতামে ক্লিক করুন।
-                    </p>
-                )}
                 </ScrollArea>
-                
                 <div className="p-2 border-t bg-background">
                     <div className="flex items-end gap-2">
                         <div className="relative flex-grow">
@@ -345,25 +315,18 @@ export default function LiveQuestionsAdminPage() {
                             onKeyPress={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
-                                    if (!newMessage.trim()) return;
                                     handleSendMessage();
                                 }
                             }}
                             className="pr-12 min-h-[40px] max-h-[150px] resize-none"
                             rows={1}
                             />
-                            <Button
-                            size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                            onClick={handleSendMessage}
-                            disabled={!newMessage.trim()}
-                            >
-                            <Send className="h-4 w-4" />
+                            <Button size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleSendMessage} disabled={!newMessage.trim()}>
+                                <Send className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>
                 </div>
-
             </>
             ) : (
             <div className="hidden md:flex flex-grow flex-col items-center justify-center text-center text-muted-foreground">

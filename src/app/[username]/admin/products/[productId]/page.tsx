@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -6,7 +7,6 @@ import Image from 'next/image';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
   Card,
@@ -31,7 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
-import type { Product, Category } from '@/types';
+import type { Product, Category, ProductAttribute } from '@/types';
 import ImageUploader from '@/components/image-uploader';
 import {
   DropdownMenu,
@@ -39,10 +39,9 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
-import { Switch } from '@/components/ui/switch';
-import RichTextEditor from '@/components/rich-text-editor';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
+import RichTextEditor from '@/components/rich-text-editor';
 
 const productFormSchema = z.object({
   id: z.string().min(3, 'ID/Slug must be at least 3 characters.').regex(/^[a-z0-9\u0980-\u09FF-]+$/, 'Slug can only contain lowercase letters, numbers, hyphens, and Bengali characters.'),
@@ -136,40 +135,46 @@ export default function ManageProductPage() {
     if (!user) return;
     setIsLoading(true);
 
-    const store = useAdminStore.getState();
-    const isFresh = Date.now() - store.lastFetched.categories < 300000;
-
-    if (!isFresh) {
-        const [attrRes, catRes] = await Promise.all([
-            supabase.from('product_attributes').select('*').eq('site_id', user.id),
-            supabase.from('categories').select('*').eq('site_id', user.id)
+    try {
+        // Fetch categories and attributes via existing APIs
+        const [attrResponse, catResponse] = await Promise.all([
+            fetch('/api/attributes/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }) }),
+            fetch('/api/categories/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }) })
         ]);
-        if (attrRes.data) setAttributes(attrRes.data);
-        if (catRes.data) setCategories(catRes.data as Category[]);
-    }
-
-    if (!isNew) {
-        const decodedProductId = decodeURIComponent(productId);
-        const [{ data: productData, error }, { data: flashDealData }] = await Promise.all([
-          supabase.from('products').select('*').match({ id: decodedProductId, site_id: user.id }).single(),
-          supabase.from('flash_deals').select('*').eq('product_id', decodedProductId).eq('site_id', user.id).single()
-        ]);
-
-        if (error || !productData) {
-          toast({ variant: 'destructive', title: 'Error', description: 'Product not found.' });
-          router.push(`/admin/products`);
-          return;
-        }
         
-        form.reset({
-          ...productData,
-          images: (productData.images || []).map((img: any) => ({ imageUrl: img.imageUrl || '', imageHint: img.imageHint || '' })),
-          has_flash_deal: !!flashDealData,
-          flash_deal_price: flashDealData?.discount_price,
-          flash_deal_range: flashDealData ? { startDate: new Date(flashDealData.start_date), endDate: new Date(flashDealData.end_date) } : { startDate: undefined, endDate: undefined },
-        });
+        const attrResult = await attrResponse.json();
+        const catResult = await catResponse.json();
+
+        if (attrResponse.ok) setAttributes(attrResult.attributes as ProductAttribute[]);
+        if (catResponse.ok) setCategories(catResult.categories as Category[]);
+
+        if (!isNew) {
+            const response = await fetch('/api/products/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ productId, siteId: user.id }),
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                const { product: productData, flashDeal: flashDealData } = result;
+                form.reset({
+                    ...productData,
+                    images: (productData.images || []).map((img: any) => ({ imageUrl: img.imageUrl || '', imageHint: img.imageHint || '' })),
+                    has_flash_deal: !!flashDealData,
+                    flash_deal_price: flashDealData?.discount_price,
+                    flash_deal_range: flashDealData ? { startDate: new Date(flashDealData.start_date), endDate: new Date(flashDealData.end_date) } : { startDate: undefined, endDate: undefined },
+                });
+            } else {
+                throw new Error(result.error || 'Product not found.');
+            }
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+        if (!isNew) router.push(`/admin/products`);
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, [productId, isNew, user, router, toast, form, setAttributes, setCategories]);
 
   useEffect(() => {
@@ -194,7 +199,10 @@ export default function ManageProductPage() {
                 flashDealData: has_flash_deal ? { discount_price: flash_deal_price, start_date: flash_deal_range?.startDate instanceof Date ? flash_deal_range.startDate.toISOString() : flash_deal_range?.startDate, end_date: flash_deal_range?.endDate instanceof Date ? flash_deal_range.endDate.toISOString() : flash_deal_range?.endDate } : null
             })
         });
-        if (!response.ok) throw new Error('Failed to save');
+        if (!response.ok) {
+            const res = await response.json();
+            throw new Error(res.error || 'Failed to save');
+        }
         if (isNew && draftKey) localStorage.removeItem(draftKey);
         invalidateEntity('products');
         invalidateEntity('dashboard');
@@ -205,7 +213,9 @@ export default function ManageProductPage() {
 
   if ((isLoading && !dashboard) || authLoading) return <div className="space-y-6"><Skeleton className="h-8 w-1/2" /><Card><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
 
-  const isLimitReached = user?.product_limit !== null && (dashboard?.totalProducts || 0) >= user?.product_limit!;
+  const totalProducts = dashboard?.totalProducts || 0;
+  const isLimitReached = user?.product_limit !== null && totalProducts >= (user?.product_limit || 0);
+  
   if (isNew && isLimitReached) return <div className="space-y-6"><Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button><Alert variant="destructive"><PackageCheck className="h-4 w-4" /><AlertTitle>Product Limit Reached</AlertTitle><AlertDescription>You have reached your limit of {user?.product_limit} products.</AlertDescription></Alert></div>;
 
   return (

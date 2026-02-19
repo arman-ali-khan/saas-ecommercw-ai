@@ -5,7 +5,7 @@ import { decrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
-    const { siteId } = await request.json();
+    const { siteId, customerId } = await request.json();
     if (!siteId) return NextResponse.json({ error: 'Site ID is required' }, { status: 400 });
 
     const supabaseAdmin = createClient(
@@ -13,16 +13,21 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('orders')
       .select('*')
-      .eq('site_id', siteId)
-      .order('created_at', { ascending: false });
+      .eq('site_id', siteId);
+    
+    if (customerId) {
+        query = query.eq('customer_id', customerId);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
 
     // Decrypt orders
-    const decryptedOrders = data.map(order => ({
+    const decryptedOrders = (data || []).map(order => ({
         ...order,
         customer_email: decrypt(order.customer_email),
         shipping_info: {
@@ -37,6 +42,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ orders: decryptedOrders }, { status: 200 });
   } catch (err: any) {
+    console.error('List Orders API Error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

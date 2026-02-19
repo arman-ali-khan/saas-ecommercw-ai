@@ -4,16 +4,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, User, MapPin, Phone, Mail, ShoppingBag, DollarSign, Home, Briefcase, Building, Eye } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Mail, ShoppingBag, DollarSign, Home, Briefcase, Building, Eye } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import type { Order, Address } from '@/types';
 
@@ -58,6 +57,7 @@ export default function CustomerDetailsPage() {
         setIsLoading(true);
 
         try {
+            // 1. Fetch Customer Profile
             const customerResponse = await fetch('/api/customers/get', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -69,20 +69,25 @@ export default function CustomerDetailsPage() {
                 throw new Error(customerResult.error || 'Customer not found.');
             }
 
-            const ordersPromise = supabase.from('orders').select('*').eq('customer_id', cId).order('created_at', { ascending: false });
-            const addressesPromise = supabase.from('customer_addresses').select('*').eq('customer_id', cId).order('created_at', { ascending: false });
+            // 2. Fetch Customer Orders via API
+            const ordersResponse = await fetch('/api/orders/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: sId, customerId: cId }),
+            });
+            const ordersResult = await ordersResponse.json();
 
-            const [
-                { data: ordersData, error: ordersError },
-                { data: addressesData, error: addressesError },
-            ] = await Promise.all([ordersPromise, addressesPromise]);
-
-            if (ordersError) toast({ variant: 'destructive', title: 'Error fetching orders' });
-            if (addressesError) toast({ variant: 'destructive', title: 'Error fetching addresses' });
+            // 3. Fetch Customer Addresses via API
+            const addressesResponse = await fetch('/api/customers/addresses/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customerId: cId, siteId: sId }),
+            });
+            const addressesResult = await addressesResponse.json();
 
             setCustomer(customerResult.customer as CustomerProfile);
-            setOrders(ordersData as Order[] || []);
-            setAddresses(addressesData as Address[] || []);
+            setOrders(ordersResult.orders || []);
+            setAddresses(addressesResult.addresses || []);
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error', description: error.message });
             router.push(`/admin/customers`);
@@ -99,9 +104,9 @@ export default function CustomerDetailsPage() {
 
     const stats = useMemo(() => {
         const totalSpent = orders.reduce((acc, order) => acc + (order.status !== 'canceled' ? order.total : 0), 0);
-        const totalOrders = orders.filter(o => o.status !== 'canceled').length;
+        const totalOrdersCount = orders.filter(o => o.status !== 'canceled').length;
         return {
-            totalOrders: totalOrders.toString(),
+            totalOrders: totalOrdersCount.toString(),
             totalSpent: `৳${totalSpent.toFixed(2)}`,
         }
     }, [orders]);

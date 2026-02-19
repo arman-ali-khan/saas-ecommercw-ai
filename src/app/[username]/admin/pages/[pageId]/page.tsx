@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useTransition } from 'react';
@@ -6,7 +7,6 @@ import { useForm, useFieldArray, Control, useController } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
 import type { Page, Product } from '@/types';
@@ -342,7 +342,14 @@ export default function ManagePage() {
                                   </>
                               )}
                               {(field as any).type === 'youtube' && (
-                                  <FormField control={control} name={`${currentFieldName}.videoId`} render={({ field: yField }) => (<FormItem><FormLabel>YouTube Video ID</FormLabel><FormControl><Input {...yField} /></FormControl><FormDescription>From a URL like youtube.com/watch?v=VIDEO_ID</FormDescription><FormMessage /></FormItem>)} />
+                                  <FormField control={control} name={`${currentFieldName}.videoId`} render={({ field: yField }) => (
+                                    <FormItem>
+                                        <FormLabel>YouTube Video ID</FormLabel>
+                                        <FormControl><Input {...yField} /></FormControl>
+                                        <FormDescription>From a URL like youtube.com/watch?v=VIDEO_ID</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                  )} />
                               )}
                               {(field as any).type === 'coloredBox' && (
                                   <>
@@ -508,11 +515,21 @@ export default function ManagePage() {
         }
     }
 
-    const { data: productsData, error: productsError } = await supabase.from('products').select('*').eq('site_id', user.id);
-    if(productsError) {
-        toast({ variant: 'destructive', title: 'Error fetching products', description: productsError.message });
-    } else if (productsData) {
-        setAllProducts(productsData as Product[]);
+    // Fetch all products via API instead of direct supabase
+    try {
+        const productsResponse = await fetch('/api/products/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        const productsResult = await productsResponse.json();
+        if (productsResponse.ok) {
+            setAllProducts(productsResult.products || []);
+        } else {
+            throw new Error(productsResult.error);
+        }
+    } catch (err: any) {
+        toast({ variant: 'destructive', title: 'Error fetching products', description: err.message });
     }
     
     setIsLoading(false);
