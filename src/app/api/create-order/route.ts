@@ -1,6 +1,6 @@
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { encrypt, decryptObject } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -17,9 +17,23 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Encrypt sensitive order data
+    const encryptedOrderData = {
+        ...dbOrderData,
+        customer_email: encrypt(dbOrderData.customer_email),
+        shipping_info: {
+            ...dbOrderData.shipping_info,
+            name: encrypt(dbOrderData.shipping_info.name),
+            address: encrypt(dbOrderData.shipping_info.address),
+            city: encrypt(dbOrderData.shipping_info.city),
+            phone: encrypt(dbOrderData.shipping_info.phone),
+            notes: dbOrderData.shipping_info.notes ? encrypt(dbOrderData.shipping_info.notes) : null
+        }
+    };
+
     const { data: newOrder, error: orderError } = await supabaseAdmin
       .from('orders')
-      .insert({ ...dbOrderData, status: 'pending' })
+      .insert({ ...encryptedOrderData, status: 'pending' })
       .select()
       .single();
 
@@ -28,56 +42,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Database Error: ${orderError.message}` }, { status: 500 });
     }
     
+    // Delete uncompleted order
     if (uncompletedOrderId) {
-        const { error: deleteError } = await supabaseAdmin
-            .from('uncompleted_orders')
-            .delete()
-            .eq('id', uncompletedOrderId);
-        
-        if (deleteError) {
-            console.error('Failed to delete uncompleted order:', deleteError);
-        }
+        await supabaseAdmin.from('uncompleted_orders').delete().eq('id', uncompletedOrderId);
     }
 
     if (newOrder) {
-      // --- Create notification for admin ---
-      const adminNotificationMessage = `New order #${newOrder.order_number} has been placed for a total of ${newOrder.total.toFixed(2)} BDT.`;
-      const { error: adminNotificationError } = await supabaseAdmin
-        .from('notifications')
-        .insert({
-          recipient_id: newOrder.site_id, // The admin's ID is the site_id
-          recipient_type: 'admin',
+      // Create notification for admin
+      await supabaseAdmin.from('notifications').insert({
+        recipient_id: newOrder.site_id,
+        recipient_type: 'admin',
+        site_id: newOrder.site_id,
+        order_id: newOrder.id,
+        message: `একটি নতুন অর্ডার #${newOrder.order_number} এসেছে। মোট মূল্য: ${newOrder.total.toFixed(2)} BDT.`,
+        link: `/admin/orders/${newOrder.id}`,
+      });
+
+      // Create notification for customer
+      if (newOrder.customer_id) {
+        await supabaseAdmin.from('notifications').insert({
+          recipient_id: newOrder.customer_id,
+          recipient_type: 'customer',
           site_id: newOrder.site_id,
           order_id: newOrder.id,
-          message: adminNotificationMessage,
-          link: `/admin/orders/${newOrder.id}`,
+          message: `আপনার অর্ডার #${newOrder.order_number} সফলভাবে গ্রহণ করা হয়েছে।`,
+          link: `/profile/orders/${newOrder.id}`,
         });
-
-      if (adminNotificationError) {
-        console.error('Failed to create notification for admin:', adminNotificationError);
-      }
-
-      // --- Create notification for customer ---
-      if (newOrder.customer_id) {
-        const customerNotificationMessage = `Your order #${newOrder.order_number} has been successfully placed. We will process it shortly.`;
-        const { error: customerNotificationError } = await supabaseAdmin
-            .from('notifications')
-            .insert({
-                recipient_id: newOrder.customer_id,
-                recipient_type: 'customer',
-                site_id: newOrder.site_id,
-                order_id: newOrder.id,
-                message: customerNotificationMessage,
-                link: `/profile/orders/${newOrder.id}`
-            });
-
-        if (customerNotificationError) {
-            console.error("Failed to create notification for customer on order creation:", customerNotificationError);
-        }
       }
     }
 
-    return NextResponse.json(newOrder, { status: 200 });
+    // Decrypt the order for the response
+    const decryptedOrder = decryptObject(newOrder);
+
+    return NextResponse.json({ order: decryptedOrder }, { status: 200 });
 
   } catch (err: any) {
     console.error('Create Order API CATCH Error:', err);
