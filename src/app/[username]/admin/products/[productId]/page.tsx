@@ -80,7 +80,15 @@ export default function ManageProductPage() {
   const isNew = productId === 'new';
   const draftKey = useMemo(() => user ? `unsaved_product_draft_${user.id}` : null, [user]);
 
-  const [isLoading, setIsLoading] = useState(true);
+  // Initial loading state based on store content to prevent flickering
+  const [isLoading, setIsLoading] = useState(() => {
+    if (isNew) {
+        const store = useAdminStore.getState();
+        return !(store.categories.length > 0 && store.attributes.length > 0);
+    }
+    return true;
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
@@ -102,10 +110,10 @@ export default function ManageProductPage() {
     if (isNew && watchedValues.name) {
         const slug = watchedValues.name
             .toLowerCase()
-            .replace(/[^\u0980-\u09FFa-z0-9\s-]/g, '') // Keep Bengali, lowercase English, numbers, spaces, hyphens
+            .replace(/[^\u0980-\u09FFa-z0-9\s-]/g, '')
             .trim()
-            .replace(/\s+/g, '-') // Replace spaces with hyphens
-            .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-');
         form.setValue('id', slug, { shouldValidate: true });
     }
   }, [watchedValues.name, isNew, form]);
@@ -114,7 +122,6 @@ export default function ManageProductPage() {
     if (isNew && draftKey && !isLoading && form.formState.isDirty) {
         const timeout = setTimeout(() => { 
             const dataToSave = { ...form.getValues() };
-            // Convert Dates to ISO strings for JSON storage
             if (dataToSave.flash_deal_range?.startDate instanceof Date) dataToSave.flash_deal_range.startDate = dataToSave.flash_deal_range.startDate.toISOString();
             if (dataToSave.flash_deal_range?.endDate instanceof Date) dataToSave.flash_deal_range.endDate = dataToSave.flash_deal_range.endDate.toISOString();
             localStorage.setItem(draftKey, JSON.stringify(dataToSave)); 
@@ -154,44 +161,58 @@ export default function ManageProductPage() {
 
   const fetchProductData = useCallback(async () => {
     if (!user) return;
+
+    // Background fetch logic for lookups
+    const fetchLookups = async () => {
+        try {
+            const [attrResponse, catResponse] = await Promise.all([
+                fetch('/api/attributes/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } }),
+                fetch('/api/categories/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } })
+            ]);
+            
+            const attrResult = await attrResponse.json();
+            const catResult = await catResponse.json();
+
+            if (attrResponse.ok) setAttributes(attrResult.attributes as ProductAttribute[]);
+            if (catResponse.ok) setCategories(catResult.categories as Category[]);
+        } catch (error) {
+            console.error("Lookup fetch error:", error);
+        }
+    };
+
+    // If it's a new product and we have cached lookups, just refresh in background
+    if (isNew) {
+        fetchLookups();
+        setIsLoading(false);
+        return;
+    }
+
+    // For editing, we need the product details
     setIsLoading(true);
-
     try {
-        const [attrResponse, catResponse] = await Promise.all([
-            fetch('/api/attributes/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } }),
-            fetch('/api/categories/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } })
-        ]);
-        
-        const attrResult = await attrResponse.json();
-        const catResult = await catResponse.json();
+        await fetchLookups();
+        const response = await fetch('/api/products/get', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId, siteId: user.id }),
+        });
+        const result = await response.json();
 
-        if (attrResponse.ok) setAttributes(attrResult.attributes as ProductAttribute[]);
-        if (catResponse.ok) setCategories(catResult.categories as Category[]);
-
-        if (!isNew) {
-            const response = await fetch('/api/products/get', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ productId, siteId: user.id }),
+        if (response.ok) {
+            const { product: productData, flashDeal: flashDealData } = result;
+            form.reset({
+                ...productData,
+                images: (productData.images || []).map((img: any) => ({ imageUrl: img.imageUrl || '', imageHint: img.imageHint || '' })),
+                has_flash_deal: !!flashDealData,
+                flash_deal_price: flashDealData?.discount_price,
+                flash_deal_range: flashDealData ? { startDate: new Date(flashDealData.start_date), endDate: new Date(flashDealData.end_date) } : { startDate: undefined, endDate: undefined },
             });
-            const result = await response.json();
-
-            if (response.ok) {
-                const { product: productData, flashDeal: flashDealData } = result;
-                form.reset({
-                    ...productData,
-                    images: (productData.images || []).map((img: any) => ({ imageUrl: img.imageUrl || '', imageHint: img.imageHint || '' })),
-                    has_flash_deal: !!flashDealData,
-                    flash_deal_price: flashDealData?.discount_price,
-                    flash_deal_range: flashDealData ? { startDate: new Date(flashDealData.start_date), endDate: new Date(flashDealData.end_date) } : { startDate: undefined, endDate: undefined },
-                });
-            } else {
-                throw new Error(result.error || 'Product not found.');
-            }
+        } else {
+            throw new Error(result.error || 'Product not found.');
         }
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
-        if (!isNew) router.push(`/admin/products`);
+        router.push(`/admin/products`);
     } finally {
         setIsLoading(false);
     }
@@ -237,10 +258,15 @@ export default function ManageProductPage() {
     toast({ title: 'থাম্বনেইল সেট করা হয়েছে' });
   };
 
+  if (isLoading && isNew) {
+      // Return a very minimal shell if we truly have no data yet
+      return <div className="space-y-6"><Skeleton className="h-8 w-1/2" /><Skeleton className="h-64 w-full" /></div>;
+  }
+
   if (isLoading || authLoading) return <div className="space-y-6"><Skeleton className="h-8 w-1/2" /><Card><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
 
-  const totalProducts = dashboard?.totalProducts || 0;
-  const isLimitReached = user?.product_limit !== null && totalProducts >= (user?.product_limit || 0);
+  const totalProductsCount = dashboard?.totalProducts || 0;
+  const isLimitReached = user?.product_limit !== null && totalProductsCount >= (user?.product_limit || 0);
   
   if (isNew && isLimitReached) return <div className="space-y-6"><Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button><Alert variant="destructive"><PackageCheck className="h-4 w-4" /><AlertTitle>Product Limit Reached</AlertTitle><AlertDescription>You have reached your limit of {user?.product_limit} products.</AlertDescription></Alert></div>;
 
@@ -276,7 +302,6 @@ export default function ManageProductPage() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="grid lg:grid-cols-3 gap-8">
-                {/* Left Column: Basic Info */}
                 <div className="lg:col-span-2 space-y-8">
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30">
@@ -415,7 +440,6 @@ export default function ManageProductPage() {
                     </Card>
                 </div>
 
-                {/* Right Column: Pricing & Meta */}
                 <div className="space-y-8">
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30">
@@ -480,7 +504,7 @@ export default function ManageProductPage() {
                             )} />
 
                             <div className="space-y-4">
-                                {['brand', 'color', 'size', 'unit'].map((attrName) => (
+                                {(['brand', 'color', 'size', 'unit'] as const).map((attrName) => (
                                     <FormField key={attrName} control={form.control} name={attrName as any} render={({ field: attrValField }) => (
                                         <FormItem>
                                             <FormLabel className="capitalize">{attrName === 'unit' ? 'পরিমাপের একক (Unit)' : attrName}</FormLabel>
