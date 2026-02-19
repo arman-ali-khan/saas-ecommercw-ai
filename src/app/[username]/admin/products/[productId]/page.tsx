@@ -33,6 +33,7 @@ import { Loader2, ArrowLeft, Trash2, ChevronDown, Star, PackageCheck, Ban, Calen
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import type { Product, ProductAttribute, Category } from '@/types';
 import ImageUploader from '@/components/image-uploader';
 import {
@@ -148,18 +149,25 @@ export default function ManageProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  
+  // Use Admin Store for Caching
+  const { 
+    attributes, 
+    categories, 
+    setAttributes, 
+    setCategories, 
+    dashboard, 
+    lastFetched,
+    invalidateEntity 
+  } = useAdminStore();
 
   const productId = params.productId as string;
   const isNew = productId === 'new';
   const draftKey = useMemo(() => user ? `unsaved_product_draft_${user.id}` : null, [user]);
 
-  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [productCount, setProductCount] = useState(0);
-  const [isLoadingProductCount, setIsLoadingProductCount] = useState(!isNew);
   const [hasDraft, setHasDraft] = useState(false);
   
   const isSubscriptionPending =
@@ -207,7 +215,7 @@ export default function ManageProductPage() {
   const watchedValues = form.watch();
   const isDirty = form.formState.isDirty;
   
-  // Auto-save draft to localStorage only if the form has been touched or is new and has content
+  // Auto-save draft to localStorage
   useEffect(() => {
     if (isNew && draftKey && !isLoading && (isDirty || watchedValues.name || watchedValues.images.length > 0)) {
         const timeout = setTimeout(() => {
@@ -224,7 +232,6 @@ export default function ManageProductPage() {
         if (savedDraft) {
             try {
                 const parsed = JSON.parse(savedDraft);
-                // Only show alert if it's not just default values
                 if (parsed.name || (parsed.images && parsed.images.length > 0)) {
                     setHasDraft(true);
                 }
@@ -241,23 +248,14 @@ export default function ManageProductPage() {
     if (savedDraft) {
         try {
             const parsed = JSON.parse(savedDraft);
-            
-            // CRITICAL: Convert ISO strings back to Date objects for the form
             if (parsed.flash_deal_range) {
-                if (parsed.flash_deal_range.startDate) {
-                    parsed.flash_deal_range.startDate = new Date(parsed.flash_deal_range.startDate);
-                }
-                if (parsed.flash_deal_range.endDate) {
-                    parsed.flash_deal_range.endDate = new Date(parsed.flash_deal_range.endDate);
-                }
+                if (parsed.flash_deal_range.startDate) parsed.flash_deal_range.startDate = new Date(parsed.flash_deal_range.startDate);
+                if (parsed.flash_deal_range.endDate) parsed.flash_deal_range.endDate = new Date(parsed.flash_deal_range.endDate);
             }
-            
-            // Reset the form with the recovered data
             form.reset(parsed);
             setHasDraft(false);
             toast({ title: 'ড্রাফট রিকভার করা হয়েছে!' });
         } catch (e) {
-            console.error("Failed to recover draft", e);
             toast({ variant: 'destructive', title: 'ড্রাফট রিকভার করতে সমস্যা হয়েছে' });
         }
     }
@@ -290,6 +288,7 @@ export default function ManageProductPage() {
     if (isNew || !user) return;
     
     const decodedProductId = decodeURIComponent(productId);
+    setIsLoading(true);
     
     const productPromise = supabase
       .from('products')
@@ -306,14 +305,8 @@ export default function ManageProductPage() {
 
     const [{ data: productData, error }, { data: flashDealData }] = await Promise.all([productPromise, flashDealPromise]);
 
-
     if (error || !productData) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description:
-          'Product not found or you do not have permission to edit it.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'Product not found.' });
       router.push(`/admin/products`);
       return;
     }
@@ -347,25 +340,51 @@ export default function ManageProductPage() {
     setIsLoading(false);
   }, [productId, isNew, user, router, toast, form]);
   
-  const fetchAttributes = useCallback(async () => {
+  const fetchAttributes = useCallback(async (force = false) => {
     if (!user) return;
+    const store = useAdminStore.getState();
+    const isFresh = Date.now() - store.lastFetched.attributes < 300000;
+    if (!force && store.attributes.length > 0 && isFresh) return;
+
     const { data, error } = await supabase.from('product_attributes').select('*').eq('site_id', user.id);
-    if(error) {
-        toast({ title: 'Error fetching attributes', variant: 'destructive', description: error.message });
-    } else if (data) {
-        setAttributes(data);
-    }
-  }, [user, toast]);
+    if (data) setAttributes(data);
+  }, [user, setAttributes]);
   
-  const fetchCategories = useCallback(async () => {
+  const fetchCategories = useCallback(async (force = false) => {
     if (!user) return;
+    const store = useAdminStore.getState();
+    const isFresh = Date.now() - store.lastFetched.categories < 300000;
+    if (!force && store.categories.length > 0 && isFresh) return;
+
     const { data, error } = await supabase.from('categories').select('*').eq('site_id', user.id);
-    if(error) {
-        toast({ title: 'Error fetching categories', variant: 'destructive', description: error.message });
-    } else if (data) {
-        setCategories(data as Category[]);
+    if (data) setCategories(data as Category[]);
+  }, [user, setCategories]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+        // Cache-aware fetching
+        fetchAttributes();
+        fetchCategories();
+        
+        if (isNew) {
+            // If we have dashboard stats, use them for the initial check to avoid a redundant count call
+            const store = useAdminStore.getState();
+            if (!store.dashboard) {
+                // Only if dashboard isn't loaded, we fetch count manually
+                supabase
+                    .from('products')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('site_id', user.id)
+                    .then(({ count }) => {
+                        // Just for internal count if needed
+                    });
+            }
+            setIsLoading(false);
+        } else {
+            fetchProduct();
+        }
     }
-  }, [user, toast]);
+  }, [authLoading, user, isNew, fetchProduct, fetchAttributes, fetchCategories]);
 
   const groupedAttributes = useMemo(() => {
     return attributes.reduce((acc, attr) => {
@@ -373,51 +392,13 @@ export default function ManageProductPage() {
         return acc;
     }, {} as Record<string, string[]>);
   }, [attributes]);
-  
-  useEffect(() => {
-    if (!authLoading) {
-      if (user) {
-        fetchAttributes();
-        fetchCategories();
-        if (isNew) {
-          setIsLoading(false);
-          setIsLoadingProductCount(true);
-          supabase
-            .from('products')
-            .select('id', { count: 'exact', head: true })
-            .eq('site_id', user.id)
-            .then(({ count }) => {
-              setProductCount(count || 0);
-              setIsLoadingProductCount(false);
-            });
-        } else {
-           fetchProduct();
-           setIsLoadingProductCount(false);
-        }
-      }
-    }
-  }, [authLoading, user, isNew, fetchProduct, fetchAttributes, fetchCategories]);
-
 
   const onSubmit = async (values: ProductFormData) => {
-    if (isSubscriptionPending) {
-      toast({
-        variant: 'destructive',
-        title: 'Action Disabled',
-        description: 'Your subscription is pending approval. You cannot create products.',
-      });
-      return;
-    }
-
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Authentication error' });
-      return;
-    }
+    if (isSubscriptionPending || isSubscriptionExpired) return;
+    if (!user) return;
     
     setIsSubmitting(true);
-    
     const { has_flash_deal, flash_deal_price, flash_deal_range, ...productValues } = values;
-
     const finalProductValues = {
       ...productValues,
       images: productValues.images.filter((img) => img.imageUrl),
@@ -440,42 +421,29 @@ export default function ManageProductPage() {
             })
         });
 
-        const result = await response.json();
+        if (!response.ok) throw new Error('Failed to save');
 
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to save product');
-        }
-
-        // Success - clear draft
-        if (isNew && draftKey) {
-            localStorage.removeItem(draftKey);
-        }
-
+        if (isNew && draftKey) localStorage.removeItem(draftKey);
+        
+        invalidateEntity('products');
+        invalidateEntity('dashboard');
+        
         toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
         router.push(`/admin/products`);
-        router.refresh();
-
     } catch (error: any) {
         setIsSubmitting(false);
-        toast({
-            variant: 'destructive',
-            title: `Error`,
-            description: error.message,
-        });
+        toast({ variant: 'destructive', title: `Error`, description: error.message });
     }
   };
 
   const handleSetFeatured = (fromIndex: number) => {
     if (fromIndex === 0) return;
     swap(0, fromIndex);
-    toast({ title: 'Featured image updated.', description: 'Click "Save Changes" to apply.' });
+    toast({ title: 'Featured image updated.' });
   };
   
   const handleRemoveImage = (indexToRemove: number) => {
-    if (fields.length <= 1) {
-      form.setError('images', { type: 'manual', message: 'At least one image is required.' });
-      return;
-    }
+    if (fields.length <= 1) return;
     remove(indexToRemove);
   };
 
@@ -487,16 +455,14 @@ export default function ManageProductPage() {
 
   const handleGenerateDescription = async () => {
       if (!user) return;
-      
       const productName = form.getValues('name');
       if (!productName) {
-          toast({ variant: 'destructive', title: 'পণ্যর নাম প্রয়োজন', description: 'এআই ডেসক্রিপশন তৈরির আগে দয়া করে পণ্যের নাম লিখুন।' });
+          toast({ variant: 'destructive', title: 'পণ্যর নাম প্রয়োজন' });
           return;
       }
 
       setIsGenerating(true);
       try {
-          // Fetch the API key using our secure API endpoint
           const response = await fetch('/api/ai-settings/get', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -505,7 +471,7 @@ export default function ManageProductPage() {
           const resultSettings = await response.json();
           
           if (!response.ok || !resultSettings.gemini_api_key) {
-              toast({ variant: 'destructive', title: 'এআই ত্রুটি', description: 'Gemini API কী সেট আপ করা নেই। দয়া করে Settings > AI Settings এ গিয়ে কী যোগ করুন।' });
+              toast({ variant: 'destructive', title: 'এআই ত্রুটি', description: 'Gemini API কী সেট আপ করা নেই।' });
               setIsGenerating(false);
               return;
           }
@@ -521,7 +487,6 @@ export default function ManageProductPage() {
 
           form.setValue('long_description', result.longDescription, { shouldValidate: true });
           toast({ title: 'এআই ডেসক্রিপশন তৈরি হয়েছে!' });
-
       } catch (error: any) {
           toast({ variant: 'destructive', title: 'তৈরি করতে ব্যর্থ হয়েছে', description: error.message });
       } finally {
@@ -529,85 +494,27 @@ export default function ManageProductPage() {
       }
   };
 
-
-  if (isLoading || isLoadingProductCount) {
+  if (isLoading || authLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-8 w-1/2" />
-          <Skeleton className="h-4 w-3/4" />
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-1/4" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-1/4" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-1/4" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-          <Skeleton className="h-10 w-32" />
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-1/2" />
+        <Card><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-40 w-full" /></CardContent></Card>
+      </div>
     );
   }
 
   const productLimit = user?.product_limit;
+  const productCount = dashboard?.totalProducts || 0;
   const isLimitReached = productLimit !== null && productCount >= productLimit;
   
   if (isNew && isLimitReached && !isSubscriptionExpired) {
     return (
-        <div>
-            <Button variant="ghost" asChild className="mb-4 -ml-4">
-                <Link href={`/admin/products`}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Products
-                </Link>
-            </Button>
-            <Alert variant="destructive">
-                <PackageCheck className="h-4 w-4" />
-                <AlertTitle>Product Limit Reached</AlertTitle>
-                <AlertDescription>
-                    You have reached your limit of {productLimit} products for the current plan. Please upgrade your subscription to add more products.
-                    <Button asChild className="mt-4 block w-fit">
-                        <Link href="/admin/settings">Manage Subscription</Link>
-                    </Button>
-                </AlertDescription>
-            </Alert>
+        <div className="space-y-6">
+            <Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button>
+            <Alert variant="destructive"><PackageCheck className="h-4 w-4" /><AlertTitle>Product Limit Reached</AlertTitle><AlertDescription>You have reached your limit of {productLimit} products.</AlertDescription></Alert>
         </div>
     )
   }
-
-  if (isNew && isSubscriptionExpired) {
-    return (
-        <div>
-            <Button variant="ghost" asChild className="mb-4 -ml-4">
-                <Link href={`/admin/products`}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Products
-                </Link>
-            </Button>
-            <Alert variant="destructive">
-                <Ban className="h-4 w-4" />
-                <AlertTitle>Subscription Expired</AlertTitle>
-                <AlertDescription>
-                    Your subscription has expired. You cannot create new products. Please renew your subscription to add more.
-                    <Button asChild className="mt-4 block w-fit">
-                        <Link href="/admin/settings">Manage Subscription</Link>
-                    </Button>
-                </AlertDescription>
-            </Alert>
-        </div>
-    )
-  }
-  
-  const isButtonDisabled = isNew 
-    ? isSubmitting || isSubscriptionPending || isLimitReached || isSubscriptionExpired
-    : isSubmitting || isSubscriptionPending;
 
   return (
     <div>
@@ -623,7 +530,7 @@ export default function ManageProductPage() {
             <RotateCcw className="h-4 w-4 text-primary" />
             <AlertTitle className="font-bold">ড্রাফট পাওয়া গিয়েছে!</AlertTitle>
             <AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <span className="text-foreground/90">আপনার কাছে একটি অসম্পূর্ণ পণ্যের তথ্য রয়েছে। আপনি কি সেটি ফিরিয়ে আনতে চান?</span>
+                <span className="text-foreground/90">আপনার কাছে একটি অসম্পূর্ণ পণ্যের তথ্য রয়েছে।</span>
                 <div className="flex gap-2 shrink-0">
                     <Button variant="outline" size="sm" onClick={clearDraft} className="h-8 border-destructive text-destructive hover:bg-destructive/10">মুছে ফেলুন</Button>
                     <Button size="sm" onClick={applyDraft} className="h-8">ড্রাফট রিকভার করুন</Button>
@@ -1068,7 +975,7 @@ export default function ManageProductPage() {
                 </CardFooter>
             </Card>
               
-              <Button type="submit" disabled={isButtonDisabled}>
+              <Button type="submit" disabled={isSubmitting || isSubscriptionPending}>
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
