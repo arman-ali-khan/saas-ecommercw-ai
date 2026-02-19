@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -22,18 +21,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Loader2, User, CreditCard, FileText, X } from 'lucide-react';
+import { Eye, Loader2, User, CreditCard, FileText, X, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const PAYMENTS_PER_PAGE = 10;
@@ -145,7 +136,7 @@ export default function SubscriptionPaymentsPage() {
           {paginatedPayments.length > 0 ? (
             <>
               {/* Desktop View: Table */}
-              <div className="hidden md:block">
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -163,18 +154,18 @@ export default function SubscriptionPaymentsPage() {
                       <TableRow key={payment.id}>
                         <TableCell className="font-medium">
                             <div className="flex flex-col">
-                                <span className="font-bold">{payment.profiles?.full_name || 'N/A'}</span>
+                                <span className="font-bold text-sm">{payment.profiles?.full_name || 'N/A'}</span>
                                 <span className="text-[10px] text-muted-foreground">@{payment.profiles?.username}</span>
                             </div>
                         </TableCell>
-                        <TableCell><Badge variant="secondary">{payment.plans?.name || 'N/A'}</Badge></TableCell>
-                        <TableCell>{payment.amount.toFixed(2)} BDT</TableCell>
+                        <TableCell><Badge variant="secondary" className="text-[10px]">{payment.plans?.name || 'N/A'}</Badge></TableCell>
+                        <TableCell className="text-sm font-bold">৳{payment.amount.toFixed(2)}</TableCell>
                         <TableCell className="font-mono text-xs">{payment.transaction_id || 'N/A'}</TableCell>
-                        <TableCell className="text-xs">{format(new Date(payment.created_at), 'PP')}</TableCell>
-                        <TableCell><Badge variant={getStatusBadgeVariant(payment.status)}>{payment.status}</Badge></TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">{format(new Date(payment.created_at), 'PP')}</TableCell>
+                        <TableCell><Badge variant={getStatusBadgeVariant(payment.status)} className="text-[10px] h-5">{payment.status}</Badge></TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => setSelectedPayment(payment)}>
-                            <Eye className="mr-2 h-4 w-4" /> Review
+                          <Button variant="ghost" size="sm" onClick={() => setSelectedPayment(payment)} className="h-8 text-xs">
+                            <Eye className="mr-2 h-3 w-3" /> Review
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -206,7 +197,7 @@ export default function SubscriptionPaymentsPage() {
                             <Badge variant="secondary" className="text-[10px]">{payment.plans?.name || 'N/A'}</Badge>
                             <p className="text-[10px] text-muted-foreground">{format(new Date(payment.created_at), 'PP')}</p>
                           </div>
-                          <p className="font-bold text-base">{payment.amount.toFixed(2)} BDT</p>
+                          <p className="font-bold text-base">৳{payment.amount.toFixed(2)}</p>
                       </CardContent>
                   </Card>
                 ))}
@@ -245,52 +236,65 @@ export default function SubscriptionPaymentsPage() {
         )}
       </Card>
 
-      <Dialog open={!!selectedPayment} onOpenChange={(open) => !open && setSelectedPayment(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader className="flex flex-row items-center justify-between">
-            <div>
-                <DialogTitle>Review Payment</DialogTitle>
-                <DialogDescription>
-                    Review and approve or reject transaction #{selectedPayment?.transaction_id || selectedPayment?.id}
-                </DialogDescription>
-            </div>
-            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setSelectedPayment(null)}>
-                <X className="h-5 w-5" />
-            </Button>
-          </DialogHeader>
-          {selectedPayment && (
-            <>
-                <div className="space-y-4 py-4 text-sm">
-                    <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                        <h4 className="font-semibold flex items-center gap-2 text-primary"><User className="h-4 w-4" /> User Information</h4>
-                        <p><strong>Name:</strong> {selectedPayment.profiles?.full_name}</p>
-                        <p><strong>Username:</strong> @{selectedPayment.profiles?.username}</p>
-                        <p><strong>Email:</strong> {(selectedPayment.profiles as any)?.email}</p>
-                    </div>
-                    <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                        <h4 className="font-semibold flex items-center gap-2 text-primary"><FileText className="h-4 w-4" /> Subscription Details</h4>
-                        <p><strong>Plan:</strong> {selectedPayment.plans?.name}</p>
-                        <p><strong>Amount:</strong> {selectedPayment.amount.toFixed(2)} BDT</p>
-                    </div>
-                    <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
-                        <h4 className="font-semibold flex items-center gap-2 text-primary"><CreditCard className="h-4 w-4" /> Payment Information</h4>
-                        <p><strong>Method:</strong> {formatPaymentMethod(selectedPayment.payment_method)}</p>
-                        <p><strong>Transaction ID:</strong> {selectedPayment.transaction_id || 'N/A'}</p>
-                        <div className="flex items-center gap-2">
-                            <strong>Status:</strong>
-                            <Badge variant={getStatusBadgeVariant(selectedPayment.status)}>{selectedPayment.status}</Badge>
+      {/* Custom Review Modal */}
+      {selectedPayment && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isActionLoading && setSelectedPayment(null)} />
+            <div className="relative w-full max-w-lg bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+                <div className="p-6 border-b flex justify-between items-center shrink-0">
+                    <h2 className="text-xl font-bold">Review Payment</h2>
+                    <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setSelectedPayment(null)} disabled={isActionLoading}>
+                        <X className="h-5 w-5" />
+                    </Button>
+                </div>
+                <div className="p-6 overflow-y-auto">
+                    <div className="space-y-6">
+                        <div className="space-y-2 p-4 border rounded-xl bg-muted/20">
+                            <h4 className="font-bold flex items-center gap-2 text-primary text-sm uppercase tracking-widest"><User className="h-4 w-4" /> Admin Info</h4>
+                            <div className="grid gap-1">
+                                <p className="font-bold">{selectedPayment.profiles?.full_name}</p>
+                                <p className="text-xs text-muted-foreground">@{selectedPayment.profiles?.username}</p>
+                                <p className="text-xs text-muted-foreground">{(selectedPayment.profiles as any)?.email}</p>
+                            </div>
                         </div>
-                        <p><strong>Date:</strong> {format(new Date(selectedPayment.created_at), 'PPpp')}</p>
+                        <div className="space-y-2 p-4 border rounded-xl bg-muted/20">
+                            <h4 className="font-bold flex items-center gap-2 text-primary text-sm uppercase tracking-widest"><FileText className="h-4 w-4" /> Plan & Amount</h4>
+                            <div className="flex justify-between items-center">
+                                <span className="font-medium">{selectedPayment.plans?.name}</span>
+                                <span className="text-lg font-black">৳{selectedPayment.amount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div className="space-y-2 p-4 border rounded-xl bg-muted/20">
+                            <h4 className="font-bold flex items-center gap-2 text-primary text-sm uppercase tracking-widest"><CreditCard className="h-4 w-4" /> Transaction</h4>
+                            <div className="grid grid-cols-2 gap-4 text-xs">
+                                <div>
+                                    <label className="text-muted-foreground block mb-1">Method</label>
+                                    <p className="font-semibold">{formatPaymentMethod(selectedPayment.payment_method)}</p>
+                                </div>
+                                <div>
+                                    <label className="text-muted-foreground block mb-1">Transaction ID</label>
+                                    <p className="font-mono font-bold bg-muted px-1.5 py-0.5 rounded w-fit">{selectedPayment.transaction_id || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-muted-foreground block mb-1">Current Status</label>
+                                    <Badge variant={getStatusBadgeVariant(selectedPayment.status)}>{selectedPayment.status}</Badge>
+                                </div>
+                                <div>
+                                    <label className="text-muted-foreground block mb-1">Submitted On</label>
+                                    <p>{format(new Date(selectedPayment.created_at), 'PPpp')}</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
-                    <div className="grid grid-cols-2 gap-3 w-full sm:w-auto flex-grow">
+                <div className="p-6 border-t flex flex-col sm:flex-row gap-3 shrink-0">
+                    <div className="grid grid-cols-2 gap-3 w-full">
                         <Button 
                             onClick={() => handleUpdateStatus(selectedPayment.id.toString(), 'completed')} 
                             disabled={isActionLoading || selectedPayment.status === 'completed'}
                             className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20"
                         >
-                            {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                             Approve
                         </Button>
                         <Button 
@@ -299,16 +303,15 @@ export default function SubscriptionPaymentsPage() {
                             disabled={isActionLoading || selectedPayment.status === 'failed'}
                             className="shadow-lg shadow-destructive/20"
                         >
-                            {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
                             Reject
                         </Button>
                     </div>
-                    <Button variant="outline" onClick={() => setSelectedPayment(null)} className="w-full sm:w-auto">Cancel</Button>
-                </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+                    <Button variant="outline" onClick={() => setSelectedPayment(null)} disabled={isActionLoading} className="w-full sm:w-auto">Cancel</Button>
+                </div>
+            </div>
+        </div>
+      )}
     </>
   );
 }

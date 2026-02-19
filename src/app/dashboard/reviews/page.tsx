@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -7,11 +6,9 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, Trash2, Star } from 'lucide-react';
+import { Loader2, CheckCircle, Trash2, Star, AlertTriangle, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
 import type { SaaSReview } from '@/types';
 
 export default function SaasReviewsPage() {
@@ -129,8 +126,8 @@ export default function SaasReviewsPage() {
                                 <AvatarFallback>{review.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                                <CardTitle>{review.name}</CardTitle>
-                                <CardDescription>{review.company}</CardDescription>
+                                <CardTitle className="text-base">{review.name}</CardTitle>
+                                <CardDescription className="text-xs">{review.company}</CardDescription>
                             </div>
                         </div>
                         <Badge variant={review.is_approved ? 'default' : 'secondary'}>
@@ -144,19 +141,19 @@ export default function SaasReviewsPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="flex-grow">
-                    <p className="text-muted-foreground italic">"{review.review_text}"</p>
+                    <p className="text-muted-foreground italic text-sm">"{review.review_text}"</p>
                   </CardContent>
-                  <CardFooter className="flex justify-between items-center">
-                    <p className="text-xs text-muted-foreground">{format(new Date(review.created_at), 'PP')}</p>
+                  <CardFooter className="flex justify-between items-center border-t pt-4">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{format(new Date(review.created_at), 'PP')}</p>
                     <div className="flex gap-2">
                         {!review.is_approved && (
-                            <Button size="sm" onClick={() => handleApprove(review.id)} disabled={isActionLoading}>
-                                {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                                <span className="ml-2">Approve</span>
+                            <Button size="sm" onClick={() => handleApprove(review.id)} disabled={isActionLoading} className="h-8 text-xs">
+                                {isActionLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
+                                <span className="ml-1.5">Approve</span>
                             </Button>
                         )}
-                        <Button variant="destructive" size="sm" onClick={() => setReviewToDelete(review)}>
-                            <Trash2 className="h-4 w-4" />
+                        <Button variant="destructive" size="sm" onClick={() => setReviewToDelete(review)} className="h-8 text-xs">
+                            <Trash2 className="h-3 w-3" />
                         </Button>
                     </div>
                   </CardFooter>
@@ -167,23 +164,26 @@ export default function SaasReviewsPage() {
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!reviewToDelete} onOpenChange={() => setReviewToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the review from "{reviewToDelete?.name}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isActionLoading} className={cn(buttonVariants({ variant: "destructive" }))}>
-              {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Custom Delete Confirmation Modal */}
+      {reviewToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isActionLoading && setReviewToDelete(null)} />
+            <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center gap-3 mb-4 text-destructive">
+                    <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                    <h3 className="text-xl font-bold text-foreground">Delete Testimonial?</h3>
+                </div>
+                <div className="mb-8"><p className="text-muted-foreground leading-relaxed">This will permanently delete the review from "{reviewToDelete?.name}". This action cannot be undone and the review will be removed from the public website.</p></div>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                    <Button variant="outline" onClick={() => setReviewToDelete(null)} disabled={isActionLoading}>Cancel</Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={isActionLoading}>
+                        {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Delete Review
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
     </>
   );
 }

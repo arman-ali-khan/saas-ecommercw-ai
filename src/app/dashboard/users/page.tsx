@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -27,8 +26,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X, AlertTriangle } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -75,7 +73,6 @@ export default function UsersAdminPage() {
                 throw new Error(result.error);
             }
 
-            // Fetch base domain from settings API
             const settingsRes = await fetch('/api/saas/fetch-data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -334,111 +331,84 @@ export default function UsersAdminPage() {
                 )}
             </Card>
 
-            {/* Create Admin Dialog */}
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="sm:max-w-xl">
-                    <DialogHeader>
-                        <DialogTitle>Add New Store Owner</DialogTitle>
-                        <DialogDescription>Create a new admin account and a store at once.</DialogDescription>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmitCreate)} className="space-y-4 pt-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="fullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="username" render={({ field }) => (<FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="johndoe" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="password" render={({ field }) => (<FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" placeholder="••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="siteName" render={({ field }) => (<FormItem><FormLabel>Store Name</FormLabel><FormControl><Input placeholder="My Nature Shop" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="domain" render={({ field }) => (<FormItem><FormLabel>Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="nature-shop" className="rounded-r-none" {...field} /></FormControl><span className="bg-muted px-3 h-10 flex items-center border border-l-0 rounded-r-md text-xs text-muted-foreground">.{baseDomain}</span></div><FormMessage /></FormItem>)} />
-                            </div>
-                            <DialogFooter className="pt-4">
-                                <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Create Account
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+            {/* Create Admin Custom Modal */}
+            {isCreateOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsCreateOpen(false)} />
+                    <div className="relative w-full max-w-xl bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+                        <div className="p-6 border-b flex justify-between items-center shrink-0">
+                            <h2 className="text-xl font-bold">Add New Store Owner</h2>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        <div className="p-6 overflow-y-auto">
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmitCreate)} className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <FormField control={form.control} name="fullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="username" render={({ field }) => (<FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="johndoe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="password" render={({ field }) => (<FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" placeholder="••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <FormField control={form.control} name="siteName" render={({ field }) => (<FormItem><FormLabel>Store Name</FormLabel><FormControl><Input placeholder="My Nature Shop" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="domain" render={({ field }) => (<FormItem><FormLabel>Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="nature-shop" className="rounded-r-none" {...field} /></FormControl><span className="bg-muted px-3 h-10 flex items-center border border-l-0 rounded-r-md text-xs text-muted-foreground">.{baseDomain}</span></div><FormMessage /></FormItem>)} />
+                                    </div>
+                                </form>
+                            </Form>
+                        </div>
+                        <div className="p-6 border-t flex justify-end gap-3 shrink-0">
+                            <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                            <Button onClick={form.handleSubmit(onSubmitCreate)} disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Create Account
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-            {/* Raw Tailwind CSS Custom Delete Modal */}
+            {/* Custom Delete Modal */}
             {isDeleteOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    {/* Backdrop */}
-                    <div 
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-                        onClick={() => !isDeleting && setIsDeleteOpen(false)}
-                    />
-                    
-                    {/* Modal Content */}
-                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setIsDeleteOpen(false)} />
+                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300 overflow-y-auto max-h-[90vh]">
                         <div className="flex items-center gap-3 mb-4 text-destructive">
                             <div className="p-2 bg-destructive/10 rounded-full">
                                 <AlertTriangle className="h-6 w-6" />
                             </div>
                             <h3 className="text-xl font-bold text-foreground">Are you absolutely sure?</h3>
                         </div>
-                        
                         <div className="mb-8">
                             <p className="text-muted-foreground leading-relaxed">
                                 You are about to permanently delete the user profile for <span className="font-bold text-foreground">{selectedUser?.full_name}</span>. 
                                 This action <span className="underline decoration-destructive">cannot be undone</span> and all associated store data might be affected.
                             </p>
                         </div>
-                        
                         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
-                            <Button 
-                                variant="outline" 
-                                onClick={() => setIsDeleteOpen(false)} 
-                                disabled={isDeleting}
-                                className="h-11 px-6 rounded-lg"
-                            >
-                                Cancel
-                            </Button>
-                            <Button 
-                                variant="destructive" 
-                                onClick={performDelete} 
-                                disabled={isDeleting}
-                                className="h-11 px-6 rounded-lg font-bold shadow-lg shadow-destructive/20"
-                            >
-                                {isDeleting ? (
-                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
-                                ) : (
-                                    'Yes, Delete Profile'
-                                )}
+                            <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>Cancel</Button>
+                            <Button variant="destructive" onClick={performDelete} disabled={isDeleting}>
+                                {isDeleting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</> : 'Yes, Delete Profile'}
                             </Button>
                         </div>
                     </div>
                 </div>
             )}
             
-            {/* Raw Tailwind CSS Custom Block Modal */}
+            {/* Custom Block Modal */}
             {isBlockOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    {/* Backdrop */}
-                    <div 
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-                        onClick={() => !isBlocking && setIsBlockOpen(false)}
-                    />
-                    
-                    {/* Modal Content */}
-                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isBlocking && setIsBlockOpen(false)} />
+                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300 overflow-y-auto max-h-[90vh]">
                         <div className="flex items-center gap-3 mb-4 text-primary">
                             <div className="p-2 bg-primary/10 rounded-full">
-                                {selectedUser?.subscription_status === 'active' ? (
-                                    <ShieldOff className="h-6 w-6" />
-                                ) : (
-                                    <ShieldCheck className="h-6 w-6" />
-                                )}
+                                {selectedUser?.subscription_status === 'active' ? <ShieldOff className="h-6 w-6" /> : <ShieldCheck className="h-6 w-6" />}
                             </div>
                             <h3 className="text-xl font-bold text-foreground">Confirm Action</h3>
                         </div>
-                        
                         <div className="mb-8">
                             <p className="text-muted-foreground leading-relaxed">
                                 You are about to <span className="font-bold text-foreground">{selectedUser?.subscription_status === 'active' ? 'block' : 'unblock'}</span> the store for <span className="font-bold text-foreground">{selectedUser?.full_name}</span>. 
@@ -447,30 +417,10 @@ export default function UsersAdminPage() {
                                     : ' This will restore all administrative access and public storefront visibility.'}
                             </p>
                         </div>
-                        
                         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
-                            <Button 
-                                variant="outline" 
-                                onClick={() => setIsBlockOpen(false)} 
-                                disabled={isBlocking}
-                                className="h-11 px-6 rounded-lg"
-                            >
-                                Cancel
-                            </Button>
-                            <Button 
-                                onClick={performBlock} 
-                                variant={selectedUser?.subscription_status === 'active' ? 'destructive' : 'default'} 
-                                disabled={isBlocking}
-                                className={cn(
-                                    "h-11 px-6 rounded-lg font-bold shadow-lg",
-                                    selectedUser?.subscription_status === 'active' ? "shadow-destructive/20" : "shadow-primary/20"
-                                )}
-                            >
-                                {isBlocking ? (
-                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
-                                ) : (
-                                    selectedUser?.subscription_status === 'active' ? 'Block Store' : 'Unblock Store'
-                                )}
+                            <Button variant="outline" onClick={() => setIsBlockOpen(false)} disabled={isBlocking}>Cancel</Button>
+                            <Button onClick={performBlock} variant={selectedUser?.subscription_status === 'active' ? 'destructive' : 'default'} disabled={isBlocking}>
+                                {isBlocking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : (selectedUser?.subscription_status === 'active' ? 'Block Store' : 'Unblock Store')}
                             </Button>
                         </div>
                     </div>

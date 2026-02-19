@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,13 +9,11 @@ import type { SaasShowcaseItem } from '@/types';
 import Image from 'next/image';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, GalleryVertical, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, GalleryVertical, X, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
@@ -184,7 +181,7 @@ export default function ShowcaseAdminPage() {
             }
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Failed to reorder items', description: error.message });
-            fetchItems(); // Revert on failure
+            fetchItems();
         } finally {
             setIsLoading(false);
         }
@@ -244,72 +241,85 @@ export default function ShowcaseAdminPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-xl">
-                    <div className="flex items-center justify-between p-6 border-b">
-                        <h2 className="text-xl font-bold">{selectedItem ? 'Edit' : 'Add'} Showcase Item</h2>
-                        <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
-                            <X className="h-5 w-5" />
-                        </Button>
+            {/* Custom Form Modal */}
+            {isFormOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsFormOpen(false)} />
+                    <div className="relative w-full max-w-xl bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+                        <div className="p-6 border-b flex justify-between items-center shrink-0">
+                            <h2 className="text-xl font-bold">{selectedItem ? 'Edit' : 'Add'} Showcase Item</h2>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        <div className="p-6 overflow-y-auto">
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                    <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="image_url" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Image (Optional)</FormLabel>
+                                            <div className="flex items-start gap-4">
+                                                <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden shrink-0">
+                                                    {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
+                                                </div>
+                                                <div className="space-y-2 flex-grow">
+                                                    <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
+                                                    <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} />
+                                                </div>
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="icon" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Fallback Icon</FormLabel>
+                                            <FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl>
+                                            <FormDescription>Shown if no image is uploaded.</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="is_enabled" render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-muted/30">
+                                            <FormLabel>Enabled</FormLabel>
+                                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                </form>
+                            </Form>
+                        </div>
+                        <div className="p-6 border-t flex justify-end gap-3 shrink-0">
+                            <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                            <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save Item
+                            </Button>
+                        </div>
                     </div>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-6">
-                            <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="image_url" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Image (Optional)</FormLabel>
-                                    <div className="flex items-start gap-4">
-                                        <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
-                                            {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
-                                        </div>
-                                        <div className="space-y-2 flex-grow">
-                                            <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
-                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} />
-                                        </div>
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="icon" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Fallback Icon</FormLabel>
-                                    <FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl>
-                                    <FormDescription>Shown if no image is uploaded.</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="is_enabled" render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-muted/30">
-                                    <FormLabel>Enabled</FormLabel>
-                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                </FormItem>
-                            )} />
-                            <DialogFooter>
-                                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Save Item
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+                </div>
+            )}
 
-            <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete this showcase item.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className={cn(buttonVariants({ variant: "destructive" }))}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {/* Custom Delete Modal */}
+            {isAlertOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsAlertOpen(false)} />
+                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center gap-3 mb-4 text-destructive">
+                            <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                            <h3 className="text-xl font-bold text-foreground">Are you sure?</h3>
+                        </div>
+                        <div className="mb-8"><p className="text-muted-foreground leading-relaxed">This will permanently delete this showcase item. This action cannot be undone.</p></div>
+                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                            <Button variant="outline" onClick={() => setIsAlertOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                            <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Delete Item
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -22,23 +21,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   Form,
   FormControl,
   FormDescription,
@@ -47,11 +29,11 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Loader2, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, MoreHorizontal, X, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type SaasFeature } from '@/types';
 import { cn } from '@/lib/utils';
@@ -304,87 +286,88 @@ export default function FeaturesAdminPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedFeature ? 'Edit Feature' : 'Add New Feature'}
-            </DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Feature Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Unlimited Products" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Describe what this feature does." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="icon"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Icon</FormLabel>
-                    <FormControl>
-                      <IconPicker value={field.value} onChange={field.onChange} />
-                    </FormControl>
-                    <FormDescription>The selected icon is: <span className="font-bold">{field.value}</span></FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save Feature
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      {/* Custom Form Modal */}
+      {isFormOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsFormOpen(false)} />
+            <div className="relative w-full max-w-xl bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+                <div className="p-6 border-b flex justify-between items-center shrink-0">
+                    <h2 className="text-xl font-bold">{selectedFeature ? 'Edit Feature' : 'Add New Feature'}</h2>
+                    <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>
+                        <X className="h-5 w-5" />
+                    </Button>
+                </div>
+                <div className="p-6 overflow-y-auto">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Feature Name</FormLabel>
+                                    <FormControl><Input placeholder="e.g., Unlimited Products" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Description (Optional)</FormLabel>
+                                    <FormControl><Textarea placeholder="Describe what this feature does." {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="icon"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Icon</FormLabel>
+                                    <FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl>
+                                    <FormDescription>Selected icon: <span className="font-bold">{field.value}</span></FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </form>
+                    </Form>
+                </div>
+                <div className="p-6 border-t flex justify-end gap-3 shrink-0">
+                    <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                    <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Feature
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
 
-      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the feature "{selectedFeature?.name}".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className={cn(buttonVariants({ variant: 'destructive' }))}
-              disabled={isDeleting}
-            >
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Custom Delete Modal */}
+      {isAlertOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setIsAlertOpen(false)} />
+            <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center gap-3 mb-4 text-destructive">
+                    <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                    <h3 className="text-xl font-bold text-foreground">Are you absolutely sure?</h3>
+                </div>
+                <div className="mb-8"><p className="text-muted-foreground leading-relaxed">This action cannot be undone. This will permanently delete the feature "{selectedFeature?.name}".</p></div>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                    <Button variant="outline" onClick={() => setIsAlertOpen(false)} disabled={isDeleting}>Cancel</Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Delete
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
     </>
   );
 }

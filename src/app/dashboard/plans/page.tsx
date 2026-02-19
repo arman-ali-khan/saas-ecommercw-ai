@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -23,24 +22,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   Form,
   FormControl,
   FormField,
@@ -48,14 +29,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, X, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type Plan } from '@/types';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const planSchema = z.object({
   id: z
@@ -346,178 +328,120 @@ export default function PlansAdminPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedPlan ? 'Edit Plan' : 'Add New Plan'}
-            </DialogTitle>
-            <DialogDescription>
-                Fill in the details for the subscription plan below.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-              <FormField
-                control={form.control}
-                name="id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Plan ID</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., pro"
-                        {...field}
-                        disabled={!!selectedPlan}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Plan Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Pro" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price (BDT)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="1"
-                          placeholder="e.g., 999"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="period"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Period (optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., /মাস" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+      {/* Custom Form Modal */}
+      {isFormOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsFormOpen(false)} />
+            <div className="relative w-full max-w-xl bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+                <div className="p-6 border-b flex justify-between items-center shrink-0">
+                    <h2 className="text-xl font-bold">{selectedPlan ? 'Edit Plan' : 'Add New Plan'}</h2>
+                    <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>
+                        <X className="h-5 w-5" />
+                    </Button>
+                </div>
+                <div className="p-6 overflow-y-auto">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="id"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Plan ID</FormLabel>
+                                    <FormControl><Input placeholder="e.g., pro" {...field} disabled={!!selectedPlan} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Plan Name</FormLabel>
+                                    <FormControl><Input placeholder="e.g., Pro" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="price"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Price (BDT)</FormLabel>
+                                        <FormControl><Input type="number" step="1" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="period"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Period (optional)</FormLabel>
+                                        <FormControl><Input placeholder="e.g., /মাস" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <div className="space-y-2 rounded-lg border p-4 bg-muted/30">
+                                <h3 className="text-sm font-medium">Resource Limits</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <FormField control={form.control} name="product_limit" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs">Product Limit</FormLabel><FormControl><Input type="number" min="0" placeholder="Unlimited" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                    <FormField control={form.control} name="customer_limit" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs">Customer Limit</FormLabel><FormControl><Input type="number" min="0" placeholder="Unlimited" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                    <FormField control={form.control} name="order_limit" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs">Order Limit</FormLabel><FormControl><Input type="number" min="0" placeholder="Unlimited" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )}/>
+                                </div>
+                            </div>
+                            <FormField control={form.control} name="description" render={({ field }) => (
+                                <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="Short description" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="features" render={({ field }) => (
+                                <FormItem><FormLabel>Features</FormLabel><FormControl><Textarea placeholder="List features, one per line..." {...field} rows={5} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                        </form>
+                    </Form>
+                </div>
+                <div className="p-6 border-t flex justify-end gap-3 shrink-0">
+                    <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                    <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Plan
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
 
-               <div className="space-y-2 rounded-lg border p-4">
-                    <h3 className="text-sm font-medium">Resource Limits</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="product_limit" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Product Limit</FormLabel>
-                                <FormControl><Input type="number" min="0" placeholder="Unlimited" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <FormField control={form.control} name="customer_limit" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Customer Limit</FormLabel>
-                                <FormControl><Input type="number" min="0" placeholder="Unlimited" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <FormField control={form.control} name="order_limit" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Order Limit</FormLabel>
-                                <FormControl><Input type="number" min="0" placeholder="Unlimited" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                    </div>
-              </div>
-
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="A short description of the plan"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="features"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Features</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="List features, one per line..."
-                        {...field}
-                        rows={5}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {isSubmitting ? 'Saving...' : 'Save Plan'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the{' '}
-              {selectedPlan?.name} plan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className={cn(buttonVariants({ variant: 'destructive' }))}
-              disabled={isDeleting}
-            >
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Custom Delete Confirmation Modal */}
+      {isAlertOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setIsAlertOpen(false)} />
+            <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center gap-3 mb-4 text-destructive">
+                    <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                    <h3 className="text-xl font-bold text-foreground">Are you absolutely sure?</h3>
+                </div>
+                <div className="mb-8"><p className="text-muted-foreground leading-relaxed">This action cannot be undone. This will permanently delete the <strong>{selectedPlan?.name}</strong> plan and all associated pricing metadata.</p></div>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                    <Button variant="outline" onClick={() => setIsAlertOpen(false)} disabled={isDeleting}>Cancel</Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Delete Plan
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
     </>
   );
 }

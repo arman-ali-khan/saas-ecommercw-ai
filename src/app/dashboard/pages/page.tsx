@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -21,7 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,17 +28,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Plus, Loader2, Edit, Trash2, Eye } from 'lucide-react';
+import { MoreHorizontal, Plus, Loader2, Edit, Trash2, Eye, AlertTriangle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type SaasPage = {
@@ -148,75 +137,81 @@ export default function SaasPagesAdminPage() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pages.map((page) => (
-                  <TableRow key={page.id}>
-                    <TableCell className="font-medium">{page.title}</TableCell>
-                    <TableCell className="font-mono text-xs">/p/{page.slug}</TableCell>
-                    <TableCell>
-                      <Badge variant={page.is_published ? 'default' : 'outline'}>
-                        {page.is_published ? 'Published' : 'Draft'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{format(new Date(page.updated_at), 'PPp')}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/p/${page.slug}`} target="_blank"><Eye className="mr-2 h-4 w-4" /> View</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/pages/${page.id}`}><Edit className="mr-2 h-4 w-4" /> Edit</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => setPageToDelete(page)}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Updated</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {pages.map((page) => (
+                    <TableRow key={page.id}>
+                        <TableCell className="font-medium">{page.title}</TableCell>
+                        <TableCell className="font-mono text-xs">/p/{page.slug}</TableCell>
+                        <TableCell>
+                        <Badge variant={page.is_published ? 'default' : 'outline'}>
+                            {page.is_published ? 'Published' : 'Draft'}
+                        </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{format(new Date(page.updated_at), 'MMM d, p')}</TableCell>
+                        <TableCell className="text-right">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem asChild>
+                                <Link href={`/p/${page.slug}`} target="_blank" className="cursor-pointer"><Eye className="mr-2 h-4 w-4" /> View</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href={`/dashboard/pages/${page.id}`} className="cursor-pointer"><Edit className="mr-2 h-4 w-4" /> Edit</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => setPageToDelete(page)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+                </Table>
+            </div>
           )}
         </CardContent>
       </Card>
       
-      <AlertDialog open={!!pageToDelete} onOpenChange={(open) => !open && setPageToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the page "{pageToDelete?.title}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className={cn(buttonVariants({ variant: "destructive" }))}
-            >
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Custom Delete Confirmation Modal */}
+      {pageToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setPageToDelete(null)} />
+            <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center gap-3 mb-4 text-destructive">
+                    <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                    <h3 className="text-xl font-bold text-foreground">Delete SaaS Page?</h3>
+                </div>
+                <div className="mb-8">
+                    <p className="text-muted-foreground leading-relaxed">
+                        Are you absolutely sure you want to delete <strong>"{pageToDelete?.title}"</strong>? 
+                        This will remove the page from the public URL <code>/p/{pageToDelete?.slug}</code> permanently.
+                    </p>
+                </div>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                    <Button variant="outline" onClick={() => setPageToDelete(null)} disabled={isDeleting}>Cancel</Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Delete Page
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
     </>
   );
 }
