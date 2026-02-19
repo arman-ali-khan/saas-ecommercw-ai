@@ -68,8 +68,6 @@ const productFormSchema = z.object({
   story: z.string().optional(),
   is_featured: z.boolean().default(false),
   brand: z.array(z.string()).optional(),
-  unit: z.array(z.string()).optional(),
-  size: z.array(z.string()).optional(),
   color: z.array(z.string()).optional(),
   images: z.array(z.object({ imageUrl: z.string().url('Must be a valid URL.'), imageHint: z.string().optional() })).min(1, 'At least one image is required.'),
   has_flash_deal: z.boolean().default(false),
@@ -79,6 +77,7 @@ const productFormSchema = z.object({
   variants: z.array(z.object({
     amount: z.string().min(1, 'Amount is required'),
     unitType: z.string().min(1, 'Unit is required'),
+    size: z.string().optional(),
     price: z.preprocess((a) => parseFloat(String(a)), z.number().positive('Price must be positive')),
     stock: z.preprocess((a) => parseInt(String(a), 10), v => v == null ? 0 : v).optional(),
   })).optional().or(z.null()),
@@ -98,9 +97,9 @@ export default function ManageProductPage() {
   const draftKey = useMemo(() => user ? `unsaved_product_draft_${user.id}` : null, [user]);
 
   const [isLoading, setIsLoading] = useState(() => {
+    const store = useAdminStore.getState();
     if (isNew) {
-        const store = useAdminStore.getState();
-        return !(store.categories.length > 0 && store.attributes.length > 0);
+        return !(store.categories.length > 0);
     }
     return true;
   });
@@ -114,7 +113,7 @@ export default function ManageProductPage() {
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       id: '', name: '', price: 0, stock: 0, currency: 'BDT', description: '', long_description: '',
-      categories: [], origin: '', story: '', is_featured: false, images: [], brand: [], unit: [], size: [], color: [],
+      categories: [], origin: '', story: '', is_featured: false, images: [], brand: [], color: [],
       has_flash_deal: false, flash_deal_price: undefined, flash_deal_range: { startDate: undefined, endDate: undefined },
       use_variants: false, variants: []
     },
@@ -189,7 +188,7 @@ export default function ManageProductPage() {
     };
 
     if (isNew) {
-        fetchLookups();
+        await fetchLookups();
         setIsLoading(false);
         return;
     }
@@ -206,12 +205,28 @@ export default function ManageProductPage() {
         if (response.ok) {
             const { product: productData, flashDeal: flashDealData } = result;
             
-            // Map variants back to UI format (splitting "1 KG" into amount="1" unitType="KG")
+            // Map variants back to UI format: "1 KG (Large)" -> amount="1", unitType="KG", size="Large"
             const mappedVariants = (productData.variants || []).map((v: any) => {
-                const parts = v.unit.split(' ');
+                const variantString = v.unit || '';
+                // Regex to match "Amount Unit (Size)" or "Amount Unit"
+                const match = variantString.match(/^([\d.]+)\s+(\w+)(?:\s+\((.*)\))?$/);
+                
+                if (match) {
+                    return {
+                        amount: match[1],
+                        unitType: match[2],
+                        size: match[3] || '',
+                        price: v.price,
+                        stock: v.stock
+                    };
+                }
+                
+                // Fallback if regex fails (e.g. legacy data)
+                const parts = variantString.split(' ');
                 return {
                     amount: parts[0] || '1',
                     unitType: parts[1] || 'KG',
+                    size: '',
                     price: v.price,
                     stock: v.stock
                 };
@@ -299,13 +314,16 @@ export default function ManageProductPage() {
     setIsSubmitting(true);
     const { has_flash_deal, flash_deal_price, flash_deal_range, use_variants, ...productValues } = values;
     
-    // Process variants to combine amount and unitType into unit string for DB
+    // Process variants: combine amount, unitType, and size into unit string for DB
     if (use_variants && values.variants) {
-        productValues.variants = values.variants.map(v => ({
-            unit: `${v.amount} ${v.unitType}`,
-            price: v.price,
-            stock: v.stock || 0
-        }));
+        productValues.variants = values.variants.map(v => {
+            const sizeSuffix = v.size ? ` (${v.size})` : '';
+            return {
+                unit: `${v.amount} ${v.unitType}${sizeSuffix}`,
+                price: v.price,
+                stock: v.stock || 0
+            };
+        });
     } else {
         productValues.variants = null;
     }
@@ -423,7 +441,7 @@ export default function ManageProductPage() {
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30"><CardTitle>মূল্য এবং স্টক</CardTitle></CardHeader>
                         <CardContent className="space-y-6 pt-6">
-                            <FormField control={form.control} name="use_variants" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-muted/20"><div className="space-y-0.5"><FormLabel className="text-sm font-bold">একাধিক মূল্য ব্যবহার করুন</FormLabel><FormDescription className="text-[10px]">ওজন বা মাপ অনুযায়ী আলাদা দাম।</FormDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
+                            <FormField control={form.control} name="use_variants" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-muted/20"><div className="space-y-0.5"><FormLabel className="text-sm font-bold">একাধিক মূল্য ব্যবহার করুন</FormLabel><FormDescription className="text-[10px]">ওজন, মাপ বা সাইজ অনুযায়ী আলাদা দাম।</FormDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
 
                             {!watchedValues.use_variants ? (
                                 <div className="space-y-6 animate-in fade-in">
@@ -435,15 +453,15 @@ export default function ManageProductPage() {
                                     <div className="space-y-3">
                                         {variantFields.map((v, i) => (
                                             <div key={v.id} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-xl bg-card relative">
-                                                <div className="col-span-4">
+                                                <div className="col-span-3">
                                                     <FormField control={form.control} name={`variants.${i}.amount`} render={({ field }) => (
-                                                        <FormItem><FormLabel className="text-[10px] uppercase font-bold">পরিমাণ</FormLabel><FormControl><Input placeholder="1" {...field} className="h-9 px-2" /></FormControl></FormItem>
+                                                        <FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">পরিমাণ</FormLabel><FormControl><Input placeholder="1" {...field} className="h-9 px-2" /></FormControl></FormItem>
                                                     )} />
                                                 </div>
-                                                <div className="col-span-4">
+                                                <div className="col-span-3">
                                                     <FormField control={form.control} name={`variants.${i}.unitType`} render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel className="text-[10px] uppercase font-bold">একক</FormLabel>
+                                                            <FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">একক</FormLabel>
                                                             <Select onValueChange={field.onChange} value={field.value}>
                                                                 <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="কেজি" /></SelectTrigger></FormControl>
                                                                 <SelectContent>{UNIT_TYPES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
@@ -451,17 +469,22 @@ export default function ManageProductPage() {
                                                         </FormItem>
                                                     )} />
                                                 </div>
-                                                <div className="col-span-4">
-                                                    <FormField control={form.control} name={`variants.${i}.price`} render={({ field }) => (<FormItem><FormLabel className="text-[10px] uppercase font-bold">মূল্য</FormLabel><FormControl><Input type="number" step="0.01" {...field} className="h-9 px-2 font-bold" /></FormControl></FormItem>)} />
+                                                <div className="col-span-3">
+                                                    <FormField control={form.control} name={`variants.${i}.size`} render={({ field }) => (
+                                                        <FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">সাইজ</FormLabel><FormControl><Input placeholder="XL/L" {...field} className="h-9 px-2" /></FormControl></FormItem>
+                                                    )} />
                                                 </div>
-                                                <div className="col-span-4">
-                                                    <FormField control={form.control} name={`variants.${i}.stock`} render={({ field }) => (<FormItem><FormLabel className="text-[10px] uppercase font-bold">স্টক</FormLabel><FormControl><Input type="number" {...field} className="h-9 px-2 text-xs" /></FormControl></FormItem>)} />
+                                                <div className="col-span-3">
+                                                    <FormField control={form.control} name={`variants.${i}.price`} render={({ field }) => (<FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">মূল্য</FormLabel><FormControl><Input type="number" step="0.01" {...field} className="h-9 px-2 font-bold" /></FormControl></FormItem>)} />
                                                 </div>
-                                                <div className="col-span-2 pb-1"><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeVariant(i)}><Trash2 className="h-4 w-4" /></Button></div>
+                                                <div className="col-span-10">
+                                                    <FormField control={form.control} name={`variants.${i}.stock`} render={({ field }) => (<FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">স্টক</FormLabel><FormControl><Input type="number" {...field} className="h-9 px-2 text-xs" /></FormControl></FormItem>)} />
+                                                </div>
+                                                <div className="col-span-2 pb-1 flex justify-end"><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeVariant(i)}><Trash2 className="h-4 w-4" /></Button></div>
                                             </div>
                                         ))}
                                     </div>
-                                    <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ amount: '1', unitType: 'KG', price: 0, stock: 0 })}><Plus className="mr-2 h-4 w-4" /> নতুন ইউনিট যোগ করুন</Button>
+                                    <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ amount: '1', unitType: 'KG', size: '', price: 0, stock: 0 })}><Plus className="mr-2 h-4 w-4" /> নতুন ভেরিয়েন্ট যোগ করুন</Button>
                                 </div>
                             )}
                         </CardContent>
@@ -473,8 +496,27 @@ export default function ManageProductPage() {
                             <FormField control={form.control} name="categories" render={({ field }) => (<FormItem><FormLabel>ক্যাটাগরি সিলেক্ট করুন</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full h-11 justify-between font-normal"><span className="truncate">{field.value?.length ? field.value.join(', ') : "সিলেক্ট করুন"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((cat) => (<DropdownMenuCheckboxItem key={cat.id} checked={field.value?.includes(cat.name)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), cat.name] : field.value.filter((v) => v !== cat.name))}>{cat.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu></FormItem>)} />
                             <FormField control={form.control} name="origin" render={({ field }) => (<FormItem><FormLabel>উৎপত্তি স্থল (Origin)</FormLabel><FormControl><Input {...field} placeholder="যেমন: রাজশাহী, খুলনা" className="h-11" /></FormControl></FormItem>)} />
                             <div className="space-y-4">
-                                {(['brand', 'color', 'size', 'unit'] as const).map((attrName) => (
-                                    <FormField key={attrName} control={form.control} name={attrName as any} render={({ field }) => (<FormItem><FormLabel className="capitalize">{attrName === 'unit' ? 'পরিমাপের একক (Unit)' : attrName}</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full h-11 justify-between font-normal"><span className="truncate">{field.value?.length ? field.value.join(', ') : `সিলেক্ট ${attrName}`}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{(groupedAttributes[attrName] || []).map((opt) => (<DropdownMenuCheckboxItem key={opt} checked={field.value?.includes(opt)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), opt] : field.value.filter((v: string) => v !== opt))}>{opt}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu></FormItem>)} />
+                                {(['brand', 'color'] as const).map((attrName) => (
+                                    <FormField key={attrName} control={form.control} name={attrName as any} render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="capitalize">{attrName}</FormLabel>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" className="w-full h-11 justify-between font-normal">
+                                                        <span className="truncate">{field.value?.length ? field.value.join(', ') : `সিলেক্ট ${attrName}`}</span>
+                                                        <ChevronDown className="h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                                    {(groupedAttributes[attrName] || []).map((opt) => (
+                                                        <DropdownMenuCheckboxItem key={opt} checked={field.value?.includes(opt)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), opt] : field.value.filter((v: string) => v !== opt))}>
+                                                            {opt}
+                                                        </DropdownMenuCheckboxItem>
+                                                    ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </FormItem>
+                                    )} />
                                 ))}
                             </div>
                         </CardContent>
