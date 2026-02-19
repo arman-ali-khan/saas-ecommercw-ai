@@ -10,6 +10,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -167,7 +168,7 @@ export default function AdminDashboard() {
             productsRes.json(),
             uncompletedRes.json(),
             customersRes.json(),
-            flashDealsRes.json(),
+            flashDealsResult = await flashDealsRes.json(),
             reviewsRes.json(),
             qnaRes.json(),
         ]);
