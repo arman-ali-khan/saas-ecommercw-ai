@@ -11,12 +11,11 @@ import type { ShippingZone } from '@/types';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit, Trash2, Loader2, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, MoreHorizontal, X } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
@@ -168,15 +167,15 @@ export default function ShippingAdminPage() {
     
     return (
         <>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 px-1">
                 <div>
                     <h1 className="text-2xl font-bold">Shipping Manager</h1>
-                    <p className="text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                         Manage shipping zones and costs for your store.
                     </p>
                 </div>
                 <Button onClick={() => openForm(null)}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Zone
+                    <Plus className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Add Zone</span>
                 </Button>
             </div>
 
@@ -229,10 +228,15 @@ export default function ShippingAdminPage() {
                             {/* Mobile View: Cards */}
                             <div className="grid gap-4 md:hidden p-4">
                                 {zones.map((zone) => (
-                                    <Card key={zone.id}>
-                                        <CardHeader>
+                                    <Card key={zone.id} className="relative overflow-hidden group">
+                                        <CardHeader className="pb-2">
                                             <div className="flex justify-between items-start">
-                                                <CardTitle>{zone.name}</CardTitle>
+                                                <div>
+                                                    <CardTitle className="text-lg">{zone.name}</CardTitle>
+                                                    <Badge variant={zone.is_enabled ? 'default' : 'outline'} className="mt-1">
+                                                        {zone.is_enabled ? 'Enabled' : 'Disabled'}
+                                                    </Badge>
+                                                </div>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
@@ -249,14 +253,9 @@ export default function ShippingAdminPage() {
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
-                                            <CardDescription>
-                                                <Badge variant={zone.is_enabled ? 'default' : 'outline'}>
-                                                    {zone.is_enabled ? 'Enabled' : 'Disabled'}
-                                                </Badge>
-                                            </CardDescription>
                                         </CardHeader>
                                         <CardContent>
-                                            <p className="text-lg font-bold">{zone.price.toFixed(2)} BDT</p>
+                                            <p className="text-2xl font-bold text-primary">{zone.price.toFixed(2)} BDT</p>
                                         </CardContent>
                                     </Card>
                                 ))}
@@ -266,55 +265,89 @@ export default function ShippingAdminPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{selectedZone ? 'Edit' : 'Add'} Shipping Zone</DialogTitle>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Zone Name</FormLabel>
-                                    <FormControl><Input placeholder="e.g., Inside Dhaka" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="price"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Shipping Cost (BDT)</FormLabel>
-                                    <FormControl><Input type="number" step="1" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="is_enabled"
-                                render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                    <FormLabel>Enable Zone</FormLabel>
-                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                </FormItem>
-                                )}
-                            />
-                            <DialogFooter>
-                                <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isSubmitting ? 'Saving...' : 'Save Zone'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+            {/* Custom Raw Tailwind Dialog */}
+            {isFormOpen && (
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                        onClick={() => setIsFormOpen(false)}
+                    />
+                    
+                    {/* Dialog Content */}
+                    <div className="relative w-full max-w-lg bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+                        <div className="flex items-center justify-between p-6 border-b">
+                            <h2 className="text-xl font-bold">{selectedZone ? 'Edit' : 'Add'} Shipping Zone</h2>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        
+                        <div className="p-6">
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                    <FormField
+                                        control={form.control}
+                                        name="name"
+                                        render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Zone Name</FormLabel>
+                                            <FormControl><Input placeholder="e.g., Inside Dhaka" {...field} className="h-12 text-base" /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="price"
+                                        render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Shipping Cost (BDT)</FormLabel>
+                                            <FormControl><Input type="number" step="1" {...field} className="h-12 text-base" /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="is_enabled"
+                                        render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/30">
+                                            <div className="space-y-0.5">
+                                                <FormLabel className="text-base">Enable Zone</FormLabel>
+                                                <p className="text-xs text-muted-foreground">Check this to make it available for customers.</p>
+                                            </div>
+                                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        </FormItem>
+                                        )}
+                                    />
+                                    <div className="pt-4 flex gap-3 pb-6 sm:pb-0">
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            className="flex-1 h-12 rounded-xl"
+                                            onClick={() => setIsFormOpen(false)}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button 
+                                            type="submit" 
+                                            disabled={isSubmitting} 
+                                            className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
+                                        >
+                                            {isSubmitting ? (
+                                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                                            ) : (
+                                                'Save Zone'
+                                            )}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </Form>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                 <AlertDialogContent>
