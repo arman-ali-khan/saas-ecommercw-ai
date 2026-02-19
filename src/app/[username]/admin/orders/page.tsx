@@ -27,8 +27,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, Loader2 } from 'lucide-react';
+import { Eye, Loader2 } from 'lucide-react';
 
 const translations = { en, bn };
 
@@ -163,23 +162,12 @@ export default function OrdersAdminPage() {
                                             </TableCell>
                                             <TableCell>{order.total.toFixed(2)} BDT</TableCell>
                                             <TableCell className="text-right">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon">
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                            <span className="sr-only">{t.menu}</span>
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuLabel>{t.actions}</DropdownMenuLabel>
-                                                        <DropdownMenuItem asChild>
-                                                          <Link href={`/admin/orders/${order.id}`}>
-                                                            <Eye className="mr-2 h-4 w-4" />
-                                                            {t.viewOrder}
-                                                          </Link>
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <Link href={`/admin/orders/${order.id}`}>
+                                                        <Eye className="mr-2 h-4 w-4" />
+                                                        {t.viewOrder}
+                                                    </Link>
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -197,27 +185,24 @@ export default function OrdersAdminPage() {
                                                 <CardDescription>{order.shipping_info?.name || 'Guest'}</CardDescription>
                                                 <CardDescription className="text-xs">{order.customer_email}</CardDescription>
                                             </div>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/admin/orders/${order.id}`}>
-                                                            <Eye className="mr-2 h-4 w-4" />
-                                                            {t.viewOrder}
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                            <Button variant="ghost" size="icon" asChild className="-mt-2 -mr-2">
+                                                <Link href={`/admin/orders/${order.id}`}>
+                                                    <Eye className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
                                         </div>
                                         <CardDescription className="pt-2">{format(new Date(order.created_at), 'PP')}</CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex justify-between items-center">
                                         <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
-                                        <p className="font-semibold text-lg">{order.total.toFixed(2)} BDT</p>
+                                        <div className="text-right">
+                                            <p className="font-semibold text-lg">{order.total.toFixed(2)} BDT</p>
+                                            <Button variant="link" size="sm" asChild className="h-auto p-0 text-primary">
+                                                <Link href={`/admin/orders/${order.id}`}>
+                                                    {t.viewOrder}
+                                                </Link>
+                                            </Button>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             ))}
