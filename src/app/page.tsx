@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -107,6 +108,7 @@ export default function SaasLandingPage() {
   const [features, setFeatures] = useState<SaasFeature[]>([]);
   const [reviews, setReviews] = useState<SaaSReview[]>([]);
   const [showcaseItems, setShowcaseItems] = useState<SaasShowcaseItem[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -135,12 +137,19 @@ export default function SaasLandingPage() {
         .eq('is_enabled', true)
         .order('order', { ascending: true });
 
+      const settingsPromise = supabase
+        .from('saas_settings')
+        .select('homepage_sections')
+        .eq('id', 1)
+        .single();
+
       const [
           { data: plans }, 
           { data: featuresData }, 
           { data: reviewsData },
-          { data: showcaseData }
-      ] = await Promise.all([plansPromise, featuresPromise, reviewsPromise, showcasePromise]);
+          { data: showcaseData },
+          { data: settingsData }
+      ] = await Promise.all([plansPromise, featuresPromise, reviewsPromise, showcasePromise, settingsPromise]);
 
       if (plans) {
         const tiers = plans.map((plan: Plan) => ({
@@ -173,6 +182,21 @@ export default function SaasLandingPage() {
         setShowcaseItems(showcaseData as SaasShowcaseItem[]);
       }
 
+      if (settingsData?.homepage_sections) {
+        setSections(settingsData.homepage_sections);
+      } else {
+        // Fallback default order
+        setSections([
+            { id: 'hero', enabled: true },
+            { id: 'features', enabled: true },
+            { id: 'showcase', enabled: true },
+            { id: 'stats', enabled: true },
+            { id: 'pricing', enabled: true },
+            { id: 'testimonial', enabled: true },
+            { id: 'cta', enabled: true }
+        ]);
+      }
+
       setIsLoading(false);
     };
     fetchData();
@@ -193,21 +217,14 @@ export default function SaasLandingPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background selection:bg-primary/30">
-      <SaasHeader />
-      
-      {/* Background blobs for modern feel */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
-      </div>
+  const renderSection = (section: any) => {
+    if (!section.enabled) return null;
 
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="space-y-24 md:space-y-40 py-12 md:py-24">
-          
-          {/* Hero Section */}
+    switch (section.id) {
+      case 'hero':
+        return (
           <motion.section 
+            key="hero"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -238,7 +255,6 @@ export default function SaasLandingPage() {
               </Button>
             </div>
 
-            {/* Mockup Preview */}
             <motion.div 
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -265,9 +281,10 @@ export default function SaasLandingPage() {
               </div>
             </motion.div>
           </motion.section>
-
-          {/* Features Section - Bento Grid Style */}
-          <section id="features" className="relative">
+        );
+      case 'features':
+        return (
+          <section key="features" id="features" className="relative">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4">সবকিছু যা আপনার প্রয়োজন</h2>
               <p className="text-muted-foreground text-lg">আধুনিক ই-কমার্স ব্যবসার জন্য প্রয়োজনীয় সকল ফিচার এখন এক জায়গায়।</p>
@@ -283,7 +300,7 @@ export default function SaasLandingPage() {
               {isLoading ? (
                 [...Array(6)].map((_, i) => <Skeleton key={i} className="h-64 rounded-2xl" />)
               ) : (
-                features.map((feature, idx) => (
+                features.map((feature) => (
                   <motion.div key={feature.id} variants={fadeIn}>
                     <Card className="h-full rounded-2xl border-border/50 bg-card/30 backdrop-blur-sm hover:bg-card/50 transition-all group overflow-hidden border-2 hover:border-primary/20">
                       <CardHeader>
@@ -301,12 +318,12 @@ export default function SaasLandingPage() {
               )}
             </motion.div>
           </section>
-
-          {/* Platform Showcase Section */}
-          <PlatformShowcase items={showcaseItems} isLoading={isLoading} />
-
-          {/* Quick Stats / Highlights */}
-          <section className="grid grid-cols-2 md:grid-cols-4 gap-8 py-12 border-y border-border/50">
+        );
+      case 'showcase':
+        return <PlatformShowcase key="showcase" items={showcaseItems} isLoading={isLoading} />;
+      case 'stats':
+        return (
+          <section key="stats" className="grid grid-cols-2 md:grid-cols-4 gap-8 py-12 border-y border-border/50">
             <div className="text-center">
               <div className="text-4xl font-bold font-headline mb-2">১০০০+</div>
               <div className="text-sm text-muted-foreground uppercase tracking-widest">সক্রিয় স্টোর</div>
@@ -324,9 +341,10 @@ export default function SaasLandingPage() {
               <div className="text-sm text-muted-foreground uppercase tracking-widest">সাপোর্ট</div>
             </div>
           </section>
-
-          {/* Pricing Section */}
-          <section id="pricing" className="relative scroll-mt-24">
+        );
+      case 'pricing':
+        return (
+          <section key="pricing" id="pricing" className="relative scroll-mt-24">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4">স্বচ্ছ এবং সহজ প্রাইসিং</h2>
               <p className="text-muted-foreground text-lg">আপনার ব্যবসার আকার অনুযায়ী সেরা প্ল্যানটি বেছে নিন। কোনো লুকানো চার্জ নেই।</p>
@@ -397,9 +415,10 @@ export default function SaasLandingPage() {
               )}
             </div>
           </section>
-
-          {/* Testimonials */}
-          <section id="testimonial" className="relative py-24 rounded-[3rem] bg-secondary/20 overflow-hidden border border-border/50">
+        );
+      case 'testimonial':
+        return (
+          <section key="testimonial" id="testimonial" className="relative py-24 rounded-[3rem] bg-secondary/20 overflow-hidden border border-border/50">
             <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.02] pointer-events-none" />
             
             <div className="text-center mb-16 relative z-10">
@@ -450,9 +469,11 @@ export default function SaasLandingPage() {
               )}
             </div>
           </section>
-
-          {/* Call to Action */}
+        );
+      case 'cta':
+        return (
           <motion.section 
+            key="cta"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -478,7 +499,25 @@ export default function SaasLandingPage() {
               </p>
             </div>
           </motion.section>
+        );
+      default:
+        return null;
+    }
+  };
 
+  return (
+    <div className="min-h-screen bg-background selection:bg-primary/30">
+      <SaasHeader />
+      
+      {/* Background blobs for modern feel */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
+      </div>
+
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="space-y-24 md:space-y-40 py-12 md:py-24">
+          {sections.map(renderSection)}
         </div>
       </main>
       <SaasFooter />
