@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { decryptObject } from '@/lib/encryption';
 
 // Helper function to translate status for the notification message
 const translateStatus = (status: string): string => {
@@ -43,6 +44,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Database Error: ${updateError.message}` }, { status: 500 });
     }
 
+    // Decrypt the order before returning
+    const decryptedOrder = decryptObject(updatedOrder);
+
     // 2. Create a notification for the customer if the order has a customer_id
     if (updatedOrder && updatedOrder.customer_id) {
         const notificationMessage = `Your order #${updatedOrder.order_number} has been updated to: ${translateStatus(updatedOrder.status)}.`;
@@ -59,12 +63,11 @@ export async function POST(request: Request) {
             });
 
         if (notificationError) {
-            // Log this error but don't fail the entire request, as the primary action (status update) succeeded.
             console.error("Update Order Status API - Notification Error:", notificationError);
         }
     }
 
-    return NextResponse.json({ order: updatedOrder }, { status: 200 });
+    return NextResponse.json({ order: decryptedOrder }, { status: 200 });
   } catch (err: any) {
     console.error('Update Order Status API - CATCH Error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

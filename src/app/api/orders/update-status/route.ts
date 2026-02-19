@@ -1,7 +1,9 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { decryptObject } from '@/lib/encryption';
 
+// Helper function to translate status for the notification message
 const translateStatus = (status: string): string => {
     switch (status.toLowerCase()) {
         case 'pending': return 'পেন্ডিং';
@@ -9,6 +11,7 @@ const translateStatus = (status: string): string => {
         case 'processing': return 'প্রক্রিয়াকরণ চলছে';
         case 'packaging': return 'প্যাকেজিং চলছে';
         case 'send for delivery': return 'ডেলিভারির জন্য পাঠানো হয়েছে';
+        case 'shipped': return 'পাঠানো হয়েছে';
         case 'delivered': return 'বিতরণ করা হয়েছে';
         case 'canceled': return 'বাতিল করা হয়েছে';
         default: return status;
@@ -37,6 +40,9 @@ export async function POST(request: Request) {
     
     if (updateError) throw updateError;
 
+    // Decrypt the order before returning to client
+    const decryptedOrder = decryptObject(updatedOrder);
+
     if (updatedOrder && updatedOrder.customer_id) {
         await supabaseAdmin.from('notifications').insert({
             recipient_id: updatedOrder.customer_id,
@@ -48,8 +54,9 @@ export async function POST(request: Request) {
         });
     }
 
-    return NextResponse.json({ order: updatedOrder }, { status: 200 });
+    return NextResponse.json({ order: decryptedOrder }, { status: 200 });
   } catch (err: any) {
+    console.error('Update Status API Error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { encrypt } from '@/lib/encryption';
+import { encrypt, decryptObject } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -46,7 +46,10 @@ export async function POST(request: Request) {
         await supabaseAdmin.from('uncompleted_orders').delete().eq('id', uncompletedOrderId);
     }
 
-    return NextResponse.json({ order: newOrder }, { status: 200 });
+    // Decrypt the order for the response
+    const decryptedOrder = decryptObject(newOrder);
+
+    return NextResponse.json({ order: decryptedOrder }, { status: 200 });
 
   } catch (err: any) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
