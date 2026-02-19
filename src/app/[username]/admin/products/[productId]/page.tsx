@@ -87,8 +87,6 @@ export default function ManageProductPage() {
         // If we have categories and attributes, we don't need to show a loader for a "New" product
         return !(store.categories.length > 0 && store.attributes.length > 0);
     }
-    // For editing, we check if the products are already in the store? 
-    // Actually, for editing, we usually want to fetch the specific product details once.
     return true;
   });
 
@@ -361,6 +359,15 @@ export default function ManageProductPage() {
                                     <FormMessage />
                                 </FormItem>
                             )} />
+
+                            <FormField control={form.control} name="story" render={({ field: storyField }) => (
+                                <FormItem>
+                                    <FormLabel className="font-bold">আমাদের গল্প (Our Story)</FormLabel>
+                                    <FormControl><Textarea {...storyField} placeholder="পণ্যটি সম্পর্কে কোনো বিশেষ গল্প বা প্রেক্ষাপট থাকলে এখানে লিখুন।" rows={3} className="resize-none" /></FormControl>
+                                    <FormDescription className="text-[11px]">এটি পণ্যের বিস্তারিত পাতায় প্রদর্শিত হবে।</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
                         </CardContent>
                     </Card>
 
@@ -442,7 +449,7 @@ export default function ManageProductPage() {
                                             origin: watchedValues.origin 
                                         });
                                         form.setValue('long_description', result.longDescription, { shouldValidate: true });
-                                        toast({ title: 'AI ম্যাজিক সম্পন্ন!', description: 'বিস্তারিত বিবরণ সফলভাবে তৈরি হয়েছে।' });
+                                        toast({ title: 'AI ম্যাজিক সম্পন্ন!', description: ' বিস্তারিত বিবরণ সফলভাবে তৈরি হয়েছে।' });
                                     } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsGenerating(false); }
                                 }} 
                                 disabled={isGenerating}
