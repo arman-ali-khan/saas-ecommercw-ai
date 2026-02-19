@@ -1,7 +1,6 @@
-
 'use client';
 
-import { Bell, Settings, LogOut, Wand2, User } from 'lucide-react';
+import { Bell, Settings, LogOut, Wand2 } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -22,6 +21,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase/client';
 
 export default function AdminHeader() {
   const { user, logout: authLogout } = useAuth();
@@ -31,10 +31,12 @@ export default function AdminHeader() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchNotifications = useCallback(async () => {
-    if (!user) return;
+  const fetchNotificationsData = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
-      const response = await fetch('/api/notifications/list', {
+      // 1. Fetch latest 5 notifications
+      const listResponse = await fetch('/api/notifications/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -44,21 +46,59 @@ export default function AdminHeader() {
           limit: 5
         }),
       });
-      const result = await response.json();
-      if (response.ok) {
-        setNotifications(result.notifications || []);
-        setUnreadCount(result.notifications?.filter((n: Notification) => !n.is_read).length || 0);
+      const listResult = await listResponse.json();
+      if (listResponse.ok) {
+        setNotifications(listResult.notifications || []);
+      }
+
+      // 2. Fetch total unread count for the badge
+      const countResponse = await fetch('/api/admin/dashboard-counts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: user.id }),
+      });
+      const countResult = await countResponse.json();
+      if (countResponse.ok && countResult.counts) {
+        setUnreadCount(countResult.counts.unreadNotifications);
       }
     } catch (error) {
       console.error("Failed to fetch admin notifications:", error);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (user) {
-      fetchNotifications();
+    if (user?.id) {
+      fetchNotificationsData();
+
+      // Set up real-time listener for notifications
+      const channel = supabase
+        .channel(`admin-header-notifications-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `recipient_id=eq.${user.id}`,
+          },
+          (payload) => {
+            const newNotif = payload.new as Notification;
+            setNotifications(prev => [newNotif, ...prev].slice(0, 5));
+            setUnreadCount(prev => prev + 1);
+            toast({ 
+                title: 'নতুন নোটিফিকেশন', 
+                description: newNotif.message,
+                duration: 5000 
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
-  }, [user, fetchNotifications]);
+  }, [user?.id, fetchNotificationsData, toast]);
 
   const handleLogout = async () => {
     await authLogout();
@@ -68,8 +108,11 @@ export default function AdminHeader() {
 
   const markAsRead = async (id: string) => {
     if (!user) return;
+    
+    // Optimistic UI update
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    const wasUnread = notifications.find(n => n.id === id && !n.is_read);
+    if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
 
     await fetch('/api/notifications/mark-read', {
       method: 'POST',
@@ -81,7 +124,7 @@ export default function AdminHeader() {
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
       <div className="w-full flex-1">
-        {/* You can add a breadcrumb or breadcrumb search here later */}
+        {/* Placeholder for future breadcrumbs */}
       </div>
       <div className="flex items-center gap-2">
         {/* Notification Dropdown */}
@@ -90,28 +133,37 @@ export default function AdminHeader() {
             <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
               <Bell className="h-5 w-5 text-muted-foreground" />
               {unreadCount > 0 && (
-                <Badge variant="destructive" className="absolute -top-0.5 -right-0.5 h-4 w-4 justify-center p-0 text-[10px] flex items-center">
-                  {unreadCount}
+                <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 justify-center p-0 text-[10px] flex items-center border-2 border-background">
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </Badge>
               )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-80" align="end">
-            <DropdownMenuLabel className="flex justify-between items-center">
-                <span>Notifications</span>
-                {unreadCount > 0 && <span className="text-[10px] text-muted-foreground">{unreadCount} unread</span>}
+            <DropdownMenuLabel className="flex justify-between items-center py-3">
+                <span>নোটিফিকেশন</span>
+                {unreadCount > 0 && (
+                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        {unreadCount} নতুন
+                    </span>
+                )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <div className="max-h-[300px] overflow-y-auto">
+            <div className="max-h-[350px] overflow-y-auto">
               {notifications.length > 0 ? (
                 notifications.map((n) => (
                   <DropdownMenuItem key={n.id} asChild>
                     <Link
                       href={n.link || '#'}
-                      className={cn('cursor-pointer flex flex-col items-start gap-1 p-3 border-b last:border-0', !n.is_read && 'bg-primary/5')}
+                      className={cn(
+                        'cursor-pointer flex flex-col items-start gap-1 p-4 border-b last:border-0 transition-colors',
+                        !n.is_read ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted/50'
+                      )}
                       onClick={() => markAsRead(n.id)}
                     >
-                      <p className={cn("text-sm leading-tight", !n.is_read && "font-bold")}>{n.message}</p>
+                      <p className={cn("text-sm leading-tight text-foreground", !n.is_read && "font-bold")}>
+                        {n.message}
+                      </p>
                       <p className="text-[10px] text-muted-foreground">
                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: bn })}
                       </p>
@@ -120,14 +172,14 @@ export default function AdminHeader() {
                 ))
               ) : (
                 <div className="p-8 text-center text-sm text-muted-foreground">
-                  কোনো নতুন নোটিফিকেশন নেই।
+                  কোনো নোটিফিকেশন পাওয়া যায়নি।
                 </div>
               )}
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={`/admin/notifications`} className="w-full justify-center cursor-pointer text-xs text-primary font-bold py-2">
-                সব নোটিফিকেশন দেখুন
+              <Link href={`/admin/notifications`} className="w-full justify-center cursor-pointer text-xs text-primary font-bold py-3 hover:bg-primary/5">
+                সকল নোটিফিকেশন দেখুন
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -140,7 +192,7 @@ export default function AdminHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 overflow-hidden ring-offset-background transition-all hover:ring-2 hover:ring-primary/20">
               <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold uppercase">
                     {user?.fullName?.charAt(0) || 'A'}
                 </AvatarFallback>
               </Avatar>
@@ -157,19 +209,19 @@ export default function AdminHeader() {
             <DropdownMenuItem asChild className="cursor-pointer py-2.5">
               <Link href={`/admin/settings`}>
                 <Settings className="mr-3 h-4 w-4 text-muted-foreground" />
-                <span>Store Settings</span>
+                <span>স্টোর সেটিংস</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer py-2.5">
               <Link href={`/admin/settings/ai`}>
                 <Wand2 className="mr-3 h-4 w-4 text-muted-foreground" />
-                <span>AI Settings</span>
+                <span>এআই সেটিংস</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive focus:bg-destructive/5 cursor-pointer py-2.5">
               <LogOut className="mr-3 h-4 w-4" />
-              <span>Log out</span>
+              <span>লগ আউট</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
