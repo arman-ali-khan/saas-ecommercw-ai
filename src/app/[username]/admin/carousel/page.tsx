@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -11,13 +10,12 @@ import { useToast } from '@/hooks/use-toast';
 import type { CarouselSlide } from '@/types';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, GalleryHorizontal, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, GalleryHorizontal, MoreHorizontal, X } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
@@ -213,12 +211,14 @@ export default function CarouselAdminPage() {
     
     return (
         <>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 px-1">
                 <div>
                     <h1 className="text-2xl font-bold">Homepage Carousel</h1>
-                    <p className="text-muted-foreground">Manage the slides for your homepage hero section.</p>
+                    <p className="text-muted-foreground text-sm">Manage the slides for your homepage hero section.</p>
                 </div>
-                <Button onClick={() => openForm(null)}><Plus className="mr-2 h-4 w-4" /> Add Slide</Button>
+                <Button onClick={() => openForm(null)}>
+                    <Plus className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Add Slide</span>
+                </Button>
             </div>
 
             <Card>
@@ -289,43 +289,113 @@ export default function CarouselAdminPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader><DialogTitle>{selectedSlide ? 'Edit Slide' : 'Add New Slide'}</DialogTitle></DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <FormField control={form.control} name="image_url" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Image</FormLabel>
-                                    <div className="flex items-start gap-4">
-                                        <div className="relative h-24 w-40 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
-                                            {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
-                                        </div>
-                                        <div className="space-y-2 flex-grow">
-                                            <FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl>
-                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} />
-                                        </div>
+            {/* Custom Tailwind CSS Dialog (Bottom Sheet on Mobile) */}
+            {isFormOpen && (
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                        onClick={() => setIsFormOpen(false)}
+                    />
+                    
+                    {/* Dialog Content */}
+                    <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b">
+                            <h2 className="text-xl font-bold">{selectedSlide ? 'Edit Slide' : 'Add New Slide'}</h2>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        
+                        <div className="p-6 overflow-y-auto">
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                    <FormField control={form.control} name="image_url" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Slide Image</FormLabel>
+                                            <div className="flex flex-col sm:flex-row items-start gap-4">
+                                                <div className="relative h-32 w-full sm:w-48 rounded-lg border flex items-center justify-center bg-muted overflow-hidden shrink-0">
+                                                    {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Image Preview</span>}
+                                                </div>
+                                                <div className="space-y-3 flex-grow w-full">
+                                                    <FormControl><Input placeholder="https://example.com/image.png" {...field} className="h-11" /></FormControl>
+                                                    <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} label="Upload Image" />
+                                                </div>
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <FormField control={form.control} name="title" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Title</FormLabel>
+                                            <FormControl><Input placeholder="e.g., প্রকৃতির আসল স্বাদ" {...field} className="h-11" /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <FormField control={form.control} name="description" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Description</FormLabel>
+                                            <FormControl><Textarea placeholder="A short, catchy description for the slide." {...field} rows={3} className="resize-none" /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <FormField control={form.control} name="link_text" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Button Text</FormLabel>
+                                                <FormControl><Input placeholder="e.g., Shop Now" {...field} className="h-11" /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={form.control} name="link" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Button Link</FormLabel>
+                                                <FormControl><Input placeholder="e.g., /products" {...field} className="h-11" /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
                                     </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., প্রকৃতির আসল স্বাদ" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short, catchy description for the slide." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="link_text" render={({ field }) => (<FormItem><FormLabel>Button Text</FormLabel><FormControl><Input placeholder="e.g., Shop Now" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="link" render={({ field }) => (<FormItem><FormLabel>Button Link</FormLabel><FormControl><Input placeholder="e.g., /products" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            </div>
-                            <FormField control={form.control} name="is_enabled" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><FormLabel>Enable Slide</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
-                            <DialogFooter>
-                                <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isSubmitting ? 'Saving...' : 'Save Slide'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+                                    
+                                    <FormField control={form.control} name="is_enabled" render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/30">
+                                            <div className="space-y-0.5">
+                                                <FormLabel className="text-base">Enable Slide</FormLabel>
+                                                <p className="text-xs text-muted-foreground">Visible on your homepage if enabled.</p>
+                                            </div>
+                                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                    
+                                    <div className="pt-4 flex gap-3 pb-8 sm:pb-0">
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            className="flex-1 h-12 rounded-xl"
+                                            onClick={() => setIsFormOpen(false)}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button 
+                                            type="submit" 
+                                            disabled={isSubmitting} 
+                                            className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
+                                        >
+                                            {isSubmitting ? (
+                                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                                            ) : (
+                                                'Save Slide'
+                                            )}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </Form>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                 <AlertDialogContent>
