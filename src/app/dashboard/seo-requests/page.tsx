@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { type SeoRequest } from '@/types';
@@ -23,8 +23,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, Clock, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth } from '@/stores/auth';
 
 export default function SeoRequestsPage() {
+  const { user } = useAuth();
   const [requests, setRequests] = useState<SeoRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
@@ -53,8 +55,10 @@ export default function SeoRequestsPage() {
   }, [toast]);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    if (user) {
+      fetchRequests();
+    }
+  }, [fetchRequests, user]);
   
   const handleMarkAsComplete = async () => {
     if (!selectedRequest) return;

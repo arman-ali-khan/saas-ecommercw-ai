@@ -1,11 +1,9 @@
-
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { supabase } from '@/lib/supabase/client';
-import type { Session } from '@supabase/supabase-js';
 
 export default function AuthProvider({
   children,
@@ -14,41 +12,31 @@ export default function AuthProvider({
 }) {
   const { setUser, setSession, setLoading, refreshUser } = useAuth();
   const { setCustomer } = useCustomerAuth();
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    if (isInitialized.current) return;
+    isInitialized.current = true;
+
     setLoading(true);
 
-    // Initial check on mount
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        const role = session.user.user_metadata?.role;
-        // This provider now ONLY handles admin/saas_admin
-        if (role === 'admin' || role === 'saas_admin') {
-          await refreshUser();
-          setCustomer(null); // Ensure customer is logged out
-        }
-      }
-      setLoading(false);
-    });
-
-    // Listen for subsequent changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
+      
       if (session?.user) {
         const role = session.user.user_metadata?.role;
         if (role === 'admin' || role === 'saas_admin') {
-          await refreshUser();
           setCustomer(null);
+          await refreshUser();
         } else {
-          // If a non-admin logs in via Supabase, clear our admin state
           setUser(null);
+          setLoading(false);
         }
       } else {
-        // If logged out from Supabase, clear admin state
         setUser(null);
+        setLoading(false);
       }
     });
 

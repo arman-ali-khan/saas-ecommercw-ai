@@ -30,6 +30,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 const PAYMENTS_PER_PAGE = 10;
 
 export default function SubscriptionPaymentsPage() {
+  const { user } = useAuth();
   const [payments, setPayments] = useState<SubscriptionPaymentWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
@@ -57,8 +58,10 @@ export default function SubscriptionPaymentsPage() {
   }, [toast]);
   
   useEffect(() => {
-    fetchPayments();
-  }, [fetchPayments]);
+    if (user) {
+      fetchPayments();
+    }
+  }, [fetchPayments, user]);
 
   const totalPages = Math.ceil(payments.length / PAYMENTS_PER_PAGE);
   const paginatedPayments = payments.slice(

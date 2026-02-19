@@ -20,6 +20,7 @@ import DynamicIcon from '@/components/dynamic-icon';
 import ImageUploader from '@/components/image-uploader';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/stores/auth';
 
 const showcaseSchema = z.object({
     title: z.string().min(1, 'Title is required.'),
@@ -32,6 +33,7 @@ const showcaseSchema = z.object({
 type ShowcaseFormData = z.infer<typeof showcaseSchema>;
 
 export default function ShowcaseAdminPage() {
+    const { user } = useAuth();
     const { toast } = useToast();
     const [items, setItems] = useState<SaasShowcaseItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -67,8 +69,10 @@ export default function ShowcaseAdminPage() {
     }, [toast]);
 
     useEffect(() => {
-        fetchItems();
-    }, [fetchItems]);
+        if (user) {
+            fetchItems();
+        }
+    }, [fetchItems, user]);
 
     useEffect(() => {
         if (isFormOpen) {
@@ -102,7 +106,7 @@ export default function ShowcaseAdminPage() {
             });
 
             if (response.ok) {
-                toast({ title: `Showcase Item ${selectedItem ? 'Updated' : 'Created'}` });
+                toast({ title: typeof selectedItem?.id !== 'undefined' ? 'Showcase Item Updated' : 'Showcase Item Created' });
                 await fetchItems();
                 setIsFormOpen(false);
                 setSelectedItem(null);
@@ -247,7 +251,7 @@ export default function ShowcaseAdminPage() {
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsFormOpen(false)} />
                     <div className="relative w-full max-w-xl bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
                         <div className="p-6 border-b flex justify-between items-center shrink-0">
-                            <h2 className="text-xl font-bold">{selectedItem ? 'Edit' : 'Add'} Showcase Item</h2>
+                            <h2 className="text-xl font-bold">{typeof selectedItem?.id !== 'undefined' ? 'Edit' : 'Add'} Showcase Item</h2>
                             <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>
                                 <X className="h-5 w-5" />
                             </Button>
@@ -255,7 +259,7 @@ export default function ShowcaseAdminPage() {
                         <div className="p-6 overflow-y-auto">
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                    <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., Secure Payments" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                     <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                                     <FormField control={form.control} name="image_url" render={({ field }) => (
                                         <FormItem>

@@ -28,8 +28,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Plus, Loader2, Edit, Trash2, Eye, AlertTriangle, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { MoreHorizontal, Plus, Loader2, Edit, Trash2, Eye, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/stores/auth';
 
 type SaasPage = {
     id: string;
@@ -40,6 +40,7 @@ type SaasPage = {
 }
 
 export default function SaasPagesAdminPage() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [pages, setPages] = useState<SaasPage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,8 +69,10 @@ export default function SaasPagesAdminPage() {
   }, [toast]);
 
   useEffect(() => {
-    fetchPages();
-  }, [fetchPages]);
+    if (user) {
+      fetchPages();
+    }
+  }, [fetchPages, user]);
 
   const handleDelete = async () => {
     if (!pageToDelete) return;

@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Loader2, X, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type Plan } from '@/types';
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/stores/auth';
 import { Badge } from '@/components/ui/badge';
 
 const planSchema = z.object({
@@ -56,6 +56,7 @@ const planSchema = z.object({
 type PlanFormData = z.infer<typeof planSchema>;
 
 export default function PlansAdminPage() {
+  const { user } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,8 +95,10 @@ export default function PlansAdminPage() {
   }, [toast]);
 
   useEffect(() => {
-    fetchPlans();
-  }, [fetchPlans]);
+    if (user) {
+      fetchPlans();
+    }
+  }, [fetchPlans, user]);
 
   useEffect(() => {
     if (isFormOpen) {

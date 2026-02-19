@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -32,8 +31,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { SubscriptionPaymentWithDetails } from '@/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/stores/auth';
 
 export default function SaasAdminDashboard() {
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     totalRevenue: 0,
     activeSubscriptions: 0,
@@ -67,8 +68,10 @@ export default function SaasAdminDashboard() {
   }, [toast]);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [fetchDashboardData, user]);
   
   return (
     <div className="space-y-6">

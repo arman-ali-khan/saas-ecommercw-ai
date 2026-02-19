@@ -10,8 +10,10 @@ import { Loader2, CheckCircle, Trash2, Star, AlertTriangle, X } from 'lucide-rea
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { SaaSReview } from '@/types';
+import { useAuth } from '@/stores/auth';
 
 export default function SaasReviewsPage() {
+  const { user } = useAuth();
   const [reviews, setReviews] = useState<SaaSReview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
@@ -40,8 +42,10 @@ export default function SaasReviewsPage() {
   }, [toast]);
 
   useEffect(() => {
-    fetchReviews();
-  }, [fetchReviews]);
+    if (user) {
+      fetchReviews();
+    }
+  }, [fetchReviews, user]);
 
   const handleApprove = async (reviewId: string) => {
     setIsActionLoading(true);

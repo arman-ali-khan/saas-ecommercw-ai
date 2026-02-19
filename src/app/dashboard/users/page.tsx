@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/stores/auth';
 import {
   Card,
   CardContent,
@@ -43,6 +44,7 @@ const createAdminSchema = z.object({
 });
 
 export default function UsersAdminPage() {
+    const { user: currentUser } = useAuth();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -91,8 +93,10 @@ export default function UsersAdminPage() {
     }, [toast]);
 
     useEffect(() => {
-        fetchUsersData();
-    }, [fetchUsersData]);
+        if (currentUser) {
+            fetchUsersData();
+        }
+    }, [fetchUsersData, currentUser]);
 
     const onSubmitCreate = async (values: z.infer<typeof createAdminSchema>) => {
         setIsSubmitting(true);
@@ -129,10 +133,10 @@ export default function UsersAdminPage() {
         setIsBlockOpen(true);
     }
     
-    const paginatedUsers = users.slice(
+    const paginatedUsers = useMemo(() => users.slice(
         (currentPage - 1) * USERS_PER_PAGE,
         currentPage * USERS_PER_PAGE
-    );
+    ), [users, currentPage]);
 
     const performDelete = async () => {
         if (!selectedUser) return;

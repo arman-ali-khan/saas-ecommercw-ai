@@ -40,6 +40,7 @@ import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/stores/auth';
 
 const featureSchema = z.object({
   name: z.string().min(1, "Feature name is required."),
@@ -50,6 +51,7 @@ const featureSchema = z.object({
 type FeatureFormData = z.infer<typeof featureSchema>;
 
 export default function FeaturesAdminPage() {
+  const { user } = useAuth();
   const [features, setFeatures] = useState<SaasFeature[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,8 +92,10 @@ export default function FeaturesAdminPage() {
   }, [toast]);
 
   useEffect(() => {
-    fetchFeatures();
-  }, [fetchFeatures]);
+    if (user) {
+      fetchFeatures();
+    }
+  }, [fetchFeatures, user]);
 
   useEffect(() => {
     if (isFormOpen) {
@@ -123,7 +127,7 @@ export default function FeaturesAdminPage() {
       const result = await response.json();
 
       if (response.ok) {
-        toast({ title: selectedFeature ? 'Feature Updated' : 'Feature Created' });
+        toast({ title: typeof selectedFeature?.id !== 'undefined' ? 'Feature Updated' : 'Feature Created' });
         await fetchFeatures();
         setIsFormOpen(false);
         setSelectedFeature(null);
@@ -292,7 +296,7 @@ export default function FeaturesAdminPage() {
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsFormOpen(false)} />
             <div className="relative w-full max-w-xl bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
                 <div className="p-6 border-b flex justify-between items-center shrink-0">
-                    <h2 className="text-xl font-bold">{selectedFeature ? 'Edit Feature' : 'Add New Feature'}</h2>
+                    <h2 className="text-xl font-bold">{typeof selectedFeature?.id !== 'undefined' ? 'Edit Feature' : 'Add New Feature'}</h2>
                     <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>
                         <X className="h-5 w-5" />
                     </Button>

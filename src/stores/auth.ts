@@ -1,8 +1,7 @@
-
 'use client';
 
 import { create } from 'zustand';
-import type { User, Plan } from '@/types';
+import type { User } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import type { Session } from '@supabase/supabase-js';
 
@@ -43,27 +42,16 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
     refreshUser: async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          set({ user: null, loading: false });
-          return;
-        }
-
+        set({ loading: true });
+        
         // Call our internal API to get the full profile. 
-        // We use an absolute path starting with / to ensure it hits the correct domain root.
         const response = await fetch('/api/auth/get-profile', {
             method: 'GET',
             cache: 'no-store'
         });
 
         if (!response.ok) {
-            if (response.status === 401) {
-                // Not authenticated or session expired
-                set({ user: null, loading: false });
-            } else {
-                console.error(`Profile fetch failed with status: ${response.status}`);
-                set({ loading: false });
-            }
+            set({ user: null, loading: false });
             return;
         }
         
@@ -75,7 +63,6 @@ export const useAuth = create<AuthState>()((set, get) => ({
           return;
         }
         
-        // Extract nested data from API response safely
         const settingsData = Array.isArray(adminProfile.store_settings) ? adminProfile.store_settings[0] : adminProfile.store_settings;
         const planData = Array.isArray(adminProfile.plans) ? adminProfile.plans[0] : adminProfile.plans;
 
@@ -105,7 +92,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
         set({ user: newUser, loading: false });
       } catch (e) {
         console.error('Error refreshing admin profile via API:', e);
-        set({ loading: false });
+        set({ user: null, loading: false });
       }
     },
 
@@ -190,7 +177,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
     
     logout: async () => {
       await supabase.auth.signOut();
-      set({ user: null, session: null });
+      set({ user: null, session: null, loading: false });
     },
     
     updateUserProfile: async (userId: string, updates: Partial<User>) => {

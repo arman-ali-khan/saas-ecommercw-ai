@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -31,6 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import ImageUploader from '@/components/image-uploader';
 import Image from 'next/image';
+import { useAuth } from '@/stores/auth';
 
 const generalSettingsSchema = z.object({
   platformName: z.string().min(2, { message: 'Platform name must be at least 2 characters.' }),
@@ -68,6 +68,7 @@ const TikTokIcon = () => (
 
 
 export default function SaasSettingsPage() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneralSubmitting, setIsGeneralSubmitting] = useState(false);
@@ -149,8 +150,10 @@ export default function SaasSettingsPage() {
   }, [generalForm, seoForm, paymentForm, toast]);
   
   useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+    if (user) {
+      fetchSettings();
+    }
+  }, [fetchSettings, user]);
 
   async function onGeneralSubmit(values: z.infer<typeof generalSettingsSchema>) {
     setIsGeneralSubmitting(true);

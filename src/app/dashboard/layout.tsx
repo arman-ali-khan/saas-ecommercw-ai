@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -60,12 +59,21 @@ export default function DashboardLayout({
     fetchInfo();
   }, []);
 
-  if (loading || !user || !user.isSaaSAdmin) {
+  // Show a full-page loader while checking auth state
+  if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground animate-pulse">Initializing Dashboard...</p>
+        </div>
       </div>
     );
+  }
+
+  // If loading is done but no user or not saas admin, return null while redirecting
+  if (!user || !user.isSaaSAdmin) {
+    return null;
   }
   
   const HeaderLogo = () => {
