@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -182,7 +181,7 @@ export default function SaasLandingPage() {
         setShowcaseItems(showcaseData as SaasShowcaseItem[]);
       }
 
-      if (settingsData?.homepage_sections) {
+      if (settingsData?.homepage_sections && Array.isArray(settingsData.homepage_sections)) {
         setSections(settingsData.homepage_sections);
       } else {
         // Fallback default order

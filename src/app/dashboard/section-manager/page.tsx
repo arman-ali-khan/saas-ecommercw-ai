@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -22,8 +21,9 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { supabase } from '@/lib/supabase/client';
-import { ArrowUp, ArrowDown, Loader2, GripVertical, LayoutList } from 'lucide-react';
+import { ArrowUp, ArrowDown, Loader2, GripVertical, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type LandingSection = {
   id: string;
@@ -46,9 +46,11 @@ export default function SaasSectionManagerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [sections, setSections] = useState<LandingSection[]>([]);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   const fetchSections = useCallback(async () => {
     setIsLoading(true);
+    setDbError(null);
     try {
         const { data, error } = await supabase
             .from('saas_settings')
@@ -56,7 +58,14 @@ export default function SaasSectionManagerPage() {
             .eq('id', 1)
             .single();
 
-        if (error && error.code !== 'PGRST116') throw error;
+        if (error) {
+            if (error.message.includes('column') && error.message.includes('does not exist')) {
+                setDbError('Database Column Missing: Please run the SQL migration to add "homepage_sections" to the "saas_settings" table.');
+                setSections(DEFAULT_SECTIONS);
+            } else if (error.code !== 'PGRST116') {
+                throw error;
+            }
+        }
 
         if (data?.homepage_sections && Array.isArray(data.homepage_sections)) {
             setSections(data.homepage_sections as LandingSection[]);
@@ -101,6 +110,11 @@ export default function SaasSectionManagerPage() {
   };
 
   const handleSaveChanges = async () => {
+    if (dbError) {
+        toast({ variant: 'destructive', title: 'Save Prevented', description: 'Cannot save until the database schema is updated.' });
+        return;
+    }
+    
     setIsSaving(true);
     try {
         const { error } = await supabase
@@ -146,11 +160,21 @@ export default function SaasSectionManagerPage() {
           <h1 className="text-3xl font-bold tracking-tight">Landing Page Sections</h1>
           <p className="text-muted-foreground">Manage the structure of your platform's main page.</p>
         </div>
-        <Button onClick={handleSaveChanges} disabled={isSaving}>
+        <Button onClick={handleSaveChanges} disabled={isSaving || !!dbError}>
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Changes
         </Button>
       </div>
+
+      {dbError && (
+          <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Database Schema Error</AlertTitle>
+              <AlertDescription>
+                  {dbError}
+              </AlertDescription>
+          </Alert>
+      )}
 
       <Card>
         <CardContent className="pt-6">
