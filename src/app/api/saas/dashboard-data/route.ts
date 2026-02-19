@@ -55,10 +55,14 @@ export async function GET(request: Request) {
         pendingReviewsRes
     ] = await Promise.all([
         supabaseAdmin.from('profiles').select('id, subscription_status'),
-        supabaseAdmin.from('subscription_payments').select('*, profiles:user_id(full_name, username, email), plans:plan_id(name)').order('created_at', { ascending: false }),
+        supabaseAdmin.from('subscription_payments').select('*, profiles(full_name, username, email), plans(name)').order('created_at', { ascending: false }),
         supabaseAdmin.from('notifications').select('*, profiles!notifications_recipient_id_fkey(full_name, username, email)').eq('is_read', false).eq('recipient_type', 'admin').order('created_at', { ascending: false }).limit(5),
         supabaseAdmin.from('saas_reviews').select('id', { count: 'exact', head: true }).eq('is_approved', false)
     ]);
+
+    if (paymentsRes.error) {
+        console.error("Dashboard Payments Fetch Error:", paymentsRes.error);
+    }
 
     const allProfiles = profilesRes.data || [];
     const allPayments = paymentsRes.data || [];

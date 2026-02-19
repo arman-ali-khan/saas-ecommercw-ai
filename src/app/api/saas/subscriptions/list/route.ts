@@ -55,19 +55,24 @@ export async function GET(request: Request) {
     }
 
     // 3. Fetch all subscription payments with nested details
-    // Note: We use explicit relationship names if needed, but profiles and plans are standard.
+    // We use standard Supabase join syntax. 
+    // If this fails, it's likely due to missing foreign keys in the database.
     const { data: payments, error: fetchError } = await supabaseAdmin
       .from('subscription_payments')
       .select(`
         *,
-        profiles:user_id (id, full_name, username, email),
-        plans:plan_id (id, name)
+        profiles (id, full_name, username, email),
+        plans (id, name)
       `)
       .order('created_at', { ascending: false });
 
     if (fetchError) {
         console.error('Database fetch error in /saas/subscriptions/list:', fetchError);
-        return NextResponse.json({ error: 'Failed to fetch payment records' }, { status: 500 });
+        // If the join fails, try fetching without joins to provide a partial response or better error
+        return NextResponse.json({ 
+            error: 'Failed to fetch payment records from database.',
+            details: fetchError.message 
+        }, { status: 500 });
     }
 
     // 4. Decrypt sensitive user info recursively
