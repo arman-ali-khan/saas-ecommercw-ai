@@ -39,11 +39,13 @@ export default function AdminDashboard() {
     
     // If not a forced refresh and data is fresh, do nothing
     if (!force && currentStore.dashboard && isFresh) {
+        setIsLoading(false);
         return;
     }
 
-    // Only show loading spinner if we have NO data at all
-    if (!currentStore.dashboard || force) {
+    // ONLY show loading spinner if we have absolutely NO data.
+    // Stale data is better than a spinner when switching tabs.
+    if (!currentStore.dashboard) {
         setIsLoading(true);
     }
 
@@ -71,19 +73,19 @@ export default function AdminDashboard() {
         const fetchedReviews = reviewsResult.reviews || [];
         const fetchedQna = qnaResult.qna || [];
 
-        const totalRevenue = fetchedOrders.filter((orderItem: any) => orderItem.status === 'delivered').reduce((acc: number, orderItem: any) => acc + orderItem.total, 0);
-        const monthlyOrdersCount = fetchedOrders.filter((orderItem: any) => new Date(orderItem.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && orderItem.status !== 'canceled').length;
-        const unviewedCount = fetchedUncompleted.filter((orderItem: any) => !orderItem.is_viewed).length;
-        const activeDealsCount = fetchedDeals.filter((dealItem: any) => dealItem.is_active && new Date(dealItem.end_date) > new Date()).length;
+        const totalRevenue = fetchedOrders.filter((o: any) => o.status === 'delivered').reduce((acc: number, o: any) => acc + o.total, 0);
+        const monthlyOrdersCount = fetchedOrders.filter((o: any) => new Date(o.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && o.status !== 'canceled').length;
+        const unviewedCount = fetchedUncompleted.filter((o: any) => !o.is_viewed).length;
+        const activeDealsCount = fetchedDeals.filter((d: any) => d.is_active && new Date(d.end_date) > new Date()).length;
 
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
           const dateStr = format(subDays(new Date(), i), 'MMM d');
           dailyRevenue[dateStr] = 0;
         }
-        fetchedOrders.filter((orderItem: any) => new Date(orderItem.created_at) >= sevenDaysAgo && orderItem.status === 'delivered').forEach((orderItem: any) => {
-          const dateStr = format(new Date(orderItem.created_at), 'MMM d');
-          if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) dailyRevenue[dateStr] += orderItem.total;
+        fetchedOrders.filter((o: any) => new Date(o.created_at) >= sevenDaysAgo && o.status === 'delivered').forEach((o: any) => {
+          const dateStr = format(new Date(o.created_at), 'MMM d');
+          if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) dailyRevenue[dateStr] += o.total;
         });
 
         const newDashboardData = {
@@ -96,19 +98,19 @@ export default function AdminDashboard() {
           activeFlashDeals: activeDealsCount,
           allOrders: fetchedOrders,
           revenueChartData: Object.keys(dailyRevenue).map(dateKey => ({ date: dateKey, Revenue: dailyRevenue[dateKey] })),
-          pendingOrders: fetchedOrders.filter((orderItem: any) => orderItem.status === 'pending').slice(0, 5),
-          lowStockProducts: fetchedProducts.filter((productItem: any) => productItem.stock !== null && productItem.stock < 10).slice(0, 5),
-          pendingReviews: fetchedReviews.filter((reviewItem: any) => !reviewItem.is_approved).slice(0, 5),
-          unansweredQuestions: fetchedQna.filter((qnaItem: any) => !qnaItem.is_approved).slice(0, 5),
+          pendingOrders: fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5),
+          lowStockProducts: fetchedProducts.filter((p: any) => p.stock !== null && p.stock < 10).slice(0, 5),
+          pendingReviews: fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5),
+          unansweredQuestions: fetchedQna.filter((q: any) => !q.is_approved).slice(0, 5),
         };
 
         setDashboard(newDashboardData);
       } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Failed to load dashboard', description: error.message });
+        console.error("Dashboard Fetch Error:", error);
       } finally {
         setIsLoading(false);
     }
-  }, [user?.id, setDashboard, toast]);
+  }, [user?.id, setDashboard]);
 
   useEffect(() => {
     if (user?.id) {

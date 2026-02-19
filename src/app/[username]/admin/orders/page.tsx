@@ -35,7 +35,7 @@ export default function OrdersAdminPage() {
     const { orders, setOrders } = useAdminStore();
     const { toast } = useToast();
     
-    // Initialize loading to false if we already have orders in the store
+    // Lazy initial state to check store before first render
     const [isLoading, setIsLoading] = useState(() => {
         const currentStore = useAdminStore.getState();
         return currentStore.orders.length === 0;
@@ -58,7 +58,8 @@ export default function OrdersAdminPage() {
             return;
         }
 
-        if (force || currentStore.orders.length === 0) {
+        // Only show spinner if the store is empty
+        if (currentStore.orders.length === 0) {
             setIsLoading(true);
         }
 
@@ -75,11 +76,11 @@ export default function OrdersAdminPage() {
                 throw new Error(result.error || 'Failed to fetch orders');
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: "Failed to fetch orders:", description: error.message });
+            console.error("Order fetch failed:", error);
         } finally {
             setIsLoading(false);
         }
-    }, [user?.id, setOrders, toast]);
+    }, [user?.id, setOrders]);
 
     useEffect(() => {
         if (user?.id) {

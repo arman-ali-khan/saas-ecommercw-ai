@@ -38,7 +38,7 @@ export default function SaasAdminDashboard() {
   const { dashboardData, setDashboardData } = useSaasStore();
   const { toast } = useToast();
 
-  // Initialize loading to false if we already have dashboard data in the store
+  // Lazy initialization to avoid flickering if data is in the store
   const [isLoading, setIsLoading] = useState(() => {
     const currentStore = useSaasStore.getState();
     return !currentStore.dashboardData;
@@ -57,7 +57,8 @@ export default function SaasAdminDashboard() {
         return;
     }
 
-    if (!currentStore.dashboardData || force) {
+    // Only set loading true if we don't have existing data
+    if (!currentStore.dashboardData) {
         setIsLoading(true);
     }
 
@@ -72,11 +73,10 @@ export default function SaasAdminDashboard() {
       }
     } catch (e: any) {
       console.error("Dashboard fetch error:", e);
-      toast({ variant: 'destructive', title: 'Error', description: e.message });
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, setDashboardData, toast]);
+  }, [user?.id, setDashboardData]);
 
   useEffect(() => {
     if (user) {
