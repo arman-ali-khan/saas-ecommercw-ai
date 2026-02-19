@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -58,7 +59,13 @@ export default function AdminDashboard() {
         ]);
 
         const [ordersResult, productsResult, uncompletedResult, customersResult, flashDealsResult, reviewsResult, qnaResult] = await Promise.all([
-          ordersRes.json(), productsRes.json(), uncompletedResult.json(), customersResult.json(), flashDealsResult.json(), reviewsResult.json(), qnaResult.json()
+          ordersRes.json(), 
+          productsRes.json(), 
+          uncompletedRes.json(), 
+          customersRes.json(), 
+          flashDealsRes.json(), 
+          reviewsRes.json(), 
+          qnaRes.json()
         ]);
 
         const fetchedOrders = ordersResult.orders || [];
@@ -94,18 +101,22 @@ export default function AdminDashboard() {
           allOrders: fetchedOrders,
           revenueChartData: Object.keys(dailyRevenue).map(dateKey => ({ date: dateKey, Revenue: dailyRevenue[dateKey] })),
           pendingOrders: fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5),
-          lowStockProducts: fetchedProducts.filter((p: any) => p.stock !== null && p.stock < 10).slice(0, 5),
+          lowStockProducts: fetchedProducts.filter((p: any) => p.stock !== null && p.stock < 10).slice(0, 0), // Changed to slice(0,5) in actual but keeping consistent with original code structure
           pendingReviews: fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5),
           unansweredQuestions: fetchedQna.filter((q: any) => !q.is_approved).slice(0, 5),
         };
+        
+        // Final adjustment for low stock products slice
+        newDashboardData.lowStockProducts = fetchedProducts.filter((p: any) => p.stock !== null && p.stock < 10).slice(0, 5);
 
         setDashboard(newDashboardData);
       } catch (error: any) {
         console.error("Dashboard Fetch Error:", error);
+        toast({ variant: 'destructive', title: 'Error loading dashboard', description: error.message });
       } finally {
         setIsLoading(false);
     }
-  }, [user?.id, setDashboard]);
+  }, [user?.id, setDashboard, toast]);
 
   useEffect(() => {
     if (user?.id) {
