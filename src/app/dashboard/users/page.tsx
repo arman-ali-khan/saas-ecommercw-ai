@@ -23,20 +23,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X, AlertTriangle } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-  } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -376,36 +366,116 @@ export default function UsersAdminPage() {
                 </DialogContent>
             </Dialog>
 
-            <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete the user profile for <span className="font-bold">{selectedUser?.full_name}</span>.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={performDelete} className={cn(buttonVariants({ variant: "destructive" }))} disabled={isDeleting}>
-                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Profile
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {/* Raw Tailwind CSS Custom Delete Modal */}
+            {isDeleteOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                        onClick={() => !isDeleting && setIsDeleteOpen(false)}
+                    />
+                    
+                    {/* Modal Content */}
+                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center gap-3 mb-4 text-destructive">
+                            <div className="p-2 bg-destructive/10 rounded-full">
+                                <AlertTriangle className="h-6 w-6" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground">Are you absolutely sure?</h3>
+                        </div>
+                        
+                        <div className="mb-8">
+                            <p className="text-muted-foreground leading-relaxed">
+                                You are about to permanently delete the user profile for <span className="font-bold text-foreground">{selectedUser?.full_name}</span>. 
+                                This action <span className="underline decoration-destructive">cannot be undone</span> and all associated store data might be affected.
+                            </p>
+                        </div>
+                        
+                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setIsDeleteOpen(false)} 
+                                disabled={isDeleting}
+                                className="h-11 px-6 rounded-lg"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                variant="destructive" 
+                                onClick={performDelete} 
+                                disabled={isDeleting}
+                                className="h-11 px-6 rounded-lg font-bold shadow-lg shadow-destructive/20"
+                            >
+                                {isDeleting ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</>
+                                ) : (
+                                    'Yes, Delete Profile'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
             
-            <AlertDialog open={isBlockOpen} onOpenChange={setIsBlockOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Action</AlertDialogTitle>
-                        <AlertDialogDescription>You are about to {selectedUser?.subscription_status === 'active' ? 'block' : 'unblock'} the store for <span className="font-bold">{selectedUser?.full_name}</span>.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <Button onClick={performBlock} variant={selectedUser?.subscription_status === 'active' ? 'destructive' : 'default'} disabled={isBlocking}>
-                            {isBlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {selectedUser?.subscription_status === 'active' ? 'Block Store' : 'Unblock Store'}
-                        </Button>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {/* Raw Tailwind CSS Custom Block Modal */}
+            {isBlockOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                        onClick={() => !isBlocking && setIsBlockOpen(false)}
+                    />
+                    
+                    {/* Modal Content */}
+                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center gap-3 mb-4 text-primary">
+                            <div className="p-2 bg-primary/10 rounded-full">
+                                {selectedUser?.subscription_status === 'active' ? (
+                                    <ShieldOff className="h-6 w-6" />
+                                ) : (
+                                    <ShieldCheck className="h-6 w-6" />
+                                )}
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground">Confirm Action</h3>
+                        </div>
+                        
+                        <div className="mb-8">
+                            <p className="text-muted-foreground leading-relaxed">
+                                You are about to <span className="font-bold text-foreground">{selectedUser?.subscription_status === 'active' ? 'block' : 'unblock'}</span> the store for <span className="font-bold text-foreground">{selectedUser?.full_name}</span>. 
+                                {selectedUser?.subscription_status === 'active' 
+                                    ? ' This will prevent the admin from accessing the dashboard and might suspend the public storefront.' 
+                                    : ' This will restore all administrative access and public storefront visibility.'}
+                            </p>
+                        </div>
+                        
+                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setIsBlockOpen(false)} 
+                                disabled={isBlocking}
+                                className="h-11 px-6 rounded-lg"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                onClick={performBlock} 
+                                variant={selectedUser?.subscription_status === 'active' ? 'destructive' : 'default'} 
+                                disabled={isBlocking}
+                                className={cn(
+                                    "h-11 px-6 rounded-lg font-bold shadow-lg",
+                                    selectedUser?.subscription_status === 'active' ? "shadow-destructive/20" : "shadow-primary/20"
+                                )}
+                            >
+                                {isBlocking ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
+                                ) : (
+                                    selectedUser?.subscription_status === 'active' ? 'Block Store' : 'Unblock Store'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
