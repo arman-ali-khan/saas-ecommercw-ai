@@ -37,6 +37,7 @@ import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
 import DynamicIcon from './dynamic-icon';
 import Image from 'next/image';
+import { Skeleton } from './ui/skeleton';
 import {
   Collapsible,
   CollapsibleContent,
@@ -52,7 +53,28 @@ export default function AdminMobileSidebar() {
   const { sidebarCounts } = useAdminStore();
 
   if (loading || !user) {
-    return null;
+    return (
+        <div className="flex h-full max-h-screen flex-col gap-2 text-card-foreground bg-card">
+            <div className="flex h-20 items-center border-b border-border px-6">
+                <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <Skeleton className="h-6 w-32" />
+                </div>
+            </div>
+            <div className="flex-1 overflow-auto py-6 px-4 space-y-4">
+                {[...Array(8)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 px-3">
+                        <Skeleton className="h-5 w-5 rounded" />
+                        <Skeleton className="h-4 flex-1" />
+                    </div>
+                ))}
+            </div>
+            <div className="mt-auto p-4 border-t border-border space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+            </div>
+        </div>
+    )
   }
 
   const handleLogout = async () => {
