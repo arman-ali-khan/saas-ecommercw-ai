@@ -267,7 +267,7 @@ export function ShowcaseOrderBlock({
                                                         <p className="text-xs text-muted-foreground font-bold mt-0.5">{p.price.toFixed(2)} BDT</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg p-1 shrink-0">
+                                                <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg p-1 shrink-0 flex-col">
                                                     <Button type="button" variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) - 1)}><Minus className="h-3.5 w-3.5" /></Button>
                                                     <span className="w-6 sm:w-8 text-center text-xs sm:text-sm font-bold">{quantities[p.id] || 0}</span>
                                                     <Button type="button" variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) + 1)}><Plus className="h-3.5 w-3.5" /></Button>
