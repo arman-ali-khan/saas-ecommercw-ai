@@ -244,7 +244,7 @@ export function ShowcaseOrderBlock({
                                 </div>
                             )}
 
-                            {/* Optional Products Section */}
+                            {/* Optional Products Section - Responsive Grid */}
                             {optionalProducts.length > 0 && (
                                 <div className="space-y-4 animate-in fade-in duration-500">
                                     <div className="flex items-center gap-3 px-2">
@@ -255,22 +255,22 @@ export function ShowcaseOrderBlock({
                                         <div className="h-px flex-grow bg-border" />
                                     </div>
                                     
-                                    <div className="grid gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {optionalProducts.map(p => (
-                                            <div key={p.id} className="flex gap-4 items-center w-fit justify-between p-3 rounded-xl border bg-card/50 hover:bg-card hover:border-primary/30 transition-all group shadow-sm">
-                                                <div className="flex gap-4 items-center flex-grow min-w-0">
+                                            <div key={p.id} className="flex gap-3 items-center justify-between p-3 rounded-xl border bg-card/50 hover:bg-card hover:border-primary/30 transition-all group shadow-sm">
+                                                <div className="flex gap-3 items-center flex-grow min-w-0">
                                                     <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0">
                                                         <Image src={p.images[0].imageUrl} alt={p.name} fill className="rounded-lg object-cover aspect-square border" />
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <p className="font-semibold text-sm leading-tight truncate group-hover:text-primary transition-colors">{p.name}</p>
-                                                        <p className="text-xs text-muted-foreground font-bold mt-0.5">{p.price.toFixed(2)} BDT</p>
+                                                        <p className="font-semibold text-xs sm:text-sm leading-tight truncate group-hover:text-primary transition-colors">{p.name}</p>
+                                                        <p className="text-[10px] sm:text-xs text-muted-foreground font-bold mt-0.5">{p.price.toFixed(2)} BDT</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg p-1 shrink-0 flex-col">
-                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) - 1)}><Minus className="h-3.5 w-3.5" /></Button>
-                                                    <span className="w-6 sm:w-8 text-center text-xs sm:text-sm font-bold">{quantities[p.id] || 0}</span>
-                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) + 1)}><Plus className="h-3.5 w-3.5" /></Button>
+                                                <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 shrink-0 flex-col-reverse">
+                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) - 1)}><Minus className="h-3 w-3" /></Button>
+                                                    <span className="w-5 sm:w-6 text-center text-xs font-bold">{quantities[p.id] || 0}</span>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) + 1)}><Plus className="h-3 w-3" /></Button>
                                                 </div>
                                             </div>
                                         ))}
