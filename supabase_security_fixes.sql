@@ -1,49 +1,68 @@
--- 1. Secure handle_updated_at function
--- Fixes: Function public.handle_updated_at has a role mutable search_path
-ALTER FUNCTION public.handle_updated_at(jsonb) SET search_path = public;
+-- Bangla Naturals - Central Database Security Fixes
+-- This script fixes RLS issues and function security vulnerabilities.
 
--- 2. Secure uncompleted_orders table
--- Fixes: Table public.uncompleted_orders is public, but RLS has not been enabled.
-ALTER TABLE public.uncompleted_orders ENABLE ROW LEVEL SECURITY;
+-- 1. Secure Database Functions
+-- Fix for ERROR: 42883 (function signature mismatch)
+ALTER FUNCTION public.handle_updated_at() SET search_path = public;
 
--- 3. Secure saas_reviews table
--- Fixes: Table public.saas_reviews has an RLS policy Enable insert for all users for INSERT that allows unrestricted access
-DROP POLICY IF EXISTS "Enable insert for all users" ON public.saas_reviews;
-DROP POLICY IF EXISTS "Public can view approved reviews" ON public.saas_reviews;
-DROP POLICY IF EXISTS "Users can submit reviews" ON public.saas_reviews;
-
+-- 2. Secure Table: saas_reviews
+-- Ensure RLS is enabled
 ALTER TABLE public.saas_reviews ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public can view approved reviews" ON public.saas_reviews
-    FOR SELECT USING (is_approved = true);
+-- Remove insecure policies if they exist
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.saas_reviews;
+DROP POLICY IF EXISTS "Public can view approved reviews" ON public.saas_reviews;
+DROP POLICY IF EXISTS "Public can submit unapproved reviews" ON public.saas_reviews;
 
-CREATE POLICY "Users can submit reviews" ON public.saas_reviews
-    FOR INSERT WITH CHECK (is_approved = false);
+-- Create secure policies
+-- Anyone can view reviews that are already approved by an admin
+CREATE POLICY "Public can view approved reviews" ON public.saas_reviews 
+FOR SELECT USING (is_approved = true);
 
--- 4. Secure customer_addresses table
--- Fixes: Table public.customer_addresses has an RLS policy Allow all access for ALL that allows unrestricted access
-DROP POLICY IF EXISTS "Allow all access for ALL" ON public.customer_addresses;
+-- Anyone can submit a review, but it must be unapproved (is_approved = false) by default
+CREATE POLICY "Public can submit unapproved reviews" ON public.saas_reviews 
+FOR INSERT WITH CHECK (is_approved = false);
+
+
+-- 3. Secure Table: customer_addresses
+-- Customers' private addresses should not be exposed to the internet
 ALTER TABLE public.customer_addresses ENABLE ROW LEVEL SECURITY;
 
--- Note: No public policies added because the app uses Service Role (Admin) via API routes
--- to manage addresses, keeping data hidden from public PostgREST access.
+-- Remove overly permissive policies
+DROP POLICY IF EXISTS "Allow all access for ALL" ON public.customer_addresses;
 
--- 5. Secure live_chat_messages table
--- Fixes: Table public.live_chat_messages has an RLS policy Public can read and write messages for ALL
-DROP POLICY IF EXISTS "Public can read and write messages" ON public.live_chat_messages;
+-- Note: The application uses the Service Role (Admin Key) to manage addresses,
+-- so no public RLS policies are needed. This keeps data fully locked from direct browser access.
+
+
+-- 4. Secure Table: live_chat_messages
+-- Prevent unauthorized access to private conversations
 ALTER TABLE public.live_chat_messages ENABLE ROW LEVEL SECURITY;
 
--- Only allow insert for public (customers sending messages)
-CREATE POLICY "Public can send messages" ON public.live_chat_messages
-    FOR INSERT WITH CHECK (true);
+-- Remove insecure policies
+DROP POLICY IF EXISTS "Public can read and write messages for ALL" ON public.live_chat_messages;
+DROP POLICY IF EXISTS "Anyone can send messages" ON public.live_chat_messages;
 
--- Only service role/admins can read/update (managed via API)
--- If you need customers to see their own messages in real-time without an API, 
--- you would add a policy based on conversation_id or sender_id here.
+-- Allow anyone to send (INSERT) a message to start or continue a chat
+CREATE POLICY "Anyone can send messages" ON public.live_chat_messages 
+FOR INSERT WITH CHECK (true);
 
--- 6. Secure order_items table
--- Fixes: Overly permissive public insert policy
-DROP POLICY IF EXISTS "Allow public insert for order_items" ON public.order_items;
+-- Note: SELECT/UPDATE/DELETE are restricted to Service Role or should be explicitly
+-- defined if client-side direct reading is required.
+
+
+-- 5. Secure Table: order_items
+-- Prevent unauthorized tampering with order data
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 
--- Strictly controlled via API routes with Service Role
+-- Remove insecure policies
+DROP POLICY IF EXISTS "Allow public insert for order_items" ON public.order_items;
+
+
+-- 6. Secure Table: uncompleted_orders
+-- Prevent unauthorized access to abandoned cart data
+ALTER TABLE public.uncompleted_orders ENABLE ROW LEVEL SECURITY;
+
+-- No public policies needed as this is handled via backend API with Service Role.
+
+-- End of Security Fixes
