@@ -17,9 +17,9 @@
 - **Secure `customer_addresses`**: গ্রাহকদের ব্যক্তিগত ঠিকানা এখন সম্পূর্ণ সুরক্ষিত এবং বাইরের সরাসরি এক্সেস বন্ধ করা হয়েছে।
 - **Secure `live_chat_messages`**: চ্যাট মেসেজ ইনসার্ট করার সময় ভ্যালিডেশন যুক্ত করা হয়েছে এবং অ্যাডমিন এক্সেস নিজের স্টোরে সীমাবদ্ধ করা হয়েছে।
 - **Optimized `carousel_slides`**: ডুপ্লিকেট পলিসি মুছে ফেলে ডাটাবেসের পারফরম্যান্স বাড়ানো হয়েছে।
-- **Function Security**: `handle_updated_at`, `handle_page_updated_at` এবং `trigger_set_timestamp` ফাংশনগুলোকে এক্সটার্নাল অ্যাটাক থেকে সুরক্ষিত করা হয়েছে।
+- **Function Security**: `handle_updated_at`, `handle_page_updated_at` এবং `trigger_set_timestamp` ফাংশনগুলোকে এক্সটার্নাল অ্যাটাক (Search Path Hijacking) থেকে সুরক্ষিত করা হয়েছে।
 - **Secure `saas_reviews`**: ইউজাররা এখন রিভিউ দিতে পারবে কিন্তু অ্যাডমিন অ্যাপ্রুভ না করা পর্যন্ত তা পাবলিশ হবে না।
-- **Secure Orders**: `orders`, `order_items` এবং `uncompleted_orders` টেবিলগুলো এখন সরাসরি এক্সেস থেকে নিরাপদ এবং শুধুমাত্র এপিআই-এর মাধ্যমে নিয়ন্ত্রিত।
+- **Secure Orders & Items**: `orders`, `order_items` এবং `uncompleted_orders` টেবিলগুলো এখন সরাসরি এক্সেস থেকে নিরাপদ এবং শুধুমাত্র অনুমোদিত এপিআই-এর মাধ্যমে নিয়ন্ত্রিত।
 
 ## শুরু করার নিয়ম
 
