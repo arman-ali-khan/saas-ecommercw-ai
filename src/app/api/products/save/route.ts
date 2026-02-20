@@ -18,10 +18,17 @@ export async function POST(request: Request) {
 
     let resultProduct;
 
-    // Sanitize and ensure variants is either null or a valid object for JSONB
+    // Sanitize and ensure data types match DB expectations
     const sanitizedProductData = {
         ...productData,
-        variants: productData.variants && productData.variants.length > 0 ? productData.variants : null
+        // Ensure unit is a string and handle empty values
+        unit: productData.unit && productData.unit.trim() !== '' ? productData.unit : null,
+        // Ensure variants is either null or a valid object for JSONB
+        variants: productData.variants && productData.variants.length > 0 ? productData.variants : null,
+        // Clean arrays
+        brand: Array.isArray(productData.brand) ? productData.brand : [],
+        color: Array.isArray(productData.color) ? productData.color : [],
+        categories: Array.isArray(productData.categories) ? productData.categories : [],
     };
 
     if (isNew) {
@@ -33,8 +40,15 @@ export async function POST(request: Request) {
         .single();
 
       if (error) {
+        console.error("Supabase Insert Error:", error);
         if (error.code === '23505') {
           return NextResponse.json({ error: 'This Product ID/Slug is already taken. Please choose another.' }, { status: 409 });
+        }
+        // Specific check for malformed array literal which usually means a string was sent to a TEXT[] column
+        if (error.message.includes('malformed array literal')) {
+            return NextResponse.json({ 
+                error: 'Database Schema Mismatch: The "unit" column in your products table might be an Array type. Please run the SQL fix provided by the assistant.' 
+            }, { status: 500 });
         }
         throw error;
       }
@@ -48,7 +62,10 @@ export async function POST(request: Request) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Update Error:", error);
+        throw error;
+      }
       resultProduct = data;
     }
 

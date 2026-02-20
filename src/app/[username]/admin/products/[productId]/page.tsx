@@ -68,9 +68,9 @@ const productFormSchema = z.object({
   origin: z.string().optional(),
   story: z.string().optional(),
   is_featured: z.boolean().default(false),
-  brand: z.array(z.string()).optional(),
-  color: z.array(z.string()).optional(),
-  unit: z.string().optional(),
+  brand: z.array(z.string()).optional().default([]),
+  color: z.array(z.string()).optional().default([]),
+  unit: z.string().optional().default(''),
   images: z.array(z.object({ imageUrl: z.string().url('Must be a valid URL.'), imageHint: z.string().optional() })).min(1, 'At least one image is required.'),
   has_flash_deal: z.boolean().default(false),
   flash_deal_price: z.preprocess((val) => (val === '' || val == null ? undefined : parseFloat(String(val))), z.number().positive('Discount price must be a positive number.').optional()),
@@ -112,7 +112,7 @@ export default function ManageProductPage() {
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       id: '', name: '', price: 0, stock: 0, currency: 'BDT', description: '', long_description: '',
-      categories: [], origin: '', story: '', is_featured: false, images: [], brand: [], color: [],
+      categories: [], origin: '', story: '', is_featured: false, images: [], brand: [], color: [], unit: '',
       has_flash_deal: false, flash_deal_price: undefined, flash_deal_range: { startDate: undefined, endDate: undefined },
       use_variants: false, variant_type: 'unit', variants: []
     },
@@ -124,16 +124,15 @@ export default function ManageProductPage() {
   const watchedValues = form.watch();
   const productName = form.watch('name');
 
-  // Auto-slug generation for new products
   useEffect(() => {
     if (isNew && productName) {
       const slug = productName
         .toLowerCase()
-        .replace(/\s+/g, '-')           // Replace spaces with -
-        .replace(/[^\w\u0980-\u09FF-]+/g, '') // Remove all non-word chars (keeping Bengali)
-        .replace(/--+/g, '-')         // Replace multiple - with single -
-        .replace(/^-+/, '')           // Trim - from start of text
-        .replace(/-+$/, '');          // Trim - from end of text
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\u0980-\u09FF-]+/g, '')
+        .replace(/--+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
       form.setValue('id', slug, { shouldValidate: true });
     }
   }, [productName, isNew, form]);
@@ -186,6 +185,9 @@ export default function ManageProductPage() {
 
             form.reset({
                 ...productData,
+                brand: Array.isArray(productData.brand) ? productData.brand : [],
+                color: Array.isArray(productData.color) ? productData.color : [],
+                unit: productData.unit || '',
                 images: (productData.images || []).map((img: any) => ({ imageUrl: img.imageUrl || '', imageHint: img.imageHint || '' })),
                 has_flash_deal: !!flashDealData,
                 flash_deal_price: flashDealData?.discount_price,
@@ -358,7 +360,6 @@ export default function ManageProductPage() {
                                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">/</span>
                                   </div>
                                 </FormControl>
-                                <FormDescription>পণ্যের নামের ওপর ভিত্তি করে এটি স্বয়ংক্রিয়ভাবে তৈরি হয়।</FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )} />
@@ -409,7 +410,7 @@ export default function ManageProductPage() {
                                         <FormField control={form.control} name="unit" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>একক (Unit)</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                <Select onValueChange={field.onChange} value={field.value || ''}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="সিলেক্ট করুন" /></SelectTrigger></FormControl>
                                                     <SelectContent>{unitOptions.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
                                                 </Select>
@@ -436,7 +437,7 @@ export default function ManageProductPage() {
                                                         <FormField control={form.control} name={`variants.${i}.unitType`} render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel className="text-[10px] uppercase font-bold">একক</FormLabel>
-                                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                                <Select onValueChange={field.onChange} value={field.value || ''}>
                                                                     <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="কেজি" /></SelectTrigger></FormControl>
                                                                     <SelectContent>{unitOptions.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
                                                                 </Select>
@@ -459,7 +460,7 @@ export default function ManageProductPage() {
                                                     <FormField control={form.control} name={`variants.${i}.size`} render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel className="text-[10px] uppercase font-bold">সাইজ</FormLabel>
-                                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                            <Select onValueChange={field.onChange} value={field.value || ''}>
                                                                 <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="সিলেক্ট সাইজ" /></SelectTrigger></FormControl>
                                                                 <SelectContent>{sizeOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                                                             </Select>
