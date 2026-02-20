@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { decryptObject } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -25,8 +26,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Order not found or access denied.' }, { status: 404 });
     }
 
-    return NextResponse.json({ order: data }, { status: 200 });
+    // Decrypt order sensitive fields recursively
+    const decryptedOrder = decryptObject(data);
+
+    return NextResponse.json({ order: decryptedOrder }, { status: 200 });
   } catch (err: any) {
+    console.error('Get Order Details API Error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

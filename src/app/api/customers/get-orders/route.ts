@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { decryptObject } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -21,10 +22,17 @@ export async function POST(request: Request) {
       .match({ customer_id: customerId, site_id: siteId })
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database error in customer get-orders API:', error);
+      throw error;
+    }
 
-    return NextResponse.json({ orders: data }, { status: 200 });
+    // Decrypt all orders in the list
+    const decryptedOrders = decryptObject(data);
+
+    return NextResponse.json({ orders: decryptedOrders }, { status: 200 });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('List Customer Orders API Error:', err);
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }
