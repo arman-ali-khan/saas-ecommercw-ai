@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { format } from 'date-fns';
 import { bn } from 'date-fns/locale';
@@ -28,7 +27,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, XCircle, Loader2 } from 'lucide-react';
+import { Eye, XCircle, Loader2, AlertTriangle, X } from 'lucide-react';
 import { useTranslation } from '@/hooks/use-translation';
 
 export default function OrdersPage() {
@@ -38,6 +37,8 @@ export default function OrdersPage() {
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
 
     const fetchOrders = useCallback(async () => {
         if (!customer) {
@@ -96,25 +97,28 @@ export default function OrdersPage() {
         return ['pending'].includes(status.toLowerCase());
     };
 
-    const handleCancelOrder = async (orderId: string) => {
-        // We still use an API for cancellation or direct Supabase if policy allows.
-        // For security, let's use the update-status API if possible or create a new cancel API.
-        // For now, I'll use the existing update-status API which is robust.
+    const handleCancelOrder = async () => {
+        if (!orderToCancel) return;
+        
+        setIsCancelling(true);
         try {
             const response = await fetch('/api/orders/update-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, newStatus: 'canceled' }),
+                body: JSON.stringify({ orderId: orderToCancel.id, newStatus: 'canceled' }),
             });
+            const result = await response.json();
             if (response.ok) {
-                toast({ title: 'অর্ডার বাতিল করা হয়েছে' });
-                fetchOrders();
+                toast({ title: 'অর্ডারটি সফলভাবে বাতিল করা হয়েছে' });
+                setOrderToCancel(null);
+                await fetchOrders();
             } else {
-                const res = await response.json();
-                throw new Error(res.error);
+                throw new Error(result.error || 'Failed to cancel order');
             }
         } catch (err: any) {
-            toast({ variant: 'destructive', title: 'Error canceling order', description: err.message });
+            toast({ variant: 'destructive', title: 'Error', description: err.message });
+        } finally {
+            setIsCancelling(false);
         }
     };
     
@@ -133,87 +137,171 @@ export default function OrdersPage() {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t_profile.myOrders}</CardTitle>
-                <CardDescription>{t_profile.myOrdersDesc}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {orders.length > 0 ? (
-                <>
-                {/* Desktop View: Table */}
-                <div className="hidden md:block">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>{t_profile.orderId}</TableHead>
-                                <TableHead>{t_profile.date}</TableHead>
-                                <TableHead>{t_profile.status}</TableHead>
-                                <TableHead>{t_profile.total}</TableHead>
-                                <TableHead className="text-right">{t_profile.actions}</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {orders.map(order => (
-                                <TableRow key={order.id}>
-                                    <TableCell className="font-medium">{order.order_number}</TableCell>
-                                    <TableCell>{format(new Date(order.created_at), 'PPp', { locale: bn })}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
-                                    </TableCell>
-                                    <TableCell>{order.total.toFixed(2)} BDT</TableCell>
-                                    <TableCell className="text-right space-x-2">
-                                        <Button variant="outline" size="sm" asChild>
-                                            <Link href={`/profile/orders/${order.id}`}>
-                                                <Eye className="mr-2 h-4 w-4" />
-                                                {t_profile.details}
-                                            </Link>
-                                        </Button>
-                                        <Button variant="destructive" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={!isCancellable(order.status)}>
-                                            <XCircle className="mr-2 h-4 w-4" />
-                                            {t_profile.cancel}
-                                        </Button>
-                                    </TableCell>
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t_profile.myOrders}</CardTitle>
+                    <CardDescription>{t_profile.myOrdersDesc}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {orders.length > 0 ? (
+                    <>
+                    {/* Desktop View: Table */}
+                    <div className="hidden md:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>{t_profile.orderId}</TableHead>
+                                    <TableHead>{t_profile.date}</TableHead>
+                                    <TableHead>{t_profile.status}</TableHead>
+                                    <TableHead>{t_profile.total}</TableHead>
+                                    <TableHead className="text-right">{t_profile.actions}</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                            </TableHeader>
+                            <TableBody>
+                                {orders.map(order => (
+                                    <TableRow key={order.id}>
+                                        <TableCell className="font-medium">{order.order_number}</TableCell>
+                                        <TableCell>{format(new Date(order.created_at), 'PPp', { locale: bn })}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
+                                        </TableCell>
+                                        <TableCell>{order.total.toFixed(2)} BDT</TableCell>
+                                        <TableCell className="text-right space-x-2">
+                                            <Button variant="outline" size="sm" asChild>
+                                                <Link href={`/profile/orders/${order.id}`}>
+                                                    <Eye className="mr-2 h-4 w-4" />
+                                                    {t_profile.details}
+                                                </Link>
+                                            </Button>
+                                            <Button 
+                                                variant="destructive" 
+                                                size="sm" 
+                                                onClick={() => setOrderToCancel(order)} 
+                                                disabled={!isCancellable(order.status)}
+                                            >
+                                                <XCircle className="mr-2 h-4 w-4" />
+                                                {t_profile.cancel}
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
 
-                {/* Mobile View: Cards */}
-                <div className="grid gap-4 md:hidden">
-                    {orders.map(order => (
-                        <Card key={order.id}>
-                            <CardHeader>
-                                <div className="flex justify-between items-center">
-                                    <CardTitle className="text-lg">{order.order_number}</CardTitle>
-                                    <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
+                    {/* Mobile View: Cards */}
+                    <div className="grid gap-4 md:hidden">
+                        {orders.map(order => (
+                            <Card key={order.id}>
+                                <CardHeader>
+                                    <div className="flex justify-between items-center">
+                                        <CardTitle className="text-lg">{order.order_number}</CardTitle>
+                                        <Badge variant={getStatusBadgeVariant(order.status)}>{translateStatus(order.status)}</Badge>
+                                    </div>
+                                    <CardDescription>{format(new Date(order.created_at), 'PPp', { locale: bn })}</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="font-semibold text-lg text-right">{order.total.toFixed(2)} BDT</p>
+                                </CardContent>
+                                <CardFooter className="flex justify-end gap-2">
+                                     <Button variant="outline" size="sm" asChild>
+                                        <Link href={`/profile/orders/${order.id}`}>
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            {t_profile.details}
+                                        </Link>
+                                    </Button>
+                                    <Button 
+                                        variant="destructive" 
+                                        size="sm" 
+                                        onClick={() => setOrderToCancel(order)} 
+                                        disabled={!isCancellable(order.status)}
+                                    >
+                                        <XCircle className="mr-2 h-4 w-4" />
+                                        {t_profile.cancel}
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                    </>
+                    ) : (
+                        <div className="text-center py-16">
+                            <p className="text-muted-foreground">আপনার কোনো অর্ডার পাওয়া যায়নি।</p>
+                            <Button asChild className="mt-4" variant="outline">
+                                <Link href="/products">কেনাকাটা শুরু করুন</Link>
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Custom Raw Tailwind Confirmation Dialog */}
+            {orderToCancel && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                        onClick={() => !isCancelling && setOrderToCancel(null)}
+                    />
+                    
+                    {/* Modal Content */}
+                    <div className="relative w-full max-w-md bg-background rounded-2xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3 text-destructive">
+                                <div className="p-2 bg-destructive/10 rounded-full">
+                                    <AlertTriangle className="h-6 w-6" />
                                 </div>
-                                <CardDescription>{format(new Date(order.created_at), 'PPp', { locale: bn })}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="font-semibold text-lg text-right">{order.total.toFixed(2)} BDT</p>
-                            </CardContent>
-                            <CardFooter className="flex justify-end gap-2">
-                                 <Button variant="outline" size="sm" asChild>
-                                    <Link href={`/profile/orders/${order.id}`}>
-                                        <Eye className="mr-2 h-4 w-4" />
-                                        {t_profile.details}
-                                    </Link>
-                                </Button>
-                                <Button variant="destructive" size="sm" onClick={() => handleCancelOrder(order.id)} disabled={!isCancellable(order.status)}>
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    {t_profile.cancel}
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                                <h3 className="text-xl font-bold">অর্ডার বাতিল নিশ্চিত করুন</h3>
+                            </div>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="rounded-full" 
+                                onClick={() => setOrderToCancel(null)}
+                                disabled={isCancelling}
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        
+                        <div className="space-y-4 mb-8">
+                            <p className="text-muted-foreground leading-relaxed">
+                                আপনি কি নিশ্চিত যে আপনি অর্ডার <span className="font-bold text-foreground">#{orderToCancel.order_number}</span> বাতিল করতে চান? এই কাজটি আর ফেরানো সম্ভব হবে না।
+                            </p>
+                            <div className="p-3 bg-muted/50 rounded-lg border text-sm">
+                                <div className="flex justify-between">
+                                    <span>মোট মূল্য:</span>
+                                    <span className="font-bold">{orderToCancel.total.toFixed(2)} BDT</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <Button 
+                                variant="outline" 
+                                className="flex-1 rounded-xl h-11"
+                                onClick={() => setOrderToCancel(null)}
+                                disabled={isCancelling}
+                            >
+                                ফিরে যান
+                            </Button>
+                            <Button 
+                                variant="destructive" 
+                                className="flex-1 rounded-xl h-11 shadow-lg shadow-destructive/20"
+                                onClick={handleCancelOrder}
+                                disabled={isCancelling}
+                            >
+                                {isCancelling ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> বাতিল হচ্ছে...</>
+                                ) : (
+                                    'হ্যাঁ, বাতিল করুন'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
                 </div>
-                </>
-                ) : (
-                    <p className="text-muted-foreground text-center py-8">You have no orders yet.</p>
-                )}
-            </CardContent>
-        </Card>
+            )}
+        </>
     )
 }
