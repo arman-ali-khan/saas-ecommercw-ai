@@ -281,7 +281,7 @@ export function ShowcaseOrderBlock({
 
                         <div className="flex justify-between items-center px-6 py-4 bg-primary/10 rounded-2xl border-2 border-primary/20 shadow-inner">
                             <span className="font-bold text-sm sm:text-base text-foreground/80">পণ্যের মোট মূল্য (Subtotal):</span>
-                            <span className="text-xl sm:text-2xl font-black text-primary">{subtotal.toFixed(2)} BDT</span>
+                            <span className="text-sm sm:text-xl font-black text-primary">{subtotal.toFixed(2)} BDT</span>
                         </div>
 
                         <Separator className="opacity-50" />

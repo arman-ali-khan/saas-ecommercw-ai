@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -512,7 +511,7 @@ export default function SaasLandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background selection:bg-primary/30">
+    <div id="root-main" className="min-h-screen bg-background selection:bg-primary/30">
       <SaasHeader />
       
       {/* Background blobs for modern feel */}

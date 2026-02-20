@@ -9,6 +9,7 @@ import CustomTopLoader from '@/components/custom-top-loader';
 import { allFontVariables } from '@/lib/fonts';
 import { Analytics } from "@vercel/analytics/next"
 import Script from 'next/script';
+import SaasPreloader from '@/components/saas-preloader';
  
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
@@ -64,6 +65,7 @@ export default async function RootLayout({
     <html lang="en" className={`${allFontVariables} dark`} suppressHydrationWarning>
       <head />
       <body className="font-body antialiased bg-background text-foreground">
+        <SaasPreloader />
         <CustomTopLoader />
         <Analytics/>
         <AuthProvider>
