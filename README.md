@@ -1,6 +1,20 @@
-# Firebase Studio
+# Firebase Studio - Bangla Naturals E-commerce Platform
 
-This is a NextJS starter in Firebase Studio.
+এটি একটি আধুনিক মাল্টি-টিন্যান্ট ই-কমার্স প্ল্যাটফর্ম।
 
-To get started, take a look at src/app/page.tsx.
-/
+## সিকিউরিটি এবং ডাটাবেস সেটআপ
+
+সুপাবেস (Supabase) ড্যাশবোর্ডে RLS বা Function Search Path নিয়ে কোনো ওয়ার্নিং দেখলে নিচের ধাপগুলো অনুসরণ করুন:
+
+১. আপনার **Supabase Dashboard**-এ যান।
+২. বাম পাশের মেনু থেকে **SQL Editor** সেকশনে যান।
+৩. এই প্রকল্পের রুট ডিরেক্টরিতে থাকা `supabase_security_fixes.sql` ফাইলটি ওপেন করুন।
+৪. ভেতরের কোডটুকু কপি করে সুপাবেস এডিটরে পেস্ট করুন এবং **Run** বাটনে ক্লিক করুন।
+
+### এটি কেন প্রয়োজন:
+- **RLS on `uncompleted_orders`**: এটি নিশ্চিত করে যে আপনার পরিত্যক্ত কার্ট (Abandoned Cart) বা অসম্পূর্ণ অর্ডারের ডাটা সাধারণ ইন্টারনেটে কেউ দেখতে পাবে না।
+- **Function `search_path`**: এটি আপনার ডাটাবেস ট্র্রিগার ফাংশনগুলোকে আরও সুরক্ষিত করে যাতে হ্যাকাররা সিস্টেমের কোনো ক্ষতি করতে না পারে।
+
+## শুরু করার নিয়ম
+
+অ্যাপটি ডেভেলপমেন্ট মোডে রান করতে `npm run dev` কমান্ডটি ব্যবহার করুন। মূল কোড দেখতে `src/app/page.tsx` ফাইলটি দেখুন।
