@@ -1,36 +1,53 @@
+-- supabase_security_fixes.sql
+-- Run this script in your Supabase SQL Editor to fix reported security issues.
 
--- সুপাবেস সিকিউরিটি এবং আরএলএস (RLS) ফিক্স স্ক্রিপ্ট
--- এই স্ক্রিপ্টটি আপনার ডাটাবেসের নিরাপত্তা নিশ্চিত করবে।
-
--- ১. ফাংশন সিকিউরিটি (search_path ফিক্স)
--- এটি search_path হাইজ্যাকিং প্রতিরোধ করে।
+-- 1. Fix Function Search Paths (Prevents Search Path Hijacking)
 ALTER FUNCTION public.handle_updated_at() SET search_path = public;
 ALTER FUNCTION public.handle_page_updated_at() SET search_path = public;
 
--- ২. uncompleted_orders টেবিল সুরক্ষা
-ALTER TABLE public.uncompleted_orders ENABLE ROW LEVEL SECURITY;
--- পুরনো অনিরাপদ পলিসি মুছে ফেলা হচ্ছে (যদি থাকে)
-DROP POLICY IF EXISTS "Anyone can create uncompleted orders" ON public.uncompleted_orders;
-DROP POLICY IF EXISTS "Admins can view all uncompleted orders" ON public.uncompleted_orders;
-
--- ৩. saas_reviews টেবিল সুরক্ষা
+-- 2. Secure "saas_reviews" Table
 ALTER TABLE public.saas_reviews ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Enable insert for all users" ON public.saas_reviews;
+
 DROP POLICY IF EXISTS "Public can view approved reviews" ON public.saas_reviews;
-CREATE POLICY "Public can view approved reviews" ON public.saas_reviews FOR SELECT USING (is_approved = true);
+CREATE POLICY "Public can view approved reviews" ON public.saas_reviews
+    FOR SELECT USING (is_approved = true);
+
 DROP POLICY IF EXISTS "Anyone can submit a review" ON public.saas_reviews;
-CREATE POLICY "Anyone can submit a review" ON public.saas_reviews FOR INSERT WITH CHECK (is_approved = false);
+CREATE POLICY "Anyone can submit a review" ON public.saas_reviews
+    FOR INSERT WITH CHECK (is_approved = false);
 
--- ৪. customer_addresses টেবিল সুরক্ষা
+-- 3. Secure "customer_addresses" Table
 ALTER TABLE public.customer_addresses ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "Allow all access for ALL" ON public.customer_addresses;
+-- We rely on Service Role for API access, so no public policies are needed.
 
--- ৫. live_chat_messages টেবিল সুরক্ষা
+-- 4. Secure "live_chat_messages" Table
 ALTER TABLE public.live_chat_messages ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public can read and write messages for ALL" ON public.live_chat_messages;
-DROP POLICY IF EXISTS "Anyone can insert messages" ON public.live_chat_messages;
-CREATE POLICY "Anyone can insert messages" ON public.live_chat_messages FOR INSERT WITH CHECK (true);
 
--- ৬. order_items টেবিল সুরক্ষা
+DROP POLICY IF EXISTS "Public can read and write messages" ON public.live_chat_messages;
+
+DROP POLICY IF EXISTS "Anyone can send a message" ON public.live_chat_messages;
+CREATE POLICY "Anyone can send a message" ON public.live_chat_messages
+    FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins can manage messages" ON public.live_chat_messages;
+-- This will be handled by Service Role in the API, but you can add specific admin policies here if needed.
+
+-- 5. Secure "order_items" Table
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "Allow public insert for order_items" ON public.order_items;
+-- Access is managed via Service Role in the API.
+
+-- 6. Secure "uncompleted_orders" Table
+ALTER TABLE public.uncompleted_orders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can create uncompleted orders" ON public.uncompleted_orders;
+-- Access is managed via Service Role in the API.
+
+-- 7. Secure "orders" Table
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow all inserts for orders" ON public.orders;
+-- Access is managed via Service Role in the API.
