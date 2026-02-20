@@ -235,7 +235,7 @@ export function ShowcaseOrderBlock({
                                                 <p className="text-sm sm:text-base text-primary font-black mt-1">{mainProduct.price.toFixed(2)} BDT</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 bg-background rounded-xl border p-1 shadow-sm shrink-0">
+                                        <div className="flex items-center flex-col gap-2 bg-background rounded-xl border p-1 shadow-sm shrink-0">
                                             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" onClick={() => handleQuantityChange(mainProduct.id, (quantities[mainProduct.id] || 0) - 1)}><Minus className="h-4 w-4" /></Button>
                                             <span className="w-8 sm:w-10 text-center font-black text-sm sm:text-base">{quantities[mainProduct.id] || 0}</span>
                                             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" onClick={() => handleQuantityChange(mainProduct.id, (quantities[mainProduct.id] || 0) + 1)}><Plus className="h-4 w-4" /></Button>
@@ -257,7 +257,7 @@ export function ShowcaseOrderBlock({
                                     
                                     <div className="grid gap-3">
                                         {optionalProducts.map(p => (
-                                            <div key={p.id} className="flex gap-4 items-center justify-between p-3 rounded-xl border bg-card/50 hover:bg-card hover:border-primary/30 transition-all group shadow-sm">
+                                            <div key={p.id} className="flex gap-4 items-center w-fit justify-between p-3 rounded-xl border bg-card/50 hover:bg-card hover:border-primary/30 transition-all group shadow-sm">
                                                 <div className="flex gap-4 items-center flex-grow min-w-0">
                                                     <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0">
                                                         <Image src={p.images[0].imageUrl} alt={p.name} fill className="rounded-lg object-cover aspect-square border" />
