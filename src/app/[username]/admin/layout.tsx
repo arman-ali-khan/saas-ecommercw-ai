@@ -5,6 +5,7 @@ import AdminBottomNav from '@/components/admin-bottom-nav';
 import AdminHeader from '@/components/admin-header';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal, Loader2, AlertCircle, Bell, X } from 'lucide-react';
 import { useEffect, useMemo, useState, useCallback } from 'react';
@@ -23,8 +24,26 @@ export default function AdminLayout({
   const router = useRouter();
   const username = params.username as string;
   const { user, loading } = useAuth();
+  const { setSidebarCounts } = useAdminStore();
   
   const [saasNotifications, setSaasNotifications] = useState<Notification[]>([]);
+
+  const fetchSidebarCounts = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+        const response = await fetch('/api/admin/dashboard-counts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        const result = await response.json();
+        if (response.ok && result.counts) {
+            setSidebarCounts(result.counts);
+        }
+    } catch (error) {
+        console.error("Failed to fetch sidebar counts:", error);
+    }
+  }, [user?.id, setSidebarCounts]);
 
   const fetchSaasNotifications = useCallback(async () => {
     if (!user?.id) return;
@@ -50,8 +69,13 @@ export default function AdminLayout({
   useEffect(() => {
     if (user && pathname !== `/admin/login`) {
       fetchSaasNotifications();
+      fetchSidebarCounts();
+      
+      // Setup interval for counts refresh
+      const interval = setInterval(fetchSidebarCounts, 30000);
+      return () => clearInterval(interval);
     }
-  }, [user, pathname, fetchSaasNotifications]);
+  }, [user, pathname, fetchSaasNotifications, fetchSidebarCounts]);
 
   const dismissNotification = async (id: string) => {
     setSaasNotifications(prev => prev.filter(n => n.id !== id));
@@ -99,8 +123,6 @@ export default function AdminLayout({
     return <>{children}</>;
   }
 
-  // Only show full-screen loader if loading AND no user exists in memory.
-  // This prevents the flicker when navigating or switching browser tabs.
   if (loading && !user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">

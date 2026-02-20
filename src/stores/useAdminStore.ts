@@ -5,7 +5,6 @@ import type {
     Order, 
     Product, 
     Category, 
-    CustomerProfile, 
     ShippingZone, 
     CarouselSlide, 
     FlashDeal, 
@@ -30,6 +29,15 @@ interface DashboardStats {
     unansweredQuestions: any[];
 }
 
+interface SidebarCounts {
+    processingOrders: number;
+    unreadNotifications: number;
+    unviewedUncompleted: number;
+    totalCustomers: number;
+    pendingReviews: number;
+    pendingQna: number;
+}
+
 interface AdminState {
     // Entities
     dashboard: DashboardStats | null;
@@ -43,6 +51,7 @@ interface AdminState {
     features: StoreFeature[];
     attributes: ProductAttribute[];
     pages: Page[];
+    sidebarCounts: SidebarCounts;
     
     // Fetch Status (Timestamps)
     lastFetched: Record<string, number>;
@@ -59,6 +68,7 @@ interface AdminState {
     setFeatures: (features: StoreFeature[]) => void;
     setAttributes: (attributes: ProductAttribute[]) => void;
     setPages: (pages: Page[]) => void;
+    setSidebarCounts: (counts: SidebarCounts) => void;
     
     invalidateEntity: (entity: string) => void;
     clearStore: () => void;
@@ -76,6 +86,16 @@ const INITIAL_LAST_FETCHED = {
     features: 0,
     attributes: 0,
     pages: 0,
+    sidebarCounts: 0,
+};
+
+const INITIAL_SIDEBAR_COUNTS = {
+    processingOrders: 0,
+    unreadNotifications: 0,
+    unviewedUncompleted: 0,
+    totalCustomers: 0,
+    pendingReviews: 0,
+    pendingQna: 0,
 };
 
 export const useAdminStore = create<AdminState>()((set) => ({
@@ -90,6 +110,7 @@ export const useAdminStore = create<AdminState>()((set) => ({
     features: [],
     attributes: [],
     pages: [],
+    sidebarCounts: INITIAL_SIDEBAR_COUNTS,
     
     lastFetched: INITIAL_LAST_FETCHED,
 
@@ -148,6 +169,11 @@ export const useAdminStore = create<AdminState>()((set) => ({
         lastFetched: { ...state.lastFetched, pages: Date.now() } 
     })),
 
+    setSidebarCounts: (sidebarCounts) => set((state) => ({
+        sidebarCounts,
+        lastFetched: { ...state.lastFetched, sidebarCounts: Date.now() }
+    })),
+
     invalidateEntity: (entity) => set((state) => ({
         lastFetched: { ...state.lastFetched, [entity]: 0 }
     })),
@@ -164,6 +190,7 @@ export const useAdminStore = create<AdminState>()((set) => ({
         features: [],
         attributes: [],
         pages: [],
+        sidebarCounts: INITIAL_SIDEBAR_COUNTS,
         lastFetched: INITIAL_LAST_FETCHED,
     })
 }));

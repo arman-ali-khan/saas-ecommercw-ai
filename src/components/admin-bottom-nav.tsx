@@ -21,39 +21,12 @@ import {
 } from '@/components/ui/sheet';
 import AdminMobileSidebar from './admin-mobile-sidebar';
 import { useAuth } from '@/stores/auth';
-import { useEffect, useState, useCallback } from 'react';
+import { useAdminStore } from '@/stores/useAdminStore';
 
 export default function AdminBottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
-  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-
-  const fetchCounts = useCallback(async () => {
-    const siteId = user?.id;
-    if (!siteId) return;
-
-    try {
-        const response = await fetch('/api/admin/dashboard-counts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId }),
-        });
-        const result = await response.json();
-        
-        if (response.ok && result.counts) {
-            setProcessingOrdersCount(result.counts.processingOrders);
-            setUnreadNotificationsCount(result.counts.unreadNotifications);
-        }
-    } catch (error) {
-        console.error("Failed to fetch dashboard counts (bottom nav):", error);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (!user) return;
-    fetchCounts();
-  }, [user, fetchCounts]);
+  const { sidebarCounts } = useAdminStore();
 
   const navLinks = [
     {
@@ -65,13 +38,13 @@ export default function AdminBottomNav() {
       href: `/admin/orders`,
       label: 'Orders',
       icon: ShoppingBag,
-      count: processingOrdersCount,
+      count: sidebarCounts.processingOrders,
     },
     {
       href: `/admin/notifications`,
       label: 'Inbox',
       icon: Bell,
-      count: unreadNotificationsCount,
+      count: sidebarCounts.unreadNotifications,
     },
     {
       href: `/admin`,

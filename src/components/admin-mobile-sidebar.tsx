@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -29,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { SheetClose } from './ui/sheet';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -49,83 +49,8 @@ export default function AdminMobileSidebar() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading, logout: authLogout } = useAuth();
-  const [processingOrdersCount, setProcessingOrdersCount] = useState(0);
-  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-  const [unviewedUncompletedCount, setUnviewedUncompletedCount] = useState(0);
-  const [totalCustomersCount, setTotalCustomersCount] = useState(0);
-  const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
-  const [pendingQnaCount, setPendingQnaCount] = useState(0);
+  const { sidebarCounts } = useAdminStore();
 
-  const fetchAllData = useCallback(async () => {
-    const siteId = user?.id;
-    if (!siteId) return;
-
-    try {
-        const response = await fetch('/api/admin/dashboard-counts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId }),
-        });
-        const result = await response.json();
-        
-        if (response.ok && result.counts) {
-            const { counts } = result;
-            setProcessingOrdersCount(counts.processingOrders);
-            setUnreadNotificationsCount(counts.unreadNotifications);
-            setUnviewedUncompletedCount(counts.unviewedUncompleted);
-            setTotalCustomersCount(counts.totalCustomers);
-            setPendingReviewsCount(counts.pendingReviews);
-            setPendingQnaCount(counts.pendingQna);
-        }
-    } catch (error) {
-        console.error("Failed to fetch dashboard counts (mobile):", error);
-    }
-  }, [user?.id]);
-  
-  useEffect(() => {
-    if (user?.id) {
-        fetchAllData();
-
-        const notificationsChannel = supabase
-          .channel(`admin-mobile-sidebar-notifications-${user.id}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'notifications',
-              filter: `recipient_id=eq.${user.id}`,
-            },
-            (payload) => {
-              toast({ title: 'New Notification', description: (payload.new as any).message });
-              fetchAllData();
-            }
-          )
-          .subscribe();
-
-        const uncompletedOrdersChannel = supabase
-          .channel(`admin-mobile-sidebar-uncompleted-${user.id}`)
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'uncompleted_orders',
-              filter: `site_id=eq.${user.id}`,
-            },
-            () => {
-              fetchAllData();
-            }
-          )
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(notificationsChannel);
-          supabase.removeChannel(uncompletedOrdersChannel);
-        };
-    }
-  }, [user?.id, fetchAllData, toast]);
-  
   if (loading || !user) {
     return null;
   }
@@ -163,19 +88,19 @@ export default function AdminMobileSidebar() {
   const adminNavLinks = [
     { href: `/`, label: 'View Store', icon: Home },
     { href: `/admin`, label: 'Dashboard', icon: LayoutDashboard },
-    { href: `/admin/notifications`, label: 'Notifications', icon: Bell, count: unreadNotificationsCount },
+    { href: `/admin/notifications`, label: 'Notifications', icon: Bell, count: sidebarCounts.unreadNotifications },
     { href: `/admin/categories`, label: 'Categories', icon: Tags },
-    { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: processingOrdersCount },
-    { href: `/admin/customers`, label: 'Customers', icon: Users, count: totalCustomersCount, countVariant: 'neutral' as const },
+    { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: sidebarCounts.processingOrders },
+    { href: `/admin/customers`, label: 'Customers', icon: Users, count: sidebarCounts.totalCustomers, countVariant: 'neutral' as const },
     { href: `/admin/shipping`, label: 'Shipping', icon: Truck },
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
-    { href: `/admin/reviews`, label: 'Reviews', icon: Star, count: pendingReviewsCount },
-    { href: `/admin/qna`, label: 'Q&A', icon: HelpCircle, count: pendingQnaCount },
+    { href: `/admin/reviews`, label: 'Reviews', icon: Star, count: sidebarCounts.pendingReviews },
+    { href: `/admin/qna`, label: 'Q&A', icon: HelpCircle, count: sidebarCounts.pendingQna },
     { href: `/admin/features`, label: 'Store Features', icon: Sparkles },
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
-    { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: unviewedUncompletedCount },
+    { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: sidebarCounts.unviewedUncompleted },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
   ];
   
