@@ -18,9 +18,10 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Loader2, Package, User, MapPin, Phone, Mail, CreditCard, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Package, User, MapPin, Phone, Mail, CreditCard, CheckCircle, XCircle, AlertTriangle, X } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import type { Order } from '@/types';
+import { cn } from '@/lib/utils';
 
 export default function OrderDetailsPage() {
     const params = useParams();
@@ -34,6 +35,7 @@ export default function OrderDetailsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [actionTarget, setActionTarget] = useState<string | null>(null);
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     
     const translateStatus = (status: string): string => {
         switch (status.toLowerCase()) {
@@ -105,6 +107,9 @@ export default function OrderDetailsPage() {
             
             toast({ title: 'Order status updated!' });
             setOrder(result.order as Order);
+            if (newStatus === 'canceled') {
+                setIsCancelModalOpen(false);
+            }
 
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error updating status', description: error.message });
@@ -264,8 +269,7 @@ export default function OrderDetailsPage() {
                             )}
                             
                             {order.status !== 'delivered' && order.status !== 'canceled' && (
-                                <Button variant="destructive" onClick={() => handleUpdateStatus('canceled')} disabled={isActionLoading}>
-                                    {isActionLoading && actionTarget === 'canceled' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button variant="destructive" onClick={() => setIsCancelModalOpen(true)} disabled={isActionLoading}>
                                     অর্ডার বাতিল করুন
                                 </Button>
                             )}
@@ -331,6 +335,65 @@ export default function OrderDetailsPage() {
                     </Card>
                  </div>
             </div>
+
+            {/* Custom Raw Tailwind Confirmation Dialog */}
+            {isCancelModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                        onClick={() => !isActionLoading && setIsCancelModalOpen(false)}
+                    />
+                    
+                    <div className="relative w-full max-w-md bg-background rounded-2xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3 text-destructive">
+                                <div className="p-2 bg-destructive/10 rounded-full">
+                                    <AlertTriangle className="h-6 w-6" />
+                                </div>
+                                <h3 className="text-xl font-bold">অর্ডার বাতিল নিশ্চিত করুন</h3>
+                            </div>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="rounded-full" 
+                                onClick={() => setIsCancelModalOpen(false)}
+                                disabled={isActionLoading}
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        
+                        <div className="space-y-4 mb-8">
+                            <p className="text-muted-foreground leading-relaxed">
+                                আপনি কি নিশ্চিত যে আপনি অর্ডার <span className="font-bold text-foreground">#{order.order_number}</span> বাতিল করতে চান? এর ফলে পণ্যের স্টক পুনরায় আপডেট হতে পারে (যদি আগে কমানো হয়ে থাকে)।
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <Button 
+                                variant="outline" 
+                                className="flex-1 rounded-xl h-11"
+                                onClick={() => setIsCancelModalOpen(false)}
+                                disabled={isActionLoading}
+                            >
+                                ফিরে যান
+                            </Button>
+                            <Button 
+                                variant="destructive" 
+                                className="flex-1 rounded-xl h-11 shadow-lg shadow-destructive/20"
+                                onClick={() => handleUpdateStatus('canceled')}
+                                disabled={isActionLoading}
+                            >
+                                {isActionLoading ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> বাতিল হচ্ছে...</>
+                                ) : (
+                                    'হ্যাঁ, বাতিল করুন'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
