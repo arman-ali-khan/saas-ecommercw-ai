@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
     Table,
@@ -26,14 +27,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Mail, Eye, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Mail, Eye, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
+const ITEMS_PER_PAGE = 10;
 
 export default function UncompletedOrdersPage() {
     const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const [uncompletedOrders, setUncompletedOrders] = useState<UncompletedOrder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
     
     const fetchUncompletedOrders = useCallback(async () => {
         if (!user) return;
@@ -103,6 +106,11 @@ export default function UncompletedOrdersPage() {
         }
       };
 
+    const totalPages = Math.ceil(uncompletedOrders.length / ITEMS_PER_PAGE);
+    const paginatedOrders = useMemo(() => {
+        return uncompletedOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    }, [uncompletedOrders, currentPage]);
+
     if (isLoading) {
         return (
              <Card>
@@ -140,7 +148,7 @@ export default function UncompletedOrdersPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {uncompletedOrders.map(order => (
+                                {paginatedOrders.map(order => (
                                     <TableRow key={order.id}>
                                         <TableCell className="font-medium font-mono text-xs">{order.id.split('-')[0]}</TableCell>
                                         <TableCell>{order.customer_info?.name || 'Unknown Visitor'}</TableCell>
@@ -180,7 +188,7 @@ export default function UncompletedOrdersPage() {
 
                     {/* Mobile View: Cards */}
                     <div className="grid gap-4 md:hidden">
-                        {uncompletedOrders.map(order => (
+                        {paginatedOrders.map(order => (
                             <Card key={order.id}>
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
@@ -222,6 +230,17 @@ export default function UncompletedOrdersPage() {
                     <p className="text-muted-foreground text-center py-8">কোনো অসম্পূর্ণ অর্ডার পাওয়া যায়নি।</p>
                 )}
             </CardContent>
+            {totalPages > 1 && (
+                <CardFooter className="flex justify-center gap-4 py-4 border-t">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                        আগেরটি
+                    </Button>
+                    <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                        পরবর্তী
+                    </Button>
+                </CardFooter>
+            )}
         </Card>
     )
 }

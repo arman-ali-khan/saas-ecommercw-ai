@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
@@ -15,6 +16,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
     Table,
@@ -26,9 +28,10 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Loader2 } from 'lucide-react';
+import { Eye, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const translations = { en, bn };
+const ITEMS_PER_PAGE = 10;
 
 export default function OrdersAdminPage() {
     const { user } = useAuth();
@@ -40,6 +43,7 @@ export default function OrdersAdminPage() {
         const currentStore = useAdminStore.getState();
         return currentStore.orders.length === 0;
     });
+    const [currentPage, setCurrentPage] = useState(1);
     
     const lang = user?.language || 'bn';
     const currentTranslations = translations[lang as keyof typeof translations]?.orders || translations.bn.orders;
@@ -106,6 +110,11 @@ export default function OrdersAdminPage() {
             default: return 'outline';
         }
     };
+
+    const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
+    const paginatedOrders = useMemo(() => {
+        return orders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    }, [orders, currentPage]);
     
     if (isLoading && orders.length === 0) {
         return (
@@ -143,7 +152,7 @@ export default function OrdersAdminPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {orders.map(orderItem => (
+                                {paginatedOrders.map(orderItem => (
                                     <TableRow key={orderItem.id}>
                                         <TableCell className="font-medium">{orderItem.order_number}</TableCell>
                                         <TableCell>
@@ -170,7 +179,7 @@ export default function OrdersAdminPage() {
                     </div>
 
                     <div className="grid gap-4 md:hidden">
-                        {orders.map(orderItem => (
+                        {paginatedOrders.map(orderItem => (
                             <Card key={orderItem.id}>
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
@@ -206,6 +215,17 @@ export default function OrdersAdminPage() {
                     <p className="text-muted-foreground text-center py-8">{currentTranslations.noOrders}</p>
                 )}
             </CardContent>
+            {totalPages > 1 && (
+                <CardFooter className="flex justify-center gap-4 py-4 border-t">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                        আগেরটি
+                    </Button>
+                    <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                        পরবর্তী
+                    </Button>
+                </CardFooter>
+            )}
         </Card>
     )
 }

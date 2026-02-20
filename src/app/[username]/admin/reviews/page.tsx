@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -13,7 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Loader2, Trash2, CheckCircle, Star, Plus, Edit, X } from 'lucide-react';
+import { Loader2, Trash2, CheckCircle, Star, Plus, Edit, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,6 +54,7 @@ const reviewFormSchema = z.object({
 });
 type ReviewFormData = z.infer<typeof reviewFormSchema>;
 
+const ITEMS_PER_PAGE = 9;
 
 export default function ReviewsAdminPage() {
   const { user, loading: authLoading } = useAuth();
@@ -61,6 +63,7 @@ export default function ReviewsAdminPage() {
   const [products, setProducts] = useState<Pick<Product, 'id' | 'name'>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   
   const [reviewToDelete, setReviewToDelete] = useState<ProductReview | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -219,7 +222,12 @@ export default function ReviewsAdminPage() {
       setIsActionLoading(false);
       setReviewToDelete(null);
     }
-  }
+  };
+
+  const totalPages = Math.ceil(reviews.length / ITEMS_PER_PAGE);
+  const paginatedReviews = useMemo(() => {
+    return reviews.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [reviews, currentPage]);
 
   if (isLoading) {
     return (
@@ -254,13 +262,13 @@ export default function ReviewsAdminPage() {
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {reviews.map(review => (
+              {paginatedReviews.map(review => (
                 <Card key={review.id} className="flex flex-col">
                   <CardHeader>
                     <div className="flex justify-between items-start">
                         <div>
                             <CardTitle>{review.customer_name}</CardTitle>
-                            <CardDescription>Product ID: {review.product_id}</CardDescription>
+                            <CardDescription className="truncate max-w-[150px]">Product ID: {review.product_id}</CardDescription>
                         </div>
                         <Badge variant={review.is_approved ? 'default' : 'secondary'}>
                             {review.is_approved ? 'Approved' : 'Pending'}
@@ -297,6 +305,17 @@ export default function ReviewsAdminPage() {
             </div>
           )}
         </CardContent>
+        {totalPages > 1 && (
+            <CardFooter className="flex justify-center gap-4 py-4 border-t">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    আগেরটি
+                </Button>
+                <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                    পরবর্তী
+                </Button>
+            </CardFooter>
+        )}
       </Card>
       
       {/* Custom Raw Tailwind Dialog (Bottom Sheet on Mobile) */}

@@ -7,15 +7,17 @@ import { useToast } from '@/hooks/use-toast';
 import type { ProductQna } from '@/types';
 import { format } from 'date-fns';
 import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Loader2, Trash2, Edit } from 'lucide-react';
+import { Loader2, Trash2, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+
+const ITEMS_PER_PAGE = 9;
 
 export default function QnaAdminPage() {
     const { user, loading: authLoading } = useAuth();
@@ -23,6 +25,8 @@ export default function QnaAdminPage() {
     const [qna, setQna] = useState<ProductQna[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isActionLoading, setIsActionLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [currentTab, setCurrentTab] = useState('pending');
     
     const [itemToDelete, setItemToDelete] = useState<ProductQna | null>(null);
     const [itemToAnswer, setItemToAnswer] = useState<ProductQna | null>(null);
@@ -64,6 +68,10 @@ export default function QnaAdminPage() {
             setAnswerText(itemToAnswer.answer || '');
         }
     }, [itemToAnswer]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [currentTab]);
 
     const handleAnswerSubmit = async () => {
         if (!itemToAnswer || !answerText.trim() || !user) return;
@@ -128,6 +136,12 @@ export default function QnaAdminPage() {
     const pendingQuestions = useMemo(() => qna.filter(q => !q.is_approved), [qna]);
     const approvedQuestions = useMemo(() => qna.filter(q => q.is_approved), [qna]);
 
+    const currentQuestions = currentTab === 'pending' ? pendingQuestions : approvedQuestions;
+    const totalPages = Math.ceil(currentQuestions.length / ITEMS_PER_PAGE);
+    const paginatedQuestions = useMemo(() => {
+        return currentQuestions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    }, [currentQuestions, currentPage]);
+
     const QnaCard = ({ item }: { item: ProductQna }) => (
         <Card className="flex flex-col h-full">
             <CardHeader>
@@ -184,16 +198,25 @@ export default function QnaAdminPage() {
                 </div>
             </div>
 
-            <Tabs defaultValue="pending">
+            <Tabs defaultValue="pending" onValueChange={setCurrentTab}>
                 <TabsList className="grid w-full grid-cols-2 max-w-md">
                     <TabsTrigger value="pending">Pending <Badge className="ml-2" variant="secondary">{pendingQuestions.length}</Badge></TabsTrigger>
                     <TabsTrigger value="approved">Approved <Badge className="ml-2" variant="outline">{approvedQuestions.length}</Badge></TabsTrigger>
                 </TabsList>
                 <TabsContent value="pending" className="mt-6">
                     {pendingQuestions.length > 0 ? (
-                        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                            {pendingQuestions.map(item => <QnaCard key={item.id} item={item} />)}
-                        </div>
+                        <>
+                            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                                {paginatedQuestions.map(item => <QnaCard key={item.id} item={item} />)}
+                            </div>
+                            {totalPages > 1 && (
+                                <div className="flex justify-center gap-4 mt-8">
+                                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>আগেরটি</Button>
+                                    <div className="text-sm self-center">পৃষ্ঠা {currentPage} / {totalPages}</div>
+                                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>পরবর্তী</Button>
+                                </div>
+                            )}
+                        </>
                     ) : (
                          <div className="text-center py-16 text-muted-foreground border rounded-lg border-dashed">
                             <p>No pending questions found.</p>
@@ -202,9 +225,18 @@ export default function QnaAdminPage() {
                 </TabsContent>
                  <TabsContent value="approved" className="mt-6">
                     {approvedQuestions.length > 0 ? (
-                        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                            {approvedQuestions.map(item => <QnaCard key={item.id} item={item} />)}
-                        </div>
+                        <>
+                            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                                {paginatedQuestions.map(item => <QnaCard key={item.id} item={item} />)}
+                            </div>
+                            {totalPages > 1 && (
+                                <div className="flex justify-center gap-4 mt-8">
+                                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>আগেরটি</Button>
+                                    <div className="text-sm self-center">পৃষ্ঠা {currentPage} / {totalPages}</div>
+                                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>পরবর্তী</Button>
+                                </div>
+                            )}
+                        </>
                     ) : (
                          <div className="text-center py-16 text-muted-foreground border rounded-lg border-dashed">
                             <p>No approved questions yet.</p>
@@ -214,7 +246,7 @@ export default function QnaAdminPage() {
             </Tabs>
             
             <Dialog open={!!itemToAnswer} onOpenChange={() => setItemToAnswer(null)}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className="sm:max-w-[90vw] md:max-w-xl rounded-xl">
                     <DialogHeader>
                         <DialogTitle>{itemToAnswer?.is_approved ? 'Edit Answer' : 'Answer Question'}</DialogTitle>
                     </DialogHeader>
@@ -234,7 +266,7 @@ export default function QnaAdminPage() {
                             />
                         </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="gap-2 sm:gap-0">
                         <Button variant="outline" onClick={() => setItemToAnswer(null)}>Cancel</Button>
                         <Button onClick={handleAnswerSubmit} disabled={isActionLoading || !answerText.trim()}>
                             {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -245,7 +277,7 @@ export default function QnaAdminPage() {
             </Dialog>
 
             <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
-                <AlertDialogContent>
+                <AlertDialogContent className="rounded-xl max-w-[90vw] sm:max-w-md">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>This will permanently delete this question. This action cannot be undone and the customer will not receive an answer.</AlertDialogDescription>

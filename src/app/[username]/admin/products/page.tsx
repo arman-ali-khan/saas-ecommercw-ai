@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -8,6 +9,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,17 +27,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import type { Product } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 
 const translations = { en, bn };
+const ITEMS_PER_PAGE = 10;
 
 export default function ProductsAdminPage() {
   const { user } = useAuth();
@@ -48,6 +51,7 @@ export default function ProductsAdminPage() {
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const lang = user?.language || 'bn';
   const currentTranslations = translations[lang as keyof typeof translations]?.products || translations.bn.products;
@@ -134,6 +138,11 @@ export default function ProductsAdminPage() {
     }
   };
 
+  const totalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
+  const paginatedProducts = useMemo(() => {
+    return products.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [products, currentPage]);
+
   if (isLoading && products.length === 0) {
     return (
       <div className="flex items-center justify-center p-16">
@@ -171,7 +180,7 @@ export default function ProductsAdminPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((productItem) => (
+                  {paginatedProducts.map((productItem) => (
                     <TableRow key={productItem.id}>
                       <TableCell>
                         <div className="relative h-12 w-12 rounded-md overflow-hidden">
@@ -197,10 +206,21 @@ export default function ProductsAdminPage() {
                 </TableBody>
               </Table>
             </CardContent>
+            {totalPages > 1 && (
+                <CardFooter className="flex justify-center gap-4 py-4 border-t">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                        <ChevronLeft className="h-4 w-4 mr-1" /> আগেরটি
+                    </Button>
+                    <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                        পরবর্তী <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                </CardFooter>
+            )}
           </Card>
 
           <div className="grid gap-4 md:hidden">
-            {products.map((productItem) => (
+            {paginatedProducts.map((productItem) => (
               <Card key={productItem.id}>
                 <CardHeader>
                   <div className="flex items-start gap-4">
@@ -222,6 +242,16 @@ export default function ProductsAdminPage() {
                 </CardHeader>
               </Card>
             ))}
+            {totalPages > 1 && (
+                <div className="flex justify-center gap-4 py-4">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                        আগেরটি
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                        পরবর্তী
+                    </Button>
+                </div>
+            )}
           </div>
         </>
       )}

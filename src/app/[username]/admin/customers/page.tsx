@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
@@ -12,6 +13,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -21,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Mail, MoreHorizontal, Eye } from 'lucide-react';
+import { Loader2, Mail, MoreHorizontal, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -29,12 +31,14 @@ import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 
 const translations = { en, bn };
+const ITEMS_PER_PAGE = 10;
 
 export default function CustomersAdminPage() {
   const { user } = useAuth();
   const { customers, setCustomers } = useAdminStore();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   
   const lang = user?.language || 'bn';
   const t = translations[lang].customers;
@@ -76,6 +80,11 @@ export default function CustomersAdminPage() {
     }
   }, [user, fetchCustomers]);
 
+  const totalPages = Math.ceil(customers.length / ITEMS_PER_PAGE);
+  const paginatedCustomers = useMemo(() => {
+    return customers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [customers, currentPage]);
+
   if (isLoading && customers.length === 0) {
     return (
       <Card>
@@ -116,7 +125,7 @@ export default function CustomersAdminPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {customers.map((customer) => (
+                  {paginatedCustomers.map((customer) => (
                     <TableRow key={customer.id}>
                       <TableCell className="font-medium flex items-center gap-3">
                         <Avatar className="h-9 w-9">
@@ -144,7 +153,7 @@ export default function CustomersAdminPage() {
               </Table>
             </div>
             <div className="grid gap-4 md:hidden">
-              {customers.map((customer) => (
+              {paginatedCustomers.map((customer) => (
                 <Card key={customer.id}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
@@ -181,6 +190,17 @@ export default function CustomersAdminPage() {
           </>
         )}
       </CardContent>
+      {totalPages > 1 && (
+        <CardFooter className="flex justify-center gap-4 py-4 border-t">
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                <ChevronLeft className="h-4 w-4 mr-1" /> আগেরটি
+            </Button>
+            <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                পরবর্তী <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 }
