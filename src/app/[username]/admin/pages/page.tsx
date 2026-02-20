@@ -37,7 +37,11 @@ export default function PagesAdminPage() {
   const { user } = useAuth();
   const { pages, setPages } = useAdminStore();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const [isLoading, setIsLoading] = useState(() => {
+    const store = useAdminStore.getState();
+    return store.pages.length === 0;
+  });
   const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -46,9 +50,16 @@ export default function PagesAdminPage() {
     
     const store = useAdminStore.getState();
     const isFresh = Date.now() - store.lastFetched.pages < 300000;
-    if (!force && store.pages.length > 0 && isFresh) return;
+    
+    if (!force && store.pages.length > 0 && isFresh) {
+        setIsLoading(false);
+        return;
+    }
 
-    setIsLoading(true);
+    if (store.pages.length === 0 || force) {
+        setIsLoading(true);
+    }
+
     try {
         const response = await fetch('/api/pages/list', {
             method: 'POST',
@@ -62,11 +73,13 @@ export default function PagesAdminPage() {
             throw new Error(result.error || 'Failed to fetch pages');
         }
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error fetching pages', description: error.message });
+      if (pages.length === 0) {
+          toast({ variant: 'destructive', title: 'Error fetching pages', description: error.message });
+      }
     } finally {
         setIsLoading(false);
     }
-  }, [user, setPages, toast]);
+  }, [user, setPages, toast, pages.length]);
 
   useEffect(() => {
     if (user) {

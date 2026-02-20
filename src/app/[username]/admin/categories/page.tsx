@@ -72,7 +72,11 @@ export default function CategoriesAdminPage() {
     const { user } = useAuth();
     const { categories, setCategories } = useAdminStore();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
+    
+    const [isLoading, setIsLoading] = useState(() => {
+        const store = useAdminStore.getState();
+        return store.categories.length === 0;
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -92,9 +96,16 @@ export default function CategoriesAdminPage() {
         
         const store = useAdminStore.getState();
         const isFresh = Date.now() - store.lastFetched.categories < 300000;
-        if (!force && store.categories.length > 0 && isFresh) return;
+        
+        if (!force && store.categories.length > 0 && isFresh) {
+            setIsLoading(false);
+            return;
+        }
 
-        setIsLoading(true);
+        if (store.categories.length === 0 || force) {
+            setIsLoading(true);
+        }
+
         try {
             const response = await fetch('/api/categories/list', {
                 method: 'POST',
@@ -108,11 +119,13 @@ export default function CategoriesAdminPage() {
                 throw new Error(result.error || 'Failed to fetch categories');
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error fetching categories', description: error.message });
+            if (categories.length === 0) {
+                toast({ variant: 'destructive', title: 'Error fetching categories', description: error.message });
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [user, setCategories, toast]);
+    }, [user, setCategories, toast, categories.length]);
 
     useEffect(() => {
         if(user) {

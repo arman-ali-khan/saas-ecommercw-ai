@@ -20,7 +20,11 @@ export default function FlashDealsAdminPage() {
     const { user } = useAuth();
     const { flashDeals: deals, setFlashDeals: setDeals } = useAdminStore();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
+    
+    const [isLoading, setIsLoading] = useState(() => {
+        const store = useAdminStore.getState();
+        return store.flashDeals.length === 0;
+    });
     const [isDeleting, setIsDeleting] = useState(false);
     const [dealToDelete, setDealToDelete] = useState<FlashDeal | null>(null);
 
@@ -29,9 +33,16 @@ export default function FlashDealsAdminPage() {
         
         const store = useAdminStore.getState();
         const isFresh = Date.now() - store.lastFetched.flashDeals < 300000;
-        if (!force && store.flashDeals.length > 0 && isFresh) return;
+        
+        if (!force && store.flashDeals.length > 0 && isFresh) {
+            setIsLoading(false);
+            return;
+        }
 
-        setIsLoading(true);
+        if (store.flashDeals.length === 0 || force) {
+            setIsLoading(true);
+        }
+
         try {
             const response = await fetch('/api/flash-deals/list', {
                 method: 'POST',
@@ -45,11 +56,13 @@ export default function FlashDealsAdminPage() {
                 throw new Error(result.error || 'Failed to fetch deals');
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error fetching deals', description: error.message });
+            if (deals.length === 0) {
+                toast({ variant: 'destructive', title: 'Error fetching deals', description: error.message });
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [user, setDeals, toast]);
+    }, [user, setDeals, toast, deals.length]);
 
     useEffect(() => {
         if (user) {

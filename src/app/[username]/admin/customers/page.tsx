@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -37,7 +36,11 @@ export default function CustomersAdminPage() {
   const { user } = useAuth();
   const { customers, setCustomers } = useAdminStore();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const [isLoading, setIsLoading] = useState(() => {
+    const currentStore = useAdminStore.getState();
+    return currentStore.customers.length === 0;
+  });
   const [currentPage, setCurrentPage] = useState(1);
   
   const lang = user?.language || 'bn';
@@ -48,9 +51,16 @@ export default function CustomersAdminPage() {
     
     const store = useAdminStore.getState();
     const isFresh = Date.now() - store.lastFetched.customers < 300000;
-    if (!force && store.customers.length > 0 && isFresh) return;
+    
+    if (!force && store.customers.length > 0 && isFresh) {
+        setIsLoading(false);
+        return;
+    }
 
-    setIsLoading(true);
+    if (store.customers.length === 0 || force) {
+        setIsLoading(true);
+    }
+
     try {
         const response = await fetch('/api/customers/list', {
             method: 'POST',
@@ -64,15 +74,17 @@ export default function CustomersAdminPage() {
             throw new Error(result.error || 'Failed to fetch customers');
         }
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error fetching customer data',
-        description: error.message,
-      });
+      if (customers.length === 0) {
+          toast({
+            variant: 'destructive',
+            title: 'Error fetching customer data',
+            description: error.message,
+          });
+      }
     } finally {
         setIsLoading(false);
     }
-  }, [user, setCustomers, toast]);
+  }, [user, setCustomers, toast, customers.length]);
 
   useEffect(() => {
     if (user) {

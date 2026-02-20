@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -34,13 +33,14 @@ export default function AdminDashboard() {
 
     const currentStore = useAdminStore.getState();
     const now = Date.now();
-    const isFresh = now - currentStore.lastFetched.dashboard < 300000;
+    const isFresh = now - currentStore.lastFetched.dashboard < 300000; // 5 minutes cache
     
     if (!force && currentStore.dashboard && isFresh) {
         setIsLoading(false);
         return;
     }
 
+    // Only show spinner if the store is empty
     if (!currentStore.dashboard) {
         setIsLoading(true);
     }
@@ -116,11 +116,13 @@ export default function AdminDashboard() {
         setDashboard(newDashboardData);
       } catch (error: any) {
         console.error("Dashboard Fetch Error:", error);
-        toast({ variant: 'destructive', title: 'Error loading dashboard', description: error.message });
+        if (!dashboard) {
+            toast({ variant: 'destructive', title: 'Error loading dashboard', description: error.message });
+        }
       } finally {
         setIsLoading(false);
     }
-  }, [user?.id, setDashboard, toast]);
+  }, [user?.id, setDashboard, toast, dashboard]);
 
   useEffect(() => {
     if (user?.id) {

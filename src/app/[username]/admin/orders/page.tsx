@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -38,7 +37,6 @@ export default function OrdersAdminPage() {
     const { orders, setOrders } = useAdminStore();
     const { toast } = useToast();
     
-    // Lazy initial state to check store before first render
     const [isLoading, setIsLoading] = useState(() => {
         const currentStore = useAdminStore.getState();
         return currentStore.orders.length === 0;
@@ -62,8 +60,7 @@ export default function OrdersAdminPage() {
             return;
         }
 
-        // Only show spinner if the store is empty
-        if (currentStore.orders.length === 0) {
+        if (currentStore.orders.length === 0 || force) {
             setIsLoading(true);
         }
 
@@ -80,11 +77,13 @@ export default function OrdersAdminPage() {
                 throw new Error(result.error || 'Failed to fetch orders');
             }
         } catch (error: any) {
-            console.error("Order fetch failed:", error);
+            if (orders.length === 0) {
+                console.error("Order fetch failed:", error);
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [user?.id, setOrders]);
+    }, [user?.id, setOrders, orders.length]);
 
     useEffect(() => {
         if (user?.id) {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -87,15 +86,17 @@ export default function ProductsAdminPage() {
             throw new Error(result.error || 'Failed to fetch products');
         }
     } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Error loading products',
-            description: error.message,
-        });
+        if (products.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Error loading products',
+                description: error.message,
+            });
+        }
     } finally {
         setIsLoading(false);
     }
-  }, [user?.id, setProducts, toast]);
+  }, [user?.id, setProducts, toast, products.length]);
 
   useEffect(() => {
     if (user?.id) {
@@ -209,11 +210,11 @@ export default function ProductsAdminPage() {
             {totalPages > 1 && (
                 <CardFooter className="flex justify-center gap-4 py-4 border-t">
                     <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                        <ChevronLeft className="h-4 w-4 mr-1" /> আগেরটি
+                        আগেরটি
                     </Button>
                     <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
                     <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                        পরবর্তী <ChevronRight className="h-4 w-4 ml-1" />
+                        পরবর্তী
                     </Button>
                 </CardFooter>
             )}

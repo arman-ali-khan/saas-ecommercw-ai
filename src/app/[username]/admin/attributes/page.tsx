@@ -37,7 +37,11 @@ export default function AttributesAdminPage() {
     const { user } = useAuth();
     const { attributes, setAttributes } = useAdminStore();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
+    
+    const [isLoading, setIsLoading] = useState(() => {
+        const store = useAdminStore.getState();
+        return store.attributes.length === 0;
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -54,9 +58,16 @@ export default function AttributesAdminPage() {
         
         const store = useAdminStore.getState();
         const isFresh = Date.now() - store.lastFetched.attributes < 300000;
-        if (!force && store.attributes.length > 0 && isFresh) return;
+        
+        if (!force && store.attributes.length > 0 && isFresh) {
+            setIsLoading(false);
+            return;
+        }
 
-        setIsLoading(true);
+        if (store.attributes.length === 0 || force) {
+            setIsLoading(true);
+        }
+
         try {
             const response = await fetch('/api/attributes/list', {
                 method: 'POST',
@@ -70,11 +81,13 @@ export default function AttributesAdminPage() {
                 throw new Error(result.error || 'Failed to fetch attributes');
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error fetching attributes', description: error.message });
+            if (attributes.length === 0) {
+                toast({ variant: 'destructive', title: 'Error fetching attributes', description: error.message });
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [user, setAttributes, toast]);
+    }, [user, setAttributes, toast, attributes.length]);
 
     useEffect(() => {
         if(user) {
