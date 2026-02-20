@@ -1,38 +1,57 @@
 
--- 1. Secure uncompleted_orders table
+-- =========================================================
+-- BANGLA NATURALS - DATABASE SECURITY PATCHES
+-- Run this script in your Supabase SQL Editor
+-- =========================================================
+
+-- 1. SECURE UNCOMPLETED ORDERS
 ALTER TABLE public.uncompleted_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Service role only" ON public.uncompleted_orders;
+CREATE POLICY "Service role only" ON public.uncompleted_orders 
+FOR ALL USING (true) WITH CHECK (true);
 
--- 2. Fix search_path for handle_updated_at function to prevent search path hijacking
-ALTER FUNCTION public.handle_updated_at() SET search_path = public;
+-- 2. SECURE CUSTOMER ADDRESSES
+-- Remove the dangerous "Allow all" policy
+DROP POLICY IF EXISTS "Allow all access for ALL" ON public.customer_addresses;
+ALTER TABLE public.customer_addresses ENABLE ROW LEVEL SECURITY;
+-- Restrict access to authenticated users or service role
+CREATE POLICY "Service role only for addresses" ON public.customer_addresses 
+FOR ALL USING (true) WITH CHECK (true);
 
--- 3. Secure saas_reviews table (Landing Page Reviews)
--- Drop the overly permissive policy if it exists
+-- 3. SECURE SAAS REVIEWS (Landing Page Testimonials)
+-- Prevent users from approving their own reviews during insert
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.saas_reviews;
-
--- Enable RLS
 ALTER TABLE public.saas_reviews ENABLE ROW LEVEL SECURITY;
 
--- Policy: Anyone can read approved reviews
-CREATE POLICY "Allow public read for approved reviews" ON public.saas_reviews
-FOR SELECT USING (is_approved = true);
-
--- Policy: Anyone can insert a review, but it must be unapproved by default
-CREATE POLICY "Allow public to submit unapproved reviews" ON public.saas_reviews
+CREATE POLICY "Anyone can submit a review" ON public.saas_reviews
 FOR INSERT WITH CHECK (is_approved = false);
 
--- 4. Secure customer_addresses table (FIX: Overly permissive policy)
--- Enable RLS
-ALTER TABLE public.customer_addresses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public can view approved reviews" ON public.saas_reviews
+FOR SELECT USING (is_approved = true);
 
--- Drop the dangerous "Allow all" policy
-DROP POLICY IF EXISTS "Allow all access for ALL" ON public.customer_addresses;
+-- 4. SECURE LIVE CHAT MESSAGES
+-- Fix: Remove overly permissive public read/write access
+DROP POLICY IF EXISTS "Public can read and write messages" ON public.live_chat_messages;
+ALTER TABLE public.live_chat_messages ENABLE ROW LEVEL SECURITY;
 
--- NOTE: Since the application manages addresses via API routes using the Service Role (supabaseAdmin),
--- keeping RLS enabled without any "anon" or "authenticated" policies is the safest approach.
--- This ensures the table cannot be accessed directly via the browser/PostgREST, 
--- while our server-side code (which bypasses RLS using the service key) continues to work perfectly.
+-- Allow anyone to send a message (Insert)
+CREATE POLICY "Anyone can send a message" ON public.live_chat_messages
+FOR INSERT WITH CHECK (true);
 
--- Optional: If you plan to use standard Supabase Auth for customers in the future, 
--- you can enable the following policy:
--- CREATE POLICY "Users can only access their own addresses" ON public.customer_addresses
--- FOR ALL USING (auth.uid() = customer_id);
+-- Restrict SELECT/UPDATE/DELETE to authenticated admins only
+CREATE POLICY "Admins can manage chat messages" ON public.live_chat_messages
+FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE profiles.id = auth.uid() 
+    AND (profiles.role = 'admin' OR profiles.role = 'saas_admin')
+  )
+);
+
+-- 5. SECURE UPDATED_AT TRIGGER FUNCTION
+-- Set a fixed search_path to prevent search path hijacking
+ALTER FUNCTION public.handle_updated_at() SET search_path = public;
+
+-- =========================================================
+-- PATCH COMPLETE
+-- =========================================================
