@@ -1,17 +1,30 @@
--- Supabase Security Hardening Script
--- আপনার সুপাবেস ড্যাশবোর্ডের SQL Editor-এ (https://supabase.com/dashboard/project/_/sql) এই কোডটি রান করুন।
-
--- ১. uncompleted_orders টেবিলে Row Level Security (RLS) এনাবল করা
--- এটি আপনার কাস্টমারদের সংবেদনশীল তথ্য (যেমন ফোন নম্বর, ঠিকানা) বাইরের অ্যাক্সেস থেকে রক্ষা করবে।
+-- ১. uncompleted_orders টেবিলের আরএলএস এনাবল করা
 ALTER TABLE public.uncompleted_orders ENABLE ROW LEVEL SECURITY;
 
--- দ্রষ্টব্য: আমাদের অ্যাপটি এপিআই রাউটে 'Service Role Key' ব্যবহার করে, 
--- তাই RLS এনাবল থাকলেও অ্যাডমিন প্যানেল থেকে ডেটা ম্যানেজ করতে কোনো সমস্যা হবে না।
+-- যেহেতু আমাদের অ্যাপ এই টেবিলের জন্য Service Role (Admin) ব্যবহার করে, 
+-- তাই এখানে কোনো পাবলিক পলিসি না রাখাই সবচেয়ে নিরাপদ। এতে বাইরের কেউ সরাসরি ডেটা দেখতে পারবে না।
 
--- ২. handle_updated_at ফাংশনের search_path সিকিউরিটি ঠিক করা
--- এটি "search_path hijacking" নামক সাইবার অ্যাটাক প্রতিরোধ করতে সাহায্য করে।
+
+-- ২. handle_updated_at ফাংশনের সার্চ পাথ ফিক্স করা
+-- এটি ফাংশনটিকে হাইজ্যাকিং থেকে রক্ষা করে
 ALTER FUNCTION public.handle_updated_at() SET search_path = public;
 
--- ৩. (ঐচ্ছিক কিন্তু জরুরি) অন্যান্য টেবিল চেক করা
--- নিশ্চিত করুন যে আপনার ডাটাবেসের প্রতিটি টেবিলে RLS এনাবল করা আছে।
--- যেমন: ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- ৩. saas_reviews টেবিলের সিকিউরিটি ফিক্স করা
+ALTER TABLE public.saas_reviews ENABLE ROW LEVEL SECURITY;
+
+-- পুরনো পারমিসিভ পলিসিটি মুছে ফেলা
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.saas_reviews;
+
+-- নতুন এবং নিরাপদ ইনসার্ট পলিসি: ইউজাররা রিভিউ দিতে পারবে কিন্তু সেটি নিজে পাবলিশ করতে পারবে না
+-- (is_approved অবশ্যই false হতে হবে)
+CREATE POLICY "Safe review insertion" ON public.saas_reviews
+FOR INSERT 
+WITH CHECK (is_approved = false);
+
+-- পাবলিকলি শুধুমাত্র অ্যাপ্রুভড রিভিউগুলো দেখার অনুমতি দেওয়া
+CREATE POLICY "Public can view approved reviews" ON public.saas_reviews
+FOR SELECT
+USING (is_approved = true);
+
+-- অ্যাডমিনরা (Service Role) সবকিছুই ম্যানেজ করতে পারবে, যা RLS দ্বারা বাধাগ্রস্ত হবে না।
