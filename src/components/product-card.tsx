@@ -20,9 +20,10 @@ import { Label } from './ui/label';
 interface ProductCardProps {
   product: Product;
   flashDeal?: FlashDeal;
+  isList?: boolean;
 }
 
-export default function ProductCard({ product, flashDeal }: ProductCardProps) {
+export default function ProductCard({ product, flashDeal, isList = false }: ProductCardProps) {
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
   const t = useTranslation();
@@ -35,7 +36,6 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
   const [quantity, setQuantity] = useState(1);
 
   const handleAddToCart = () => {
-    // If product has variants and dialog is not open, open Quick View
     if (product.variants && product.variants.length > 0 && !isQuickViewOpen) {
         setIsQuickViewOpen(true);
         return;
@@ -43,7 +43,6 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
 
     const productToAdd = { ...product };
     
-    // Set variant info if selected
     if (selectedVariant) {
         productToAdd.price = selectedVariant.price;
         (productToAdd as any).selected_unit = selectedVariant.unit;
@@ -81,9 +80,182 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
     return `${basePrice.toFixed(2)} ${product.currency}`;
   }, [product, flashDeal]);
 
-  // Quick view specific calculations
   const currentPrice = selectedVariant ? selectedVariant.price : (flashDeal ? flashDeal.discount_price : product.price);
   const currentStock = selectedVariant ? selectedVariant.stock : (product.stock || 0);
+
+  if (isList) {
+    return (
+        <>
+        <Card className="flex flex-row h-32 sm:h-40 overflow-hidden transition-all duration-300 hover:shadow-md group border-2">
+            <div className="relative w-32 sm:w-48 shrink-0 bg-muted">
+                <Link href={productUrl} className="block relative h-full">
+                    <Image
+                        src={product.images[0]?.imageUrl || 'https://placehold.co/400x300'}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                    />
+                    {flashDeal && <Badge className="absolute top-1 right-1 text-[8px] sm:text-xs" variant="destructive">Sale</Badge>}
+                </Link>
+                <Button 
+                    variant="secondary" 
+                    size="icon" 
+                    className="absolute top-1 left-1 z-20 h-7 w-7 rounded-full bg-background/90 shadow-sm border"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsQuickViewOpen(true);
+                    }}
+                >
+                    <Eye className="h-3.5 w-3.5 text-primary" />
+                </Button>
+            </div>
+            <div className="flex flex-col flex-grow p-3 min-w-0">
+                <Link href={productUrl} className="block min-w-0">
+                    <h3 className="text-sm sm:text-base font-bold font-headline truncate">{product.name}</h3>
+                    <p className="text-muted-foreground text-[10px] sm:text-xs line-clamp-2 mt-1">{product.description}</p>
+                </Link>
+                <div className="mt-auto flex items-end justify-between gap-2">
+                    <div className="flex flex-col">
+                        {flashDeal && !product.variants?.length && (
+                            <span className="text-[10px] text-muted-foreground line-through">
+                                {product.price.toFixed(2)}
+                            </span>
+                        )}
+                        <span className="text-sm sm:text-lg font-black text-primary leading-none">
+                            {priceDisplay}
+                        </span>
+                    </div>
+                    <Button 
+                        size="sm" 
+                        onClick={handleAddToCart} 
+                        className="h-8 px-3 text-[10px] font-bold rounded-lg shadow-sm"
+                        disabled={currentStock <= 0}
+                    >
+                        <ShoppingBag className="w-3 h-3 mr-1.5" />
+                        {product.variants?.length ? "অপশন" : "অ্যাড"}
+                    </Button>
+                </div>
+            </div>
+        </Card>
+        <QuickViewDialog />
+        </>
+    )
+  }
+
+  function QuickViewDialog() {
+    return (
+        <Dialog open={isQuickViewOpen} onOpenChange={setIsQuickViewOpen}>
+            <DialogContent className="sm:max-w-xl rounded-[2.5rem] p-0 overflow-hidden border-2 border-primary/10 shadow-2xl max-h-[90vh] flex flex-col">
+                <div className="flex-grow overflow-y-auto">
+                    <div className="flex flex-col">
+                        <div className="relative aspect-[16/9] w-full border-b bg-muted">
+                            <Image 
+                                src={product.images[0]?.imageUrl || 'https://placehold.co/600x400'} 
+                                alt={product.name} 
+                                fill 
+                                className="object-cover"
+                            />
+                            <div className="absolute top-4 right-4 z-10">
+                                <Button 
+                                    variant="secondary" 
+                                    size="icon" 
+                                    className="rounded-full bg-background/80 backdrop-blur-sm h-8 w-8" 
+                                    onClick={() => setIsQuickViewOpen(false)}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            {flashDeal && <Badge variant="destructive" className="absolute top-4 left-4 text-xs font-bold px-3 py-1">SALE</Badge>}
+                        </div>
+                        
+                        <div className="p-6 sm:p-8 space-y-6 bg-background">
+                            <div className="space-y-1">
+                                <h2 className="text-2xl sm:text-3xl font-black font-headline leading-tight">{product.name}</h2>
+                                <p className="text-primary font-black text-2xl sm:text-3xl mt-2">{currentPrice.toFixed(2)} BDT</p>
+                            </div>
+
+                            <p className="text-muted-foreground text-sm leading-relaxed">
+                                {product.description}
+                            </p>
+
+                            {product.variants && product.variants.length > 0 && (
+                                <div className="space-y-3">
+                                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground block">পছন্দসই ওজন/সাইজ বেছে নিন:</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {product.variants.map((v, i) => (
+                                            <Button 
+                                                key={i} 
+                                                variant={selectedVariant?.unit === v.unit ? 'default' : 'outline'}
+                                                size="sm"
+                                                className={cn(
+                                                    "h-11 rounded-xl px-4 border-2 transition-all font-bold", 
+                                                    selectedVariant?.unit === v.unit ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/50"
+                                                )}
+                                                onClick={() => setSelectedVariant(v)}
+                                            >
+                                                {v.unit} - {v.price} BDT
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+                                <div className="flex items-center gap-2 bg-muted/30 p-1.5 rounded-2xl border-2 w-full sm:w-auto justify-between sm:justify-start">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-10 w-10 rounded-xl hover:bg-background" 
+                                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                                    >
+                                        <Minus className="h-4 w-4" />
+                                    </Button>
+                                    <span className="w-10 text-center font-black text-lg">{quantity}</span>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-10 w-10 rounded-xl hover:bg-background" 
+                                        onClick={() => setQuantity(q => q + 1)}
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                <Button 
+                                    className="w-full sm:flex-grow h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20 transition-all active:scale-95 group"
+                                    onClick={handleAddToCart}
+                                    disabled={currentStock <= 0}
+                                >
+                                    <ShoppingBag className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" /> 
+                                    {t_card.addToBag}
+                                </Button>
+                            </div>
+                            
+                            <div className="pt-2 flex items-center justify-between pb-4">
+                                {currentStock > 0 ? (
+                                    <p className="text-xs text-green-500 flex items-center gap-1.5 font-bold uppercase tracking-wider">
+                                        <CheckCircle2 className="h-4 w-4" /> ইন-স্টক ({currentStock} টি উপলব্ধ)
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-destructive flex items-center gap-1.5 font-bold uppercase tracking-wider">
+                                        <X className="h-4 w-4" /> স্টক আউট
+                                    </p>
+                                )}
+                                <Link 
+                                    href={productUrl} 
+                                    className="text-xs text-muted-foreground hover:text-primary underline underline-offset-4 font-bold"
+                                    onClick={() => setIsQuickViewOpen(false)}
+                                >
+                                    আরও বিস্তারিত দেখুন
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+  }
 
   return (
     <>
@@ -92,7 +264,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
         <Button 
             variant="secondary" 
             size="icon" 
-            className="absolute top-2 left-2 z-20 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm opacity-0 md:group-hover:opacity-100 transition-opacity shadow-md border border-primary/10"
+            className="absolute top-2 left-2 z-20 h-8 w-8 rounded-full bg-background/90 backdrop-blur-sm shadow-md border border-primary/10"
             onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -165,117 +337,7 @@ export default function ProductCard({ product, flashDeal }: ProductCardProps) {
         </Button>
       </CardFooter>
     </Card>
-
-    {/* Quick View Dialog with scrolling enabled */}
-    <Dialog open={isQuickViewOpen} onOpenChange={setIsQuickViewOpen}>
-        <DialogContent className="sm:max-w-xl rounded-[2.5rem] p-0 overflow-hidden border-2 border-primary/10 shadow-2xl max-h-[90vh] flex flex-col">
-            <div className="flex-grow overflow-y-auto">
-                <div className="flex flex-col">
-                    <div className="relative aspect-[16/9] w-full border-b bg-muted">
-                        <Image 
-                            src={product.images[0]?.imageUrl || 'https://placehold.co/600x400'} 
-                            alt={product.name} 
-                            fill 
-                            className="object-cover"
-                        />
-                        <div className="absolute top-4 right-4 z-10">
-                            <Button 
-                                variant="secondary" 
-                                size="icon" 
-                                className="rounded-full bg-background/80 backdrop-blur-sm h-8 w-8" 
-                                onClick={() => setIsQuickViewOpen(false)}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        {flashDeal && <Badge variant="destructive" className="absolute top-4 left-4 text-xs font-bold px-3 py-1">SALE</Badge>}
-                    </div>
-                    
-                    <div className="p-6 sm:p-8 space-y-6 bg-background">
-                        <div className="space-y-1">
-                            <h2 className="text-2xl sm:text-3xl font-black font-headline leading-tight">{product.name}</h2>
-                            <p className="text-primary font-black text-2xl sm:text-3xl mt-2">{currentPrice.toFixed(2)} BDT</p>
-                        </div>
-
-                        <p className="text-muted-foreground text-sm leading-relaxed">
-                            {product.description}
-                        </p>
-
-                        {product.variants && product.variants.length > 0 && (
-                            <div className="space-y-3">
-                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground block">পছন্দসই ওজন/সাইজ বেছে নিন:</Label>
-                                <div className="flex flex-wrap gap-2">
-                                    {product.variants.map((v, i) => (
-                                        <Button 
-                                            key={i} 
-                                            variant={selectedVariant?.unit === v.unit ? 'default' : 'outline'}
-                                            size="sm"
-                                            className={cn(
-                                                "h-11 rounded-xl px-4 border-2 transition-all font-bold", 
-                                                selectedVariant?.unit === v.unit ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/50"
-                                            )}
-                                            onClick={() => setSelectedVariant(v)}
-                                        >
-                                            {v.unit} - {v.price} BDT
-                                        </Button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
-                            <div className="flex items-center gap-2 bg-muted/30 p-1.5 rounded-2xl border-2 w-full sm:w-auto justify-between sm:justify-start">
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-10 w-10 rounded-xl hover:bg-background" 
-                                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                                >
-                                    <Minus className="h-4 w-4" />
-                                </Button>
-                                <span className="w-10 text-center font-black text-lg">{quantity}</span>
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-10 w-10 rounded-xl hover:bg-background" 
-                                    onClick={() => setQuantity(q => q + 1)}
-                                >
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </div>
-                            <Button 
-                                className="w-full sm:flex-grow h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20 transition-all active:scale-95 group"
-                                onClick={handleAddToCart}
-                                disabled={currentStock <= 0}
-                            >
-                                <ShoppingBag className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" /> 
-                                {t_card.addToBag}
-                            </Button>
-                        </div>
-                        
-                        <div className="pt-2 flex items-center justify-between pb-4">
-                            {currentStock > 0 ? (
-                                <p className="text-xs text-green-500 flex items-center gap-1.5 font-bold uppercase tracking-wider">
-                                    <CheckCircle2 className="h-4 w-4" /> ইন-স্টক ({currentStock} টি উপলব্ধ)
-                                </p>
-                            ) : (
-                                <p className="text-xs text-destructive flex items-center gap-1.5 font-bold uppercase tracking-wider">
-                                    <X className="h-4 w-4" /> স্টক আউট
-                                </p>
-                            )}
-                            <Link 
-                                href={productUrl} 
-                                className="text-xs text-muted-foreground hover:text-primary underline underline-offset-4 font-bold"
-                                onClick={() => setIsQuickViewOpen(false)}
-                            >
-                                আরও বিস্তারিত দেখুন
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </DialogContent>
-    </Dialog>
+    <QuickViewDialog />
     </>
   );
 }

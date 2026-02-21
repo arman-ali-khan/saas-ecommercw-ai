@@ -37,15 +37,40 @@ const SectionSkeleton = () => (
     </div>
 );
 
+const getGridClass = (view?: string) => {
+    switch(view) {
+        case '1-col': return 'grid-cols-1';
+        case 'list': return 'grid-cols-1 flex flex-col gap-3';
+        case '2-col': return 'grid-cols-2';
+        default: return null;
+    }
+};
+
 function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Section, t: any }) {
   if (deals.length === 0) return null;
+  
+  const gridClass = getGridClass(section.mobileView);
+
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
         <Button asChild variant="ghost"><Link href={`/flash-deals`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
-      <FlashDealCarousel deals={deals} />
+      {gridClass ? (
+        <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
+            {deals.map((deal) => (
+                <ProductCard 
+                    key={deal.id} 
+                    product={deal.products} 
+                    flashDeal={deal} 
+                    isList={section.mobileView === 'list'} 
+                />
+            ))}
+        </div>
+      ) : (
+        <FlashDealCarousel deals={deals} />
+      )}
     </section>
   );
 }
@@ -53,20 +78,19 @@ function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Sectio
 function FeaturedProducts({ products, section }: { products: Product[], section: Section }) {
   if (products.length === 0) return null;
   
-  const getGridClass = (view?: string) => {
-    switch(view) {
-        case '1-col': return 'grid-cols-1';
-        case 'list': return 'grid-cols-1 flex flex-col gap-3';
-        case '2-col': 
-        default: return 'grid-cols-2';
-    }
-  }
+  const gridClass = getGridClass(section.mobileView) || "grid-cols-2";
 
   return (
     <section>
       <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
-      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", getGridClass(section.mobileView))}>
-        {products.map((product) => <ProductCard key={product.id} product={product} />)}
+      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
+        {products.map((product) => (
+            <ProductCard 
+                key={product.id} 
+                product={product} 
+                isList={section.mobileView === 'list'} 
+            />
+        ))}
       </div>
     </section>
   );
@@ -122,14 +146,7 @@ async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, 
   
   if (products.length === 0) return null;
 
-  const getGridClass = (view?: string) => {
-    switch(view) {
-        case '1-col': return 'grid-cols-1';
-        case 'list': return 'grid-cols-1 flex flex-col gap-3';
-        case '2-col': 
-        default: return 'grid-cols-2';
-    }
-  }
+  const gridClass = getGridClass(section.mobileView) || "grid-cols-2";
 
   return (
     <section>
@@ -141,8 +158,14 @@ async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, 
             </Link>
         </Button>
       </div>
-      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", getGridClass(section.mobileView))}>
-        {products.map((product) => <ProductCard key={product.id} product={product} />)}
+      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
+        {products.map((product) => (
+            <ProductCard 
+                key={product.id} 
+                product={product} 
+                isList={section.mobileView === 'list'} 
+            />
+        ))}
       </div>
     </section>
   );
@@ -197,7 +220,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     const dbSections = settingsResult.data?.homepage_sections;
     if (Array.isArray(dbSections)) return dbSections as Section[];
     
-    // Default fallback sections (NO auto-category sections)
     return [
       { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
       { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col' },
