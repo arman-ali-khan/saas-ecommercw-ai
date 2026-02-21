@@ -75,7 +75,7 @@ export default function UserDetailPage() {
       const result = await response.json();
       if (response.ok) {
         setData(result);
-        setAiKey(result.profile?.gemini_api_key || ''); // Reusing old field name gemini_api_key for DB compatibility, but labeled as OpenRouter in UI
+        setAiKey(result.profile?.gemini_api_key || ''); 
       } else {
         throw new Error(result.error);
       }
@@ -252,6 +252,7 @@ export default function UserDetailPage() {
             <Card className="bg-muted/30">
                 <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center justify-between">Total Orders <ShoppingBag className="h-4 w-4 opacity-50" /></CardTitle></CardHeader>
                 <CardContent><div className="text-3xl font-black">{stats.totalOrders}</div></CardContent>
+            </Card>
       </div>
 
       <Tabs defaultValue="products" className="w-full">
