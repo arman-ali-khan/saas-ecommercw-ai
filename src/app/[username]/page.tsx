@@ -40,7 +40,7 @@ const SectionSkeleton = () => (
 const getGridClass = (view?: string) => {
     switch(view) {
         case '1-col': return 'grid-cols-1';
-        case 'list': return 'grid-cols-1 flex flex-col gap-3';
+        case 'list': return 'grid-cols-1 gap-3';
         case '2-col': return 'grid-cols-2';
         default: return null;
     }

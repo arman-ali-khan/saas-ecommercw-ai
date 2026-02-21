@@ -83,66 +83,6 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
   const currentPrice = selectedVariant ? selectedVariant.price : (flashDeal ? flashDeal.discount_price : product.price);
   const currentStock = selectedVariant ? selectedVariant.stock : (product.stock || 0);
 
-  if (isList) {
-    return (
-        <>
-        <Card className="flex flex-row h-32 sm:h-40 overflow-hidden transition-all duration-300 hover:shadow-md group border-2">
-            <div className="relative w-32 sm:w-48 shrink-0 bg-muted">
-                <Link href={productUrl} className="block relative h-full">
-                    <Image
-                        src={product.images[0]?.imageUrl || 'https://placehold.co/400x300'}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                    />
-                    {flashDeal && <Badge className="absolute top-1 right-1 text-[8px] sm:text-xs" variant="destructive">Sale</Badge>}
-                </Link>
-                <Button 
-                    variant="secondary" 
-                    size="icon" 
-                    className="absolute top-1 left-1 z-20 h-7 w-7 rounded-full bg-background/90 shadow-sm border"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsQuickViewOpen(true);
-                    }}
-                >
-                    <Eye className="h-3.5 w-3.5 text-primary" />
-                </Button>
-            </div>
-            <div className="flex flex-col flex-grow p-3 min-w-0">
-                <Link href={productUrl} className="block min-w-0">
-                    <h3 className="text-sm sm:text-base font-bold font-headline truncate">{product.name}</h3>
-                    <p className="text-muted-foreground text-[10px] sm:text-xs line-clamp-2 mt-1">{product.description}</p>
-                </Link>
-                <div className="mt-auto flex items-end justify-between gap-2">
-                    <div className="flex flex-col">
-                        {flashDeal && !product.variants?.length && (
-                            <span className="text-[10px] text-muted-foreground line-through">
-                                {product.price.toFixed(2)}
-                            </span>
-                        )}
-                        <span className="text-sm sm:text-lg font-black text-primary leading-none">
-                            {priceDisplay}
-                        </span>
-                    </div>
-                    <Button 
-                        size="sm" 
-                        onClick={handleAddToCart} 
-                        className="h-8 px-3 text-[10px] font-bold rounded-lg shadow-sm"
-                        disabled={currentStock <= 0}
-                    >
-                        <ShoppingBag className="w-3 h-3 mr-1.5" />
-                        {product.variants?.length ? "অপশন" : "অ্যাড"}
-                    </Button>
-                </div>
-            </div>
-        </Card>
-        <QuickViewDialog />
-        </>
-    )
-  }
-
   function QuickViewDialog() {
     return (
         <Dialog open={isQuickViewOpen} onOpenChange={setIsQuickViewOpen}>
@@ -259,85 +199,147 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
 
   return (
     <>
-    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group">
-      <div className="relative">
-        <Button 
-            variant="secondary" 
-            size="icon" 
-            className="absolute top-2 left-2 z-20 h-8 w-8 rounded-full bg-background/90 backdrop-blur-sm shadow-md border border-primary/10"
-            onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsQuickViewOpen(true);
-            }}
-        >
-            <Eye className="h-4 w-4 text-primary" />
-        </Button>
-        
-        <Link href={productUrl} className="block relative">
-            <CardHeader className="p-0">
-            <div className="relative w-full aspect-[6/5]">
-                <Image
-                src={product.images[0]?.imageUrl || 'https://placehold.co/400x300'}
-                alt={product.name}
-                data-ai-hint={product.images[0]?.imageHint || 'product image'}
-                fill
-                className="object-cover"
-                />
-            </div>
-            {flashDeal && <Badge className="absolute top-2 right-2" variant="destructive">Sale</Badge>}
-            </CardHeader>
-            <CardContent className="p-1 sm:p-4 flex-grow">
-            <h3 className="text-sm sm:text-lg font-headline font-semibold line-clamp-1">{product.name}</h3>
-            {product.review_count && product.review_count > 0 && (
-                <div className="flex items-center gap-1.5 mt-1">
-                <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                    <Star
-                        key={i}
-                        className={cn(
-                        "h-4 w-4",
-                        product.avg_rating && i < Math.round(product.avg_rating)
-                            ? "fill-primary text-primary"
-                            : "text-muted-foreground/30"
-                        )}
-                    />
-                    ))}
-                </div>
-                <span className="text-xs text-muted-foreground">({product.review_count})</span>
-                </div>
-            )}
-            <p className="text-muted-foreground mt-1 text-xs sm:text-sm line-clamp-2">{product.description}</p>
-            {flashDeal && (
-                <div className="mt-2">
-                <Countdown endDate={flashDeal.end_date} />
-                </div> 
-            )}
-            </CardContent>
-        </Link>
-      </div>
-      <CardFooter className="p-1 block sm:p-4 !pt-1 sm:mt-auto items-center">
-        <div className="flex flex-col w-full mb-3">
-            {flashDeal && !product.variants?.length && (
-                <p className="text-xs font-bold text-muted-foreground line-through">
-                    {product.price.toFixed(2)} {product.currency}
-                </p>
-            )}
-            <p className="text-sm sm:text-lg font-bold text-primary">
-                {priceDisplay}
-            </p>
+      {/* Mobile List View - Only shown if isList is true and screen is small */}
+      {isList && (
+        <div className="md:hidden">
+          <Card className="flex flex-row h-32 sm:h-40 overflow-hidden transition-all duration-300 hover:shadow-md group border-2">
+              <div className="relative w-32 sm:w-48 shrink-0 bg-muted">
+                  <Link href={productUrl} className="block relative h-full">
+                      <Image
+                          src={product.images[0]?.imageUrl || 'https://placehold.co/400x300'}
+                          alt={product.name}
+                          fill
+                          className="object-cover"
+                      />
+                      {flashDeal && <Badge className="absolute top-1 right-1 text-[8px] sm:text-xs" variant="destructive">Sale</Badge>}
+                  </Link>
+                  <Button 
+                      variant="secondary" 
+                      size="icon" 
+                      className="absolute top-1 left-1 z-20 h-7 w-7 rounded-full bg-background/90 shadow-sm border"
+                      onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setIsQuickViewOpen(true);
+                      }}
+                  >
+                      <Eye className="h-3.5 w-3.5 text-primary" />
+                  </Button>
+              </div>
+              <div className="flex flex-col flex-grow p-3 min-w-0">
+                  <Link href={productUrl} className="block min-w-0">
+                      <h3 className="text-sm sm:text-base font-bold font-headline truncate">{product.name}</h3>
+                      <p className="text-muted-foreground text-[10px] sm:text-xs line-clamp-2 mt-1">{product.description}</p>
+                  </Link>
+                  <div className="mt-auto flex items-end justify-between gap-2">
+                      <div className="flex flex-col">
+                          {flashDeal && !product.variants?.length && (
+                              <span className="text-[10px] text-muted-foreground line-through">
+                                  {product.price.toFixed(2)}
+                              </span>
+                          )}
+                          <span className="text-sm sm:text-lg font-black text-primary leading-none">
+                              {priceDisplay}
+                          </span>
+                      </div>
+                      <Button 
+                          size="sm" 
+                          onClick={handleAddToCart} 
+                          className="h-8 px-3 text-[10px] font-bold rounded-lg shadow-sm"
+                          disabled={currentStock <= 0}
+                      >
+                          <ShoppingBag className="w-3 h-3 mr-1.5" />
+                          {product.variants?.length ? "অপশন" : "অ্যাড"}
+                      </Button>
+                  </div>
+              </div>
+          </Card>
         </div>
-        <Button 
-            onClick={handleAddToCart} 
-            className="w-full h-9 sm:h-10 text-xs sm:text-sm"
-            variant={product.variants && product.variants.length > 0 ? "outline" : "default"}
-        >
-          <ShoppingBag className="w-4 h-4 mr-2" />
-          {product.variants && product.variants.length > 0 ? "অপশন দেখুন" : t_card.addToBag}
-        </Button>
-      </CardFooter>
-    </Card>
-    <QuickViewDialog />
+      )}
+
+      {/* Standard Grid View - Shown always on desktop, and on mobile only if NOT isList */}
+      <div className={cn("h-full", isList ? "hidden md:block" : "block")}>
+        <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group">
+          <div className="relative">
+            <Button 
+                variant="secondary" 
+                size="icon" 
+                className="absolute top-2 left-2 z-20 h-8 w-8 rounded-full bg-background/90 backdrop-blur-sm shadow-md border border-primary/10"
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsQuickViewOpen(true);
+                }}
+            >
+                <Eye className="h-4 w-4 text-primary" />
+            </Button>
+            
+            <Link href={productUrl} className="block relative">
+                <CardHeader className="p-0">
+                <div className="relative w-full aspect-[6/5]">
+                    <Image
+                    src={product.images[0]?.imageUrl || 'https://placehold.co/400x300'}
+                    alt={product.name}
+                    data-ai-hint={product.images[0]?.imageHint || 'product image'}
+                    fill
+                    className="object-cover"
+                    />
+                </div>
+                {flashDeal && <Badge className="absolute top-2 right-2" variant="destructive">Sale</Badge>}
+                </CardHeader>
+                <CardContent className="p-1 sm:p-4 flex-grow">
+                <h3 className="text-sm sm:text-lg font-headline font-semibold line-clamp-1">{product.name}</h3>
+                {product.review_count && product.review_count > 0 && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                    <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                        <Star
+                            key={i}
+                            className={cn(
+                            "h-4 w-4",
+                            product.avg_rating && i < Math.round(product.avg_rating)
+                                ? "fill-primary text-primary"
+                                : "text-muted-foreground/30"
+                            )}
+                        />
+                        ))}
+                    </div>
+                    <span className="text-xs text-muted-foreground">({product.review_count})</span>
+                    </div>
+                )}
+                <p className="text-muted-foreground mt-1 text-xs sm:text-sm line-clamp-2">{product.description}</p>
+                {flashDeal && (
+                    <div className="mt-2">
+                    <Countdown endDate={flashDeal.end_date} />
+                    </div> 
+                )}
+                </CardContent>
+            </Link>
+          </div>
+          <CardFooter className="p-1 block sm:p-4 !pt-1 sm:mt-auto items-center">
+            <div className="flex flex-col w-full mb-3">
+                {flashDeal && !product.variants?.length && (
+                    <p className="text-xs font-bold text-muted-foreground line-through">
+                        {product.price.toFixed(2)} {product.currency}
+                    </p>
+                )}
+                <p className="text-sm sm:text-lg font-bold text-primary">
+                    {priceDisplay}
+                </p>
+            </div>
+            <Button 
+                onClick={handleAddToCart} 
+                className="w-full h-9 sm:h-10 text-xs sm:text-sm"
+                variant={product.variants && product.variants.length > 0 ? "outline" : "default"}
+            >
+              <ShoppingBag className="w-4 h-4 mr-2" />
+              {product.variants && product.variants.length > 0 ? "অপশন দেখুন" : t_card.addToBag}
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+      
+      <QuickViewDialog />
     </>
   );
 }
