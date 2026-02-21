@@ -20,6 +20,7 @@ import { useAuth } from '@/stores/auth';
 import { Skeleton } from './ui/skeleton';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
+import { type SaasSettings } from '@/types';
 
 const navLinks = [
   { href: '#features', label: 'ফিচারসমূহ' },
@@ -27,15 +28,19 @@ const navLinks = [
   { href: '#testimonial', label: 'রিভিউ' },
 ];
 
-export default function SaasHeader() {
+interface SaasHeaderProps {
+  initialSettings?: SaasSettings | null;
+}
+
+export default function SaasHeader({ initialSettings }: SaasHeaderProps) {
   const user = useAuth((state) => state.user);
   
   const [isHydrated, setIsHydrated] = useState(false);
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
     logoUrl: string | null;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  } | null>(initialSettings ? { name: initialSettings.platform_name, logoUrl: initialSettings.logo_url } : null);
+  const [isLoading, setIsLoading] = useState(!initialSettings);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -47,25 +52,28 @@ export default function SaasHeader() {
     };
     window.addEventListener('scroll', handleScroll);
 
-    const fetchInfo = async () => {
-      setIsLoading(true);
-      const { data } = await supabase
-        .from('saas_settings')
-        .select('platform_name, logo_url')
-        .eq('id', 1)
-        .single();
-      
-      if (data) {
-        setSiteInfo({
-          name: data.platform_name || 'Your SaaS',
-          logoUrl: data.logo_url || null,
-        });
-      }
-      setIsLoading(false);
-    };
-    fetchInfo();
+    if (!initialSettings) {
+      const fetchInfo = async () => {
+        setIsLoading(true);
+        const { data } = await supabase
+          .from('saas_settings')
+          .select('platform_name, logo_url')
+          .eq('id', 1)
+          .single();
+        
+        if (data) {
+          setSiteInfo({
+            name: data.platform_name || 'Your SaaS',
+            logoUrl: data.logo_url || null,
+          });
+        }
+        setIsLoading(false);
+      };
+      fetchInfo();
+    }
+    
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [initialSettings]);
 
   const HeaderLogo = () => (
     isLoading || !siteInfo ? (
@@ -81,7 +89,7 @@ export default function SaasHeader() {
                 {siteInfo.name.charAt(0)}
             </div>
         )}
-        <span className="text-xl font-bold font-headline tracking-tight">{siteInfo.name}</span>
+        <span className="text-xl font-bold font-headline tracking-tight text-foreground">{siteInfo.name}</span>
       </Link>
     )
   );

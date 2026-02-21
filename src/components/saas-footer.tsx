@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
 import { Skeleton } from './ui/skeleton';
-
+import { type SaasSettings } from '@/types';
 
 const TikTokIcon = () => (
   <svg
@@ -29,45 +29,56 @@ const TikTokIcon = () => (
   </svg>
 );
 
-export default function SaasFooter() {
+interface SaasFooterProps {
+  initialSettings?: SaasSettings | null;
+}
+
+export default function SaasFooter({ initialSettings }: SaasFooterProps) {
   const [socials, setSocials] = useState({
-    facebook: '',
-    twitter: '',
-    tiktok: '',
+    facebook: initialSettings?.social_facebook || '',
+    twitter: initialSettings?.social_twitter || '',
+    tiktok: initialSettings?.social_tiktok || '',
   });
 
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
     description: string | null;
     logoUrl: string | null;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  } | null>(initialSettings ? {
+    name: initialSettings.platform_name,
+    description: initialSettings.platform_description,
+    logoUrl: initialSettings.logo_url
+  } : null);
+  
+  const [isLoading, setIsLoading] = useState(!initialSettings);
 
   useEffect(() => {
-    const fetchData = async () => {
-        setIsLoading(true);
-        const { data } = await supabase
-            .from('saas_settings')
-            .select('platform_name, platform_description, social_facebook, social_twitter, social_tiktok, logo_url')
-            .eq('id', 1)
-            .single();
-        
-        if (data) {
-            setSocials({
-              facebook: data.social_facebook || '',
-              twitter: data.social_twitter || '',
-              tiktok: data.social_tiktok || '',
-            });
-            setSiteInfo({
-              name: data.platform_name || 'Your SaaS',
-              description: data.platform_description || 'আপনার স্বপ্নের অনলাইন স্টোর তৈরির ডিজিটাল কারিগর।',
-              logoUrl: data.logo_url || null,
-            });
-        }
-        setIsLoading(false);
-    };
-    fetchData();
-  }, []);
+    if (!initialSettings) {
+      const fetchData = async () => {
+          setIsLoading(true);
+          const { data } = await supabase
+              .from('saas_settings')
+              .select('platform_name, platform_description, social_facebook, social_twitter, social_tiktok, logo_url')
+              .eq('id', 1)
+              .single();
+          
+          if (data) {
+              setSocials({
+                facebook: data.social_facebook || '',
+                twitter: data.social_twitter || '',
+                tiktok: data.social_tiktok || '',
+              });
+              setSiteInfo({
+                name: data.platform_name || 'Your SaaS',
+                description: data.platform_description || 'আপনার স্বপ্নের অনলাইন স্টোর তৈরির ডিজিটাল কারিগর।',
+                logoUrl: data.logo_url || null,
+              });
+          }
+          setIsLoading(false);
+      };
+      fetchData();
+    }
+  }, [initialSettings]);
   
   const FooterLogo = () => (
     isLoading || !siteInfo ? (
@@ -83,7 +94,7 @@ export default function SaasFooter() {
                 {siteInfo.name.charAt(0)}
             </div>
         )}
-        <span className="text-xl font-bold font-headline tracking-tight">{siteInfo.name}</span>
+        <span className="text-xl font-bold font-headline tracking-tight text-foreground">{siteInfo.name}</span>
       </Link>
     )
   );

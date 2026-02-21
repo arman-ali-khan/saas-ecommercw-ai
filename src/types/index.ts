@@ -373,3 +373,28 @@ export interface SocialLink {
   platform: 'facebook' | 'twitter' | 'instagram' | 'tiktok' | 'youtube' | 'linkedin';
   href: string;
 }
+
+export interface SaasSettings {
+  id: number;
+  platform_name: string;
+  platform_description: string | null;
+  logo_url: string | null;
+  favicon_url: string | null;
+  base_domain: string | null;
+  social_facebook: string | null;
+  social_twitter: string | null;
+  social_tiktok: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  seo_keywords: string | null;
+  mobile_banking_enabled: boolean;
+  mobile_banking_number: string | null;
+  accepted_banking_methods: string[] | null;
+  hero_title: string | null;
+  hero_description: string | null;
+  hero_image_url: string | null;
+  cta_title: string | null;
+  cta_description: string | null;
+  cta_bg_color: string | null;
+  homepage_sections: any[] | null;
+}
