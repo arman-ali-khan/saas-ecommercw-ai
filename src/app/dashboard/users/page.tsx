@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X, AlertTriangle } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X, AlertTriangle, Eye } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -273,9 +273,14 @@ export default function UsersAdminPage() {
                                                         <DropdownMenuContent align="end">
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                             <DropdownMenuSeparator />
+                                                            <DropdownMenuItem asChild>
+                                                                <Link href={`/dashboard/users/${userItem.id}`} className="cursor-pointer">
+                                                                    <Eye className="mr-2 h-4 w-4" /> View Profile
+                                                                </Link>
+                                                            </DropdownMenuItem>
                                                              <DropdownMenuItem asChild>
                                                                 <a href={`//${userItem.domain}.${baseDomain}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-                                                                    <Globe className="mr-2 h-4 w-4" /> View Site
+                                                                    <Globe className="mr-2 h-4 w-4" /> Visit Site
                                                                 </a>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem asChild>
@@ -323,6 +328,7 @@ export default function UsersAdminPage() {
                                             </div>
                                         </CardContent>
                                         <CardFooter className="flex justify-end gap-2 border-t pt-4">
+                                            <Button variant="outline" size="sm" asChild><Link href={`/dashboard/users/${userItem.id}`}>View</Link></Button>
                                             <Button variant="outline" size="sm" asChild><Link href={`/dashboard/users/${userItem.id}/edit`}>Edit</Link></Button>
                                             <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(userItem)}>Delete</Button>
                                         </CardFooter>
