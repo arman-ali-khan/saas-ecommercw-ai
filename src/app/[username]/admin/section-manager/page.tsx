@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/accordion';
 import { useAuth } from '@/stores/auth';
 import type { Product, Section, Category, ProductAttribute } from '@/types';
-import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X, Smartphone, LayoutGrid, List } from 'lucide-react';
+import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X, Smartphone, LayoutGrid, List, GalleryHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
@@ -88,12 +88,10 @@ export default function SectionManagerPage() {
                 mobileView: s.mobileView || '2-col'
             }));
             
-            // Migration: Add categories if not present in existing sections
             if (!currentSections.find(s => s.id === 'categories')) {
                 currentSections.splice(1, 0, { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list' });
             }
         } else {
-            // Default initial state for a new store
             currentSections = [
               { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
               { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list' },
@@ -262,7 +260,7 @@ export default function SectionManagerPage() {
                                 </span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                     <Badge variant="outline" className="text-[10px] py-0 gap-1">
-                                        <Smartphone className="h-2 w-2" /> {section.id === 'categories' && section.mobileView === 'list' ? '3 Columns' : (section.mobileView || '2-col')}
+                                        <Smartphone className="h-2 w-2" /> {section.id === 'categories' && (section.mobileView === 'list' || !section.mobileView) ? 'Auto' : (section.mobileView || 'Carousel')}
                                     </Badge>
                                     {section.isCategorySection && (
                                         <>
@@ -302,11 +300,12 @@ export default function SectionManagerPage() {
 
                             <div className="space-y-2">
                                 <Label className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> Mobile View Layout</Label>
-                                <Select value={section.mobileView || '2-col'} onValueChange={(val: any) => handleMobileViewChange(section.id, val)}>
+                                <Select value={section.mobileView || (section.id === 'categories' ? 'carousel' : '2-col')} onValueChange={(val: any) => handleMobileViewChange(section.id, val)}>
                                     <SelectTrigger className="h-9">
                                         <SelectValue placeholder="Select Layout" />
                                     </SelectTrigger>
                                     <SelectContent className="z-[110]">
+                                        <SelectItem value="carousel"><div className="flex items-center gap-2"><GalleryHorizontal className="h-4 w-4" /> Sliding Carousel</div></SelectItem>
                                         {section.id !== 'categories' && (
                                             <SelectItem value="1-col"><div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> 1 Column (Large)</div></SelectItem>
                                         )}
@@ -314,7 +313,7 @@ export default function SectionManagerPage() {
                                         <SelectItem value="list">
                                             <div className="flex items-center gap-2">
                                                 {section.id === 'categories' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
-                                                {section.id === 'categories' ? '3 Columns (Grid)' : 'List View'}
+                                                {section.id === 'categories' ? '3 Columns (List Grid)' : 'List View'}
                                             </div>
                                         </SelectItem>
                                     </SelectContent>
