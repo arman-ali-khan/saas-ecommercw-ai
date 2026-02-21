@@ -144,6 +144,8 @@ export interface Plan {
   product_limit: number | null;
   customer_limit: number | null;
   order_limit: number | null;
+  duration_value: number | null;
+  duration_unit: 'month' | 'year' | null;
 }
 
 export interface Category {
@@ -206,9 +208,7 @@ export interface SubscriptionPaymentWithDetails extends SubscriptionPayment {
     username: string;
     email?: string;
   } | null;
-  plans: {
-    name: string;
-  } | null;
+  plans: Plan | null;
 }
 
 export interface Notification {

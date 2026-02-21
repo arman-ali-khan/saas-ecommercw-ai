@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { addMonths, addYears } from 'date-fns';
 
 /**
  * @fileOverview Secure API for SaaS admins to approve or reject store subscriptions.
@@ -59,10 +60,10 @@ export async function POST(request: Request) {
     }
 
     // 3. Fetch current payment record to get user and plan info
-    // We convert paymentId to Number to ensure it matches DB type
+    // We get the full plan object to check the duration
     const { data: payment, error: fetchError } = await supabaseAdmin
       .from('subscription_payments')
-      .select('*, plans(name)')
+      .select('*, plans(*)')
       .eq('id', Number(paymentId))
       .single();
 
@@ -83,11 +84,26 @@ export async function POST(request: Request) {
     let notificationMessage = '';
 
     if (newStatus === 'completed') {
+      // Calculate end date based on plan duration
+      let endDate = null;
+      if (payment.plans?.duration_value && payment.plans?.duration_unit) {
+          const now = new Date();
+          if (payment.plans.duration_unit === 'month') {
+              endDate = addMonths(now, payment.plans.duration_value);
+          } else if (payment.plans.duration_unit === 'year') {
+              endDate = addYears(now, payment.plans.duration_value);
+          }
+      }
+
       profileUpdate = {
         subscription_status: 'active',
-        subscription_plan: payment.plan_id
+        subscription_plan: payment.plan_id,
+        subscription_end_date: endDate ? endDate.toISOString() : null
       };
       notificationMessage = `আপনার ${payment.plans?.name || 'সাবস্ক্রিপশন'} পেমেন্ট সফলভাবে যাচাই করা হয়েছে এবং আপনার প্ল্যানটি সক্রিয় করা হয়েছে।`;
+      if (endDate) {
+          notificationMessage += ` এটি ${new Date(endDate).toLocaleDateString()} তারিখ পর্যন্ত সক্রিয় থাকবে।`;
+      }
     } else if (newStatus === 'failed') {
       profileUpdate = {
         subscription_status: 'failed' // Set to failed instead of inactive to allow retry

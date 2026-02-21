@@ -32,13 +32,39 @@ export async function POST(request: Request) {
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
     if (profile?.role !== 'saas_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    // Prepare payload
+    const payload = {
+        name: data.name,
+        price: data.price,
+        period: data.period,
+        description: data.description,
+        features: data.features,
+        product_limit: data.product_limit,
+        customer_limit: data.customer_limit,
+        order_limit: data.order_limit,
+        duration_value: data.duration_value,
+        duration_unit: data.duration_unit,
+    };
+
     let result;
-    if (id) {
-      const { data: updated, error } = await supabaseAdmin.from('plans').update(data).eq('id', id).select().single();
-      if (error) throw error;
-      result = updated;
+    if (id && id.trim() !== '') {
+      // UPDATE existing (Check if plan exists with this ID)
+      const { data: checkPlan } = await supabaseAdmin.from('plans').select('id').eq('id', id).maybeSingle();
+      
+      if (checkPlan) {
+          const { data: updated, error } = await supabaseAdmin.from('plans').update(payload).eq('id', id).select().single();
+          if (error) throw error;
+          result = updated;
+      } else {
+          // INSERT if ID provided but doesn't exist (edge case)
+          const { data: inserted, error } = await supabaseAdmin.from('plans').insert({ ...payload, id }).select().single();
+          if (error) throw error;
+          result = inserted;
+      }
     } else {
-      const { data: inserted, error } = await supabaseAdmin.from('plans').insert({ ...data, id: data.name.toLowerCase().replace(/\s+/g, '-') }).select().single();
+      // CREATE NEW
+      const newId = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const { data: inserted, error } = await supabaseAdmin.from('plans').insert({ ...payload, id: newId }).select().single();
       if (error) throw error;
       result = inserted;
     }

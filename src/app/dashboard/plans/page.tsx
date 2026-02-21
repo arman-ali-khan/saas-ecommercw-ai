@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -33,12 +34,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Loader2, X, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, X, AlertTriangle, Calendar } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type Plan } from '@/types';
 import { useAuth } from '@/stores/auth';
 import { useSaasStore } from '@/stores/useSaasStore';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const planSchema = z.object({
   id: z
@@ -52,6 +54,8 @@ const planSchema = z.object({
   product_limit: z.string().regex(/^\d*$/, "Must be a positive number").optional(),
   customer_limit: z.string().regex(/^\d*$/, "Must be a positive number").optional(),
   order_limit: z.string().regex(/^\d*$/, "Must be a positive number").optional(),
+  duration_value: z.coerce.number().min(1, "Duration must be at least 1").optional(),
+  duration_unit: z.enum(['month', 'year']).default('month'),
 });
 
 type PlanFormData = z.infer<typeof planSchema>;
@@ -71,6 +75,8 @@ export default function PlansAdminPage() {
     resolver: zodResolver(planSchema),
     defaultValues: {
         price: 0,
+        duration_value: 1,
+        duration_unit: 'month',
     }
   });
 
@@ -119,6 +125,8 @@ export default function PlansAdminPage() {
           product_limit: selectedPlan.product_limit?.toString() ?? '',
           customer_limit: selectedPlan.customer_limit?.toString() ?? '',
           order_limit: selectedPlan.order_limit?.toString() ?? '',
+          duration_value: selectedPlan.duration_value ?? 1,
+          duration_unit: selectedPlan.duration_unit || 'month',
         });
       } else {
         form.reset({
@@ -131,6 +139,8 @@ export default function PlansAdminPage() {
           product_limit: '',
           customer_limit: '',
           order_limit: '',
+          duration_value: 1,
+          duration_unit: 'month',
         });
       }
     }
@@ -149,6 +159,8 @@ export default function PlansAdminPage() {
         product_limit: data.product_limit && data.product_limit.trim() !== '' ? parseInt(data.product_limit, 10) : null,
         customer_limit: data.customer_limit && data.customer_limit.trim() !== '' ? parseInt(data.customer_limit, 10) : null,
         order_limit: data.order_limit && data.order_limit.trim() !== '' ? parseInt(data.order_limit, 10) : null,
+        duration_value: data.duration_value || null,
+        duration_unit: data.duration_unit || null,
       };
 
       const response = await fetch('/api/saas/plans/save', {
@@ -248,7 +260,7 @@ export default function PlansAdminPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Plan Name</TableHead>
-                  <TableHead>Price</TableHead>
+                  <TableHead>Price & Validity</TableHead>
                   <TableHead>Limits</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -259,8 +271,14 @@ export default function PlansAdminPage() {
                   <TableRow key={plan.id}>
                     <TableCell className="font-medium">{plan.name}</TableCell>
                     <TableCell>
-                      {plan.price === 0 ? 'বিনামূল্যে' : `৳ ${plan.price.toFixed(2)}`}{' '}
-                      {plan.period}
+                      <div>
+                        {plan.price === 0 ? 'বিনামূল্যে' : `৳ ${plan.price.toFixed(2)}`}{' '}
+                        {plan.period}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
+                        <Calendar className="h-3 w-3" /> 
+                        Duration: {plan.duration_value} {plan.duration_unit}(s)
+                      </div>
                     </TableCell>
                     <TableCell>
                         <ul className="text-xs list-disc list-inside">
@@ -269,10 +287,10 @@ export default function PlansAdminPage() {
                             <li>Orders: {plan.order_limit ?? 'Unlimited'}/mo</li>
                         </ul>
                     </TableCell>
-                    <TableCell>{plan.description}</TableCell>
+                    <TableCell className="text-xs">{plan.description}</TableCell>
                     <TableCell className="text-right">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         onClick={() => openForm(plan)}
                         className="mr-2"
@@ -280,8 +298,9 @@ export default function PlansAdminPage() {
                         <Edit className="mr-2 h-4 w-4" /> Edit
                       </Button>
                       <Button
-                        variant="destructive"
+                        variant="ghost"
                         size="sm"
+                        className="text-destructive hover:text-destructive"
                         onClick={() => openDeleteAlert(plan)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -302,12 +321,17 @@ export default function PlansAdminPage() {
                   <CardDescription>{plan.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow space-y-4">
-                  <p className="font-semibold text-xl">
-                    {plan.price === 0 ? 'বিনামূল্যে' : `৳ ${plan.price.toFixed(2)}`}{' '}
-                    <span className="text-sm text-muted-foreground">
-                      {plan.period}
-                    </span>
-                  </p>
+                  <div className="flex justify-between items-end">
+                    <p className="font-semibold text-xl">
+                        {plan.price === 0 ? 'বিনামূল্যে' : `৳ ${plan.price.toFixed(2)}`}{' '}
+                        <span className="text-sm text-muted-foreground">
+                        {plan.period}
+                        </span>
+                    </p>
+                    <Badge variant="outline" className="gap-1">
+                        <Calendar className="h-3 w-3" /> {plan.duration_value} {plan.duration_unit}
+                    </Badge>
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     <h4 className="font-semibold text-foreground mb-1">Limits:</h4>
                      <ul className="list-disc list-inside">
@@ -392,13 +416,53 @@ export default function PlansAdminPage() {
                                     name="period"
                                     render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Period (optional)</FormLabel>
+                                        <FormLabel>Price Period Label (optional)</FormLabel>
                                         <FormControl><Input placeholder="e.g., /মাস" {...field} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                     )}
                                 />
                             </div>
+
+                            <div className="p-4 rounded-lg border bg-muted/20 space-y-4">
+                                <h3 className="text-sm font-bold flex items-center gap-2 text-primary uppercase tracking-widest"><Calendar className="h-4 w-4" /> Validity Duration</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="duration_value"
+                                        render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Duration Value</FormLabel>
+                                            <FormControl><Input type="number" min="1" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="duration_unit"
+                                        render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Unit</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select unit" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="month">Month(s)</SelectItem>
+                                                    <SelectItem value="year">Year(s)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-muted-foreground italic">This duration will be used to calculate the site's end date when a subscription is approved.</p>
+                            </div>
+
                             <div className="space-y-2 rounded-lg border p-4 bg-muted/30">
                                 <h3 className="text-sm font-medium">Resource Limits</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -414,10 +478,10 @@ export default function PlansAdminPage() {
                                 </div>
                             </div>
                             <FormField control={form.control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="Short description" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Short Description</FormLabel><FormControl><Input placeholder="Short description" {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="features" render={({ field }) => (
-                                <FormItem><FormLabel>Features</FormLabel><FormControl><Textarea placeholder="List features, one per line..." {...field} rows={5} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Features List (one per line)</FormLabel><FormControl><Textarea placeholder="List features, one per line..." {...field} rows={5} /></FormControl><FormMessage /></FormItem>
                             )} />
                         </form>
                     </Form>
