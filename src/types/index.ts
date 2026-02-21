@@ -232,6 +232,7 @@ export interface Section {
   tags?: string[];
   minPrice?: number;
   maxPrice?: number;
+  mobileView?: '1-col' | '2-col' | 'list';
 }
 
 export interface LiveChatMessage {

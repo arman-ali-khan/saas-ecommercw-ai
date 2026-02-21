@@ -15,6 +15,7 @@ import { getTranslations } from '@/lib/get-translations';
 import CategoryCarousel from '@/components/category-carousel';
 import FeaturesCarousel from '@/components/features-carousel';
 import ReviewsCarousel from '@/components/reviews-carousel';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,10 +52,20 @@ function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Sectio
 
 function FeaturedProducts({ products, section }: { products: Product[], section: Section }) {
   if (products.length === 0) return null;
+  
+  const getGridClass = (view?: string) => {
+    switch(view) {
+        case '1-col': return 'grid-cols-1';
+        case 'list': return 'grid-cols-1 flex flex-col gap-3';
+        case '2-col': 
+        default: return 'grid-cols-2';
+    }
+  }
+
   return (
     <section>
       <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", getGridClass(section.mobileView))}>
         {products.map((product) => <ProductCard key={product.id} product={product} />)}
       </div>
     </section>
@@ -111,6 +122,15 @@ async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, 
   
   if (products.length === 0) return null;
 
+  const getGridClass = (view?: string) => {
+    switch(view) {
+        case '1-col': return 'grid-cols-1';
+        case 'list': return 'grid-cols-1 flex flex-col gap-3';
+        case '2-col': 
+        default: return 'grid-cols-2';
+    }
+  }
+
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
@@ -121,7 +141,7 @@ async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, 
             </Link>
         </Button>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", getGridClass(section.mobileView))}>
         {products.map((product) => <ProductCard key={product.id} product={product} />)}
       </div>
     </section>
@@ -179,11 +199,11 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     
     // Default fallback sections (NO auto-category sections)
     return [
-      { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false },
-      { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false },
-      { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false },
-      { id: 'why-us', title: t.homepage.whyUs, enabled: true, isCategorySection: false },
-      { id: 'customer-reviews', title: t.homepage.customerReviews, enabled: true, isCategorySection: false },
+      { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
+      { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col' },
+      { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col' },
+      { id: 'why-us', title: t.homepage.whyUs, enabled: true, isCategorySection: false, mobileView: '2-col' },
+      { id: 'customer-reviews', title: t.homepage.customerReviews, enabled: true, isCategorySection: false, mobileView: '2-col' },
     ];
   })();
 

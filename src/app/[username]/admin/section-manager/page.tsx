@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/accordion';
 import { useAuth } from '@/stores/auth';
 import type { Product, Section, Category, ProductAttribute } from '@/types';
-import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X, Smartphone, LayoutGrid, List } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
@@ -53,13 +53,13 @@ export default function SectionManagerPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState<string>('0');
   const [maxPrice, setMaxPrice] = useState<string>('10000');
+  const [newMobileView, setNewMobileView] = useState<'1-col' | '2-col' | 'list'>('2-col');
 
   const fetchAndBuildSections = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
 
     try {
-        // Fetch products, categories, and attributes in parallel
         const [productsRes, categoriesRes, attrRes, sectionsRes] = await Promise.all([
             fetch('/api/products/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: user.id }) }),
             fetch('/api/categories/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: user.id }) }),
@@ -81,15 +81,17 @@ export default function SectionManagerPage() {
 
         let currentSections: Section[] = [];
         if (sectionsData.sections) {
-            currentSections = (sectionsData.sections as Section[]) || [];
+            currentSections = (sectionsData.sections as Section[]).map(s => ({
+                ...s,
+                mobileView: s.mobileView || '2-col'
+            }));
         } else {
-            // Default sections if none saved in DB yet (NO automatic category sections)
             currentSections = [
-              { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false },
-              { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false },
-              { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false },
-              { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false },
-              { id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false },
+              { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
+              { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col' },
+              { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col' },
+              { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false, mobileView: '2-col' },
+              { id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false, mobileView: '2-col' },
             ];
         }
         
@@ -118,6 +120,12 @@ export default function SectionManagerPage() {
   const handleTitleChange = (sectionId: string, newTitle: string) => {
     setSections((prev) =>
       prev.map((s) => (s.id === sectionId ? { ...s, title: newTitle } : s))
+    );
+  };
+
+  const handleMobileViewChange = (sectionId: string, view: '1-col' | '2-col' | 'list') => {
+    setSections((prev) =>
+      prev.map((s) => (s.id === sectionId ? { ...s, mobileView: view } : s))
     );
   };
 
@@ -154,6 +162,7 @@ export default function SectionManagerPage() {
           tags: selectedTags.length > 0 ? selectedTags : undefined,
           minPrice: parseInt(minPrice) || 0,
           maxPrice: parseInt(maxPrice) || 50000,
+          mobileView: newMobileView,
       };
 
       setSections(prev => [...prev, newSection]);
@@ -163,6 +172,7 @@ export default function SectionManagerPage() {
       setSelectedTags([]);
       setMinPrice('0');
       setMaxPrice('10000');
+      setNewMobileView('2-col');
       toast({ title: 'Section Added locally. Remember to Save Changes!' });
   };
 
@@ -237,17 +247,22 @@ export default function SectionManagerPage() {
                     <div className="flex items-center justify-between w-full gap-4">
                         <div className="flex items-center gap-4">
                             <GripVertical className="h-5 w-5 text-muted-foreground" />
-                            <div className="flex flex-col items-start">
-                                <span className="text-base font-semibold text-left">
+                            <div className="flex flex-col items-start text-left">
+                                <span className="text-base font-semibold">
                                     {section.title}
                                 </span>
-                                {section.isCategorySection && (
-                                    <div className="flex gap-1 mt-1">
-                                        {section.category && <Badge variant="secondary" className="text-[10px] py-0">{section.category}</Badge>}
-                                        {section.tags?.map(t => <Badge key={t} variant="outline" className="text-[10px] py-0">{t}</Badge>)}
-                                        {(section.minPrice !== undefined || section.maxPrice !== undefined) && <Badge variant="outline" className="text-[10px] py-0">৳{section.minPrice ?? 0}-{section.maxPrice ?? '∞'}</Badge>}
-                                    </div>
-                                )}
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                    <Badge variant="outline" className="text-[10px] py-0 gap-1">
+                                        <Smartphone className="h-2 w-2" /> {section.mobileView || '2-col'}
+                                    </Badge>
+                                    {section.isCategorySection && (
+                                        <>
+                                            {section.category && <Badge variant="secondary" className="text-[10px] py-0">{section.category}</Badge>}
+                                            {section.tags?.map(t => <Badge key={t} variant="outline" className="text-[10px] py-0">{t}</Badge>)}
+                                            {(section.minPrice !== undefined || section.maxPrice !== undefined) && <Badge variant="outline" className="text-[10px] py-0">৳{section.minPrice ?? 0}-{section.maxPrice ?? '∞'}</Badge>}
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -259,19 +274,35 @@ export default function SectionManagerPage() {
                 </AccordionTrigger>
                 <AccordionContent>
                     <div className="p-6 pt-2 border-t grid gap-6">
-                    <div className="space-y-2">
-                            <Label>Enable/Disable Section</Label>
-                            <div className="flex items-center space-x-2 pt-2">
-                                <Switch
-                                    id={`switch-${section.id}`}
-                                    checked={section.enabled}
-                                    onCheckedChange={(checked) =>
-                                    handleToggle(section.id, checked)
-                                    }
-                                />
-                                <Label htmlFor={`switch-${section.id}`}>
-                                    {section.enabled ? "This section is currently enabled." : "This section is currently disabled."}
-                                </Label>
+                        <div className="grid sm:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label>Visibility</Label>
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch
+                                        id={`switch-${section.id}`}
+                                        checked={section.enabled}
+                                        onCheckedChange={(checked) =>
+                                        handleToggle(section.id, checked)
+                                        }
+                                    />
+                                    <Label htmlFor={`switch-${section.id}`} className="font-normal text-xs">
+                                        {section.enabled ? "Section is enabled." : "Section is disabled."}
+                                    </Label>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> Mobile View Layout</Label>
+                                <Select value={section.mobileView || '2-col'} onValueChange={(val: any) => handleMobileViewChange(section.id, val)}>
+                                    <SelectTrigger className="h-9">
+                                        <SelectValue placeholder="Select Layout" />
+                                    </SelectTrigger>
+                                    <SelectContent className="z-[110]">
+                                        <SelectItem value="2-col"><div className="flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> 2 Columns (Grid)</div></SelectItem>
+                                        <SelectItem value="1-col"><div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> 1 Column (Large)</div></SelectItem>
+                                        <SelectItem value="list"><div className="flex items-center gap-2"><List className="h-4 w-4" /> List View</div></SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 
@@ -352,17 +383,32 @@ export default function SectionManagerPage() {
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>ক্যাটাগরি ফিল্টার (Optional)</Label>
-                        <Select value={newCategory} onValueChange={setNewCategory}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="সব ক্যাটাগরি" />
-                            </SelectTrigger>
-                            <SelectContent className="z-[110]">
-                                <SelectItem value="all">সব ক্যাটাগরি</SelectItem>
-                                {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>ক্যাটাগরি ফিল্টার (Optional)</Label>
+                            <Select value={newCategory} onValueChange={setNewCategory}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="সব ক্যাটাগরি" />
+                                </SelectTrigger>
+                                <SelectContent className="z-[110]">
+                                    <SelectItem value="all">সব ক্যাটাগরি</SelectItem>
+                                    {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Mobile View Layout</Label>
+                            <Select value={newMobileView} onValueChange={(val: any) => setNewMobileView(val)}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="z-[110]">
+                                    <SelectItem value="2-col">2 Column Grid</SelectItem>
+                                    <SelectItem value="1-col">1 Column Grid</SelectItem>
+                                    <SelectItem value="list">List View</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     <div className="space-y-3">
