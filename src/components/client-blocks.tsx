@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Carousel as ShadCarousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import Image from 'next/image';
+import Autoplay from 'embla-carousel-autoplay';
 
 // Countdown
 export function CountdownBlock({ endDate }: { endDate: string }) {
@@ -57,10 +58,18 @@ type CarouselSlide = {
 };
 
 export function CarouselBlock({ slides }: { slides: CarouselSlide[] }) {
+  const plugin = useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
+
   if (!slides || slides.length === 0) return null;
   
   return (
-    <ShadCarousel className="w-full" opts={{ loop: true }}>
+    <ShadCarousel 
+      className="w-full" 
+      opts={{ loop: true }}
+      plugins={[plugin.current]}
+      onMouseEnter={plugin.current.stop}
+      onMouseLeave={plugin.current.reset}
+    >
       <CarouselContent>
         {slides.map((slide) => {
           const hasText = !!(slide.title?.trim() || slide.subtitle?.trim());

@@ -1,23 +1,19 @@
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import ProductCard from '@/components/product-card';
-import { ArrowRight, Leaf, Users, Heart, SearchX, Star } from 'lucide-react';
+import { ArrowRight, SearchX } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
-import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Section, Category, FlashDeal, StoreFeature, Product, ProductReview } from '@/types';
-import DynamicIcon from '@/components/dynamic-icon';
-import { cn } from '@/lib/utils';
 import FlashDealCarousel from '@/components/flash-deal-carousel';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTranslations } from '@/lib/get-translations';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import CategoryCarousel from '@/components/category-carousel';
+import FeaturesCarousel from '@/components/features-carousel';
+import ReviewsCarousel from '@/components/reviews-carousel';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,69 +61,10 @@ function FeaturedProducts({ products, section }: { products: Product[], section:
 }
 
 function WhyUs({ features, section }: { features: StoreFeature[], section: Section }) {
-    if (features.length === 0) {
-         const fallbackFeatures = [
-            { image: PlaceHolderImages.find(img => img.imageHint === 'farm landscape') || PlaceHolderImages[10], icon: Leaf, title: 'আমাদের ভূমি থেকে, আপনার ঘরে', description: 'আমরা আপনাকে এমন পণ্য সরবরাহ করতে প্রতিশ্রুতিবদ্ধ যা তাদের উৎপত্তিস্থলের মতোই প্রাকৃতিক।' },
-            { image: PlaceHolderImages.find(img => img.imageHint === 'farmer smiling') || PlaceHolderImages[10], icon: Users, title: 'কৃষক সম্প্রদায়ের সাথে অংশীদারিত্ব', description: 'আমরা স্থানীয় কৃষকদের সাথে সরাসরি কাজ করি, ন্যায্য মূল্য নিশ্চিত করি এবং টেকসই কৃষি অনুশীলনে সহায়তা করি।' },
-            { image: PlaceHolderImages.find(img => img.imageHint === 'quality inspection') || PlaceHolderImages[12], icon: Heart, title: 'বিশুদ্ধতা এবং গুণমানের প্রতিশ্রুতি', description: 'প্রতিটি পণ্য কঠোর মান পরীক্ষার মধ্য দিয়ে যায়। আপনি কেবল সেরা এবং সবচেয়ে বিশুদ্ধ পণ্য পাবেন।' }
-        ];
-        return (
-             <section>
-                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
-                 <Carousel opts={{ align: 'start' }} className="w-full">
-                    <CarouselContent className="-ml-6">
-                        {fallbackFeatures.map((feature, index) => (
-                            <CarouselItem key={index} className="pl-6 basis-1/2 md:basis-1/4 lg:basis-1/5">
-                                <Card className="overflow-hidden flex flex-col h-full">
-                                    <div className="relative h-64 w-full">
-                                        <Image src={feature.image.imageUrl} alt={feature.title} fill className="object-cover" />
-                                    </div>
-                                    <div className="p-6 flex flex-col flex-grow">
-                                        <CardHeader className="p-0">
-                                            <feature.icon className="w-10 h-10 text-accent mb-4" />
-                                            <CardTitle className="font-headline text-base sm:text-lg">{feature.title}</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="p-0 mt-4 flex-grow">
-                                            <p className="text-muted-foreground text-xs">{feature.description}</p>
-                                        </CardContent>
-                                        <Button asChild variant="secondary" className="mt-6 w-fit"><Link href={`/about`}>আরও জানুন <ArrowRight className="ml-2" /></Link></Button>
-                                    </div>
-                                </Card>
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                </Carousel>
-            </section>
-        );
-    }
     return (
         <section>
             <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
-            <Carousel opts={{ align: 'start' }} className="w-full">
-            <CarouselContent className="-ml-6">
-                {features.map((feature) => (
-                <CarouselItem key={feature.id} className="pl-6 basis-1/2 md:basis-1/4 lg:basis-1/5">
-                    <Card className="overflow-hidden flex flex-col text-center h-full">
-                    <CardHeader className="p-0">
-                        <div className="relative h-28 sm:h-[200px] w-full bg-muted flex items-center justify-center">
-                        {feature.image_url ? (
-                            <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
-                        ) : (
-                            <div className="bg-primary/10 p-4 rounded-full">
-                            <DynamicIcon name={feature.icon} className="w-10 h-10 text-primary" />
-                            </div>
-                        )}
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 flex flex-col flex-grow items-center">
-                        <CardTitle className="font-headline text-base sm:text-lg">{feature.title}</CardTitle>
-                        <p className="text-muted-foreground text-xs mt-2 flex-grow">{feature.description}</p>
-                    </CardContent>
-                    </Card>
-                </CarouselItem>
-                ))}
-            </CarouselContent>
-            </Carousel>
+            <FeaturesCarousel features={features} />
         </section>
     );
 }
@@ -137,31 +74,7 @@ function CustomerReviews({ reviews, section }: { reviews: ProductReview[], secti
     return (
         <section>
             <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
-            <Carousel opts={{ align: 'start', loop: reviews.length > 3 }} className="w-full">
-            <CarouselContent className="-ml-6">
-                {reviews.map((review) => (
-                <CarouselItem key={review.id} className="pl-6 basis-full md:basis-1/2 lg:basis-1/3">
-                    <Card className="h-full flex flex-col">
-                    <CardHeader className="flex-row items-center gap-4">
-                        <Avatar><AvatarFallback>{review.customer_name.charAt(0)}</AvatarFallback></Avatar>
-                        <div>
-                        <CardTitle className="text-base">{review.customer_name}</CardTitle>
-                        <div className="flex items-center gap-0.5">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} className={cn("h-4 w-4", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
-                            ))}
-                        </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-grow">
-                        <p className="font-semibold">{review.title}</p>
-                        <p className="text-muted-foreground text-sm italic">"{review.review_text}"</p>
-                    </CardContent>
-                    </Card>
-                </CarouselItem>
-                ))}
-            </CarouselContent>
-            </Carousel>
+            <ReviewsCarousel reviews={reviews} />
         </section>
     );
 }
@@ -180,9 +93,6 @@ async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, 
     query = query.overlaps('categories', [section.category]);
   }
 
-  // Handle Tags filtering if supported in DB (using 'color' or 'brand' as proxy for generic tags if needed, 
-  // or checking overlapping values in categories/attributes)
-  // For simplicity, let's assume tags are part of a tags column or overlap categories
   if (section.tags && section.tags.length > 0) {
       query = query.overlaps('categories', section.tags); 
   }
@@ -300,30 +210,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
             {categoriesResult.data && (categoriesResult.data.length > 0) && (
               <div>
                 <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{t.homepage.shopByCategory}</h2>
-                <Carousel opts={{ align: 'start' }} className="w-full">
-                    <CarouselContent className="-ml-4">
-                        {(categoriesResult.data as Category[]).map((cat) => (
-                            <CarouselItem key={cat.id} className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
-                                <Link href={`/products?category=${encodeURIComponent(cat.name)}`}>
-                                    <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1" style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}>
-                                        <div className="relative aspect-square w-full">
-                                            {cat.image_url ? (
-                                                <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
-                                            ) : (
-                                                <div className="flex h-full w-full items-center justify-center bg-muted">
-                                                    <DynamicIcon name={cat.icon || 'Package'} className="h-12 w-12 text-muted-foreground" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <CardFooter className="p-3">
-                                            <h3 className="font-semibold w-full text-center text-sm">{cat.name}</h3>
-                                        </CardFooter>
-                                    </Card>
-                                </Link>
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                </Carousel>
+                <CategoryCarousel categories={(categoriesResult.data as Category[])} />
               </div>
             )}
           </section>
@@ -337,7 +224,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       case 'customer-reviews':
         return <CustomerReviews key={section.id} reviews={(reviewsResult.data as ProductReview[]) || []} section={section} />;
       default:
-        // Handle all dynamic sections (Category based or Custom Filter based)
         return (
             <Suspense key={section.id} fallback={<SectionSkeleton />}>
                 <DynamicSectionProducts siteId={siteId} section={section} t={t} />
