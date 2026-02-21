@@ -16,23 +16,46 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // LIMIT CHECK for new products
+    if (isNew) {
+        // Fetch the limit and current count
+        const [profileRes, productsCountRes] = await Promise.all([
+            supabaseAdmin.from('profiles').select('subscription_plan, subscription_status').eq('id', siteId).single(),
+            supabaseAdmin.from('products').select('*', { count: 'exact', head: true }).eq('site_id', siteId)
+        ]);
+
+        if (profileRes.data) {
+            // Get product limit from the associated plan
+            const { data: planData } = await supabaseAdmin
+                .from('plans')
+                .select('product_limit')
+                .eq('id', profileRes.data.subscription_plan)
+                .single();
+
+            const currentCount = productsCountRes.count || 0;
+            const limit = planData?.product_limit;
+
+            if (limit !== null && limit !== undefined && currentCount >= limit) {
+                return NextResponse.json({ 
+                    error: `আপনার প্রোডাক্ট লিমিট (${limit}) শেষ হয়ে গেছে। আরও পণ্য যোগ করতে আপনার প্ল্যান আপগ্রেড করুন।` 
+                }, { status: 403 });
+            }
+        }
+    }
+
     let resultProduct;
 
     // Sanitize and ensure data types match DB expectations
     const sanitizedProductData = {
         ...productData,
-        // Ensure unit is a string and handle empty values
         unit: productData.unit && productData.unit.trim() !== '' ? productData.unit : null,
-        // Ensure variants is either null or a valid object for JSONB
         variants: productData.variants && productData.variants.length > 0 ? productData.variants : null,
-        // Clean arrays
         brand: Array.isArray(productData.brand) ? productData.brand : [],
         color: Array.isArray(productData.color) ? productData.color : [],
         categories: Array.isArray(productData.categories) ? productData.categories : [],
     };
 
     if (isNew) {
-      // Create new product
       const { data, error } = await supabaseAdmin
         .from('products')
         .insert({ ...sanitizedProductData, site_id: siteId })
@@ -40,21 +63,13 @@ export async function POST(request: Request) {
         .single();
 
       if (error) {
-        console.error("Supabase Insert Error:", error);
         if (error.code === '23505') {
           return NextResponse.json({ error: 'This Product ID/Slug is already taken. Please choose another.' }, { status: 409 });
-        }
-        // Specific check for malformed array literal which usually means a string was sent to a TEXT[] column
-        if (error.message.includes('malformed array literal')) {
-            return NextResponse.json({ 
-                error: 'Database Schema Mismatch: The "unit" column in your products table might be an Array type. Please run the SQL fix provided by the assistant.' 
-            }, { status: 500 });
         }
         throw error;
       }
       resultProduct = data;
     } else {
-      // Update existing product
       const { data, error } = await supabaseAdmin
         .from('products')
         .update(sanitizedProductData)
@@ -62,14 +77,10 @@ export async function POST(request: Request) {
         .select()
         .single();
 
-      if (error) {
-        console.error("Supabase Update Error:", error);
-        throw error;
-      }
+      if (error) throw error;
       resultProduct = data;
     }
 
-    // Handle Flash Deal logic
     const targetProductId = isNew ? resultProduct.id : productId;
     
     const { data: existingDeal } = await supabaseAdmin
@@ -88,23 +99,12 @@ export async function POST(request: Request) {
         };
 
         if (existingDeal) {
-            const { error: flashUpdateError } = await supabaseAdmin
-                .from('flash_deals')
-                .update(flashPayload)
-                .eq('id', existingDeal.id);
-            if (flashUpdateError) throw flashUpdateError;
+            await supabaseAdmin.from('flash_deals').update(flashPayload).eq('id', existingDeal.id);
         } else {
-            const { error: flashInsertError } = await supabaseAdmin
-                .from('flash_deals')
-                .insert(flashPayload);
-            if (flashInsertError) throw flashInsertError;
+            await supabaseAdmin.from('flash_deals').insert(flashPayload);
         }
     } else if (existingDeal) {
-        const { error: flashDeleteError } = await supabaseAdmin
-            .from('flash_deals')
-            .delete()
-            .eq('id', existingDeal.id);
-        if (flashDeleteError) throw flashDeleteError;
+        await supabaseAdmin.from('flash_deals').delete().eq('id', existingDeal.id);
     }
 
     return NextResponse.json({ success: true, product: resultProduct }, { status: 200 });

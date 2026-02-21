@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Wand2, Sparkles, Plus, Ruler, Scale, X, Info, Star, CheckCircle2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Wand2, Sparkles, Plus, Ruler, Scale, X, Info, Star, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -52,6 +52,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const FALLBACK_UNITS = ['KG', 'Litter', 'GM', 'ML', 'Pcs', 'Pkt', 'Box', 'Dozen'];
 const FALLBACK_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
@@ -93,17 +94,12 @@ export default function ManageProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const { attributes, categories, setAttributes, setCategories, invalidateEntity } = useAdminStore();
+  const { attributes, categories, setAttributes, setCategories, invalidateEntity, dashboard } = useAdminStore();
 
   const productId = params.productId as string;
   const isNew = productId === 'new';
 
-  const [isLoading, setIsLoading] = useState(() => {
-    const store = useAdminStore.getState();
-    if (isNew) return !(store.categories.length > 0);
-    return true;
-  });
-
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isBeautifying, setIsBeautifying] = useState(false);
@@ -123,6 +119,11 @@ export default function ManageProductPage() {
   
   const watchedValues = form.watch();
   const productName = form.watch('name');
+
+  // LIMIT LOGIC
+  const productLimit = user?.product_limit;
+  const currentProductCount = dashboard?.totalProducts || 0;
+  const isLimitReached = isNew && productLimit !== null && currentProductCount >= productLimit;
 
   useEffect(() => {
     if (isNew && productName) {
@@ -278,6 +279,10 @@ export default function ManageProductPage() {
 
   const onSubmit = async (values: ProductFormData) => {
     if (!user) return;
+    if (isLimitReached) {
+        toast({ variant: 'destructive', title: 'Limit Reached', description: 'আপনার প্রোডাক্ট লিমিট শেষ হয়ে গেছে। দয়া করে সাবস্ক্রিপশন আপগ্রেড করুন।' });
+        return;
+    }
     setIsSubmitting(true);
     const { has_flash_deal, flash_deal_price, flash_deal_range, use_variants, variant_type, ...productValues } = values;
     
@@ -304,8 +309,8 @@ export default function ManageProductPage() {
                 flashDealData: has_flash_deal ? { discount_price: flash_deal_price, start_date: flash_deal_range?.startDate, end_date: flash_deal_range?.endDate } : null
             })
         });
+        const res = await response.json();
         if (!response.ok) {
-            const res = await response.json();
             throw new Error(res.error || 'Failed to save');
         }
         invalidateEntity('products');
@@ -333,12 +338,22 @@ export default function ManageProductPage() {
         <Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" />পণ্য তালিকায় ফিরে যান</Link></Button>
         <div className="flex gap-2">
              <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>বাতিল</Button>
-             <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+             <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting || isLimitReached}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isNew ? 'পণ্যটি তৈরি করুন' : 'পরিবর্তনগুলো সেভ করুন'}
             </Button>
         </div>
       </div>
+
+      {isLimitReached && (
+          <Alert variant="destructive" className="mb-8">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Product Limit Reached</AlertTitle>
+              <AlertDescription>
+                  আপনার বর্তমান প্ল্যানে সর্বোচ্চ {productLimit} টি পণ্য যোগ করার অনুমতি রয়েছে। নতুন পণ্য যোগ করতে হলে দয়া করে আপনার <Link href="/admin/settings" className="font-bold underline">সাবস্ক্রিপশন আপগ্রেড করুন</Link>।
+              </AlertDescription>
+          </Alert>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -518,7 +533,7 @@ export default function ManageProductPage() {
             <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-40 md:left-[220px] lg:left-[280px]">
                 <div className="container max-w-5xl mx-auto flex justify-end gap-4">
                     <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>বাতিল করুন</Button>
-                    <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-lg shadow-primary/20">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><CheckCircle2 className="mr-2 h-4 w-4" /> {isNew ? 'পণ্যটি তৈরি করুন' : 'সেভ করুন'}</>}</Button>
+                    <Button type="submit" disabled={isSubmitting || isLimitReached} className="min-w-[150px] shadow-lg shadow-primary/20">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><CheckCircle2 className="mr-2 h-4 w-4" /> {isNew ? 'পণ্যটি তৈরি করুন' : 'সেভ করুন'}</>}</Button>
                 </div>
             </div>
         </form>

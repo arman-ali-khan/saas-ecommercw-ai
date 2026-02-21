@@ -17,10 +17,33 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // 1. LIMIT CHECK: Verify if site has reached customer limit
+    const [profileRes, customersCountRes] = await Promise.all([
+        supabaseAdmin.from('profiles').select('subscription_plan').eq('id', siteId).single(),
+        supabaseAdmin.from('customer_profiles').select('*', { count: 'exact', head: true }).eq('site_id', siteId)
+    ]);
+
+    if (profileRes.data) {
+        const { data: planData } = await supabaseAdmin
+            .from('plans')
+            .select('customer_limit')
+            .eq('id', profileRes.data.subscription_plan)
+            .single();
+
+        const currentCount = customersCountRes.count || 0;
+        const limit = planData?.customer_limit;
+
+        if (limit !== null && limit !== undefined && currentCount >= limit) {
+            return NextResponse.json({ 
+                error: 'দুঃখিত, এই স্টোরটিতে বর্তমানে আর নতুন মেম্বার গ্রহণ করা সম্ভব হচ্ছে না। স্টোর অ্যাডমিনের সাথে যোগাযোগ করুন।' 
+            }, { status: 403 });
+        }
+    }
     
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if user already exists
+    // 2. Check if user already exists
     const { data: existingUsers, error: fetchError } = await supabaseAdmin
         .from('customer_profiles')
         .select('email')

@@ -27,8 +27,9 @@ import {
 } from '@/components/ui/card';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
@@ -42,23 +43,46 @@ export default function CustomerRegisterPage() {
   const username = params.username as string;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingLimit, setIsCheckingLimit] = useState(true);
+  const [isLimitReached, setIsLimitReached] = useState(false);
   const { registerCustomer } = useCustomerAuth();
   const [siteId, setSiteId] = useState<string | null>(null);
 
   useEffect(() => {
-    const getSiteId = async () => {
-        if (username) {
-            const { data } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('domain', username)
-            .single();
-            if (data) {
-                setSiteId(data.id);
+    const checkSiteAndLimit = async () => {
+        if (!username) return;
+        setIsCheckingLimit(true);
+        
+        try {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('id, subscription_plan')
+                .eq('domain', username)
+                .single();
+
+            if (profile) {
+                setSiteId(profile.id);
+                
+                // Fetch Plan Limit and Current Count
+                const [planRes, countRes] = await Promise.all([
+                    supabase.from('plans').select('customer_limit').eq('id', profile.subscription_plan).single(),
+                    supabase.from('customer_profiles').select('*', { count: 'exact', head: true }).eq('site_id', profile.id)
+                ]);
+
+                const limit = planRes.data?.customer_limit;
+                const count = countRes.count || 0;
+
+                if (limit !== null && limit !== undefined && count >= limit) {
+                    setIsLimitReached(true);
+                }
             }
+        } catch (err) {
+            console.error("Limit check error:", err);
+        } finally {
+            setIsCheckingLimit(false);
         }
     }
-    getSiteId();
+    checkSiteAndLimit();
   }, [username]);
 
 
@@ -74,13 +98,14 @@ export default function CustomerRegisterPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!siteId) {
-        toast({
-            variant: 'destructive',
-            title: 'ত্রুটি',
-            description: 'সাইট খুঁজে পাওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।',
-        });
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'সাইট খুঁজে পাওয়া যায়নি।' });
         return;
     }
+    if (isLimitReached) {
+        toast({ variant: 'destructive', title: 'Limit Reached', description: 'দুঃখিত, এই স্টোরে বর্তমানে নতুন অ্যাকাউন্ট খোলা বন্ধ আছে।' });
+        return;
+    }
+
     setIsLoading(true);
     const result = await registerCustomer(
       values.fullName,
@@ -91,12 +116,7 @@ export default function CustomerRegisterPage() {
     setIsLoading(false);
 
     if (result.user) {
-      toast({
-        title: 'নিবন্ধন সফল হয়েছে!',
-        description:
-          'দয়া করে এখন লগ ইন করুন।',
-        duration: 10000,
-      });
+      toast({ title: 'নিবন্ধন সফল হয়েছে!', description: 'দয়া করে এখন লগ ইন করুন।' });
       router.push(`/login`);
     } else {
       toast({
@@ -105,6 +125,14 @@ export default function CustomerRegisterPage() {
         description: result.error || "An unknown error occurred.",
       });
     }
+  }
+
+  if (isCheckingLimit) {
+      return (
+          <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
+      );
   }
 
   return (
@@ -117,6 +145,16 @@ export default function CustomerRegisterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {isLimitReached && (
+              <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Registration Suspended</AlertTitle>
+                  <AlertDescription>
+                      দুঃখিত, এই স্টোরটিতে মেম্বার লিমিট পূর্ণ হয়ে যাওয়ায় বর্তমানে নতুন নিবন্ধন বন্ধ রয়েছে।
+                  </AlertDescription>
+              </Alert>
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -126,7 +164,7 @@ export default function CustomerRegisterPage() {
                   <FormItem>
                     <FormLabel>পুরো নাম</FormLabel>
                     <FormControl>
-                      <Input placeholder="আপনার পুরো নাম" {...field} />
+                      <Input placeholder="আপনার পুরো নাম" {...field} disabled={isLimitReached} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -139,7 +177,7 @@ export default function CustomerRegisterPage() {
                   <FormItem>
                     <FormLabel>ইমেল</FormLabel>
                     <FormControl>
-                      <Input placeholder="you@example.com" {...field} />
+                      <Input placeholder="you@example.com" {...field} disabled={isLimitReached} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -152,7 +190,7 @@ export default function CustomerRegisterPage() {
                   <FormItem>
                     <FormLabel>পাসওয়ার্ড</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input type="password" placeholder="••••••••" {...field} disabled={isLimitReached} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -161,12 +199,10 @@ export default function CustomerRegisterPage() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading || !form.formState.isValid || !siteId}
+                disabled={isLoading || !form.formState.isValid || !siteId || isLimitReached}
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading
-                  ? 'অ্যাকাউন্ট তৈরি করা হচ্ছে...'
-                  : 'অ্যাকাউন্ট তৈরি করুন'}
+                {isLoading ? 'অ্যাকাউন্ট তৈরি করা হচ্ছে...' : 'অ্যাকাউন্ট তৈরি করুন'}
               </Button>
             </form>
           </Form>
