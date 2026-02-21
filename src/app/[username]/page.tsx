@@ -49,28 +49,13 @@ const getGridClass = (view?: string) => {
 function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Section, t: any }) {
   if (deals.length === 0) return null;
   
-  const gridClass = getGridClass(section.mobileView);
-
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
         <Button asChild variant="ghost"><Link href={`/flash-deals`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
-      {gridClass ? (
-        <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
-            {deals.map((deal) => (
-                <ProductCard 
-                    key={deal.id} 
-                    product={deal.products} 
-                    flashDeal={deal} 
-                    isList={section.mobileView === 'list'} 
-                />
-            ))}
-        </div>
-      ) : (
-        <FlashDealCarousel deals={deals} />
-      )}
+      <FlashDealCarousel deals={deals} section={section} />
     </section>
   );
 }
