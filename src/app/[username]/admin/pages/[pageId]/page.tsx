@@ -93,8 +93,8 @@ const countdownBlockSchema = blockBaseSchema.extend({
 const carouselSlideSchema = z.object({
     id: z.string(),
     image: z.string().url('A valid image URL is required.'),
-    title: z.string().min(1, 'Title is required.'),
-    subtitle: z.string().optional(),
+    title: z.string().optional().or(z.literal('')),
+    subtitle: z.string().optional().or(z.literal('')),
 });
 
 const carouselBlockSchema = blockBaseSchema.extend({
@@ -218,7 +218,7 @@ export default function ManagePage() {
         });
 
         const addSlide = () => {
-            appendSlide({ id: uuidv4(), image: 'https://placehold.co/1200x600?text=New+Slide', title: 'New Slide Title', subtitle: 'New slide subtitle' });
+            appendSlide({ id: uuidv4(), image: 'https://placehold.co/1200x600?text=New+Slide', title: '', subtitle: '' });
         }
 
         return (
@@ -235,7 +235,7 @@ export default function ManagePage() {
                         </div>
                         <div className="space-y-3">
                             <FormField control={control} name={`${namePrefix}.slides.${index}.image`} render={({ field: imgField }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...imgField} /></FormControl><ImageUploader onUpload={(res) => form.setValue(`${namePrefix}.slides.${index}.image` as any, res.info.secure_url)} /><FormMessage /></FormItem>)} />
-                            <FormField control={control} name={`${namePrefix}.slides.${index}.title`} render={({ field: titleField }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...titleField} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={control} name={`${namePrefix}.slides.${index}.title`} render={({ field: titleField }) => (<FormItem><FormLabel>Title (Optional)</FormLabel><FormControl><Input {...titleField} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={control} name={`${namePrefix}.slides.${index}.subtitle`} render={({ field: subField }) => (<FormItem><FormLabel>Subtitle (Optional)</FormLabel><FormControl><Input {...subField} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                     </Card>
@@ -464,7 +464,7 @@ export default function ManagePage() {
                                                           </FormControl>
                                                       </PopoverTrigger>
                                                       <PopoverContent className="w-auto p-0" align="start">
-                                                          <Calendar mode="single" selected={cdDateField.value} onSelect={cdDateField.onChange} initialFocus />
+                                                          <Calendar mode="single" selected={cdDateField.value} onValueChange={cdDateField.onChange} initialFocus />
                                                       </PopoverContent>
                                                   </Popover>
                                                   <FormMessage />

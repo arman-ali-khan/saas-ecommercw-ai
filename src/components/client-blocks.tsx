@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -53,26 +52,32 @@ export function CountdownBlock({ endDate }: { endDate: string }) {
 type CarouselSlide = {
   id: string;
   image: string;
-  title: string;
+  title?: string;
   subtitle?: string;
 };
+
 export function CarouselBlock({ slides }: { slides: CarouselSlide[] }) {
   if (!slides || slides.length === 0) return null;
   
   return (
     <ShadCarousel className="w-full" opts={{ loop: true }}>
       <CarouselContent>
-        {slides.map((slide) => (
-          <CarouselItem key={slide.id}>
-            <div className="relative aspect-video">
-              <Image src={slide.image} alt={slide.title} fill className="object-cover rounded-lg" />
-              <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center p-4">
-                <h3 className="text-4xl font-bold text-white">{slide.title}</h3>
-                {slide.subtitle && <p className="text-lg text-white/90 mt-2">{slide.subtitle}</p>}
+        {slides.map((slide) => {
+          const hasText = !!(slide.title?.trim() || slide.subtitle?.trim());
+          return (
+            <CarouselItem key={slide.id}>
+              <div className="relative aspect-video">
+                <Image src={slide.image} alt={slide.title || 'Slide Image'} fill className="object-cover rounded-lg" />
+                {hasText && (
+                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center p-4 rounded-lg">
+                    {slide.title && <h3 className="text-2xl md:text-4xl font-bold text-white">{slide.title}</h3>}
+                    {slide.subtitle && <p className="text-sm md:text-lg text-white/90 mt-2">{slide.subtitle}</p>}
+                  </div>
+                )}
               </div>
-            </div>
-          </CarouselItem>
-        ))}
+            </CarouselItem>
+          );
+        })}
       </CarouselContent>
       <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 hidden md:flex" />
       <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:flex" />
