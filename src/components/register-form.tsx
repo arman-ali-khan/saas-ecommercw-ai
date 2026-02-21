@@ -27,7 +27,7 @@ import {
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
@@ -117,7 +117,7 @@ export default function RegisterForm() {
     };
 
     checkUsernameAvailability();
-  }, [debouncedUsername, formSchema.shape.username]);
+  }, [debouncedUsername]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!domain || !siteName) {
@@ -153,7 +153,6 @@ export default function RegisterForm() {
           'আপনার নিবন্ধন নিশ্চিত করতে দয়া করে আপনার ইমেল পরীক্ষা করুন।',
         duration: 10000,
       });
-      // Redirect to the new store's login page
       const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
       const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
       window.location.href = `${protocol}//${domain}.${rootDomain}/admin/login`;
@@ -268,15 +267,22 @@ export default function RegisterForm() {
                   </FormItem>
                 )}
               />
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isSubmitDisabled}
-              >
-                {isLoading
-                  ? 'অ্যাকাউন্ট তৈরি করা হচ্ছে...'
-                  : 'অ্যাকাউন্ট তৈরি করুন'}
-              </Button>
+              <div className="flex flex-col gap-3">
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitDisabled}
+                >
+                  {isLoading
+                    ? 'অ্যাকাউন্ট তৈরি করা হচ্ছে...'
+                    : 'অ্যাকাউন্ট তৈরি করুন'}
+                </Button>
+                <Button variant="ghost" asChild className="w-full">
+                  <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> হোমপেজে ফিরে যান
+                  </Link>
+                </Button>
+              </div>
             </form>
           </Form>
           <div className="mt-6 text-center text-sm">

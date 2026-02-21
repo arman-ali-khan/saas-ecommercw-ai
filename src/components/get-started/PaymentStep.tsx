@@ -13,13 +13,14 @@ import { type Plan } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 interface PaymentStepProps {
     plan?: Plan;
     formData: FormData;
     updateFormData: (data: Partial<FormData>) => void;
     onNext: () => void;
+    onBack: () => void;
 }
 
 const paymentSchema = z.object({
@@ -41,7 +42,7 @@ type SaasSettings = {
     accepted_banking_methods: string[] | null;
 }
 
-export default function PaymentStep({ plan, formData, updateFormData, onNext }: PaymentStepProps) {
+export default function PaymentStep({ plan, formData, updateFormData, onNext, onBack }: PaymentStepProps) {
     const [settings, setSettings] = useState<SaasSettings | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isNavigating, setIsNavigating] = useState(false);
@@ -49,8 +50,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext }: 
     const form = useForm<z.infer<typeof paymentSchema>>({
         resolver: zodResolver(paymentSchema),
         defaultValues: {
-            paymentMethod: 'mobile_banking',
-            transactionId: '',
+            paymentMethod: formData.paymentMethod || 'mobile_banking',
+            transactionId: formData.transactionId || '',
         }
     });
 
@@ -171,10 +172,15 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext }: 
                              </div>
                         )}
 
-                        <Button type="submit" className="w-full" disabled={!form.formState.isValid || isNavigating}>
-                            {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            পেমেন্ট সম্পূর্ণ করুন
-                        </Button>
+                        <div className="flex gap-4">
+                            <Button type="button" variant="outline" onClick={onBack} disabled={isNavigating} className="flex-1">
+                                <ArrowLeft className="mr-2 h-4 w-4" /> আগের ধাপ
+                            </Button>
+                            <Button type="submit" className="flex-1" disabled={!form.formState.isValid || isNavigating}>
+                                {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                পরবর্তী ধাপ
+                            </Button>
+                        </div>
                     </form>
                 </Form>
             </CardContent>

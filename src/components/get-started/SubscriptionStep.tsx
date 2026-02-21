@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
 import type { FormData } from '@/components/get-started/GetStartedFlow';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -22,6 +22,7 @@ interface SubscriptionStepProps {
   formData: FormData;
   updateFormData: (data: Partial<FormData>) => void;
   onNext: () => void;
+  onBack: () => void;
 }
 
 export default function SubscriptionStep({
@@ -30,6 +31,7 @@ export default function SubscriptionStep({
   formData,
   updateFormData,
   onNext,
+  onBack,
 }: SubscriptionStepProps) {
   const searchParams = useSearchParams();
   const [isNavigating, setIsNavigating] = useState(false);
@@ -120,7 +122,10 @@ export default function SubscriptionStep({
           </Card>
         ))}
       </div>
-      <div className="mt-12 text-center">
+      <div className="mt-12 flex flex-col sm:flex-row justify-center gap-4">
+        <Button size="lg" variant="outline" onClick={onBack} disabled={isNavigating}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> হোমপেজে ফিরে যান
+        </Button>
         <Button size="lg" onClick={handleNext} disabled={!formData.plan || isNavigating}>
           {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           পরবর্তী ধাপ

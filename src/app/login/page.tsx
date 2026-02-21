@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/card';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
 const formSchema = z.object({
@@ -42,7 +42,6 @@ export default function LoginPage() {
   const [hostname, setHostname] = useState('');
 
   useEffect(() => {
-    // This runs on the client, so window is available.
     if (typeof window !== 'undefined') {
       setHostname(window.location.host);
     }
@@ -56,7 +55,6 @@ export default function LoginPage() {
     },
   });
 
-  // This effect handles redirection if a user is already logged in
   useEffect(() => {
     if (!loading && user) {
         if (user.isSaaSAdmin) {
@@ -84,7 +82,6 @@ export default function LoginPage() {
 
     toast({ title: 'Login Successful!' });
     
-    // Redirect logic is now handled directly here
     const role = user.user_metadata?.role;
     if (role === 'saas_admin') {
       window.location.href = '/dashboard';
@@ -103,7 +100,6 @@ export default function LoginPage() {
     }
   }
 
-  // Show a loader if auth state is loading or a user is logged in (and we're about to redirect).
   if (loading || user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -154,10 +150,17 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? 'সাইন ইন করা হচ্ছে...' : 'সাইন ইন'}
-              </Button>
+              <div className="flex flex-col gap-3">
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading ? 'সাইন ইন করা হচ্ছে...' : 'সাইন ইন'}
+                </Button>
+                <Button variant="ghost" asChild className="w-full">
+                  <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> হোমপেজে ফিরে যান
+                  </Link>
+                </Button>
+              </div>
             </form>
           </Form>
           <div className="mt-6 text-center text-sm">

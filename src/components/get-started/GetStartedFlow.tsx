@@ -35,7 +35,7 @@ export default function GetStartedFlow() {
     domain: '',
     siteName: '',
     siteDescription: '',
-    paymentMethod: '',
+    paymentMethod: 'mobile_banking',
     transactionId: '',
   });
 
@@ -65,7 +65,6 @@ export default function GetStartedFlow() {
   const goToNextStep = () => {
     const currentIndex = STEPS.indexOf(currentStep);
 
-    // Skip payment for free plan
     if (currentStep === 'subscription' && formData.plan === 'free') {
       router.push(`/get-started?step=domain`);
       return;
@@ -77,8 +76,21 @@ export default function GetStartedFlow() {
     }
   };
 
-  const goToStep = (step: string) => {
-    router.push(`/get-started?step=${step}`);
+  const goToPreviousStep = () => {
+    const currentIndex = STEPS.indexOf(currentStep);
+    
+    if (currentIndex <= 0) {
+        router.push('/');
+        return;
+    }
+
+    if (currentStep === 'domain' && formData.plan === 'free') {
+        router.push(`/get-started?step=subscription`);
+        return;
+    }
+
+    const prevStep = STEPS[currentIndex - 1];
+    router.push(`/get-started?step=${prevStep}`);
   };
 
   const currentStepIndex = STEPS.indexOf(currentStep);
@@ -98,6 +110,7 @@ export default function GetStartedFlow() {
               formData={formData}
               updateFormData={updateFormData}
               onNext={goToNextStep}
+              onBack={goToPreviousStep}
             />
           )}
           {currentStep === 'payment' && (
@@ -106,6 +119,7 @@ export default function GetStartedFlow() {
               formData={formData}
               updateFormData={updateFormData}
               onNext={goToNextStep}
+              onBack={goToPreviousStep}
             />
           )}
           {currentStep === 'domain' && (
@@ -113,6 +127,7 @@ export default function GetStartedFlow() {
               formData={formData}
               updateFormData={updateFormData}
               onNext={goToNextStep}
+              onBack={goToPreviousStep}
             />
           )}
           {currentStep === 'site-info' && (
@@ -120,6 +135,7 @@ export default function GetStartedFlow() {
               formData={formData}
               updateFormData={updateFormData}
               onNext={goToNextStep}
+              onBack={goToPreviousStep}
             />
           )}
           {currentStep === 'success' && <SuccessStep formData={formData} />}

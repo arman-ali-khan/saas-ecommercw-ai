@@ -4,17 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { FormData } from "@/app/get-started/page";
+import type { FormData } from "@/components/get-started/GetStartedFlow";
 import { useState } from "react";
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 
 interface SiteInfoStepProps {
     formData: FormData;
     updateFormData: (data: Partial<FormData>) => void;
     onNext: () => void;
+    onBack: () => void;
 }
 
-export default function SiteInfoStep({ formData, updateFormData, onNext }: SiteInfoStepProps) {
+export default function SiteInfoStep({ formData, updateFormData, onNext, onBack }: SiteInfoStepProps) {
     const [siteName, setSiteName] = useState(formData.siteName);
     const [siteDescription, setSiteDescription] = useState(formData.siteDescription);
     const [isNavigating, setIsNavigating] = useState(false);
@@ -50,10 +51,15 @@ export default function SiteInfoStep({ formData, updateFormData, onNext }: SiteI
                         onChange={(e) => setSiteDescription(e.target.value)}
                     />
                 </div>
-                <Button onClick={handleNext} className="w-full" disabled={!siteName || !siteDescription || isNavigating}>
-                    {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    সেটআপ সম্পূর্ণ করুন
-                </Button>
+                <div className="flex gap-4">
+                    <Button variant="outline" onClick={onBack} disabled={isNavigating} className="flex-1">
+                        <ArrowLeft className="mr-2 h-4 w-4" /> আগের ধাপ
+                    </Button>
+                    <Button onClick={handleNext} className="flex-1" disabled={!siteName || !siteDescription || isNavigating}>
+                        {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        সেটআপ সম্পন্ন করুন
+                    </Button>
+                </div>
             </CardContent>
         </Card>
     );

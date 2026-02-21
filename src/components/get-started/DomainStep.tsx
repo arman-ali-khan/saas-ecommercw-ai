@@ -5,18 +5,19 @@ import { Input } from "@/components/ui/input";
 import type { FormData } from "@/components/get-started/GetStartedFlow";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface DomainStepProps {
     formData: FormData;
     updateFormData: (data: Partial<FormData>) => void;
     onNext: () => void;
+    onBack: () => void;
 }
 
 const RESERVED_DOMAINS = ['admin', 'dashboard', 'profile', 'products', 'about', 'checkout', 'login', 'register', 'get-started', 'api', 'www', 'store', 'shop', 'mail', 'ftp', 'test', 'dev'];
 
-export default function DomainStep({ formData, updateFormData, onNext }: DomainStepProps) {
+export default function DomainStep({ formData, updateFormData, onNext, onBack }: DomainStepProps) {
     const [domain, setDomain] = useState(formData.domain);
     const [availabilityStatus, setAvailabilityStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short' | 'reserved'>('empty');
     const [debouncedDomain, setDebouncedDomain] = useState(domain);
@@ -41,8 +42,6 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
     }, []);
 
     useEffect(() => {
-        // When the component loads, if there's already a domain in formData,
-        // we should validate it.
         if(formData.domain) {
             setDebouncedDomain(formData.domain);
         }
@@ -51,7 +50,7 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedDomain(domain);
-        }, 500); // 500ms debounce delay
+        }, 500);
 
         return () => {
             clearTimeout(handler);
@@ -82,9 +81,9 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
                     .eq('domain', debouncedDomain)
                     .single();
 
-                if (error && error.code !== 'PGRST116') { // PGRST116: means no rows returned, which is good.
+                if (error && error.code !== 'PGRST116') {
                     console.error("Error checking domain", error);
-                    setAvailabilityStatus('unavailable'); // Failsafe
+                    setAvailabilityStatus('unavailable');
                     return;
                 }
 
@@ -95,7 +94,7 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
                 }
             } catch (err) {
                  console.error("Error in checkDomainAvailability:", err);
-                 setAvailabilityStatus('unavailable'); // Failsafe
+                 setAvailabilityStatus('unavailable');
             }
         };
 
@@ -128,7 +127,7 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
                 return <p className="text-sm text-destructive">ডোমেইন কমপক্ষে ৩ অক্ষরের হতে হবে।</p>
             case 'empty':
             default:
-                return <div className="h-5" />; // Placeholder to prevent layout shift
+                return <div className="h-5" />;
         }
     }
     
@@ -163,10 +162,15 @@ export default function DomainStep({ formData, updateFormData, onNext }: DomainS
                         <StatusMessage />
                     </div>
                 </div>
-                <Button onClick={handleNext} className="w-full" disabled={isNextDisabled || isNavigating}>
-                    {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    পরবর্তী ধাপ
-                </Button>
+                <div className="flex gap-4">
+                    <Button variant="outline" onClick={onBack} disabled={isNavigating} className="flex-1">
+                        <ArrowLeft className="mr-2 h-4 w-4" /> আগের ধাপ
+                    </Button>
+                    <Button onClick={handleNext} className="flex-1" disabled={isNextDisabled || isNavigating}>
+                        {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        পরবর্তী ধাপ
+                    </Button>
+                </div>
             </CardContent>
         </Card>
     );
