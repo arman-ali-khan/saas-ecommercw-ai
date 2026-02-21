@@ -9,7 +9,6 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Section, Category, FlashDeal, StoreFeature, Product, ProductReview } from '@/types';
 import FlashDealCarousel from '@/components/flash-deal-carousel';
-import FeaturedCarousel from '@/components/featured-carousel';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTranslations } from '@/lib/get-translations';
@@ -61,13 +60,26 @@ function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Sectio
   );
 }
 
-function FeaturedProducts({ products, section }: { products: Product[], section: Section }) {
+function FeaturedProducts({ products, section, t }: { products: Product[], section: Section, t: any }) {
   if (products.length === 0) return null;
   
+  const gridClass = getGridClass(section.mobileView) || "grid-cols-2";
+
   return (
     <section>
-      <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
-      <FeaturedCarousel products={products} section={section} />
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
+        <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
+      </div>
+      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
+        {products.map((product) => (
+          <ProductCard 
+            key={product.id} 
+            product={product} 
+            isList={section.mobileView === 'list'} 
+          />
+        ))}
+      </div>
     </section>
   );
 }
@@ -236,7 +248,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       case 'flash_deals':
         return <FlashDeals key={section.id} deals={(flashDealsResult.data as FlashDeal[]) || []} section={section} t={t} />;
       case 'featured':
-        return <FeaturedProducts key={section.id} products={(featuredProductsResult.data as Product[]) || []} section={section} />;
+        return <FeaturedProducts key={section.id} products={(featuredProductsResult.data as Product[]) || []} section={section} t={t} />;
       case 'why-us':
         return <WhyUs key={section.id} features={(storeFeaturesResult.data as StoreFeature[]) || []} section={section} />;
       case 'customer-reviews':
