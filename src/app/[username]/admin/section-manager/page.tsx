@@ -35,7 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
 
-const CORE_SECTION_IDS = ['hero', 'flash_deals', 'featured', 'why-us', 'customer-reviews'];
+const CORE_SECTION_IDS = ['hero', 'categories', 'flash_deals', 'featured', 'why-us', 'customer-reviews'];
 
 export default function SectionManagerPage() {
   const { toast } = useToast();
@@ -87,10 +87,16 @@ export default function SectionManagerPage() {
                 ...s,
                 mobileView: s.mobileView || '2-col'
             }));
+            
+            // Migration: Add categories if not present in existing sections
+            if (!currentSections.find(s => s.id === 'categories')) {
+                currentSections.splice(1, 0, { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list' });
+            }
         } else {
             // Default initial state for a new store
             currentSections = [
               { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
+              { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list' },
               { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col' },
               { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col' },
               { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false, mobileView: '2-col' },
@@ -256,7 +262,7 @@ export default function SectionManagerPage() {
                                 </span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                     <Badge variant="outline" className="text-[10px] py-0 gap-1">
-                                        <Smartphone className="h-2 w-2" /> {section.mobileView || '2-col'}
+                                        <Smartphone className="h-2 w-2" /> {section.id === 'categories' && section.mobileView === 'list' ? '3 Columns' : (section.mobileView || '2-col')}
                                     </Badge>
                                     {section.isCategorySection && (
                                         <>
@@ -301,9 +307,16 @@ export default function SectionManagerPage() {
                                         <SelectValue placeholder="Select Layout" />
                                     </SelectTrigger>
                                     <SelectContent className="z-[110]">
+                                        {section.id !== 'categories' && (
+                                            <SelectItem value="1-col"><div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> 1 Column (Large)</div></SelectItem>
+                                        )}
                                         <SelectItem value="2-col"><div className="flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> 2 Columns (Grid)</div></SelectItem>
-                                        <SelectItem value="1-col"><div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> 1 Column (Large)</div></SelectItem>
-                                        <SelectItem value="list"><div className="flex items-center gap-2"><List className="h-4 w-4" /> List View</div></SelectItem>
+                                        <SelectItem value="list">
+                                            <div className="flex items-center gap-2">
+                                                {section.id === 'categories' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                                                {section.id === 'categories' ? '3 Columns (Grid)' : 'List View'}
+                                            </div>
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

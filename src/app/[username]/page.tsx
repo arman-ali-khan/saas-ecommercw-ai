@@ -16,6 +16,8 @@ import CategoryCarousel from '@/components/category-carousel';
 import FeaturesCarousel from '@/components/features-carousel';
 import ReviewsCarousel from '@/components/reviews-carousel';
 import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
+import DynamicIcon from '@/components/dynamic-icon';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,6 +60,69 @@ function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Sectio
       <FlashDealCarousel deals={deals} section={section} />
     </section>
   );
+}
+
+function CategoriesSection({ categories, section, t }: { categories: Category[], section: Section, t: any }) {
+    if (categories.length === 0) return null;
+
+    if (section.mobileView === 'list') {
+        return (
+            <section>
+                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
+                    {categories.map(cat => (
+                        <Link key={cat.id} href={`/products?category=${encodeURIComponent(cat.name)}`}>
+                            <Card className="overflow-hidden h-full flex flex-col transition-all hover:shadow-lg hover:-translate-y-1 border-2" style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}>
+                                <div className="relative aspect-square w-full">
+                                    {cat.image_url ? (
+                                        <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                                            <DynamicIcon name={cat.icon || 'Package'} className="h-8 w-8 text-muted-foreground" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-2 mt-auto">
+                                    <h3 className="font-bold text-center text-[10px] sm:text-sm truncate leading-tight">{cat.name}</h3>
+                                </div>
+                            </Card>
+                        </Link>
+                    ))}
+                </div>
+            </section>
+        );
+    }
+
+    // Standard 2-col or Carousel
+    return (
+        <section>
+            <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
+            {section.mobileView === '2-col' ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {categories.map(cat => (
+                        <Link key={cat.id} href={`/products?category=${encodeURIComponent(cat.name)}`}>
+                            <Card className="overflow-hidden h-full transition-all hover:shadow-lg hover:-translate-y-1 border-2" style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}>
+                                <div className="relative aspect-square w-full">
+                                    {cat.image_url ? (
+                                        <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                                            <DynamicIcon name={cat.icon || 'Package'} className="h-10 w-10 text-muted-foreground" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-3">
+                                    <h3 className="font-bold text-center text-xs sm:text-base truncate">{cat.name}</h3>
+                                </div>
+                            </Card>
+                        </Link>
+                    ))}
+                </div>
+            ) : (
+                <CategoryCarousel categories={categories} />
+            )}
+        </section>
+    );
 }
 
 function FeaturedProducts({ products, section, t }: { products: Product[], section: Section, t: any }) {
@@ -210,6 +275,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     
     return [
       { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
+      { id: 'categories', title: t.homepage.shopByCategory, enabled: true, isCategorySection: false, mobileView: 'list' },
       { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col' },
       { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col' },
       { id: 'why-us', title: t.homepage.whyUs, enabled: true, isCategorySection: false, mobileView: '2-col' },
@@ -237,14 +303,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 <div className="aspect-video bg-muted rounded-lg flex items-center justify-center"><p className="text-muted-foreground">Welcome to the store!</p></div>
               )}
             </div>
-            {categoriesResult.data && (categoriesResult.data.length > 0) && (
-              <div>
-                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{t.homepage.shopByCategory}</h2>
-                <CategoryCarousel categories={(categoriesResult.data as Category[])} />
-              </div>
-            )}
           </section>
         );
+      case 'categories':
+        return <CategoriesSection key={section.id} categories={(categoriesResult.data as Category[]) || []} section={section} t={t} />;
       case 'flash_deals':
         return <FlashDeals key={section.id} deals={(flashDealsResult.data as FlashDeal[]) || []} section={section} t={t} />;
       case 'featured':
