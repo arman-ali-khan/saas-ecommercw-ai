@@ -10,25 +10,25 @@ import {
 } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import { useRef } from 'react';
-import type { FlashDeal, Section } from '@/types';
+import type { Product, Section } from '@/types';
 import ProductCard from './product-card';
 import { cn } from '@/lib/utils';
 
-interface FlashDealCarouselProps {
-  deals: FlashDeal[];
+interface FeaturedCarouselProps {
+  products: Product[];
   section: Section;
 }
 
-export default function FlashDealCarousel({ deals, section }: FlashDealCarouselProps) {
-  const plugin = useRef(Autoplay({ delay: 3000, stopOnInteraction: true }));
+export default function FeaturedCarousel({ products, section }: FeaturedCarouselProps) {
+  const plugin = useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
   const isList = section.mobileView === 'list';
   const isOneCol = section.mobileView === '1-col';
 
-  // Chunk deals into pairs for the mobile list view carousel
+  // Chunk products into pairs for the mobile list view carousel
   const chunks = [];
   if (isList) {
-    for (let i = 0; i < deals.length; i += 2) {
-      chunks.push(deals.slice(i, i + 2));
+    for (let i = 0; i < products.length; i += 2) {
+      chunks.push(products.slice(i, i + 2));
     }
   }
 
@@ -46,15 +46,13 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
     >
       <CarouselContent className="-ml-4">
         {isList ? (
-          // List View: 2 items stacked per slide on mobile
           chunks.map((chunk, idx) => (
             <CarouselItem key={idx} className={cn("pl-4", itemBasis)}>
               <div className="flex flex-col gap-3">
-                {chunk.map((deal) => (
+                {chunk.map((product) => (
                   <ProductCard
-                    key={deal.id}
-                    product={deal.products}
-                    flashDeal={deal}
+                    key={product.id}
+                    product={product}
                     isList={true}
                   />
                 ))}
@@ -62,12 +60,10 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
             </CarouselItem>
           ))
         ) : (
-          // Standard Grid View: respects 1-col or 2-col settings
-          deals.map((deal) => (
-            <CarouselItem key={deal.id} className={cn("pl-4", itemBasis)}>
+          products.map((product) => (
+            <CarouselItem key={product.id} className={cn("pl-4", itemBasis)}>
               <ProductCard
-                product={deal.products}
-                flashDeal={deal}
+                product={product}
               />
             </CarouselItem>
           ))
