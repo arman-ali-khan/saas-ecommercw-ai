@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -45,6 +44,7 @@ type ShowcaseOrderFormData = z.infer<typeof showcaseOrderSchema>;
 
 export function ShowcaseOrderBlock({ 
     main_product_id, 
+    main_product_unit,
     optional_product_ids, 
     also_buy_title, 
     username, 
@@ -52,6 +52,7 @@ export function ShowcaseOrderBlock({
     initialProducts
 }: { 
     main_product_id?: string, 
+    main_product_unit?: string,
     optional_product_ids: string[], 
     also_buy_title?: string, 
     username: string, 
@@ -89,7 +90,16 @@ export function ShowcaseOrderBlock({
     const saveUncompletedOrder = useCallback(async () => {
         const currentFormValues = form.getValues();
         const itemsToOrder = products.filter(p => (quantities[p.id] || 0) > 0);
-        const subtotal = itemsToOrder.reduce((acc, p) => acc + (p.price * (quantities[p.id] || 0)), 0);
+        
+        // Calculate subtotal correctly based on unit selection
+        const subtotalValue = itemsToOrder.reduce((acc, p) => {
+            let price = p.price;
+            if (p.id === main_product_id && main_product_unit && p.variants?.length) {
+                const v = p.variants.find(v => v.unit === main_product_unit);
+                if (v) price = v.price;
+            }
+            return acc + (price * (quantities[p.id] || 0));
+        }, 0);
 
         if (!uncompletedOrderId || !siteId || itemsToOrder.length === 0) return;
         
@@ -105,14 +115,26 @@ export function ShowcaseOrderBlock({
             address: currentFormValues.address,
             city: currentFormValues.city,
           },
-          cart_items: itemsToOrder.map(product => ({
-            id: product.id,
-            name: product.name,
-            quantity: quantities[product.id],
-            price: product.price,
-            imageUrl: product.images[0]?.imageUrl,
-          })),
-          cart_total: subtotal,
+          cart_items: itemsToOrder.map(product => {
+            let price = product.price;
+            let unit = product.unit;
+            if (product.id === main_product_id && main_product_unit && product.variants?.length) {
+                const v = product.variants.find(v => v.unit === main_product_unit);
+                if (v) {
+                    price = v.price;
+                    unit = v.unit;
+                }
+            }
+            return {
+                id: product.id,
+                name: product.name,
+                quantity: quantities[product.id],
+                price: price,
+                selected_unit: unit,
+                imageUrl: product.images[0]?.imageUrl,
+            }
+          }),
+          cart_total: subtotalValue,
           status: 'shipping-info-entered'
         };
 
@@ -125,7 +147,7 @@ export function ShowcaseOrderBlock({
         } catch (err) {
             console.error('Failed to auto-save uncompleted order in showcase:', err);
         }
-    }, [uncompletedOrderId, siteId, form, products, quantities]);
+    }, [uncompletedOrderId, siteId, form, products, quantities, main_product_id, main_product_unit]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -182,7 +204,16 @@ export function ShowcaseOrderBlock({
     };
     
     const itemsToOrder = useMemo(() => products.filter(p => (quantities[p.id] || 0) > 0), [products, quantities]);
-    const subtotal = useMemo(() => itemsToOrder.reduce((acc, p) => acc + (p.price * (quantities[p.id] || 0)), 0), [itemsToOrder, quantities]);
+    
+    const subtotal = useMemo(() => itemsToOrder.reduce((acc, p) => {
+        let price = p.price;
+        if (p.id === main_product_id && main_product_unit && p.variants?.length) {
+            const v = p.variants.find(v => v.unit === main_product_unit);
+            if (v) price = v.price;
+        }
+        return acc + (price * (quantities[p.id] || 0));
+    }, 0), [itemsToOrder, quantities, main_product_id, main_product_unit]);
+
     const selectedShippingZoneId = form.watch('shippingZoneId');
     const shippingCost = useMemo(() => shippingZones.find(z => z.id.toString() === selectedShippingZoneId)?.price || 0, [selectedShippingZoneId, shippingZones]);
     const total = useMemo(() => subtotal + shippingCost, [subtotal, shippingCost]);
@@ -216,13 +247,25 @@ export function ShowcaseOrderBlock({
                 shipping_cost: shippingCost,
                 shipping_method_name: shippingZones.find(z => z.id.toString() === values.shippingZoneId)?.name || 'N/A'
             },
-            cart_items: itemsToOrder.map((product) => ({
-                id: product.id,
-                name: product.name,
-                quantity: quantities[product.id],
-                price: product.price,
-                imageUrl: product.images[0]?.imageUrl,
-            })),
+            cart_items: itemsToOrder.map((product) => {
+                let price = product.price;
+                let unit = product.unit;
+                if (product.id === main_product_id && main_product_unit && product.variants?.length) {
+                    const v = product.variants.find(v => v.unit === main_product_unit);
+                    if (v) {
+                        price = v.price;
+                        unit = v.unit;
+                    }
+                }
+                return {
+                    id: product.id,
+                    name: product.name,
+                    quantity: quantities[product.id],
+                    price: price,
+                    selected_unit: unit,
+                    imageUrl: product.images[0]?.imageUrl,
+                };
+            }),
             total: total,
             payment_method: values.paymentMethod,
             transaction_id: values.transactionId || null,
@@ -249,6 +292,15 @@ export function ShowcaseOrderBlock({
     const mainProduct = products.find(p => p.id === main_product_id);
     const optionalProducts = products.filter(p => optional_product_ids.includes(p.id));
 
+    const mainProductPrice = useMemo(() => {
+        if (!mainProduct) return 0;
+        if (main_product_unit && mainProduct.variants?.length) {
+            const v = mainProduct.variants.find(v => v.unit === main_product_unit);
+            if (v) return v.price;
+        }
+        return mainProduct.price;
+    }, [mainProduct, main_product_unit]);
+
     if (products.length === 0) return null;
 
     return (
@@ -274,7 +326,10 @@ export function ShowcaseOrderBlock({
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="font-bold text-base sm:text-lg leading-tight truncate">{mainProduct.name}</p>
-                                                <p className="text-sm sm:text-base text-primary font-black mt-1">{mainProduct.price.toFixed(2)} BDT</p>
+                                                <div className="flex flex-col mt-1">
+                                                    {main_product_unit && <span className="text-[10px] text-muted-foreground uppercase font-black">{main_product_unit}</span>}
+                                                    <p className="text-sm sm:text-base text-primary font-black">{mainProductPrice.toFixed(2)} BDT</p>
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="flex items-center flex-col gap-2 bg-background rounded-xl border p-1 shadow-sm shrink-0">

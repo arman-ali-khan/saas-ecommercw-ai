@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useEffect, useState, useCallback, useTransition } from 'react';
+import { useEffect, useState, useCallback, useMemo, useTransition } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm, useFieldArray, Control, useController } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,7 +16,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette, Columns, AlignLeft, AlignCenter, AlignRight, Plus, ShoppingBag, Clock, GalleryHorizontal, CalendarIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette, Columns, AlignLeft, AlignCenter, AlignRight, Plus, ShoppingBag, Clock, GalleryHorizontal, CalendarIcon, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
@@ -80,6 +79,7 @@ const coloredBoxBlockSchema = blockBaseSchema.extend({
 const productShowcaseBlockSchema = blockBaseSchema.extend({
   type: z.literal('product_showcase'),
   main_product_id: z.string().optional(),
+  main_product_unit: z.string().optional(),
   optional_product_ids: z.array(z.string()).default([]),
   also_buy_title: z.string().optional(),
 });
@@ -365,7 +365,15 @@ export default function ManagePage() {
                                         render={({ field: psField }) => (
                                           <FormItem>
                                             <FormLabel>Main Product</FormLabel>
-                                            <Select onValueChange={psField.onChange} defaultValue={psField.value}>
+                                            <Select onValueChange={(val) => {
+                                                psField.onChange(val);
+                                                const prod = allProducts.find(p => p.id === val);
+                                                if (prod?.variants?.length) {
+                                                    form.setValue(`${currentFieldName}.main_product_unit` as any, prod.variants[0].unit);
+                                                } else {
+                                                    form.setValue(`${currentFieldName}.main_product_unit` as any, '');
+                                                }
+                                            }} value={psField.value}>
                                               <FormControl>
                                                 <SelectTrigger>
                                                   <SelectValue placeholder="Select a main product" />
@@ -380,6 +388,40 @@ export default function ManagePage() {
                                           </FormItem>
                                         )}
                                       />
+                                      
+                                      {(() => {
+                                          const mainId = form.watch(`${currentFieldName}.main_product_id` as any);
+                                          const selectedProd = allProducts.find(p => p.id === mainId);
+                                          if (!selectedProd || !selectedProd.variants?.length) return null;
+                                          
+                                          return (
+                                              <FormField
+                                                  control={control}
+                                                  name={`${currentFieldName}.main_product_unit` as any}
+                                                  render={({ field: unitField }) => (
+                                                      <FormItem>
+                                                          <FormLabel>Default Unit/Variant</FormLabel>
+                                                          <Select onValueChange={unitField.onChange} value={unitField.value}>
+                                                              <FormControl>
+                                                                  <SelectTrigger>
+                                                                      <SelectValue placeholder="Select unit" />
+                                                                  </SelectTrigger>
+                                                              </FormControl>
+                                                              <SelectContent>
+                                                                  {selectedProd.variants?.map(v => (
+                                                                      <SelectItem key={v.unit} value={v.unit}>
+                                                                          {v.unit} - {v.price} BDT
+                                                                      </SelectItem>
+                                                                  ))}
+                                                              </SelectContent>
+                                                          </Select>
+                                                          <FormMessage />
+                                                      </FormItem>
+                                                  )}
+                                              />
+                                          )
+                                      })()}
+
                                       <FormField
                                         control={control}
                                         name={`${currentFieldName}.also_buy_title`}

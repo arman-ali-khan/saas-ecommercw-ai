@@ -1,5 +1,3 @@
-
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -143,6 +141,7 @@ export async function PageBlock({ block, username, siteId }: { block: any, usern
 
         return <ShowcaseOrderBlock 
             main_product_id={block.main_product_id} 
+            main_product_unit={block.main_product_unit}
             optional_product_ids={block.optional_product_ids || []} 
             also_buy_title={block.also_buy_title} 
             username={username} 
