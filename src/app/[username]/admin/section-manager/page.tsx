@@ -35,6 +35,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
 
+const CORE_SECTION_IDS = ['hero', 'flash_deals', 'featured', 'why-us', 'customer-reviews'];
+
 export default function SectionManagerPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
@@ -86,6 +88,7 @@ export default function SectionManagerPage() {
                 mobileView: s.mobileView || '2-col'
             }));
         } else {
+            // Default initial state for a new store
             currentSections = [
               { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
               { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col' },
@@ -149,7 +152,7 @@ export default function SectionManagerPage() {
 
   const handleAddDynamicSection = () => {
       if (!newTitle) {
-          toast({ variant: 'destructive', title: 'Title required' });
+          toast({ variant: 'destructive', title: 'শিরোনাম প্রদান করুন' });
           return;
       }
 
@@ -173,7 +176,7 @@ export default function SectionManagerPage() {
       setMinPrice('0');
       setMaxPrice('10000');
       setNewMobileView('2-col');
-      toast({ title: 'Section Added locally. Remember to Save Changes!' });
+      toast({ title: 'সেকশন যোগ করা হয়েছে। দয়া করে পরিবর্তনগুলো সেভ করুন।' });
   };
 
   const handleSaveChanges = async () => {
@@ -341,7 +344,7 @@ export default function SectionManagerPage() {
                         />
                         </div>
 
-                        {section.id.startsWith('dynamic-') && (
+                        {!CORE_SECTION_IDS.includes(section.id) && (
                             <Button variant="destructive" size="sm" onClick={() => handleRemoveSection(section.id)} className="w-fit">
                                 <Trash2 className="mr-2 h-4 w-4" /> Remove Section
                             </Button>
