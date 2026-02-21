@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import type { SubscriptionPaymentWithDetails } from '@/types';
 import { useAuth } from '@/stores/auth';
@@ -22,10 +22,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Loader2, User, CreditCard, FileText, X, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Eye, Loader2, User, CreditCard, FileText, X, CheckCircle2, ShieldAlert, Search, Filter } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const PAYMENTS_PER_PAGE = 10;
@@ -36,7 +44,6 @@ export default function SubscriptionPaymentsPage() {
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Initialize loading to false if we already have subscriptions in the store
   const [isLoading, setIsLoading] = useState(() => {
     const currentStore = useSaasStore.getState();
     return currentStore.subscriptions.length === 0;
@@ -44,6 +51,10 @@ export default function SubscriptionPaymentsPage() {
 
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
+
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const fetchPayments = useCallback(async (force = false) => {
     const currentStore = useSaasStore.getState();
@@ -81,11 +92,29 @@ export default function SubscriptionPaymentsPage() {
     }
   }, [fetchPayments, user]);
 
-  const totalPages = Math.ceil(payments.length / PAYMENTS_PER_PAGE);
-  const paginatedPayments = payments.slice(
+  const filteredPayments = useMemo(() => {
+    return payments.filter(p => {
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = 
+            (p.profiles?.full_name || '').toLowerCase().includes(searchLower) ||
+            (p.transaction_id || '').toLowerCase().includes(searchLower) ||
+            (p.plans?.name || '').toLowerCase().includes(searchLower);
+        
+        const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
+  }, [payments, searchQuery, statusFilter]);
+
+  const totalPages = Math.ceil(filteredPayments.length / PAYMENTS_PER_PAGE);
+  const paginatedPayments = filteredPayments.slice(
     (currentPage - 1) * PAYMENTS_PER_PAGE,
     currentPage * PAYMENTS_PER_PAGE
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   const handleUpdateStatus = async (paymentId: string, newPaymentStatus: 'completed' | 'failed') => {
     setIsActionLoading(true);
@@ -149,8 +178,40 @@ export default function SubscriptionPaymentsPage() {
     <>
       <Card>
         <CardHeader>
-            <CardTitle>Subscription Payments</CardTitle>
-            <CardDescription>View all historical subscription payment records.</CardDescription>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
+                <div>
+                    <CardTitle>Subscription Payments</CardTitle>
+                    <CardDescription>View all historical subscription payment records.</CardDescription>
+                </div>
+            </div>
+            <div className="mt-6 flex flex-wrap gap-4 items-center">
+                <div className="relative flex-grow max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search by name or transaction ID..." 
+                        className="pl-10"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-44">
+                        <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="pending_verification">Pending</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                </Select>
+                {(searchQuery || statusFilter !== 'all') && (
+                    <Button variant="ghost" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
+                        <X className="h-4 w-4 mr-2" /> Clear
+                    </Button>
+                )}
+            </div>
         </CardHeader>
         <CardContent>
           {paginatedPayments.length > 0 ? (
@@ -173,9 +234,14 @@ export default function SubscriptionPaymentsPage() {
                     {paginatedPayments.map(paymentItem => (
                       <TableRow key={paymentItem.id}>
                         <TableCell className="font-medium">
-                            <div className="flex flex-col">
-                                <span className="font-bold text-sm">{paymentItem.profiles?.full_name || 'Deleted User'}</span>
-                                <span className="text-[10px] text-muted-foreground">@{paymentItem.profiles?.username || 'unknown'}</span>
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback>{paymentItem.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-sm">{paymentItem.profiles?.full_name || 'Deleted User'}</span>
+                                    <span className="text-[10px] text-muted-foreground">@{paymentItem.profiles?.username || 'unknown'}</span>
+                                </div>
                             </div>
                         </TableCell>
                         <TableCell><Badge variant="secondary" className="text-[10px]">{paymentItem.plans?.name || 'N/A'}</Badge></TableCell>
@@ -225,7 +291,7 @@ export default function SubscriptionPaymentsPage() {
             </>
           ) : (
             <div className="text-center py-16">
-              <p className="text-muted-foreground">No payment records found.</p>
+              <p className="text-muted-foreground">No payment records found matching your criteria.</p>
             </div>
           )}
         </CardContent>

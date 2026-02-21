@@ -24,9 +24,16 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X, AlertTriangle, Eye } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X, AlertTriangle, Eye, Search, Filter } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -49,7 +56,6 @@ export default function UsersAdminPage() {
     const { admins: users, setAdmins } = useSaasStore();
     const { toast } = useToast();
     
-    // Initialize loading to false if we already have admins in the store
     const [loading, setLoading] = useState(() => {
         const currentStore = useSaasStore.getState();
         return currentStore.admins.length === 0;
@@ -65,6 +71,10 @@ export default function UsersAdminPage() {
     const [baseDomain, setBaseDomain] = useState('schoolbd.top');
     const [currentPage, setCurrentPage] = useState(1);
 
+    // Search and Filter State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+
     const form = useForm<z.infer<typeof createAdminSchema>>({
         resolver: zodResolver(createAdminSchema),
         defaultValues: { fullName: '', username: '', email: '', password: '', domain: '', siteName: '' },
@@ -73,7 +83,7 @@ export default function UsersAdminPage() {
     const fetchUsersData = useCallback(async (force = false) => {
         const currentStore = useSaasStore.getState();
         const now = Date.now();
-        const isFresh = now - currentStore.lastFetched.admins < 600000; // 10 mins
+        const isFresh = now - currentStore.lastFetched.admins < 600000;
         
         if (!force && currentStore.admins.length > 0 && isFresh) {
             setLoading(false);
@@ -152,10 +162,29 @@ export default function UsersAdminPage() {
         setIsBlockOpen(true);
     }
     
-    const paginatedUsers = useMemo(() => users.slice(
+    const filteredUsers = useMemo(() => {
+        return users.filter(user => {
+            const searchLower = searchQuery.toLowerCase();
+            const matchesSearch = 
+                (user.full_name || '').toLowerCase().includes(searchLower) ||
+                (user.email || '').toLowerCase().includes(searchLower) ||
+                (user.site_name || '').toLowerCase().includes(searchLower) ||
+                (user.domain || '').toLowerCase().includes(searchLower);
+            
+            const matchesStatus = statusFilter === 'all' || user.subscription_status === statusFilter;
+            
+            return matchesSearch && matchesStatus;
+        });
+    }, [users, searchQuery, statusFilter]);
+
+    const paginatedUsers = useMemo(() => filteredUsers.slice(
         (currentPage - 1) * USERS_PER_PAGE,
         currentPage * USERS_PER_PAGE
-    ), [users, currentPage]);
+    ), [filteredUsers, currentPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter]);
 
     const performDelete = async () => {
         if (!selectedUser) return;
@@ -218,7 +247,7 @@ export default function UsersAdminPage() {
         }
     };
     
-    const totalPages = Math.ceil(users.length / USERS_PER_PAGE);
+    const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
     
     if (loading && users.length === 0) {
         return <div className="flex justify-center items-center py-20"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>;
@@ -235,8 +264,38 @@ export default function UsersAdminPage() {
             </div>
 
             <Card>
+                <CardHeader>
+                    <div className="flex flex-wrap gap-4 items-center">
+                        <div className="relative flex-grow max-w-md">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search by name, site, or domain..." 
+                                className="pl-10"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="w-44">
+                                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <SelectValue placeholder="All Statuses" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Statuses</SelectItem>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="pending_verification">Pending</SelectItem>
+                                <SelectItem value="inactive">Blocked</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {(searchQuery || statusFilter !== 'all') && (
+                            <Button variant="ghost" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
+                                <X className="h-4 w-4 mr-2" /> Clear
+                            </Button>
+                        )}
+                    </div>
+                </CardHeader>
                 <CardContent className="p-0">
-                    {users.length > 0 ? (
+                    {filteredUsers.length > 0 ? (
                         <>
                             <div className="hidden md:block">
                                 <Table>
@@ -337,10 +396,10 @@ export default function UsersAdminPage() {
                             </div>
                         </>
                     ) : (
-                        <p className="text-muted-foreground text-center py-16">No users found.</p>
+                        <p className="text-muted-foreground text-center py-16">No stores found matching your criteria.</p>
                     )}
                 </CardContent>
-                 {users.length > USERS_PER_PAGE && (
+                 {filteredUsers.length > USERS_PER_PAGE && (
                   <CardFooter className="justify-center border-t py-4">
                       <div className="flex items-center gap-4 text-sm">
                           <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1}>Previous</Button>

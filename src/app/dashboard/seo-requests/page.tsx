@@ -10,6 +10,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -19,11 +20,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, Clock, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, CheckCircle, Clock, X, Search, Filter } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/stores/auth';
+
+const REQUESTS_PER_PAGE = 10;
 
 export default function SeoRequestsPage() {
   const { user } = useAuth();
@@ -31,7 +42,12 @@ export default function SeoRequestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<SeoRequest | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
+
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   
   const fetchRequests = useCallback(async () => {
     setIsLoading(true);
@@ -60,6 +76,31 @@ export default function SeoRequestsPage() {
     }
   }, [fetchRequests, user]);
   
+  const filteredRequests = useMemo(() => {
+    return requests.filter(req => {
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = 
+            (req.user_name || '').toLowerCase().includes(searchLower) ||
+            (req.user_email || '').toLowerCase().includes(searchLower) ||
+            (req.site_name || '').toLowerCase().includes(searchLower) ||
+            (req.site_domain || '').toLowerCase().includes(searchLower);
+        
+        const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
+  }, [requests, searchQuery, statusFilter]);
+
+  const totalPages = Math.ceil(filteredRequests.length / REQUESTS_PER_PAGE);
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * REQUESTS_PER_PAGE,
+    currentPage * REQUESTS_PER_PAGE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
   const handleMarkAsComplete = async () => {
     if (!selectedRequest) return;
     setIsActionLoading(true);
@@ -94,15 +135,42 @@ export default function SeoRequestsPage() {
         <CardHeader>
           <CardTitle>SEO Review Requests</CardTitle>
           <CardDescription>Review and manage SEO requests from site owners.</CardDescription>
+          <div className="mt-6 flex flex-wrap gap-4 items-center">
+                <div className="relative flex-grow max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search by name, email, or site..." 
+                        className="pl-10"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-44">
+                        <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                </Select>
+                {(searchQuery || statusFilter !== 'all') && (
+                    <Button variant="ghost" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
+                        <X className="h-4 w-4 mr-2" /> Clear
+                    </Button>
+                )}
+            </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center items-center py-16">
               <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
             </div>
-          ) : requests.length === 0 ? (
+          ) : paginatedRequests.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-muted-foreground">No SEO requests found.</p>
+              <p className="text-muted-foreground">No SEO requests found matching your criteria.</p>
             </div>
           ) : (
              <div className="overflow-x-auto">
@@ -118,7 +186,7 @@ export default function SeoRequestsPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {requests.map((req) => (
+                    {paginatedRequests.map((req) => (
                         <TableRow key={req.id}>
                         <TableCell>
                             <div className="flex items-center gap-3">
@@ -152,6 +220,15 @@ export default function SeoRequestsPage() {
              </div>
           )}
         </CardContent>
+        {totalPages > 1 && (
+            <CardFooter className="justify-center border-t py-4">
+                <div className="flex items-center gap-4 text-sm">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+                    <span className="text-muted-foreground">Page {currentPage} of {totalPages}</span>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+                </div>
+            </CardFooter>
+        )}
       </Card>
       
       {/* Custom Review Modal */}
