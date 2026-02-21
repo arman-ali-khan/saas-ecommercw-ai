@@ -53,13 +53,15 @@ export async function POST(request: Request) {
     }
 
     // 2. Fetch Data in Parallel
+    // We fetch the profile first, then use its subscription_plan ID to get the plan
+    // This avoids "could not find a relationship" errors in PostgREST
     const [
         profileRes,
         productsRes,
         customersRes,
         ordersCountRes
     ] = await Promise.all([
-        supabaseAdmin.from('profiles').select('*, plans(*)').eq('id', id).single(),
+        supabaseAdmin.from('profiles').select('*').eq('id', id).single(),
         supabaseAdmin.from('products').select('*').eq('site_id', id).order('created_at', { ascending: false }),
         supabaseAdmin.from('customer_profiles').select('*').eq('site_id', id).order('created_at', { ascending: false }),
         supabaseAdmin.from('orders').select('id', { count: 'exact', head: true }).eq('site_id', id)
@@ -67,8 +69,26 @@ export async function POST(request: Request) {
 
     if (profileRes.error) throw profileRes.error;
 
+    const profileData = profileRes.data;
+    
+    // Fetch plan details separately for robustness
+    let planData = null;
+    if (profileData.subscription_plan) {
+        const { data: plan } = await supabaseAdmin
+            .from('plans')
+            .select('*')
+            .eq('id', profileData.subscription_plan)
+            .maybeSingle();
+        planData = plan;
+    }
+
     // 3. Process and Decrypt Data
-    const decryptedProfile = decryptObject(profileRes.data);
+    // Attach plan to profile object to maintain frontend compatibility
+    const decryptedProfile = decryptObject({
+        ...profileData,
+        plans: planData ? [planData] : []
+    });
+    
     const decryptedCustomers = (customersRes.data || []).map(c => decryptObject(c));
     const products = productsRes.data || [];
 
