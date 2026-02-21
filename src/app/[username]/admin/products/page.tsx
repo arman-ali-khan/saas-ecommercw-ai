@@ -26,7 +26,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
@@ -144,6 +144,25 @@ export default function ProductsAdminPage() {
     return products.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   }, [products, currentPage]);
 
+  const getPriceDisplay = (product: Product) => {
+    if (product.variants && product.variants.length > 0) {
+      const prices = product.variants.map(v => v.price);
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      
+      if (min === max) {
+        return `${min.toFixed(2)} ${product.currency}`;
+      }
+      return (
+        <div className="flex flex-col">
+          <span className="text-xs text-muted-foreground font-normal uppercase tracking-tighter">Range</span>
+          <span className="font-bold text-primary">{min.toFixed(2)} - {max.toFixed(2)} {product.currency}</span>
+        </div>
+      );
+    }
+    return `${product.price.toFixed(2)} ${product.currency}`;
+  };
+
   if (isLoading && products.length === 0) {
     return (
       <div className="flex items-center justify-center p-16">
@@ -184,20 +203,33 @@ export default function ProductsAdminPage() {
                   {paginatedProducts.map((productItem) => (
                     <TableRow key={productItem.id}>
                       <TableCell>
-                        <div className="relative h-12 w-12 rounded-md overflow-hidden">
+                        <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
                           <Image src={productItem.images[0]?.imageUrl || 'https://placehold.co/100x100'} alt={productItem.name} fill className="object-cover" />
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">{productItem.name}</TableCell>
-                      <TableCell><div className="flex flex-wrap gap-1">{productItem.categories?.map((categoryName) => <Badge key={categoryName} variant="outline">{categoryName}</Badge>)}</div></TableCell>
-                      <TableCell>{productItem.price.toFixed(2)} {productItem.currency}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col">
+                          <span>{productItem.name}</span>
+                          {productItem.variants && productItem.variants.length > 0 && (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <Tag className="h-2 w-2" /> {productItem.variants.length} Variants
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell><div className="flex flex-wrap gap-1">{productItem.categories?.map((categoryName) => <Badge key={categoryName} variant="outline" className="text-[10px]">{categoryName}</Badge>)}</div></TableCell>
+                      <TableCell className="font-semibold">{getPriceDisplay(productItem)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{currentTranslations.actions}</DropdownMenuLabel>
-                            <DropdownMenuItem asChild><Link href={`/products/${productItem.id}`} target="_blank" className="cursor-pointer"><Eye className="mr-2 h-4 w-4" /> {currentTranslations.view}</Link></DropdownMenuItem>
-                            <DropdownMenuItem asChild><Link href={`/admin/products/${productItem.id}`} className="cursor-pointer"><Edit className="mr-2 h-4 w-4" /> {currentTranslations.edit}</Link></DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href={`/products/${productItem.id}`} target="_blank" className="cursor-pointer"><Eye className="mr-2 h-4 w-4" /> {currentTranslations.view}</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href={`/admin/products/${productItem.id}`} className="cursor-pointer"><Edit className="mr-2 h-4 w-4" /> {currentTranslations.edit}</Link>
+                            </DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => setProductToDelete(productItem)}><Trash2 className="mr-2 h-4 w-4" />{currentTranslations.delete}</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -223,14 +255,16 @@ export default function ProductsAdminPage() {
           <div className="grid gap-4 md:hidden">
             {paginatedProducts.map((productItem) => (
               <Card key={productItem.id}>
-                <CardHeader>
+                <CardHeader className="p-4 pb-2">
                   <div className="flex items-start gap-4">
-                    <div className="relative h-20 w-20 rounded-md overflow-hidden">
+                    <div className="relative h-20 w-20 rounded-md overflow-hidden bg-muted">
                       <Image src={productItem.images[0]?.imageUrl || 'https://placehold.co/100x100'} alt={productItem.name} fill className="object-cover" />
                     </div>
                     <div className="flex-grow">
-                      <CardTitle className="text-base">{productItem.name}</CardTitle>
-                      <p className="font-semibold text-lg mt-2 text-primary">{productItem.price.toFixed(2)} {productItem.currency}</p>
+                      <CardTitle className="text-base line-clamp-1">{productItem.name}</CardTitle>
+                      <div className="mt-2">
+                        {getPriceDisplay(productItem)}
+                      </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="-mt-2 -mr-2"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -241,13 +275,20 @@ export default function ProductsAdminPage() {
                     </DropdownMenu>
                   </div>
                 </CardHeader>
+                <CardFooter className="p-4 pt-0">
+                   <div className="flex flex-wrap gap-1">
+                      {productItem.categories?.slice(0, 2).map((cat) => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}
+                      {productItem.variants && productItem.variants.length > 0 && <Badge variant="outline" className="text-[10px]">{productItem.variants.length} Variants</Badge>}
+                   </div>
+                </CardFooter>
               </Card>
             ))}
             {totalPages > 1 && (
-                <div className="flex justify-center gap-4 py-4">
+                <div className="flex justify-center items-center gap-4 py-4">
                     <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                         আগেরটি
                     </Button>
+                    <span className="text-xs font-medium">{currentPage} / {totalPages}</span>
                     <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
                         পরবর্তী
                     </Button>
