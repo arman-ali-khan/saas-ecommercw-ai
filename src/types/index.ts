@@ -229,6 +229,9 @@ export interface Section {
   enabled: boolean;
   isCategorySection: boolean;
   category?: string;
+  tags?: string[];
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 export interface LiveChatMessage {

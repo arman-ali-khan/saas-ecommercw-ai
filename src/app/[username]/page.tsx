@@ -166,22 +166,49 @@ function CustomerReviews({ reviews, section }: { reviews: ProductReview[], secti
     );
 }
 
-async function CategoryProducts({ siteId, section, t }: { siteId: string, section: Section, t: any }) {
-  if (!section.category) return null;
+async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, section: Section, t: any }) {
   const cookieStore = await cookies();
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
       get(name: string) { return cookieStore.get(name)?.value; },
     },
   });
-  const { data } = await supabase.from('products').select('*').eq('site_id', siteId).overlaps('categories', [section.category]).limit(5);
+
+  let query = supabase.from('products').select('*').eq('site_id', siteId);
+
+  if (section.category) {
+    query = query.overlaps('categories', [section.category]);
+  }
+
+  // Handle Tags filtering if supported in DB (using 'color' or 'brand' as proxy for generic tags if needed, 
+  // or checking overlapping values in categories/attributes)
+  // For simplicity, let's assume tags are part of a tags column or overlap categories
+  if (section.tags && section.tags.length > 0) {
+      query = query.overlaps('categories', section.tags); 
+  }
+
+  if (section.minPrice !== undefined) {
+      query = query.gte('price', section.minPrice);
+  }
+  
+  if (section.maxPrice !== undefined) {
+      query = query.lte('price', section.maxPrice);
+  }
+
+  const { data } = await query.limit(10);
   const products = (data as Product[]) || [];
+  
   if (products.length === 0) return null;
+
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
-        <Button asChild variant="ghost"><Link href={`/products?category=${encodeURIComponent(section.category)}`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
+        <Button asChild variant="ghost">
+            <Link href={`/products?${section.category ? `category=${encodeURIComponent(section.category)}` : ''}`}>
+                {t.homepage.viewAll} <ArrowRight className="ml-2" />
+            </Link>
+        </Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {products.map((product) => <ProductCard key={product.id} product={product} />)}
@@ -310,10 +337,12 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       case 'customer-reviews':
         return <CustomerReviews key={section.id} reviews={(reviewsResult.data as ProductReview[]) || []} section={section} />;
       default:
-        if (section.isCategorySection && section.category) {
-          return <Suspense key={section.id} fallback={<SectionSkeleton />}><CategoryProducts siteId={siteId} section={section} t={t} /></Suspense>;
-        }
-        return null;
+        // Handle all dynamic sections (Category based or Custom Filter based)
+        return (
+            <Suspense key={section.id} fallback={<SectionSkeleton />}>
+                <DynamicSectionProducts siteId={siteId} section={section} t={t} />
+            </Suspense>
+        );
     }
   }
 

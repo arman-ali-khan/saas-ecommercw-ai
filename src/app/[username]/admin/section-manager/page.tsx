@@ -29,99 +29,77 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { useAuth } from '@/stores/auth';
-import type { Product, Section } from '@/types';
-import { ArrowUp, ArrowDown, Loader2, GripVertical } from 'lucide-react';
+import type { Product, Section, Category, ProductAttribute } from '@/types';
+import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function SectionManagerPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const allCategories = useMemo(
-    () => [...new Set(products.flatMap((p) => p.categories || []))],
-    [products]
-  );
+  // Form state for new dynamic section
+  const [newTitle, setNewTitle] = useState('');
+  const [newCategory, setNewCategory] = useState<string>('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [minPrice, setMinPrice] = useState<string>('0');
+  const [maxPrice, setMaxPrice] = useState<string>('10000');
 
   const fetchAndBuildSections = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
 
     try {
-        // Fetch products via API
-        const productsResponse = await fetch('/api/products/list', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId: user.id }),
-        });
-        const productsResult = await productsResponse.json();
-        const fetchedProducts = productsResult.products || [];
-        setProducts(fetchedProducts);
+        // Fetch products, categories, and attributes in parallel
+        const [productsRes, categoriesRes, attrRes, sectionsRes] = await Promise.all([
+            fetch('/api/products/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: user.id }) }),
+            fetch('/api/categories/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: user.id }) }),
+            fetch('/api/attributes/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: user.id }) }),
+            fetch('/api/sections/get', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: user.id }) })
+        ]);
 
-        // Fetch sections via API
-        const sectionsResponse = await fetch('/api/sections/get', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId: user.id }),
-        });
-        const sectionsResult = await sectionsResponse.json();
+        const [productsData, categoriesData, attrData, sectionsData] = await Promise.all([
+            productsRes.json(), categoriesRes.json(), attrRes.json(), sectionsRes.json()
+        ]);
+
+        setProducts(productsData.products || []);
+        setCategories(categoriesData.categories || []);
         
+        const tagList = (attrData.attributes as ProductAttribute[] || [])
+            .filter(a => a.type === 'tag')
+            .map(a => a.value);
+        setTags(tagList);
+
         let currentSections: Section[] = [];
-        if (sectionsResult.sections) {
-            currentSections = (sectionsResult.sections as Section[]) || [];
+        if (sectionsData.sections) {
+            currentSections = (sectionsData.sections as Section[]) || [];
         } else {
-            const categories = [
-              ...new Set(fetchedProducts.flatMap((p: Product) => p.categories || [])),
-            ];
+            const initialCategories = (categoriesData.categories as Category[] || []).map(c => c.name);
             currentSections = [
-              {
-                id: 'hero',
-                title: 'Hero Carousel',
-                enabled: true,
-                isCategorySection: false,
-              },
-              {
-                id: 'flash_deals',
-                title: 'Flash Deals',
-                enabled: true,
-                isCategorySection: false,
-              },
-              {
-                id: 'featured',
-                title: 'Featured Products',
-                enabled: true,
-                isCategorySection: false,
-              },
-              {
-                id: 'why-us',
-                title: 'Why We Are Different',
-                enabled: true,
-                isCategorySection: false,
-              },
-              ...categories.map((cat) => ({
-                id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`,
+              { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false },
+              { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false },
+              { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false },
+              { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false },
+              ...initialCategories.map((cat) => ({
+                id: `category-${uuidv4().slice(0, 8)}`,
                 title: `${cat} Section`,
                 enabled: true,
                 isCategorySection: true,
                 category: cat,
               })),
+              { id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false },
             ];
         }
         
-        // --- Backwards compatibility checks ---
-        if (!currentSections.some(s => s.id === 'flash_deals')) {
-            const heroIndex = currentSections.findIndex(s => s.id === 'hero');
-            currentSections.splice(heroIndex !== -1 ? heroIndex + 1 : 0, 0, { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false });
-        }
-        if (!currentSections.some(s => s.id === 'customer-reviews')) {
-            currentSections.push({ id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false });
-        }
-        // --- End backwards compatibility ---
-
         setSections(currentSections);
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error fetching data', description: error.message });
@@ -150,10 +128,8 @@ export default function SectionManagerPage() {
     );
   };
 
-  const handleCategoryChange = (sectionId: string, newCategory: string) => {
-    setSections((prev) =>
-      prev.map((s) => (s.id === sectionId ? { ...s, category: newCategory } : s))
-    );
+  const handleRemoveSection = (id: string) => {
+      setSections(prev => prev.filter(s => s.id !== id));
   };
 
   const moveSection = (index: number, direction: 'up' | 'down') => {
@@ -168,6 +144,33 @@ export default function SectionManagerPage() {
       newSections[newIndex] = temp;
       return newSections;
     });
+  };
+
+  const handleAddDynamicSection = () => {
+      if (!newTitle) {
+          toast({ variant: 'destructive', title: 'Title required' });
+          return;
+      }
+
+      const newSection: Section = {
+          id: `dynamic-${uuidv4().slice(0, 8)}`,
+          title: newTitle,
+          enabled: true,
+          isCategorySection: true, // Treat all custom filtered sections as "dynamic category" type
+          category: newCategory || undefined,
+          tags: selectedTags.length > 0 ? selectedTags : undefined,
+          minPrice: parseInt(minPrice) || 0,
+          maxPrice: parseInt(maxPrice) || 50000,
+      };
+
+      setSections(prev => [...prev, newSection]);
+      setIsCreateOpen(false);
+      setNewTitle('');
+      setNewCategory('');
+      setSelectedTags([]);
+      setMinPrice('0');
+      setMaxPrice('10000');
+      toast({ title: 'Section Added locally. Remember to Save Changes!' });
   };
 
   const handleSaveChanges = async () => {
@@ -216,123 +219,202 @@ export default function SectionManagerPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Homepage Section Manager</CardTitle>
-        <CardDescription>
-          Enable, disable, and reorder sections on your homepage.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Accordion type="multiple" className="w-full space-y-4">
-          {sections.map((section, index) => (
-            <AccordionItem
-              value={section.id}
-              key={section.id}
-              className="border rounded-lg overflow-hidden"
-            >
-              <AccordionTrigger className="p-4 hover:no-underline data-[state=open]:bg-muted/50">
-                <div className="flex items-center justify-between w-full gap-4">
-                    <div className="flex items-center gap-4">
-                        <GripVertical className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-base font-semibold text-left">
-                            {section.title}
-                        </span>
-                    </div>
-                    <Badge variant={section.enabled ? 'default' : 'outline'}>
-                        {section.enabled ? 'Enabled' : 'Disabled'}
-                    </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="p-6 pt-2 border-t grid gap-6">
-                  <div className="space-y-2">
-                        <Label>Enable/Disable Section</Label>
-                        <div className="flex items-center space-x-2 pt-2">
-                            <Switch
-                                id={`switch-${section.id}`}
-                                checked={section.enabled}
-                                onCheckedChange={(checked) =>
-                                handleToggle(section.id, checked)
-                                }
-                            />
-                            <Label htmlFor={`switch-${section.id}`}>
-                                {section.enabled ? "This section is currently enabled." : "This section is currently disabled."}
-                            </Label>
+    <>
+    <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+            <div>
+                <h1 className="text-2xl font-bold">Homepage Section Manager</h1>
+                <p className="text-muted-foreground">Manage dynamic content sections on your storefront.</p>
+            </div>
+            <Button onClick={() => setIsCreateOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Create Dynamic Section
+            </Button>
+        </div>
+
+        <Card>
+        <CardContent className="pt-6">
+            <Accordion type="multiple" className="w-full space-y-4">
+            {sections.map((section, index) => (
+                <AccordionItem
+                value={section.id}
+                key={section.id}
+                className="border rounded-lg overflow-hidden"
+                >
+                <AccordionTrigger className="p-4 hover:no-underline data-[state=open]:bg-muted/50">
+                    <div className="flex items-center justify-between w-full gap-4">
+                        <div className="flex items-center gap-4">
+                            <GripVertical className="h-5 w-5 text-muted-foreground" />
+                            <div className="flex flex-col items-start">
+                                <span className="text-base font-semibold text-left">
+                                    {section.title}
+                                </span>
+                                {section.isCategorySection && (
+                                    <div className="flex gap-1 mt-1">
+                                        {section.category && <Badge variant="secondary" className="text-[10px] py-0">{section.category}</Badge>}
+                                        {section.tags?.map(t => <Badge key={t} variant="outline" className="text-[10px] py-0">{t}</Badge>)}
+                                        {(section.minPrice || section.maxPrice) && <Badge variant="outline" className="text-[10px] py-0">৳{section.minPrice}-{section.maxPrice}</Badge>}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Badge variant={section.enabled ? 'default' : 'outline'}>
+                                {section.enabled ? 'Enabled' : 'Disabled'}
+                            </Badge>
                         </div>
                     </div>
-
+                </AccordionTrigger>
+                <AccordionContent>
+                    <div className="p-6 pt-2 border-t grid gap-6">
                     <div className="space-y-2">
-                      <Label>Reorder Section</Label>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={index === 0}
-                                onClick={() => moveSection(index, 'up')}
-                            >
-                                <ArrowUp className="mr-2 h-4 w-4" /> Move Up
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={index === sections.length - 1}
-                                onClick={() => moveSection(index, 'down')}
-                            >
-                                <ArrowDown className="mr-2 h-4 w-4" /> Move Down
-                            </Button>
+                            <Label>Enable/Disable Section</Label>
+                            <div className="flex items-center space-x-2 pt-2">
+                                <Switch
+                                    id={`switch-${section.id}`}
+                                    checked={section.enabled}
+                                    onCheckedChange={(checked) =>
+                                    handleToggle(section.id, checked)
+                                    }
+                                />
+                                <Label htmlFor={`switch-${section.id}`}>
+                                    {section.enabled ? "This section is currently enabled." : "This section is currently disabled."}
+                                </Label>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor={`title-${section.id}`}>
-                        Section Title
-                      </Label>
-                      <Input
-                        id={`title-${section.id}`}
-                        value={section.title}
-                        onChange={(e) =>
-                          handleTitleChange(section.id, e.target.value)
-                        }
-                      />
-                    </div>
+                        <div className="space-y-2">
+                        <Label>Reorder Section</Label>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={index === 0}
+                                    onClick={() => moveSection(index, 'up')}
+                                >
+                                    <ArrowUp className="mr-2 h-4 w-4" /> Move Up
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={index === sections.length - 1}
+                                    onClick={() => moveSection(index, 'down')}
+                                >
+                                    <ArrowDown className="mr-2 h-4 w-4" /> Move Down
+                                </Button>
+                            </div>
+                        </div>
 
-                    {section.isCategorySection && (
-                      <div className="space-y-2">
-                        <Label htmlFor={`category-${section.id}`}>
-                          Category
+                        <div className="space-y-2">
+                        <Label htmlFor={`title-${section.id}`}>
+                            Section Title
                         </Label>
-                        <Select
-                          value={section.category}
-                          onValueChange={(value) =>
-                            handleCategoryChange(section.id, value)
-                          }
-                        >
-                          <SelectTrigger id={`category-${section.id}`}>
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allCategories.map((cat) => (
-                              <SelectItem key={cat} value={cat}>
-                                {cat}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+                        <Input
+                            id={`title-${section.id}`}
+                            value={section.title}
+                            onChange={(e) =>
+                            handleTitleChange(section.id, e.target.value)
+                            }
+                        />
+                        </div>
+
+                        {section.id.startsWith('dynamic-') && (
+                            <Button variant="destructive" size="sm" onClick={() => handleRemoveSection(section.id)} className="w-fit">
+                                <Trash2 className="mr-2 h-4 w-4" /> Remove Section
+                            </Button>
+                        )}
+                    </div>
+                </AccordionContent>
+                </AccordionItem>
+            ))}
+            </Accordion>
+        </CardContent>
+        <CardFooter className="flex justify-end gap-4 bg-muted/20 p-6 rounded-b-lg border-t">
+            <Button onClick={handleSaveChanges} disabled={isSaving} className="min-w-[150px]">
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSaving ? 'Saving...' : 'Save All Changes'}
+            </Button>
+        </CardFooter>
+        </Card>
+    </div>
+
+    {/* RAW TAILWIND DIALOG */}
+    {isCreateOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCreateOpen(false)} />
+            <div className="relative w-full max-w-lg bg-background rounded-2xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between p-6 border-b shrink-0">
+                    <h2 className="text-xl font-bold">নতুন ডাইনামিক সেকশন তৈরি করুন</h2>
+                    <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsCreateOpen(false)}>
+                        <X className="h-5 w-5" />
+                    </Button>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </CardContent>
-      <CardFooter>
-        <Button onClick={handleSaveChanges} disabled={isSaving}>
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSaving ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </CardFooter>
-    </Card>
+                
+                <div className="p-6 overflow-y-auto space-y-6">
+                    <div className="space-y-2">
+                        <Label>সেকশন শিরোনাম (Title)</Label>
+                        <Input 
+                            placeholder="যেমন: সেরা পণ্যসমূহ" 
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>ক্যাটাগরি সিলেক্ট করুন (Optional)</Label>
+                        <Select value={newCategory} onValueChange={setNewCategory}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="সব ক্যাটাগরি" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[110]">
+                                <SelectItem value="all">সব ক্যাটাগরি</SelectItem>
+                                {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-3">
+                        <Label>ট্যাগ ফিল্টার (Tags)</Label>
+                        <div className="grid grid-cols-2 gap-2 p-3 rounded-lg border bg-muted/20">
+                            {tags.length > 0 ? tags.map(tag => (
+                                <div key={tag} className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id={`tag-${tag}`} 
+                                        checked={selectedTags.includes(tag)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedTags(prev => checked ? [...prev, tag] : prev.filter(t => t !== tag));
+                                        }}
+                                    />
+                                    <label htmlFor={`tag-${tag}`} className="text-sm font-medium leading-none cursor-pointer">{tag}</label>
+                                </div>
+                            )) : <p className="text-xs text-muted-foreground col-span-2">কোনো ট্যাগ পাওয়া যায়নি।</p>}
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <Label>মূল্য পরিসীমা (Price Range)</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground">Min Price</span>
+                                <Input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} />
+                            </div>
+                            <div className="space-y-1">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground">Max Price</span>
+                                <Input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground italic">সেকশনে শুধুমাত্র এই মূল্যের ভেতরের পণ্যগুলো দেখা যাবে।</p>
+                    </div>
+                </div>
+
+                <div className="p-6 border-t flex justify-end gap-3 shrink-0">
+                    <Button variant="outline" onClick={() => setIsCreateOpen(false)}>বাতিল</Button>
+                    <Button onClick={handleAddDynamicSection} className="shadow-lg shadow-primary/20">
+                        সেকশন যোগ করুন
+                    </Button>
+                </div>
+            </div>
+        </div>
+    )}
+    </>
   );
 }
