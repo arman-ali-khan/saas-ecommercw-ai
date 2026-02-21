@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -108,8 +107,7 @@ export default function CustomerLoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center py-12">
-      
+    <div className="flex items-center justify-center py-20">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">লগ ইন</CardTitle>
@@ -156,10 +154,10 @@ export default function CustomerLoginPage() {
               সাইন আপ
             </Link>
           </div>
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-6 text-center text-sm border-t pt-4">
             এডমিন লগইন{' '}
             <Link href={`/admin/login`} className="font-medium text-primary hover:underline">
-              Admin
+              Dashboard
             </Link>
           </div>
         </CardContent>

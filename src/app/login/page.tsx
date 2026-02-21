@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -44,7 +43,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     // This runs on the client, so window is available.
-    setHostname(window.location.host);
+    if (typeof window !== 'undefined') {
+      setHostname(window.location.host);
+    }
   }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -112,7 +113,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex items-center justify-center py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">আবারও স্বাগতম!</CardTitle>

@@ -148,14 +148,14 @@ export default function RegisterForm() {
 
     if (result.user) {
       toast({
-        title: 'নিবন্ধন প্রায় সম্পন্ন!',
+        title: 'নিবন্ধন প্রায় সম্পন্ন!',
         description:
           'আপনার নিবন্ধন নিশ্চিত করতে দয়া করে আপনার ইমেল পরীক্ষা করুন।',
         duration: 10000,
       });
       // Redirect to the new store's login page
-      const protocol = window.location.protocol;
-      const rootDomain = 'schoolbd.top';
+      const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
+      const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
       window.location.href = `${protocol}//${domain}.${rootDomain}/admin/login`;
     } else {
       toast({
@@ -170,7 +170,7 @@ export default function RegisterForm() {
     isLoading || !form.formState.isValid || usernameStatus !== 'available';
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex items-center justify-center py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -136,7 +135,7 @@ export default function CustomerRegisterPage() {
   }
 
   return (
-    <div className="flex items-center justify-center py-12">
+    <div className="flex items-center justify-center py-20">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">অ্যাকাউন্ট তৈরি করুন</CardTitle>
@@ -208,7 +207,10 @@ export default function CustomerRegisterPage() {
           </Form>
           <div className="mt-6 text-center text-sm">
             ইতিমধ্যে একটি অ্যাকাউন্ট আছে?{' '}
-            <Link href={`/login`} className="font-medium text-primary hover:underline">
+            <Link
+              href={`/login`}
+              className="font-medium text-primary hover:underline"
+            >
               সাইন ইন
             </Link>
           </div>
