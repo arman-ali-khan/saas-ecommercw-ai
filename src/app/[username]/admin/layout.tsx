@@ -1,3 +1,4 @@
+
 'use client';
 
 import AdminSidebar from '@/components/admin-sidebar';
@@ -12,7 +13,15 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { differenceInDays, isBefore, format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import type { Notification } from '@/types';
+import type { Notification, HeaderLink, FooterLinkCategory, SocialLink } from '@/types';
+import Header from '@/components/header';
+import Footer from '@/components/footer';
+import LanguageProvider from '@/components/language-provider';
+import en from '@/locales/en.json';
+import bn from '@/locales/bn.json';
+import { supabase } from '@/lib/supabase/client';
+
+const translations = { en, bn };
 
 export default function AdminLayout({
   children,
@@ -27,6 +36,61 @@ export default function AdminLayout({
   const { setSidebarCounts } = useAdminStore();
   
   const [saasNotifications, setSaasNotifications] = useState<Notification[]>([]);
+  const [siteData, setSiteData] = useState<any>(null);
+  const [isSiteLoading, setIsSiteLoading] = useState(false);
+
+  const fetchSiteInfo = useCallback(async () => {
+    if (!username) return;
+    setIsSiteLoading(true);
+    try {
+        const { data: profile } = await supabase.from('profiles').select('id, site_name, site_description').eq('domain', username).single();
+        if (profile) {
+            const siteId = profile.id;
+            const settingsPromise = supabase.from('store_settings').select('*').eq('site_id', siteId).single();
+            const headerLinksPromise = supabase.from('header_links').select('*').eq('site_id', siteId).order('order');
+            const footerCatPromise = supabase.from('footer_link_categories').select('*, footer_links(*)').eq('site_id', siteId).order('order');
+            const socialLinksPromise = supabase.from('social_links').select('*').eq('site_id', siteId);
+
+            const [
+                { data: settingsData },
+                { data: headerLinksData },
+                { data: footerCatData },
+                { data: socialData }
+            ] = await Promise.all([settingsPromise, headerLinksPromise, footerCatPromise, socialLinksPromise]);
+
+            const siteInfo = {
+                id: profile.id,
+                name: profile.site_name || username,
+                description: profile.site_description,
+                logoType: settingsData?.logo_type || 'icon',
+                logoIcon: settingsData?.logo_icon || 'Leaf',
+                logoImageUrl: settingsData?.logo_image_url || null,
+            };
+
+            const headerLinks = (headerLinksData && headerLinksData.length > 0) ? headerLinksData as HeaderLink[] : [
+                { id: '1', site_id: '', label: 'হোম', href: '/', order: 0 },
+                { id: '2', site_id: '', label: 'পণ্য', href: `/products`, order: 1 },
+            ];
+
+            const footerCategories = ((footerCatData as any[]) || []).map(cat => ({
+                ...cat,
+                links: (cat.footer_links || []).sort((a: any, b: any) => a.order - b.order)
+            })).sort((a,b) => a.order - b.order) as FooterLinkCategory[];
+
+            setSiteData({
+                siteInfo,
+                headerLinks,
+                footerCategories,
+                socialLinks: (socialData || []) as SocialLink[],
+                lang: settingsData?.language || 'bn'
+            });
+        }
+    } catch (e) {
+        console.error("Failed to fetch site data for admin layout:", e);
+    } finally {
+        setIsSiteLoading(false);
+    }
+  }, [username]);
 
   const fetchSidebarCounts = useCallback(async () => {
     if (!user?.id) return;
@@ -65,6 +129,12 @@ export default function AdminLayout({
       console.error("Failed to fetch layout notifications:", error);
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    if (pathname === `/admin/login`) {
+        fetchSiteInfo();
+    }
+  }, [pathname, fetchSiteInfo]);
 
   useEffect(() => {
     if (user && pathname !== `/admin/login`) {
@@ -120,7 +190,21 @@ export default function AdminLayout({
   }, [user, loading, username, router, pathname]);
 
   if (pathname === `/admin/login`) {
-    return <>{children}</>;
+    if (!siteData) return <>{children}</>;
+    
+    const t = translations[siteData.lang as keyof typeof translations] || bn;
+
+    return (
+        <LanguageProvider translations={t}>
+            <div className="flex flex-col min-h-screen">
+                <Header siteInfo={siteData.siteInfo} navLinks={siteData.headerLinks} isLoading={isSiteLoading} />
+                <main className="flex-grow flex items-center justify-center bg-muted/30">
+                    {children}
+                </main>
+                <Footer siteInfo={siteData.siteInfo} footerCategories={siteData.footerCategories} socialLinks={siteData.socialLinks} isLoading={isSiteLoading} />
+            </div>
+        </LanguageProvider>
+    );
   }
 
   if (loading && !user) {

@@ -19,6 +19,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   }, []);
   
   // Admin and dashboard pages have their own specific layouts
+  // However, we might want to show a base layout for the login page if it's on the main domain
   if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
     return <>{children}</>;
   }
@@ -28,16 +29,19 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     return <>{children}</>;
   }
   
-  // The root landing page has its own built-in header/footer
+  // The root landing page has its own built-in header/footer inside the component
   if (pathname === '/') {
       return <>{children}</>
   }
   
-  // All other pages on the main domain (e.g., /get-started, /about, /p/privacy) get the default SaaS layout.
+  // For auth pages on the main domain (/login, /register, /get-started)
+  const isAuthPage = ['/login', '/register', '/get-started'].some(p => pathname.startsWith(p));
+
+  // All other pages on the main domain get the default SaaS layout.
   return (
     <div className="flex flex-col min-h-screen">
         <SaasHeader />
-        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className={`flex-grow container mx-auto px-4 sm:px-6 lg:px-8 pb-16 ${isAuthPage ? 'pt-32' : 'py-8'}`}>
           {children}
         </main>
         <SaasFooter />
