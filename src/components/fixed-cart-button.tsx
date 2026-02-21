@@ -74,7 +74,7 @@ export default function FixedCartButton() {
             >
               <div className="relative">
                 <ShoppingBagIcon className="h-7 w-7 transition-transform group-hover:scale-110" />
-                <span className="absolute -top-2.5 -right-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-background text-foreground text-[10px] font-black shadow-lg border-2 border-primary animate-in zoom-in duration-500">
+                <span className="absolute -top-[35px] -left-[5px] flex h-6 w-6 items-center justify-center rounded-full bg-background text-foreground text-[10px] font-black shadow-lg border-2 border-primary animate-in zoom-in duration-500">
                   {cartCount}
                 </span>
               </div>
