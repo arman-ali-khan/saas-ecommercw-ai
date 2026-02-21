@@ -234,6 +234,7 @@ export interface Section {
   maxPrice?: number;
   mobileView?: '1-col' | '2-col' | 'list';
   isCarousel?: boolean;
+  productLimit?: number;
 }
 
 export interface LiveChatMessage {

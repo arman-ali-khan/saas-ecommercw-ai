@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import DynamicIcon from '@/components/dynamic-icon';
 import CategoriesGrid from '@/components/categories-grid';
+import FeaturedProductsList from '@/components/featured-products-list';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,26 +81,16 @@ function CategoriesSection({ categories, section, t }: { categories: Category[],
     );
 }
 
-function FeaturedProducts({ products, section, t }: { products: Product[], section: Section, t: any }) {
+function FeaturedProducts({ products, section, siteId, t }: { products: Product[], section: Section, siteId: string, t: any }) {
   if (products.length === 0) return null;
   
-  const gridClass = getGridClass(section.mobileView) || "grid-cols-2";
-
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
         <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
-      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
-        {products.map((product) => (
-          <ProductCard 
-            key={product.id} 
-            product={product} 
-            isList={section.mobileView === 'list'} 
-          />
-        ))}
-      </div>
+      <FeaturedProductsList initialProducts={products} siteId={siteId} section={section} t={t} />
     </section>
   );
 }
@@ -149,7 +140,7 @@ async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, 
       query = query.lte('price', section.maxPrice);
   }
 
-  const { data } = await query.limit(10);
+  const { data } = await query.limit(section.productLimit || 10);
   const products = (data as Product[]) || [];
   
   if (products.length === 0) return null;
@@ -219,7 +210,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       supabase.from('carousel_slides').select('*').eq('site_id', siteId).eq('is_enabled', true).order('order', { ascending: true }),
       supabase.from('categories').select('*').eq('site_id', siteId).order('name', { ascending: true }),
       supabase.from('flash_deals').select('*, products!inner(*)').eq('site_id', siteId).eq('is_active', true).gt('end_date', new Date().toISOString()),
-      supabase.from('products').select('*').eq('site_id', siteId).eq('is_featured', true).limit(10),
+      supabase.from('products').select('*').eq('site_id', siteId).eq('is_featured', true).limit(10), // Initial default limit
       supabase.from('store_features').select('*').eq('site_id', siteId).order('order', { ascending: true }),
       supabase.from('product_reviews').select('*').eq('site_id', siteId).eq('is_approved', true).limit(10).order('created_at', { ascending: false })
   ]);
@@ -232,7 +223,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
       { id: 'categories', title: t.homepage.shopByCategory, enabled: true, isCategorySection: false, mobileView: 'carousel', isCarousel: true },
       { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true },
-      { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col' },
+      { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col', productLimit: 10 },
       { id: 'why-us', title: t.homepage.whyUs, enabled: true, isCategorySection: false, mobileView: '2-col' },
       { id: 'customer-reviews', title: t.homepage.customerReviews, enabled: true, isCategorySection: false, mobileView: '2-col' },
     ];
@@ -265,7 +256,10 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       case 'flash_deals':
         return <FlashDeals key={section.id} deals={(flashDealsResult.data as FlashDeal[]) || []} section={section} t={t} />;
       case 'featured':
-        return <FeaturedProducts key={section.id} products={(featuredProductsResult.data as Product[]) || []} section={section} t={t} />;
+        // Refetch featured with the correct section limit
+        const initialFeatured = (featuredProductsResult.data as Product[]) || [];
+        const limitedFeatured = initialFeatured.slice(0, section.productLimit || 10);
+        return <FeaturedProducts key={section.id} products={limitedFeatured} section={section} siteId={siteId} t={t} />;
       case 'why-us':
         return <WhyUs key={section.id} features={(storeFeaturesResult.data as StoreFeature[]) || []} section={section} />;
       case 'customer-reviews':

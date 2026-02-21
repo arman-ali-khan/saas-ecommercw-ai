@@ -56,6 +56,7 @@ export default function SectionManagerPage() {
   const [minPrice, setMinPrice] = useState<string>('0');
   const [maxPrice, setMaxPrice] = useState<string>('10000');
   const [newMobileView, setNewMobileView] = useState<'1-col' | '2-col' | 'list'>('2-col');
+  const [newProductLimit, setNewProductLimit] = useState<string>('10');
 
   const fetchAndBuildSections = useCallback(async () => {
     if (!user) return;
@@ -86,7 +87,8 @@ export default function SectionManagerPage() {
             currentSections = (sectionsData.sections as Section[]).map(s => ({
                 ...s,
                 mobileView: s.mobileView || '2-col',
-                isCarousel: s.isCarousel ?? (s.id === 'categories' || s.id === 'flash_deals')
+                isCarousel: s.isCarousel ?? (s.id === 'categories' || s.id === 'flash_deals'),
+                productLimit: s.productLimit || (s.id === 'featured' ? 10 : (s.isCategorySection ? 8 : undefined))
             }));
             
             if (!currentSections.find(s => s.id === 'categories')) {
@@ -97,7 +99,7 @@ export default function SectionManagerPage() {
               { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
               { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true },
               { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true },
-              { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col' },
+              { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col', productLimit: 10 },
               { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false, mobileView: '2-col' },
               { id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false, mobileView: '2-col' },
             ];
@@ -128,6 +130,13 @@ export default function SectionManagerPage() {
   const handleTitleChange = (sectionId: string, newTitle: string) => {
     setSections((prev) =>
       prev.map((s) => (s.id === sectionId ? { ...s, title: newTitle } : s))
+    );
+  };
+
+  const handleLimitChange = (sectionId: string, limit: string) => {
+    const val = parseInt(limit) || 0;
+    setSections((prev) =>
+      prev.map((s) => (s.id === sectionId ? { ...s, productLimit: val } : s))
     );
   };
 
@@ -177,6 +186,7 @@ export default function SectionManagerPage() {
           minPrice: parseInt(minPrice) || 0,
           maxPrice: parseInt(maxPrice) || 50000,
           mobileView: newMobileView,
+          productLimit: parseInt(newProductLimit) || 8,
       };
 
       setSections(prev => [...prev, newSection]);
@@ -187,6 +197,7 @@ export default function SectionManagerPage() {
       setMinPrice('0');
       setMaxPrice('10000');
       setNewMobileView('2-col');
+      setNewProductLimit('8');
       toast({ title: 'সেকশন যোগ করা হয়েছে। দয়া করে পরিবর্তনগুলো সেভ করুন।' });
   };
 
@@ -272,6 +283,9 @@ export default function SectionManagerPage() {
                                     <Badge variant="outline" className="text-[10px] py-0 gap-1">
                                         <Smartphone className="h-2 w-2" /> {section.mobileView || 'Auto'}
                                     </Badge>
+                                    {section.productLimit !== undefined && (
+                                        <Badge variant="secondary" className="text-[10px] py-0">Limit: {section.productLimit}</Badge>
+                                    )}
                                     {section.isCategorySection && (
                                         <>
                                             {section.category && <Badge variant="secondary" className="text-[10px] py-0">{section.category}</Badge>}
@@ -328,31 +342,46 @@ export default function SectionManagerPage() {
                                 )}
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> Mobile Layout (Non-Carousel)</Label>
-                                <Select 
-                                    value={section.mobileView || '2-col'} 
-                                    onValueChange={(val: any) => handleMobileViewChange(section.id, val)}
-                                    disabled={section.isCarousel && section.id !== 'categories'}
-                                >
-                                    <SelectTrigger className="h-9">
-                                        <SelectValue placeholder="Select Layout" />
-                                    </SelectTrigger>
-                                    <SelectContent className="z-[110]">
-                                        {section.id !== 'categories' && (
-                                            <SelectItem value="1-col"><div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> 1 Column (Large)</div></SelectItem>
-                                        )}
-                                        <SelectItem value="2-col"><div className="flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> 2 Columns (Grid)</div></SelectItem>
-                                        <SelectItem value="list">
-                                            <div className="flex items-center gap-2">
-                                                {section.id === 'categories' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
-                                                {section.id === 'categories' ? '3 Columns (List style grid)' : 'List View (Stacked)'}
-                                            </div>
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {section.isCarousel && section.id !== 'categories' && (
-                                    <p className="text-[10px] text-muted-foreground mt-1">Carousel mode handles its own layout on mobile.</p>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> Mobile Layout (Non-Carousel)</Label>
+                                    <Select 
+                                        value={section.mobileView || '2-col'} 
+                                        onValueChange={(val: any) => handleMobileViewChange(section.id, val)}
+                                        disabled={section.isCarousel && section.id !== 'categories'}
+                                    >
+                                        <SelectTrigger className="h-9">
+                                            <SelectValue placeholder="Select Layout" />
+                                        </SelectTrigger>
+                                        <SelectContent className="z-[110]">
+                                            {section.id !== 'categories' && (
+                                                <SelectItem value="1-col"><div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> 1 Column (Large)</div></SelectItem>
+                                            )}
+                                            <SelectItem value="2-col"><div className="flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> 2 Columns (Grid)</div></SelectItem>
+                                            <SelectItem value="list">
+                                                <div className="flex items-center gap-2">
+                                                    {section.id === 'categories' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                                                    {section.id === 'categories' ? '3 Columns (List style grid)' : 'List View (Stacked)'}
+                                                </div>
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    {section.isCarousel && section.id !== 'categories' && (
+                                        <p className="text-[10px] text-muted-foreground mt-1">Carousel mode handles its own layout on mobile.</p>
+                                    )}
+                                </div>
+
+                                {(section.id === 'featured' || section.isCategorySection) && (
+                                    <div className="space-y-2">
+                                        <Label className="text-sm">{section.id === 'featured' ? 'Initial Products to Show' : 'Products to Show'}</Label>
+                                        <Input 
+                                            type="number" 
+                                            value={section.productLimit || ''} 
+                                            onChange={(e) => handleLimitChange(section.id, e.target.value)} 
+                                            className="h-9"
+                                        />
+                                        {section.id === 'featured' && <p className="text-[10px] text-muted-foreground">After this limit, a "Load More" button will appear.</p>}
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -448,18 +477,27 @@ export default function SectionManagerPage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label>Mobile View Layout</Label>
-                            <Select value={newMobileView} onValueChange={(val: any) => setNewMobileView(val)}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="z-[110]">
-                                    <SelectItem value="2-col">2 Column Grid</SelectItem>
-                                    <SelectItem value="1-col">1 Column Grid</SelectItem>
-                                    <SelectItem value="list">List View</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <Label>পণ্য সংখ্যা (Limit)</Label>
+                            <Input 
+                                type="number" 
+                                value={newProductLimit}
+                                onChange={(e) => setNewProductLimit(e.target.value)}
+                            />
                         </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Mobile View Layout</Label>
+                        <Select value={newMobileView} onValueChange={(val: any) => setNewMobileView(val)}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="z-[110]">
+                                <SelectItem value="2-col">2 Column Grid</SelectItem>
+                                <SelectItem value="1-col">1 Column Grid</SelectItem>
+                                <SelectItem value="list">List View</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-3">
