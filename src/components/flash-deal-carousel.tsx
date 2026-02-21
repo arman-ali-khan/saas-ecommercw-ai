@@ -51,7 +51,7 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
   return (
     <Carousel
       opts={{ align: 'start', slidesToScroll: 1, loop: true }}
-      className="w-full"
+      className="w-full relative px-4 sm:px-0"
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
@@ -94,10 +94,8 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
           ))
         )}
       </CarouselContent>
-      <div className="hidden md:block">
-        <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2" />
-        <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2" />
-      </div>
+      <CarouselPrevious className="absolute left-0 sm:-left-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
+      <CarouselNext className="absolute right-0 sm:-right-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
     </Carousel>
   );
 }

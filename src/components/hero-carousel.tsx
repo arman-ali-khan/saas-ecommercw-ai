@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -44,7 +45,7 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
       <CarouselContent>
         {slides.map((slide, index) => (
           <CarouselItem key={slide.id}>
-            <div className="relative aspect-video">
+            <div className="relative aspect-[16/9] sm:aspect-video">
               {slide.image && (
                 <Image
                   src={slide.image.imageUrl}
@@ -58,15 +59,15 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
               )}
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative h-full flex flex-col items-center justify-center text-center text-white p-4">
-                <h1 className="text-4xl md:text-6xl font-headline font-bold drop-shadow-lg">
+                <h1 className="text-2xl md:text-6xl font-headline font-bold drop-shadow-lg">
                   {slide.title}
                 </h1>
-                <p className="mt-4 max-w-2xl text-lg md:text-xl drop-shadow-md">
+                <p className="mt-2 md:mt-4 max-w-2xl text-sm md:text-xl drop-shadow-md">
                   {slide.description}
                 </p>
-                <Button asChild className="mt-8" size="lg">
+                <Button asChild className="mt-4 md:mt-8" size="sm" md-size="lg">
                   <Link href={slide.link}>
-                    {slide.linkText} <ArrowRight className="ml-2" />
+                    {slide.linkText} <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -74,8 +75,8 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 hidden md:flex" />
-      <CarouselNext className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 hidden md:flex" />
+      <CarouselPrevious className="absolute left-2 sm:left-8 top-1/2 -translate-y-1/2 flex h-8 w-8 sm:h-10 sm:w-10" />
+      <CarouselNext className="absolute right-2 sm:right-8 top-1/2 -translate-y-1/2 flex h-8 w-8 sm:h-10 sm:w-10" />
     </Carousel>
   );
 }

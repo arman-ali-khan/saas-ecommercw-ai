@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Card, CardFooter } from '@/components/ui/card';
 import Autoplay from 'embla-carousel-autoplay';
 import DynamicIcon from './dynamic-icon';
@@ -15,7 +16,7 @@ export default function CategoryCarousel({ categories }: { categories: Category[
   return (
     <Carousel
       opts={{ align: 'start', loop: true }}
-      className="w-full"
+      className="w-full relative px-4 sm:px-0"
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
@@ -42,6 +43,8 @@ export default function CategoryCarousel({ categories }: { categories: Category[
           </CarouselItem>
         ))}
       </CarouselContent>
+      <CarouselPrevious className="absolute left-0 sm:-left-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
+      <CarouselNext className="absolute right-0 sm:-right-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
     </Carousel>
   );
 }

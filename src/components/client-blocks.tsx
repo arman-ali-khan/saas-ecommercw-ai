@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -64,7 +65,7 @@ export function CarouselBlock({ slides }: { slides: CarouselSlide[] }) {
   
   return (
     <ShadCarousel 
-      className="w-full" 
+      className="w-full relative" 
       opts={{ loop: true }}
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
@@ -88,8 +89,8 @@ export function CarouselBlock({ slides }: { slides: CarouselSlide[] }) {
           );
         })}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 hidden md:flex" />
-      <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:flex" />
+      <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 flex h-8 w-8" />
+      <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 flex h-8 w-8" />
     </ShadCarousel>
   );
 }

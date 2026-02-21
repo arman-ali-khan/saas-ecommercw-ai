@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useRef } from 'react';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Star } from 'lucide-react';
@@ -15,7 +16,7 @@ export default function ReviewsCarousel({ reviews }: { reviews: ProductReview[] 
   return (
     <Carousel
       opts={{ align: 'start', loop: true }}
-      className="w-full"
+      className="w-full relative px-4 sm:px-0"
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
@@ -43,6 +44,8 @@ export default function ReviewsCarousel({ reviews }: { reviews: ProductReview[] 
           </CarouselItem>
         ))}
       </CarouselContent>
+      <CarouselPrevious className="absolute left-0 sm:-left-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
+      <CarouselNext className="absolute right-0 sm:-right-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
     </Carousel>
   );
 }

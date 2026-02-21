@@ -492,7 +492,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
     <div>
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
             <div className="space-y-4">
-                <Carousel className="w-full" setApi={setMainApi}>
+                <Carousel className="w-full relative" setApi={setMainApi}>
                 <CarouselContent>
                     {images.map((image, index) => (
                     <CarouselItem key={index}>
@@ -510,8 +510,8 @@ export default function ProductClientPage({ product }: { product: Product }) {
                 </CarouselContent>
                 {images.length > 1 && (
                     <>
-                    <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex" />
-                    <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:flex" />
+                    <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 sm:h-10 sm:w-10" />
+                    <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 sm:h-10 sm:w-10" />
                     </>
                 )}
                 </Carousel>
