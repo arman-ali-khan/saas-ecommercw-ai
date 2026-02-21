@@ -13,7 +13,7 @@
 ৪. ভেতরের কোডটুকু কপি করে সুপাবেস এডিটরে পেস্ট করুন এবং **Run** বাটনে ক্লিক করুন।
 
 ### এই ফিক্সগুলো যা নিশ্চিত করে:
-- **Performance Optimization**: `profiles`, `carousel_slides` এবং `live_chat_messages` টেবিলে `(select auth.uid())` সাবকুয়েরি ব্যবহারের ফলে বড় ডেটাসেটে কুয়েরি পারফরম্যান্স অনেক দ্রুত হবে।
+- **Performance Optimization**: `profiles`, `subscription_payments`, `carousel_slides` এবং `live_chat_messages` টেবিলে `(select auth.uid())` সাবকুয়েরি ব্যবহারের ফলে বড় ডেটাসেটে কুয়েরি পারফরম্যান্স অনেক দ্রুত হবে।
 - **Function Security**: সকল ডাটাবেস ফাংশন এখন "Search Path Hijacking" আক্রমণ থেকে সুরক্ষিত।
 - **Secure Data Access**: অর্ডার, কাস্টমার অ্যাড্রেস এবং চ্যাট মেসেজগুলো এখন সঠিক মালিকানা (site_id / customer_id) অনুযায়ী নিয়ন্ত্রিত।
 - **Idempotent Script**: এই স্ক্রিপ্টটি আপনি যতবার খুশি রান করতে পারবেন, "Policy already exists" এর মতো কোনো এরর হবে না।
