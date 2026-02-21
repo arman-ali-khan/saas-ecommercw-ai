@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
@@ -53,25 +54,25 @@ export async function POST(request: Request) {
     }
 
     // 2. Fetch Data in Parallel
-    // We fetch the profile first, then use its subscription_plan ID to get the plan
-    // This avoids "could not find a relationship" errors in PostgREST
     const [
         profileRes,
         productsRes,
         customersRes,
-        ordersCountRes
+        ordersCountRes,
+        settingsRes
     ] = await Promise.all([
         supabaseAdmin.from('profiles').select('*').eq('id', id).single(),
         supabaseAdmin.from('products').select('*').eq('site_id', id).order('created_at', { ascending: false }),
         supabaseAdmin.from('customer_profiles').select('*').eq('site_id', id).order('created_at', { ascending: false }),
-        supabaseAdmin.from('orders').select('id', { count: 'exact', head: true }).eq('site_id', id)
+        supabaseAdmin.from('orders').select('id', { count: 'exact', head: true }).eq('site_id', id),
+        supabaseAdmin.from('store_settings').select('gemini_api_key').eq('site_id', id).maybeSingle()
     ]);
 
     if (profileRes.error) throw profileRes.error;
 
     const profileData = profileRes.data;
     
-    // Fetch plan details separately for robustness
+    // Fetch plan details separately
     let planData = null;
     if (profileData.subscription_plan) {
         const { data: plan } = await supabaseAdmin
@@ -83,10 +84,10 @@ export async function POST(request: Request) {
     }
 
     // 3. Process and Decrypt Data
-    // Attach plan to profile object to maintain frontend compatibility
     const decryptedProfile = decryptObject({
         ...profileData,
-        plans: planData ? [planData] : []
+        plans: planData ? [planData] : [],
+        gemini_api_key: settingsRes.data?.gemini_api_key || ''
     });
     
     const decryptedCustomers = (customersRes.data || []).map(c => decryptObject(c));

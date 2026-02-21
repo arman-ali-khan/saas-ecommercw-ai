@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -24,7 +25,6 @@ import {
   Sparkles,
   Palette,
   HelpCircle,
-  Wand2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -237,22 +237,7 @@ export default function AdminSidebar() {
               </CollapsibleContent>
             </Collapsible>
 
-            <Collapsible>
-              <CollapsibleTrigger className={cn(
-                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
-                pathname.startsWith('/admin/settings') && 'bg-primary text-primary-foreground'
-              )}>
-                <div className="flex items-center gap-3">
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </div>
-                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pl-7 space-y-1 py-1">
-                <Link href="/admin/settings" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings' && 'text-accent-foreground')}>Store Settings</Link>
-                <Link href="/admin/settings/ai" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings/ai' && 'text-accent-foreground')}>AI Settings</Link>
-              </CollapsibleContent>
-            </Collapsible>
+            <NavLink href="/admin/settings" label="Store Settings" icon={Settings} />
            
           </nav>
         </div>
