@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -54,8 +53,8 @@ const planSchema = z.object({
   product_limit: z.string().regex(/^\d*$/, "Must be a positive number").optional(),
   customer_limit: z.string().regex(/^\d*$/, "Must be a positive number").optional(),
   order_limit: z.string().regex(/^\d*$/, "Must be a positive number").optional(),
-  duration_value: z.coerce.number().min(1, "Duration must be at least 1").optional(),
-  duration_unit: z.enum(['month', 'year']).default('month'),
+  duration_value: z.coerce.number().min(1, "Duration must be at least 1"),
+  duration_unit: z.enum(['month', 'year']),
 });
 
 type PlanFormData = z.infer<typeof planSchema>;
@@ -74,7 +73,15 @@ export default function PlansAdminPage() {
   const form = useForm<PlanFormData>({
     resolver: zodResolver(planSchema),
     defaultValues: {
+        id: '',
+        name: '',
         price: 0,
+        period: '/মাস',
+        description: '',
+        features: '',
+        product_limit: '',
+        customer_limit: '',
+        order_limit: '',
         duration_value: 1,
         duration_unit: 'month',
     }
@@ -83,7 +90,7 @@ export default function PlansAdminPage() {
   const fetchPlans = useCallback(async (force = false) => {
     const store = useSaasStore.getState();
     const isFresh = Date.now() - store.lastFetched.plans < 3600000;
-    if (!force && store.plans.length > 0 && isFresh) {
+    if (!force && store.features.length > 0 && isFresh) {
         setIsLoading(false);
         return;
     }
@@ -126,7 +133,7 @@ export default function PlansAdminPage() {
           customer_limit: selectedPlan.customer_limit?.toString() ?? '',
           order_limit: selectedPlan.order_limit?.toString() ?? '',
           duration_value: selectedPlan.duration_value ?? 1,
-          duration_unit: selectedPlan.duration_unit || 'month',
+          duration_unit: (selectedPlan.duration_unit as any) || 'month',
         });
       } else {
         form.reset({
@@ -159,8 +166,8 @@ export default function PlansAdminPage() {
         product_limit: data.product_limit && data.product_limit.trim() !== '' ? parseInt(data.product_limit, 10) : null,
         customer_limit: data.customer_limit && data.customer_limit.trim() !== '' ? parseInt(data.customer_limit, 10) : null,
         order_limit: data.order_limit && data.order_limit.trim() !== '' ? parseInt(data.order_limit, 10) : null,
-        duration_value: data.duration_value || null,
-        duration_unit: data.duration_unit || null,
+        duration_value: data.duration_value,
+        duration_unit: data.duration_unit,
       };
 
       const response = await fetch('/api/saas/plans/save', {
@@ -444,13 +451,13 @@ export default function PlansAdminPage() {
                                         render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Unit</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select unit" />
                                                     </SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent>
+                                                <SelectContent className="z-[110]">
                                                     <SelectItem value="month">Month(s)</SelectItem>
                                                     <SelectItem value="year">Year(s)</SelectItem>
                                                 </SelectContent>

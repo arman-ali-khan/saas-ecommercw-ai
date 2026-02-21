@@ -1,100 +1,77 @@
+-- supabase_security_fixes.sql
+-- Run this script in the Supabase SQL Editor to apply security, performance fixes, and schema updates.
 
--- ==========================================
--- 1. SCHEMA UPDATES (Subscription Duration)
--- ==========================================
+-- 1. ADDD COLUMNS FOR SUBSCRIPTION MANAGEMENT
+-- Profiles: store end date
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS subscription_end_date TIMESTAMPTZ;
+-- Plans: store duration logic
+ALTER TABLE public.plans ADD COLUMN IF NOT EXISTS duration_value INTEGER DEFAULT 1;
+ALTER TABLE public.plans ADD COLUMN IF NOT EXISTS duration_unit TEXT DEFAULT 'month';
 
--- Add subscription_end_date to profiles
-ALTER TABLE public.profiles 
-ADD COLUMN IF NOT EXISTS subscription_end_date TIMESTAMPTZ;
+-- 2. ENABLE RLS & FIX OVERLY PERMISSIVE POLICIES
+-- customer_addresses
+ALTER TABLE public.customer_addresses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all access for ALL" ON public.customer_addresses;
+DROP POLICY IF EXISTS "Customers can manage their own addresses" ON public.customer_addresses;
+CREATE POLICY "Customers can manage their own addresses" ON public.customer_addresses
+FOR ALL TO authenticated
+USING ((select auth.uid()) = customer_id);
 
--- Add duration fields to plans
-ALTER TABLE public.plans 
-ADD COLUMN IF NOT EXISTS duration_value INTEGER DEFAULT 1,
-ADD COLUMN IF NOT EXISTS duration_unit TEXT DEFAULT 'month' CHECK (duration_unit IN ('month', 'year'));
+-- uncompleted_orders
+ALTER TABLE public.uncompleted_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can update their own uncompleted order" ON public.uncompleted_orders;
+DROP POLICY IF EXISTS "Anyone can delete uncompleted orders" ON public.uncompleted_orders;
+-- Typically uncompleted orders are handled via Service Role, so no public update/delete needed.
 
--- ==========================================
--- 2. FUNCTION SECURITY (search_path fix)
--- ==========================================
+-- saas_reviews (INSERT validation)
+ALTER TABLE public.saas_reviews ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can submit a review" ON public.saas_reviews;
+CREATE POLICY "Anyone can submit a review" ON public.saas_reviews
+FOR INSERT WITH CHECK (
+    char_length(name) > 0 AND 
+    char_length(review_text) > 10
+);
 
+-- 3. PERFORMANCE OPTIMIZATION (Use subqueries for auth.uid())
+-- profiles
+DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
+CREATE POLICY "Users can update their own profile." ON public.profiles
+FOR UPDATE TO authenticated
+USING ((select auth.uid()) = id);
+
+-- subscription_payments
+DROP POLICY IF EXISTS "Users can insert their own subscription payments" ON public.subscription_payments;
+CREATE POLICY "Users can insert their own subscription payments" ON public.subscription_payments
+FOR INSERT TO authenticated
+WITH CHECK ((select auth.uid()) = user_id);
+
+-- carousel_slides
+DROP POLICY IF EXISTS "Admins can manage slides" ON public.carousel_slides;
+CREATE POLICY "Admins can manage slides" ON public.carousel_slides
+FOR ALL TO authenticated
+USING ((select auth.uid()) = site_id);
+
+-- live_chat_messages
+DROP POLICY IF EXISTS "Access own messages" ON public.live_chat_messages;
+CREATE POLICY "Access own messages" ON public.live_chat_messages
+FOR ALL TO authenticated
+USING ((select auth.uid()) = site_id OR (select auth.uid()) = sender_id);
+
+-- 4. FUNCTION SECURITY (Set search_path)
 CREATE OR REPLACE FUNCTION public.trigger_set_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = now();
+    NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- ==========================================
--- 3. RLS PERFORMANCE & SECURITY FIXES
--- ==========================================
-
--- Profiles Table
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
-CREATE POLICY "Users can update their own profile."
-ON public.profiles
-FOR UPDATE
-USING (id = (select auth.uid()))
-WITH CHECK (id = (select auth.uid()));
-
--- Subscription Payments Table
-ALTER TABLE public.subscription_payments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can insert their own subscription payments" ON public.subscription_payments;
-CREATE POLICY "Users can insert their own subscription payments"
-ON public.subscription_payments
-FOR INSERT
-WITH CHECK (user_id = (select auth.uid()));
-
--- Customer Addresses Table
-ALTER TABLE public.customer_addresses ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow all access for ALL" ON public.customer_addresses;
-DROP POLICY IF EXISTS "Customers can manage their own addresses" ON public.customer_addresses;
--- We keep this table private because the app uses Service Role via API
--- but we can add a specific policy if direct client access is needed.
-
--- Uncompleted Orders Table
-ALTER TABLE public.uncompleted_orders ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Anyone can update their own uncompleted order" ON public.uncompleted_orders;
-DROP POLICY IF EXISTS "Anyone can delete uncompleted orders" ON public.uncompleted_orders;
-
--- SaaS Reviews Table
-ALTER TABLE public.saas_reviews ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Anyone can submit a review" ON public.saas_reviews;
-CREATE POLICY "Anyone can submit a review"
-ON public.saas_reviews
-FOR INSERT
-WITH CHECK (
-  name IS NOT NULL AND 
-  length(name) > 1 AND 
-  review_text IS NOT NULL AND 
-  length(review_text) > 10
-);
-
--- Live Chat Table
-ALTER TABLE public.live_chat_messages ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Admins can view messages for their site" ON public.live_chat_messages;
-CREATE POLICY "Admins can view messages for their site"
-ON public.live_chat_messages
-FOR SELECT
-USING (site_id = (select auth.uid()));
-
--- Carousel Slides Table
-ALTER TABLE public.carousel_slides ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Admins can manage carousel slides" ON public.carousel_slides;
-CREATE POLICY "Admins can manage carousel slides"
-ON public.carousel_slides
-FOR ALL
-USING (site_id = (select auth.uid()))
-WITH CHECK (site_id = (select auth.uid()));
+-- End of Script
