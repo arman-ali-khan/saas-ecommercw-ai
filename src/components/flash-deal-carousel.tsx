@@ -9,7 +9,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import type { FlashDeal, Section } from '@/types';
 import ProductCard from './product-card';
 import { cn } from '@/lib/utils';
@@ -21,20 +21,32 @@ interface FlashDealCarouselProps {
 
 export default function FlashDealCarousel({ deals, section }: FlashDealCarouselProps) {
   const plugin = useRef(Autoplay({ delay: 3000, stopOnInteraction: true }));
-  const isList = section.mobileView === 'list';
-  const isOneCol = section.mobileView === '1-col';
+  const [hasMounted, setHasMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Chunk deals into pairs for the mobile list view carousel
+  useEffect(() => {
+    setHasMounted(true);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  if (!hasMounted) return null;
+
+  const isListMode = section.mobileView === 'list' && isMobile;
+  const isOneColMode = section.mobileView === '1-col' && isMobile;
+  const isTwoColMode = (section.mobileView === '2-col' || !section.mobileView) && isMobile;
+
+  // Chunk deals into pairs ONLY for mobile list view
   const chunks = [];
-  if (isList) {
+  if (isListMode) {
     for (let i = 0; i < deals.length; i += 2) {
       chunks.push(deals.slice(i, i + 2));
     }
   }
-
-  // Determine basis class for mobile
-  const mobileBasis = isOneCol ? 'basis-full' : 'basis-1/2';
-  const itemBasis = isList ? 'basis-[90%] md:basis-1/2 lg:basis-2/5' : `${mobileBasis} md:basis-1/4 lg:basis-1/5`;
 
   return (
     <Carousel
@@ -45,10 +57,10 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
       onMouseLeave={plugin.current.reset}
     >
       <CarouselContent className="-ml-4">
-        {isList ? (
-          // List View: 2 items stacked per slide on mobile
+        {isListMode ? (
+          // Mobile List View: 2 items stacked per slide
           chunks.map((chunk, idx) => (
-            <CarouselItem key={idx} className={cn("pl-4", itemBasis)}>
+            <CarouselItem key={idx} className="pl-4 basis-[90%]">
               <div className="flex flex-col gap-3">
                 {chunk.map((deal) => (
                   <ProductCard
@@ -62,12 +74,21 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
             </CarouselItem>
           ))
         ) : (
-          // Standard Grid View: respects 1-col or 2-col settings
+          // Standard View: respetcs 1-col/2-col on mobile, normal carousel on desktop
           deals.map((deal) => (
-            <CarouselItem key={deal.id} className={cn("pl-4", itemBasis)}>
+            <CarouselItem 
+              key={deal.id} 
+              className={cn(
+                "pl-4",
+                isOneColMode ? "basis-full" : 
+                isTwoColMode ? "basis-1/2" : 
+                "basis-1/2 md:basis-1/4 lg:basis-1/5" // Default Desktop Layout
+              )}
+            >
               <ProductCard
                 product={deal.products}
                 flashDeal={deal}
+                isList={false}
               />
             </CarouselItem>
           ))
