@@ -18,6 +18,7 @@ import ReviewsCarousel from '@/components/reviews-carousel';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import DynamicIcon from '@/components/dynamic-icon';
+import CategoriesGrid from '@/components/categories-grid';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,69 +66,16 @@ function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Sectio
 function CategoriesSection({ categories, section, t }: { categories: Category[], section: Section, t: any }) {
     if (categories.length === 0) return null;
 
-    // List view for categories is a 3-column slim grid
-    if (section.mobileView === 'list') {
-        return (
-            <section>
-                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4">
-                    {categories.map(cat => (
-                        <Link key={cat.id} href={`/products?category=${encodeURIComponent(cat.name)}`}>
-                            <Card className="overflow-hidden h-full flex flex-col transition-all hover:shadow-lg hover:-translate-y-1 border-2 group" style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}>
-                                <div className="relative aspect-square w-full">
-                                    {cat.image_url ? (
-                                        <Image src={cat.image_url} alt={cat.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
-                                    ) : (
-                                        <div className="flex h-full w-full items-center justify-center bg-muted">
-                                            <DynamicIcon name={cat.icon || 'Package'} className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="p-1.5 sm:p-2 mt-auto">
-                                    <h3 className="font-bold text-center text-[10px] sm:text-xs truncate leading-tight">{cat.name}</h3>
-                                </div>
-                            </Card>
-                        </Link>
-                    ))}
-                </div>
-            </section>
-        );
-    }
+    const isCarousel = section.isCarousel !== false; // Default to true if undefined
 
-    // Grid view (2 columns)
-    if (section.mobileView === '2-col') {
-        return (
-            <section>
-                <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {categories.map(cat => (
-                        <Link key={cat.id} href={`/products?category=${encodeURIComponent(cat.name)}`}>
-                            <Card className="overflow-hidden h-full transition-all hover:shadow-lg hover:-translate-y-1 border-2" style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}>
-                                <div className="relative aspect-square w-full">
-                                    {cat.image_url ? (
-                                        <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
-                                    ) : (
-                                        <div className="flex h-full w-full items-center justify-center bg-muted">
-                                            <DynamicIcon name={cat.icon || 'Package'} className="h-10 w-10 text-muted-foreground" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="p-3">
-                                    <h3 className="font-bold text-center text-xs sm:text-base truncate">{cat.name}</h3>
-                                </div>
-                            </Card>
-                        </Link>
-                    ))}
-                </div>
-            </section>
-        );
-    }
-
-    // Default: Carousel (for desktop always, and for mobile if 'carousel' is selected)
     return (
         <section>
             <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
-            <CategoryCarousel categories={categories} />
+            {isCarousel ? (
+                <CategoryCarousel categories={categories} />
+            ) : (
+                <CategoriesGrid categories={categories} section={section} />
+            )}
         </section>
     );
 }
@@ -282,8 +230,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     
     return [
       { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
-      { id: 'categories', title: t.homepage.shopByCategory, enabled: true, isCategorySection: false, mobileView: 'carousel' },
-      { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col' },
+      { id: 'categories', title: t.homepage.shopByCategory, enabled: true, isCategorySection: false, mobileView: 'carousel', isCarousel: true },
+      { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true },
       { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col' },
       { id: 'why-us', title: t.homepage.whyUs, enabled: true, isCategorySection: false, mobileView: '2-col' },
       { id: 'customer-reviews', title: t.homepage.customerReviews, enabled: true, isCategorySection: false, mobileView: '2-col' },

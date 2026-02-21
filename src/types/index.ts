@@ -233,6 +233,7 @@ export interface Section {
   minPrice?: number;
   maxPrice?: number;
   mobileView?: '1-col' | '2-col' | 'list';
+  isCarousel?: boolean;
 }
 
 export interface LiveChatMessage {

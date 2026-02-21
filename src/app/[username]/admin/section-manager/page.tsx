@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/accordion';
 import { useAuth } from '@/stores/auth';
 import type { Product, Section, Category, ProductAttribute } from '@/types';
-import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X, Smartphone, LayoutGrid, List, GalleryHorizontal } from 'lucide-react';
+import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X, Smartphone, LayoutGrid, List, GalleryHorizontal, Layout } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
@@ -85,17 +85,18 @@ export default function SectionManagerPage() {
         if (sectionsData.sections) {
             currentSections = (sectionsData.sections as Section[]).map(s => ({
                 ...s,
-                mobileView: s.mobileView || '2-col'
+                mobileView: s.mobileView || '2-col',
+                isCarousel: s.isCarousel ?? (s.id === 'categories' || s.id === 'flash_deals')
             }));
             
             if (!currentSections.find(s => s.id === 'categories')) {
-                currentSections.splice(1, 0, { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list' });
+                currentSections.splice(1, 0, { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true });
             }
         } else {
             currentSections = [
               { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
-              { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list' },
-              { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col' },
+              { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true },
+              { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true },
               { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col' },
               { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false, mobileView: '2-col' },
               { id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false, mobileView: '2-col' },
@@ -133,6 +134,12 @@ export default function SectionManagerPage() {
   const handleMobileViewChange = (sectionId: string, view: '1-col' | '2-col' | 'list') => {
     setSections((prev) =>
       prev.map((s) => (s.id === sectionId ? { ...s, mobileView: view } : s))
+    );
+  };
+
+  const handleCarouselToggle = (sectionId: string, isCarousel: boolean) => {
+    setSections((prev) =>
+      prev.map((s) => (s.id === sectionId ? { ...s, isCarousel } : s))
     );
   };
 
@@ -260,7 +267,10 @@ export default function SectionManagerPage() {
                                 </span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                     <Badge variant="outline" className="text-[10px] py-0 gap-1">
-                                        <Smartphone className="h-2 w-2" /> {section.id === 'categories' && (section.mobileView === 'list' || !section.mobileView) ? 'Auto' : (section.mobileView || 'Carousel')}
+                                        <Layout className="h-2 w-2" /> {section.isCarousel ? 'Carousel' : 'Grid'}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-[10px] py-0 gap-1">
+                                        <Smartphone className="h-2 w-2" /> {section.mobileView || 'Auto'}
                                     </Badge>
                                     {section.isCategorySection && (
                                         <>
@@ -282,30 +292,53 @@ export default function SectionManagerPage() {
                 <AccordionContent>
                     <div className="p-6 pt-2 border-t grid gap-6">
                         <div className="grid sm:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label>Visibility</Label>
-                                <div className="flex items-center space-x-2 pt-2">
-                                    <Switch
-                                        id={`switch-${section.id}`}
-                                        checked={section.enabled}
-                                        onCheckedChange={(checked) =>
-                                        handleToggle(section.id, checked)
-                                        }
-                                    />
-                                    <Label htmlFor={`switch-${section.id}`} className="font-normal text-xs">
-                                        {section.enabled ? "Section is enabled." : "Section is disabled."}
-                                    </Label>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Visibility</Label>
+                                    <div className="flex items-center space-x-2 pt-1">
+                                        <Switch
+                                            id={`switch-${section.id}`}
+                                            checked={section.enabled}
+                                            onCheckedChange={(checked) =>
+                                            handleToggle(section.id, checked)
+                                            }
+                                        />
+                                        <Label htmlFor={`switch-${section.id}`} className="font-normal text-xs">
+                                            {section.enabled ? "Section is enabled." : "Section is disabled."}
+                                        </Label>
+                                    </div>
                                 </div>
+
+                                {(section.id === 'categories' || section.id === 'flash_deals' || section.id === 'featured' || section.isCategorySection) && (
+                                    <div className="space-y-2">
+                                        <Label>Carousel Mode</Label>
+                                        <div className="flex items-center space-x-2 pt-1">
+                                            <Switch
+                                                id={`carousel-${section.id}`}
+                                                checked={section.isCarousel}
+                                                onCheckedChange={(checked) =>
+                                                    handleCarouselToggle(section.id, checked)
+                                                }
+                                            />
+                                            <Label htmlFor={`carousel-${section.id}`} className="font-normal text-xs">
+                                                {section.isCarousel ? "Slider layout." : "Fixed grid layout."}
+                                            </Label>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> Mobile View Layout</Label>
-                                <Select value={section.mobileView || (section.id === 'categories' ? 'carousel' : '2-col')} onValueChange={(val: any) => handleMobileViewChange(section.id, val)}>
+                                <Label className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> Mobile Layout (Non-Carousel)</Label>
+                                <Select 
+                                    value={section.mobileView || '2-col'} 
+                                    onValueChange={(val: any) => handleMobileViewChange(section.id, val)}
+                                    disabled={section.isCarousel && section.id !== 'categories'}
+                                >
                                     <SelectTrigger className="h-9">
                                         <SelectValue placeholder="Select Layout" />
                                     </SelectTrigger>
                                     <SelectContent className="z-[110]">
-                                        <SelectItem value="carousel"><div className="flex items-center gap-2"><GalleryHorizontal className="h-4 w-4" /> Sliding Carousel</div></SelectItem>
                                         {section.id !== 'categories' && (
                                             <SelectItem value="1-col"><div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> 1 Column (Large)</div></SelectItem>
                                         )}
@@ -313,11 +346,14 @@ export default function SectionManagerPage() {
                                         <SelectItem value="list">
                                             <div className="flex items-center gap-2">
                                                 {section.id === 'categories' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
-                                                {section.id === 'categories' ? '3 Columns (List Grid)' : 'List View'}
+                                                {section.id === 'categories' ? '3 Columns (List style grid)' : 'List View (Stacked)'}
                                             </div>
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
+                                {section.isCarousel && section.id !== 'categories' && (
+                                    <p className="text-[10px] text-muted-foreground mt-1">Carousel mode handles its own layout on mobile.</p>
+                                )}
                             </div>
                         </div>
 
