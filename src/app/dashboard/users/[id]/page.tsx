@@ -37,7 +37,8 @@ import {
     Loader2, 
     ChevronLeft, 
     ChevronRight,
-    ExternalLink
+    ExternalLink,
+    Store
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
