@@ -400,4 +400,5 @@ export interface SaasSettings {
   cta_description: string | null;
   cta_bg_color: string | null;
   homepage_sections: any[] | null;
+  global_ai_api_key: string | null;
 }

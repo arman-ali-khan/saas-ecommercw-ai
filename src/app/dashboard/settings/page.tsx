@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -24,7 +25,7 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Globe, BarChart, CreditCard, Loader2, Facebook, Twitter } from 'lucide-react';
+import { Globe, BarChart, CreditCard, Loader2, Facebook, Twitter, Wand2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -41,6 +42,7 @@ const generalSettingsSchema = z.object({
   social_facebook: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_twitter: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_tiktok: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  global_ai_api_key: z.string().optional().or(z.literal('')),
 });
 
 const seoSettingsSchema = z.object({
@@ -86,6 +88,7 @@ export default function SaasSettingsPage() {
       social_facebook: '',
       social_twitter: '',
       social_tiktok: '',
+      global_ai_api_key: '',
     },
   });
 
@@ -128,6 +131,7 @@ export default function SaasSettingsPage() {
                 social_facebook: data.social_facebook || '',
                 social_twitter: data.social_twitter || '',
                 social_tiktok: data.social_tiktok || '',
+                global_ai_api_key: data.global_ai_api_key || '',
             });
             seoForm.reset({
                 seoTitle: data.seo_title || '',
@@ -170,6 +174,7 @@ export default function SaasSettingsPage() {
             social_facebook: values.social_facebook,
             social_twitter: values.social_twitter,
             social_tiktok: values.social_tiktok,
+            global_ai_api_key: values.global_ai_api_key,
         }),
       });
 
@@ -340,6 +345,32 @@ export default function SaasSettingsPage() {
                       </FormItem>
                     )}
                   />
+                  
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2"><Wand2 className="h-4 w-4" /> Global AI Engine (Fallback)</CardTitle>
+                        <CardDescription className="text-xs">This key will be used by all paid stores that don't have their own specific API key set.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <FormField
+                            control={generalForm.control}
+                            name="global_ai_api_key"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-xs">OpenRouter Master API Key</FormLabel>
+                                <FormControl>
+                                <Input type="password" placeholder="sk-or-v1-..." {...field} className="bg-background" />
+                                </FormControl>
+                                <FormDescription className="text-[10px]">
+                                    Provides AI capabilities platform-wide for paid subscribers.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </CardContent>
+                  </Card>
+
                   <FormField
                     control={generalForm.control}
                     name="base_domain"

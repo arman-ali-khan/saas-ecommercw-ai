@@ -55,6 +55,7 @@ export async function POST(request: Request) {
         cta_title: data.cta_title,
         cta_description: data.cta_description,
         cta_bg_color: data.cta_bg_color,
+        global_ai_api_key: data.global_ai_api_key,
     };
 
     // Remove undefined values
