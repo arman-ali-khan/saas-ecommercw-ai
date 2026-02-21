@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRef } from 'react';
@@ -16,7 +15,7 @@ export default function ReviewsCarousel({ reviews }: { reviews: ProductReview[] 
   return (
     <Carousel
       opts={{ align: 'start', loop: true }}
-      className="w-full relative px-4 sm:px-0"
+      className="w-full relative px-0"
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
@@ -24,7 +23,7 @@ export default function ReviewsCarousel({ reviews }: { reviews: ProductReview[] 
       <CarouselContent className="-ml-6">
         {reviews.map((review) => (
           <CarouselItem key={review.id} className="pl-6 basis-full md:basis-1/2 lg:basis-1/3">
-            <Card className="h-full flex flex-col">
+            <Card className="h-full flex flex-col border-2">
               <CardHeader className="flex-row items-center gap-4">
                 <Avatar><AvatarFallback>{review.customer_name.charAt(0)}</AvatarFallback></Avatar>
                 <div>
@@ -38,14 +37,14 @@ export default function ReviewsCarousel({ reviews }: { reviews: ProductReview[] 
               </CardHeader>
               <CardContent className="flex-grow">
                 <p className="font-semibold">{review.title}</p>
-                <p className="text-muted-foreground text-sm italic">"{review.review_text}"</p>
+                <p className="text-muted-foreground text-sm italic mt-2">"{review.review_text}"</p>
               </CardContent>
             </Card>
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-0 sm:-left-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
-      <CarouselNext className="absolute right-0 sm:-right-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
+      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
+      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
     </Carousel>
   );
 }

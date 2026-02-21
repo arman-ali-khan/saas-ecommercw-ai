@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -51,7 +50,7 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
   return (
     <Carousel
       opts={{ align: 'start', slidesToScroll: 1, loop: true }}
-      className="w-full relative px-4 sm:px-0"
+      className="w-full relative px-0"
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
@@ -74,7 +73,7 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
             </CarouselItem>
           ))
         ) : (
-          // Standard View: respetcs 1-col/2-col on mobile, normal carousel on desktop
+          // Standard View: respects 1-col/2-col on mobile, normal carousel on desktop
           deals.map((deal) => (
             <CarouselItem 
               key={deal.id} 
@@ -94,8 +93,8 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
           ))
         )}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-0 sm:-left-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
-      <CarouselNext className="absolute right-0 sm:-right-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
+      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
+      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
     </Carousel>
   );
 }

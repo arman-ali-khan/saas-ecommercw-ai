@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRef } from 'react';
@@ -26,7 +25,7 @@ export default function FeaturesCarousel({ features }: { features: StoreFeature[
     return (
       <Carousel
         opts={{ align: 'start', loop: true }}
-        className="w-full relative px-4 sm:px-0"
+        className="w-full relative px-0"
         plugins={[plugin.current]}
         onMouseEnter={plugin.current.stop}
         onMouseLeave={plugin.current.reset}
@@ -34,17 +33,17 @@ export default function FeaturesCarousel({ features }: { features: StoreFeature[
         <CarouselContent className="-ml-6">
           {fallbackFeatures.map((feature, index) => (
             <CarouselItem key={index} className="pl-6 basis-1/2 md:basis-1/4 lg:basis-1/5">
-              <Card className="overflow-hidden flex flex-col h-full">
+              <Card className="overflow-hidden flex flex-col h-full border-2">
                 <div className="relative h-64 w-full">
                   <Image src={feature.image.imageUrl} alt={feature.title} fill className="object-cover" />
                 </div>
                 <div className="p-6 flex flex-col flex-grow">
                   <CardHeader className="p-0">
-                    <feature.icon className="w-10 h-10 text-accent mb-4" />
+                    <feature.icon className="w-10 h-10 text-primary mb-4" />
                     <CardTitle className="font-headline text-base sm:text-lg">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0 mt-4 flex-grow">
-                    <p className="text-muted-foreground text-xs">{feature.description}</p>
+                    <p className="text-muted-foreground text-xs leading-relaxed">{feature.description}</p>
                   </CardContent>
                   <Button asChild variant="secondary" className="mt-6 w-fit"><Link href={`/about`}>আরও জানুন <ArrowRight className="ml-2" /></Link></Button>
                 </div>
@@ -52,8 +51,8 @@ export default function FeaturesCarousel({ features }: { features: StoreFeature[
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="absolute left-0 sm:-left-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
-        <CarouselNext className="absolute right-0 sm:-right-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
+        <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
+        <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
       </Carousel>
     );
   }
@@ -61,7 +60,7 @@ export default function FeaturesCarousel({ features }: { features: StoreFeature[
   return (
     <Carousel
       opts={{ align: 'start', loop: true }}
-      className="w-full relative px-4 sm:px-0"
+      className="w-full relative px-0"
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
@@ -69,9 +68,9 @@ export default function FeaturesCarousel({ features }: { features: StoreFeature[
       <CarouselContent className="-ml-6">
         {features.map((feature) => (
           <CarouselItem key={feature.id} className="pl-6 basis-1/2 md:basis-1/4 lg:basis-1/5">
-            <Card className="overflow-hidden flex flex-col text-center h-full">
+            <Card className="overflow-hidden flex flex-col text-center h-full border-2">
               <CardHeader className="p-0">
-                <div className="relative h-28 sm:h-[200px] w-full bg-muted flex items-center justify-center">
+                <div className="relative h-28 sm:h-[200px] w-full bg-muted flex items-center justify-center overflow-hidden">
                   {feature.image_url ? (
                     <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
                   ) : (
@@ -83,14 +82,14 @@ export default function FeaturesCarousel({ features }: { features: StoreFeature[
               </CardHeader>
               <CardContent className="p-4 sm:p-6 flex flex-col flex-grow items-center">
                 <CardTitle className="font-headline text-base sm:text-lg">{feature.title}</CardTitle>
-                <p className="text-muted-foreground text-xs mt-2 flex-grow">{feature.description}</p>
+                <p className="text-muted-foreground text-xs mt-2 flex-grow leading-relaxed">{feature.description}</p>
               </CardContent>
             </Card>
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-0 sm:-left-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
-      <CarouselNext className="absolute right-0 sm:-right-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
+      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
+      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
     </Carousel>
   );
 }

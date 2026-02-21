@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRef } from 'react';
@@ -16,7 +15,7 @@ export default function CategoryCarousel({ categories }: { categories: Category[
   return (
     <Carousel
       opts={{ align: 'start', loop: true }}
-      className="w-full relative px-4 sm:px-0"
+      className="w-full relative px-0"
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
@@ -25,7 +24,7 @@ export default function CategoryCarousel({ categories }: { categories: Category[
         {categories.map((cat) => (
           <CarouselItem key={cat.id} className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
             <Link href={`/products?category=${encodeURIComponent(cat.name)}`}>
-              <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1" style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}>
+              <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 border-2" style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}>
                 <div className="relative aspect-square w-full">
                   {cat.image_url ? (
                     <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
@@ -36,15 +35,15 @@ export default function CategoryCarousel({ categories }: { categories: Category[
                   )}
                 </div>
                 <CardFooter className="p-3">
-                  <h3 className="font-semibold w-full text-center text-sm">{cat.name}</h3>
+                  <h3 className="font-bold w-full text-center text-sm truncate">{cat.name}</h3>
                 </CardFooter>
               </Card>
             </Link>
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-0 sm:-left-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
-      <CarouselNext className="absolute right-0 sm:-right-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full z-10" />
+      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
+      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
     </Carousel>
   );
 }

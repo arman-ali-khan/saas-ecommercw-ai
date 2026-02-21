@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -55,22 +54,22 @@ function PlatformShowcase({ items }: { items: SaasShowcaseItem[] }) {
         <p className="text-muted-foreground text-lg">আমাদের শক্তিশালী ড্যাশবোর্ড এবং ফিচারগুলোর এক ঝলক দেখে নিন।</p>
       </div>
 
-      <div className="px-4">
+      <div className="px-4 relative group">
         <div className="max-w-5xl mx-auto">
           <Carousel
             opts={{ align: 'start', loop: true }}
-            className="w-full"
+            className="w-full relative"
           >
             <CarouselContent>
               {items.map((item) => (
                 <CarouselItem key={item.id} className="basis-full">
-                  <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden border-2 border-border/50 shadow-2xl group">
+                  <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden border-2 border-border/50 shadow-2xl group/item">
                     {item.image_url ? (
                       <Image 
                         src={item.image_url} 
                         alt={item.title} 
                         fill 
-                        className="object-cover transition-transform duration-700 group-hover:scale-105" 
+                        className="object-cover transition-transform duration-700 group-hover/item:scale-105" 
                       />
                     ) : (
                       <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -94,8 +93,8 @@ function PlatformShowcase({ items }: { items: SaasShowcaseItem[] }) {
               ))}
             </CarouselContent>
             <div className="hidden md:block">
-              <CarouselPrevious className="-left-16 hover:bg-primary hover:text-primary-foreground border-primary/20" />
-              <CarouselNext className="-right-16 hover:bg-primary hover:text-primary-foreground border-primary/20" />
+              <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 bg-background/80 backdrop-blur-md border-primary/20 hover:bg-primary hover:text-primary-foreground shadow-xl transition-all" />
+              <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 bg-background/80 backdrop-blur-md border-primary/20 hover:bg-primary hover:text-primary-foreground shadow-xl transition-all" />
             </div>
           </Carousel>
         </div>
@@ -313,7 +312,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
         );
       case 'testimonial':
         return (
-          <section key="testimonial" id="testimonial" className="relative py-24 rounded-[3rem] bg-secondary/20 overflow-hidden border border-border/50">
+          <section key="testimonial" id="testimonial" className="relative py-24 rounded-[3rem] bg-secondary/20 overflow-hidden border border-border/50 group">
             <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.02] pointer-events-none" />
             
             <div className="text-center mb-16 relative z-10">
@@ -327,7 +326,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
               {reviews.length > 0 ? (
                 <Carousel
                     opts={{ align: 'start', loop: true }}
-                    className="w-full max-w-4xl mx-auto"
+                    className="w-full max-w-4xl mx-auto relative"
                 >
                     <CarouselContent>
                     {reviews.map((review) => (
@@ -347,8 +346,10 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                         </CarouselItem>
                     ))}
                     </CarouselContent>
-                    <CarouselPrevious className="hidden md:flex -left-12" />
-                    <CarouselNext className="hidden md:flex -right-12" />
+                    <div className="hidden md:block">
+                        <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 h-10 w-10 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground shadow-lg transition-all" />
+                        <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 h-10 w-10 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground shadow-lg transition-all" />
+                    </div>
                 </Carousel>
               ) : (
                 <div className="max-w-3xl mx-auto text-center">
