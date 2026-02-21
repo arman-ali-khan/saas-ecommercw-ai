@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -76,7 +75,7 @@ export default function UserDetailPage() {
       const result = await response.json();
       if (response.ok) {
         setData(result);
-        setAiKey(result.profile?.gemini_api_key || '');
+        setAiKey(result.profile?.gemini_api_key || ''); // Reusing old field name gemini_api_key for DB compatibility, but labeled as OpenRouter in UI
       } else {
         throw new Error(result.error);
       }
@@ -207,11 +206,11 @@ export default function UserDetailPage() {
           </CardContent>
         </Card>
 
-        {/* AI Key Manager (SaaS Admin only) */}
+        {/* AI Key Manager (OpenRouter) */}
         <Card className="border-primary/20 bg-primary/5">
             <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> AI Management</CardTitle>
-                <CardDescription>Configure AI capabilities for this store.</CardDescription>
+                <CardDescription>Using OpenRouter (Arcee-AI Trinity).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {isFreePlan ? (
@@ -221,11 +220,11 @@ export default function UserDetailPage() {
                 ) : (
                     <div className="space-y-3">
                         <div className="space-y-1.5">
-                            <Label htmlFor="gemini-key" className="text-xs">Gemini API Key</Label>
+                            <Label htmlFor="openrouter-key" className="text-xs">OpenRouter API Key</Label>
                             <Input 
-                                id="gemini-key"
+                                id="openrouter-key"
                                 type="password" 
-                                placeholder="Enter API Key" 
+                                placeholder="sk-or-v1-..." 
                                 value={aiKey} 
                                 onChange={(e) => setAiKey(e.target.value)} 
                                 className="h-9 bg-background"
@@ -233,7 +232,7 @@ export default function UserDetailPage() {
                         </div>
                         <Button className="w-full h-9" size="sm" onClick={handleSaveAiSettings} disabled={isSavingAi}>
                             {isSavingAi ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                            Save AI Key
+                            Save Key
                         </Button>
                     </div>
                 )}
@@ -253,7 +252,6 @@ export default function UserDetailPage() {
             <Card className="bg-muted/30">
                 <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center justify-between">Total Orders <ShoppingBag className="h-4 w-4 opacity-50" /></CardTitle></CardHeader>
                 <CardContent><div className="text-3xl font-black">{stats.totalOrders}</div></CardContent>
-            </Card>
       </div>
 
       <Tabs defaultValue="products" className="w-full">

@@ -1,14 +1,14 @@
 'use server';
 
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+/**
+ * @fileOverview AI flows for generating product descriptions using OpenRouter.
+ */
 
 /**
  * Helper to extract JSON from AI response
  */
 function extractJson(text: string) {
     try {
-        // Find the first { and last }
         const firstBrace = text.indexOf('{');
         const lastBrace = text.lastIndexOf('}');
         if (firstBrace === -1 || lastBrace === -1) return null;
@@ -22,14 +22,39 @@ function extractJson(text: string) {
 }
 
 /**
- * Initializes a scoped genkit instance with a specific API key
+ * Generic function to call OpenRouter API
  */
-function getScopedAi(apiKey: string) {
-    return genkit({
-        plugins: [
-            googleAI({ apiKey })
-        ],
-    });
+async function callOpenRouter(apiKey: string, prompt: string) {
+    try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://banglanaturals.site", // Optional, for OpenRouter tracking
+                "X-Title": "Bangla Naturals SaaS"
+            },
+            body: JSON.stringify({
+                model: "arcee-ai/trinity-large-preview:free",
+                messages: [
+                    { role: "user", content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 4096
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || "OpenRouter API request failed");
+        }
+
+        const data = await response.json();
+        return data.choices[0]?.message?.content || "";
+    } catch (e: any) {
+        console.error("OpenRouter Call Error:", e);
+        throw e;
+    }
 }
 
 /**
@@ -40,10 +65,9 @@ export async function generateProductDescription(input: any) {
         const { apiKey, name, description, categories, origin } = input;
         
         if (!apiKey) {
-            throw new Error("Missing API Key");
+            throw new Error("Missing AI API Key");
         }
 
-        const scopedAi = getScopedAi(apiKey);
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
         const prompt = `You are a premium e-commerce copywriter for "Bangla Naturals", specializing in organic and natural products.
@@ -62,14 +86,10 @@ export async function generateProductDescription(input: any) {
         
         DO NOT include any markdown code blocks (like \`\`\`json) in your response. Just the raw JSON object.`;
 
-        const response = await scopedAi.generate({
-            model: 'googleai/gemini-2.5-flash',
-            prompt,
-            config: { temperature: 0.8, maxOutputTokens: 4096 },
-        });
-
-        const resultJson = extractJson(response.text);
-        if (!resultJson) throw new Error("AI failed to return valid JSON.");
+        const aiResponse = await callOpenRouter(apiKey, prompt);
+        const resultJson = extractJson(aiResponse);
+        
+        if (!resultJson) throw new Error("AI failed to return valid JSON format.");
 
         return { success: true, longDescription: JSON.stringify(resultJson) };
     } catch (e: any) {
@@ -86,10 +106,9 @@ export async function beautifyProductDetails(input: any) {
         const { apiKey, name, description, story, origin, categories } = input;
         
         if (!apiKey) {
-            throw new Error("Missing API Key");
+            throw new Error("Missing AI API Key");
         }
 
-        const scopedAi = getScopedAi(apiKey);
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
         const prompt = `You are an expert SEO copywriter. Optimize and "Beautify" the following product information for high sales conversion and search ranking.
@@ -124,13 +143,9 @@ export async function beautifyProductDetails(input: any) {
 
         DO NOT include any markdown code blocks. Just the raw JSON object.`;
 
-        const response = await scopedAi.generate({
-            model: 'googleai/gemini-2.5-flash',
-            prompt,
-            config: { temperature: 0.7, maxOutputTokens: 4096 },
-        });
-
-        const resultJson = extractJson(response.text);
+        const aiResponse = await callOpenRouter(apiKey, prompt);
+        const resultJson = extractJson(aiResponse);
+        
         if (!resultJson) throw new Error("Could not parse AI response as JSON");
         
         return {

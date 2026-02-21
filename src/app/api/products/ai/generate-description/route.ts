@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
@@ -16,7 +15,7 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 1. Plan Restriction Check
+    // 1. Plan Restriction Check (Only Paid users can use AI)
     const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('subscription_plan')
@@ -29,14 +28,14 @@ export async function POST(request: Request) {
         }, { status: 403 });
     }
 
-    // 2. Fetch AI Settings
+    // 2. Fetch AI Settings (OpenRouter Key managed by SaaS admin)
     const { data: settings } = await supabaseAdmin
       .from('store_settings')
-      .select('gemini_api_key')
+      .select('gemini_api_key') // Reusing column for OpenRouter Key
       .eq('site_id', siteId)
       .single();
 
-    const apiKey = settings?.gemini_api_key || process.env.GOOGLE_GENAI_API_KEY;
+    const apiKey = settings?.gemini_api_key || process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json({ error: 'AI capabilities are not configured for this store. Please contact support.' }, { status: 400 });
