@@ -83,19 +83,12 @@ export default function SectionManagerPage() {
         if (sectionsData.sections) {
             currentSections = (sectionsData.sections as Section[]) || [];
         } else {
-            const initialCategories = (categoriesData.categories as Category[] || []).map(c => c.name);
+            // Default sections if none saved in DB yet (NO automatic category sections)
             currentSections = [
               { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false },
               { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false },
               { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false },
               { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false },
-              ...initialCategories.map((cat) => ({
-                id: `category-${uuidv4().slice(0, 8)}`,
-                title: `${cat} Section`,
-                enabled: true,
-                isCategorySection: true,
-                category: cat,
-              })),
               { id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false },
             ];
         }
@@ -156,8 +149,8 @@ export default function SectionManagerPage() {
           id: `dynamic-${uuidv4().slice(0, 8)}`,
           title: newTitle,
           enabled: true,
-          isCategorySection: true, // Treat all custom filtered sections as "dynamic category" type
-          category: newCategory || undefined,
+          isCategorySection: true,
+          category: newCategory && newCategory !== 'all' ? newCategory : undefined,
           tags: selectedTags.length > 0 ? selectedTags : undefined,
           minPrice: parseInt(minPrice) || 0,
           maxPrice: parseInt(maxPrice) || 50000,
@@ -252,7 +245,7 @@ export default function SectionManagerPage() {
                                     <div className="flex gap-1 mt-1">
                                         {section.category && <Badge variant="secondary" className="text-[10px] py-0">{section.category}</Badge>}
                                         {section.tags?.map(t => <Badge key={t} variant="outline" className="text-[10px] py-0">{t}</Badge>)}
-                                        {(section.minPrice || section.maxPrice) && <Badge variant="outline" className="text-[10px] py-0">৳{section.minPrice}-{section.maxPrice}</Badge>}
+                                        {(section.minPrice !== undefined || section.maxPrice !== undefined) && <Badge variant="outline" className="text-[10px] py-0">৳{section.minPrice ?? 0}-{section.maxPrice ?? '∞'}</Badge>}
                                     </div>
                                 )}
                             </div>
@@ -283,7 +276,7 @@ export default function SectionManagerPage() {
                         </div>
 
                         <div className="space-y-2">
-                        <Label>Reorder Section</Label>
+                        <Label>Position</Label>
                             <div className="flex items-center gap-2">
                                 <Button
                                     variant="outline"
@@ -337,7 +330,7 @@ export default function SectionManagerPage() {
         </Card>
     </div>
 
-    {/* RAW TAILWIND DIALOG */}
+    {/* Dynamic Section Modal */}
     {isCreateOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCreateOpen(false)} />
@@ -353,14 +346,14 @@ export default function SectionManagerPage() {
                     <div className="space-y-2">
                         <Label>সেকশন শিরোনাম (Title)</Label>
                         <Input 
-                            placeholder="যেমন: সেরা পণ্যসমূহ" 
+                            placeholder="যেমন: সেরা অফার" 
                             value={newTitle}
                             onChange={(e) => setNewTitle(e.target.value)}
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label>ক্যাটাগরি সিলেক্ট করুন (Optional)</Label>
+                        <Label>ক্যাটাগরি ফিল্টার (Optional)</Label>
                         <Select value={newCategory} onValueChange={setNewCategory}>
                             <SelectTrigger>
                                 <SelectValue placeholder="সব ক্যাটাগরি" />
@@ -402,7 +395,6 @@ export default function SectionManagerPage() {
                                 <Input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
                             </div>
                         </div>
-                        <p className="text-[10px] text-muted-foreground italic">সেকশনে শুধুমাত্র এই মূল্যের ভেতরের পণ্যগুলো দেখা যাবে।</p>
                     </div>
                 </div>
 

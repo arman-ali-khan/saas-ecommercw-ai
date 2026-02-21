@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -175,14 +176,13 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   const sectionsToRender: Section[] = (() => {
     const dbSections = settingsResult.data?.homepage_sections;
     if (Array.isArray(dbSections)) return dbSections as Section[];
-    const categories = (categoriesResult.data as Category[]) || [];
-    const allCategories = [...new Set(categories.map(c => c.name))];
+    
+    // Default fallback sections (NO auto-category sections)
     return [
       { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false },
       { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false },
       { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false },
       { id: 'why-us', title: t.homepage.whyUs, enabled: true, isCategorySection: false },
-      ...allCategories.map((cat) => ({ id: `category-${cat.toLowerCase().replace(/\s+/g, '-')}`, title: cat, enabled: true, isCategorySection: true, category: cat })),
       { id: 'customer-reviews', title: t.homepage.customerReviews, enabled: true, isCategorySection: false },
     ];
   })();
