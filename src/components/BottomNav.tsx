@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, User, Menu, Search, ShoppingBag as ShoppingBagIcon, Trash2, Plus, Minus,ChartNoAxesColumn } from 'lucide-react';
+import { Home, User, Menu, Search, ShoppingBag as ShoppingBagIcon, Trash2, Plus, Minus,List } from 'lucide-react';
 import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -176,7 +176,7 @@ export default function BottomNav() {
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
   const navLinks = [
-    { id: 'menu', label: 'Menu', icon: ChartNoAxesColumn, isSheet: true, sheetContent: 'category' },
+    { id: 'menu', label: 'Menu', icon: List, isSheet: true, sheetContent: 'category' },
     { id: 'search', label: 'Search', icon: Search, action: () => setSearchOpen(true) },
     { id: 'home', href: '/', label: 'Home', icon: Home },
     { id: 'cart', label: 'Cart', icon: ShoppingBagIcon, isSheet: true, sheetContent: 'cart' },
@@ -196,7 +196,7 @@ export default function BottomNav() {
           const content = (
             <div className="flex items-center justify-center h-full w-full">
               <div className="relative">
-                <link.icon className={cn("h-6 rotate-90 w-6", isActive ? "text-primary" : "text-muted-foreground")} />
+                <link.icon className={cn("h-6 w-6", isActive ? "text-primary" : "text-muted-foreground")} />
                 {link.label === 'Cart' && cartCount > 0 && (
                   <span className="absolute -top-1 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                     {cartCount}
