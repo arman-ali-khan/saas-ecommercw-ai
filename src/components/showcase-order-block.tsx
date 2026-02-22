@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import type { Product, ShippingZone } from '@/types';
+import type { Product, ShippingZone, ProductVariant } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,6 @@ import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { Checkbox } from '@/components/ui/checkbox';
-
 
 const showcaseOrderSchema = z.object({
   name: z.string().min(2, 'আপনার নাম লিখুন'),
@@ -43,6 +42,11 @@ const showcaseOrderSchema = z.object({
 
 type ShowcaseOrderFormData = z.infer<typeof showcaseOrderSchema>;
 
+// Helper to generate a unique key for selection tracking
+const getSelectionKey = (id: string, unit?: string | null) => {
+    return unit ? `${id}:${unit}` : id;
+};
+
 export function ShowcaseOrderBlock({ 
     main_product_id, 
     main_product_unit,
@@ -60,7 +64,7 @@ export function ShowcaseOrderBlock({
     siteId: string,
     initialProducts: Product[]
 }) {
-    const [products, setProducts] = useState<Product[]>(initialProducts);
+    const [products] = useState<Product[]>(initialProducts);
     const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
     const [shippingZones, setShippingZones] = useState<ShippingZone[]>([]);
     const [isLoadingShipping, setIsLoadingShipping] = useState(true);
@@ -79,6 +83,42 @@ export function ShowcaseOrderBlock({
     const watchedFormValues = form.watch();
     const paymentMethod = form.watch('paymentMethod');
 
+    // Flatten optional products into selectable items based on their variants/attributes
+    const optionalDisplayItems = useMemo(() => {
+        const items: any[] = [];
+        const optionalProds = products.filter(p => optional_product_ids.includes(p.id));
+        
+        optionalProds.forEach(p => {
+            if (p.variants && p.variants.length > 0) {
+                p.variants.forEach(v => {
+                    items.push({
+                        key: getSelectionKey(p.id, v.unit),
+                        baseId: p.id,
+                        name: p.name,
+                        unit: v.unit,
+                        price: v.price,
+                        imageUrl: p.images[0]?.imageUrl,
+                        originalProduct: p
+                    });
+                });
+            } else {
+                items.push({
+                    key: getSelectionKey(p.id, p.unit),
+                    baseId: p.id,
+                    name: p.name,
+                    unit: p.unit,
+                    price: p.price,
+                    imageUrl: p.images[0]?.imageUrl,
+                    originalProduct: p
+                });
+            }
+        });
+        return items;
+    }, [products, optional_product_ids]);
+
+    const mainProduct = useMemo(() => products.find(p => p.id === main_product_id), [products, main_product_id]);
+    const mainProductKey = useMemo(() => mainProduct ? getSelectionKey(mainProduct.id, main_product_unit) : '', [mainProduct, main_product_unit]);
+
     useEffect(() => {
         let cartSessionId = localStorage.getItem(`cart_session_id_${username}`);
         if (!cartSessionId) {
@@ -88,18 +128,52 @@ export function ShowcaseOrderBlock({
         setUncompletedOrderId(cartSessionId);
     }, [username]);
 
+    const getItemsToOrder = useCallback(() => {
+        const orderList: any[] = [];
+        
+        // Handle main product
+        if (mainProduct && (quantities[mainProductKey] || 0) > 0) {
+            let price = mainProduct.price;
+            let unit = mainProduct.unit;
+            if (main_product_unit && mainProduct.variants?.length) {
+                const v = mainProduct.variants.find(v => v.unit === main_product_unit);
+                if (v) { price = v.price; unit = v.unit; }
+            }
+            orderList.push({
+                id: mainProduct.id,
+                name: mainProduct.name,
+                quantity: quantities[mainProductKey],
+                price: price,
+                selected_unit: unit,
+                imageUrl: mainProduct.images[0]?.imageUrl,
+            });
+        }
+
+        // Handle optional display items
+        optionalDisplayItems.forEach(item => {
+            const qty = quantities[item.key] || 0;
+            // Ensure we don't duplicate if main product is also in optional list with same unit
+            const alreadyInOrder = orderList.some(o => o.id === item.baseId && o.selected_unit === item.unit);
+            if (qty > 0 && !alreadyInOrder) {
+                orderList.push({
+                    id: item.baseId,
+                    name: item.name,
+                    quantity: qty,
+                    price: item.price,
+                    selected_unit: item.unit,
+                    imageUrl: item.imageUrl,
+                });
+            }
+        });
+
+        return orderList;
+    }, [mainProduct, mainProductKey, main_product_unit, optionalDisplayItems, quantities]);
+
     const saveUncompletedOrder = useCallback(async () => {
         const currentFormValues = form.getValues();
-        const itemsToOrder = products.filter(p => (quantities[p.id] || 0) > 0);
+        const itemsToOrder = getItemsToOrder();
         
-        const subtotalValue = itemsToOrder.reduce((acc, p) => {
-            let price = p.price;
-            if (p.id === main_product_id && main_product_unit && p.variants?.length) {
-                const v = p.variants.find(v => v.unit === main_product_unit);
-                if (v) price = v.price;
-            }
-            return acc + (price * (quantities[p.id] || 0));
-        }, 0);
+        const subtotalValue = itemsToOrder.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
         if (!uncompletedOrderId || !siteId || itemsToOrder.length === 0) return;
         
@@ -115,25 +189,7 @@ export function ShowcaseOrderBlock({
             address: currentFormValues.address,
             city: currentFormValues.city,
           },
-          cart_items: itemsToOrder.map(product => {
-            let price = product.price;
-            let unit = product.unit;
-            if (product.id === main_product_id && main_product_unit && product.variants?.length) {
-                const v = product.variants.find(v => v.unit === main_product_unit);
-                if (v) {
-                    price = v.price;
-                    unit = v.unit;
-                }
-            }
-            return {
-                id: product.id,
-                name: product.name,
-                quantity: quantities[product.id],
-                price: price,
-                selected_unit: unit,
-                imageUrl: product.images[0]?.imageUrl,
-            }
-          }),
+          cart_items: itemsToOrder,
           cart_total: subtotalValue,
           status: 'shipping-info-entered'
         };
@@ -147,7 +203,7 @@ export function ShowcaseOrderBlock({
         } catch (err) {
             console.error('Failed to auto-save uncompleted order in showcase:', err);
         }
-    }, [uncompletedOrderId, siteId, form, products, quantities, main_product_id, main_product_unit]);
+    }, [uncompletedOrderId, siteId, form, getItemsToOrder]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -188,40 +244,33 @@ export function ShowcaseOrderBlock({
     }, [siteId, form]);
 
     useEffect(() => {
-        const initialQuantities = initialProducts.reduce((acc, p) => {
-            acc[p.id] = p.id === main_product_id ? 1 : 0;
-            return acc;
-        }, {} as { [key: string]: number });
+        const initialQuantities: { [key: string]: number } = {};
+        if (mainProductKey) {
+            initialQuantities[mainProductKey] = 1;
+        }
         setQuantities(initialQuantities);
-    }, [initialProducts, main_product_id]);
+    }, [mainProductKey]);
 
 
-    const handleQuantityChange = (id: string, newQuantity: number) => {
-        const minQuantity = id === main_product_id ? 1 : 0;
-        setQuantities(prev => ({ ...prev, [id]: Math.max(minQuantity, newQuantity) }));
+    const handleQuantityChange = (key: string, newQuantity: number) => {
+        const minQuantity = key === mainProductKey ? 1 : 0;
+        setQuantities(prev => ({ ...prev, [key]: Math.max(minQuantity, newQuantity) }));
     };
 
-    const toggleProductSelection = (id: string) => {
-        if (id === main_product_id) return; // Cannot deselect main product here
+    const toggleProductSelection = (key: string) => {
+        if (key === mainProductKey) return;
         setQuantities(prev => {
-            const currentQty = prev[id] || 0;
+            const currentQty = prev[key] || 0;
             return {
                 ...prev,
-                [id]: currentQty > 0 ? 0 : 1
+                [key]: currentQty > 0 ? 0 : 1
             };
         });
     };
     
-    const itemsToOrder = useMemo(() => products.filter(p => (quantities[p.id] || 0) > 0), [products, quantities]);
+    const itemsToOrderForSubtotal = useMemo(() => getItemsToOrder(), [getItemsToOrder]);
     
-    const subtotal = useMemo(() => itemsToOrder.reduce((acc, p) => {
-        let price = p.price;
-        if (p.id === main_product_id && main_product_unit && p.variants?.length) {
-            const v = p.variants.find(v => v.unit === main_product_unit);
-            if (v) price = v.price;
-        }
-        return acc + (price * (quantities[p.id] || 0));
-    }, 0), [itemsToOrder, quantities, main_product_id, main_product_unit]);
+    const subtotal = useMemo(() => itemsToOrderForSubtotal.reduce((acc, item) => acc + (item.price * item.quantity), 0), [itemsToOrderForSubtotal]);
 
     const selectedShippingZoneId = form.watch('shippingZoneId');
     const shippingCost = useMemo(() => shippingZones.find(z => z.id.toString() === selectedShippingZoneId)?.price || 0, [selectedShippingZoneId, shippingZones]);
@@ -243,6 +292,7 @@ export function ShowcaseOrderBlock({
 
         setIsSubmitting(true);
         const values = form.getValues();
+        const itemsToOrder = getItemsToOrder();
 
         const orderData = {
             order_number: `BN-${Date.now().toString().slice(-6)}`,
@@ -256,25 +306,7 @@ export function ShowcaseOrderBlock({
                 shipping_cost: shippingCost,
                 shipping_method_name: shippingZones.find(z => z.id.toString() === values.shippingZoneId)?.name || 'N/A'
             },
-            cart_items: itemsToOrder.map((product) => {
-                let price = product.price;
-                let unit = product.unit;
-                if (product.id === main_product_id && main_product_unit && product.variants?.length) {
-                    const v = product.variants.find(v => v.unit === main_product_unit);
-                    if (v) {
-                        price = v.price;
-                        unit = v.unit;
-                    }
-                }
-                return {
-                    id: product.id,
-                    name: product.name,
-                    quantity: quantities[product.id],
-                    price: price,
-                    selected_unit: unit,
-                    imageUrl: product.images[0]?.imageUrl,
-                };
-            }),
+            cart_items: itemsToOrder,
             total: total,
             payment_method: values.paymentMethod,
             transaction_id: values.transaction_id || null,
@@ -297,9 +329,6 @@ export function ShowcaseOrderBlock({
             setIsSubmitting(false);
         }
     };
-
-    const mainProduct = products.find(p => p.id === main_product_id);
-    const optionalProducts = products.filter(p => optional_product_ids.includes(p.id));
 
     const mainProductPrice = useMemo(() => {
         if (!mainProduct) return 0;
@@ -342,16 +371,16 @@ export function ShowcaseOrderBlock({
                                             </div>
                                         </div>
                                         <div className="flex items-center flex-col gap-2 bg-background rounded-xl border p-1 shadow-sm shrink-0">
-                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" onClick={() => handleQuantityChange(mainProduct.id, (quantities[mainProduct.id] || 0) - 1)}><Minus className="h-4 w-4" /></Button>
-                                            <span className="w-8 sm:w-10 text-center font-black text-sm sm:text-base">{quantities[mainProduct.id] || 0}</span>
-                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" onClick={() => handleQuantityChange(mainProduct.id, (quantities[mainProduct.id] || 0) + 1)}><Plus className="h-4 w-4" /></Button>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" onClick={() => handleQuantityChange(mainProductKey, (quantities[mainProductKey] || 0) - 1)}><Minus className="h-4 w-4" /></Button>
+                                            <span className="w-8 sm:w-10 text-center font-black text-sm sm:text-base">{quantities[mainProductKey] || 0}</span>
+                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg" onClick={() => handleQuantityChange(mainProductKey, (quantities[mainProductKey] || 0) + 1)}><Plus className="h-4 w-4" /></Button>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Optional Products Section */}
-                            {optionalProducts.length > 0 && (
+                            {/* Optional Products Section (Flattened with Attributes) */}
+                            {optionalDisplayItems.length > 0 && (
                                 <div className="space-y-4 animate-in fade-in duration-500">
                                     <div className="flex items-center gap-3 px-2">
                                         <div className="h-px flex-grow bg-border" />
@@ -362,37 +391,40 @@ export function ShowcaseOrderBlock({
                                     </div>
                                     
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {optionalProducts.map(p => {
-                                            const isSelected = (quantities[p.id] || 0) > 0;
+                                        {optionalDisplayItems.map(item => {
+                                            const isSelected = (quantities[item.key] || 0) > 0;
                                             return (
                                                 <div 
-                                                    key={p.id} 
+                                                    key={item.key} 
                                                     className={cn(
                                                         "flex gap-3 items-center justify-between p-3 rounded-xl border transition-all group shadow-sm cursor-pointer",
                                                         isSelected ? "bg-primary/5 border-primary/40 ring-1 ring-primary/10" : "bg-card/50 hover:bg-card hover:border-primary/20"
                                                     )}
-                                                    onClick={() => toggleProductSelection(p.id)}
+                                                    onClick={() => toggleProductSelection(item.key)}
                                                 >
                                                     <div className="flex gap-3 items-center flex-grow min-w-0">
                                                         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                                                             <Checkbox 
                                                                 checked={isSelected}
-                                                                onCheckedChange={() => toggleProductSelection(p.id)}
+                                                                onCheckedChange={() => toggleProductSelection(item.key)}
                                                                 className="h-5 w-5 rounded-md"
                                                             />
                                                         </div>
                                                         <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0">
-                                                            <Image src={p.images[0].imageUrl} alt={p.name} fill className="rounded-lg object-cover aspect-square border" />
+                                                            <Image src={item.imageUrl} alt={item.name} fill className="rounded-lg object-cover aspect-square border" />
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className={cn("font-semibold text-xs sm:text-sm leading-tight truncate transition-colors", isSelected ? "text-primary" : "group-hover:text-primary")}>{p.name}</p>
-                                                            <p className="text-[10px] sm:text-xs text-muted-foreground font-bold mt-0.5">{p.price.toFixed(2)} BDT</p>
+                                                            <p className={cn("font-semibold text-xs sm:text-sm leading-tight truncate transition-colors", isSelected ? "text-primary" : "group-hover:text-primary")}>{item.name}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                {item.unit && <Badge variant="outline" className="text-[8px] sm:text-[10px] uppercase font-black h-4 px-1.5">{item.unit}</Badge>}
+                                                                <p className="text-[10px] sm:text-xs text-muted-foreground font-bold">{item.price.toFixed(2)} BDT</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-1 bg-background rounded-lg p-1 shrink-0 flex-col-reverse border shadow-sm" onClick={(e) => e.stopPropagation()}>
-                                                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) - 1)}><Minus className="h-3 w-3" /></Button>
-                                                        <span className="w-5 sm:w-6 text-center text-xs font-black">{quantities[p.id] || 0}</span>
-                                                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) + 1)}><Plus className="h-3 w-3" /></Button>
+                                                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md" onClick={() => handleQuantityChange(item.key, (quantities[item.key] || 0) - 1)}><Minus className="h-3 w-3" /></Button>
+                                                        <span className="w-5 sm:w-6 text-center text-xs font-black">{quantities[item.key] || 0}</span>
+                                                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md" onClick={() => handleQuantityChange(item.key, (quantities[item.key] || 0) + 1)}><Plus className="h-3 w-3" /></Button>
                                                     </div>
                                                 </div>
                                             );
