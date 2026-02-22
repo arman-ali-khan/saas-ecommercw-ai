@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const showcaseOrderSchema = z.object({
@@ -91,7 +92,6 @@ export function ShowcaseOrderBlock({
         const currentFormValues = form.getValues();
         const itemsToOrder = products.filter(p => (quantities[p.id] || 0) > 0);
         
-        // Calculate subtotal correctly based on unit selection
         const subtotalValue = itemsToOrder.reduce((acc, p) => {
             let price = p.price;
             if (p.id === main_product_id && main_product_unit && p.variants?.length) {
@@ -161,7 +161,6 @@ export function ShowcaseOrderBlock({
         const fetchData = async () => {
             setIsLoadingShipping(true);
             
-            // Fetch Shipping
             const shipRes = await fetch('/api/get-shipping-zones', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -173,7 +172,6 @@ export function ShowcaseOrderBlock({
                 if (shipResult.zones.length > 0) form.setValue('shippingZoneId', shipResult.zones[0].id.toString());
             }
 
-            // Fetch Payment Settings
             const settingsRes = await fetch('/api/settings/get', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -201,6 +199,17 @@ export function ShowcaseOrderBlock({
     const handleQuantityChange = (id: string, newQuantity: number) => {
         const minQuantity = id === main_product_id ? 1 : 0;
         setQuantities(prev => ({ ...prev, [id]: Math.max(minQuantity, newQuantity) }));
+    };
+
+    const toggleProductSelection = (id: string) => {
+        if (id === main_product_id) return; // Cannot deselect main product here
+        setQuantities(prev => {
+            const currentQty = prev[id] || 0;
+            return {
+                ...prev,
+                [id]: currentQty > 0 ? 0 : 1
+            };
+        });
     };
     
     const itemsToOrder = useMemo(() => products.filter(p => (quantities[p.id] || 0) > 0), [products, quantities]);
@@ -268,7 +277,7 @@ export function ShowcaseOrderBlock({
             }),
             total: total,
             payment_method: values.paymentMethod,
-            transaction_id: values.transactionId || null,
+            transaction_id: values.transaction_id || null,
             uncompletedOrderId: uncompletedOrderId,
             domain: username,
         };
@@ -353,24 +362,41 @@ export function ShowcaseOrderBlock({
                                     </div>
                                     
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {optionalProducts.map(p => (
-                                            <div key={p.id} className="flex gap-3 items-center justify-between p-3 rounded-xl border bg-card/50 hover:bg-card hover:border-primary/30 transition-all group shadow-sm">
-                                                <div className="flex gap-3 items-center flex-grow min-w-0">
-                                                    <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0">
-                                                        <Image src={p.images[0].imageUrl} alt={p.name} fill className="rounded-lg object-cover aspect-square border" />
+                                        {optionalProducts.map(p => {
+                                            const isSelected = (quantities[p.id] || 0) > 0;
+                                            return (
+                                                <div 
+                                                    key={p.id} 
+                                                    className={cn(
+                                                        "flex gap-3 items-center justify-between p-3 rounded-xl border transition-all group shadow-sm cursor-pointer",
+                                                        isSelected ? "bg-primary/5 border-primary/40 ring-1 ring-primary/10" : "bg-card/50 hover:bg-card hover:border-primary/20"
+                                                    )}
+                                                    onClick={() => toggleProductSelection(p.id)}
+                                                >
+                                                    <div className="flex gap-3 items-center flex-grow min-w-0">
+                                                        <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                            <Checkbox 
+                                                                checked={isSelected}
+                                                                onCheckedChange={() => toggleProductSelection(p.id)}
+                                                                className="h-5 w-5 rounded-md"
+                                                            />
+                                                        </div>
+                                                        <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0">
+                                                            <Image src={p.images[0].imageUrl} alt={p.name} fill className="rounded-lg object-cover aspect-square border" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className={cn("font-semibold text-xs sm:text-sm leading-tight truncate transition-colors", isSelected ? "text-primary" : "group-hover:text-primary")}>{p.name}</p>
+                                                            <p className="text-[10px] sm:text-xs text-muted-foreground font-bold mt-0.5">{p.price.toFixed(2)} BDT</p>
+                                                        </div>
                                                     </div>
-                                                    <div className="min-w-0">
-                                                        <p className="font-semibold text-xs sm:text-sm leading-tight truncate group-hover:text-primary transition-colors">{p.name}</p>
-                                                        <p className="text-[10px] sm:text-xs text-muted-foreground font-bold mt-0.5">{p.price.toFixed(2)} BDT</p>
+                                                    <div className="flex items-center gap-1 bg-background rounded-lg p-1 shrink-0 flex-col-reverse border shadow-sm" onClick={(e) => e.stopPropagation()}>
+                                                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) - 1)}><Minus className="h-3 w-3" /></Button>
+                                                        <span className="w-5 sm:w-6 text-center text-xs font-black">{quantities[p.id] || 0}</span>
+                                                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) + 1)}><Plus className="h-3 w-3" /></Button>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 shrink-0 flex-col-reverse">
-                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) - 1)}><Minus className="h-3 w-3" /></Button>
-                                                    <span className="w-5 sm:w-6 text-center text-xs font-bold">{quantities[p.id] || 0}</span>
-                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md" onClick={() => handleQuantityChange(p.id, (quantities[p.id] || 0) + 1)}><Plus className="h-3 w-3" /></Button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
@@ -462,7 +488,6 @@ export function ShowcaseOrderBlock({
             </CardContent>
         </Card>
 
-        {/* Custom Confirmation Dialog */}
         {isModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                 <div 
