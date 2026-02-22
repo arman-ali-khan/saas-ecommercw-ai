@@ -22,6 +22,7 @@ export interface Product {
   origin: string;
   story: string;
   categories: string[];
+  tags?: string[] | null;
   is_featured: boolean;
   stock?: number;
   created_at: string;

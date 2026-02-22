@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Wand2, Sparkles, Plus, Ruler, Scale, X, Info, Star, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Wand2, Sparkles, Plus, Ruler, Scale, X, Info, Star, CheckCircle2, AlertTriangle, Hash, Tags as TagsIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -66,6 +66,7 @@ const productFormSchema = z.object({
   description: z.string().min(10, 'Short description is required (min 10 chars).'),
   long_description: z.string().optional(),
   categories: z.array(z.string()).default([]),
+  tags: z.array(z.string()).default([]),
   origin: z.string().optional(),
   story: z.string().optional(),
   is_featured: z.boolean().default(false),
@@ -103,12 +104,13 @@ export default function ManageProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isBeautifying, setIsBeautifying] = useState(false);
+  const [tagInput, setTagInput] = useState('');
   
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       id: '', name: '', price: 0, stock: 0, currency: 'BDT', description: '', long_description: '',
-      categories: [], origin: '', story: '', is_featured: false, images: [], brand: [], color: [], unit: '',
+      categories: [], tags: [], origin: '', story: '', is_featured: false, images: [], brand: [], color: [], unit: '',
       has_flash_deal: false, flash_deal_price: undefined, flash_deal_range: { startDate: undefined, endDate: undefined },
       use_variants: false, variant_type: 'unit', variants: []
     },
@@ -188,6 +190,8 @@ export default function ManageProductPage() {
                 ...productData,
                 brand: Array.isArray(productData.brand) ? productData.brand : [],
                 color: Array.isArray(productData.color) ? productData.color : [],
+                categories: Array.isArray(productData.categories) ? productData.categories : [],
+                tags: Array.isArray(productData.tags) ? productData.tags : [],
                 unit: productData.unit || '',
                 images: (productData.images || []).map((img: any) => ({ imageUrl: img.imageUrl || '', imageHint: img.imageHint || '' })),
                 has_flash_deal: !!flashDealData,
@@ -225,6 +229,8 @@ export default function ManageProductPage() {
     const fromAttr = groupedAttributes['size'] || [];
     return fromAttr.length > 0 ? fromAttr : FALLBACK_SIZES;
   }, [groupedAttributes]);
+
+  const tagOptions = useMemo(() => groupedAttributes['tag'] || [], [groupedAttributes]);
 
   const handleBeautify = async () => {
     if (!watchedValues.name) return toast({ variant: 'destructive', title: 'আগে পণ্যের নাম প্রদান করুন' });
@@ -318,6 +324,19 @@ export default function ManageProductPage() {
         toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
         router.push(`/admin/products`);
     } catch (error: any) { setIsSubmitting(false); toast({ variant: 'destructive', title: `Error`, description: error.message }); }
+  };
+
+  const handleAddTag = (tag: string) => {
+    const currentTags = form.getValues('tags');
+    if (tag && !currentTags.includes(tag)) {
+        form.setValue('tags', [...currentTags, tag], { shouldDirty: true });
+    }
+    setTagInput('');
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    const currentTags = form.getValues('tags');
+    form.setValue('tags', currentTags.filter(t => t !== tag), { shouldDirty: true });
   };
 
   if (isLoading || (authLoading && !user)) {
@@ -500,6 +519,69 @@ export default function ManageProductPage() {
                         <CardHeader className="bg-muted/30"><CardTitle>ক্যাটাগরি এবং ফিল্টার</CardTitle></CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             <FormField control={form.control} name="categories" render={({ field }) => (<FormItem><FormLabel>ক্যাটাগরি সিলেক্ট করুন</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full h-11 justify-between font-normal"><span className="truncate">{field.value?.length ? field.value.join(', ') : "সিলেক্ট করুন"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((cat) => (<DropdownMenuCheckboxItem key={cat.id} checked={field.value?.includes(cat.name)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), cat.name] : field.value.filter((v) => v !== cat.name))}>{cat.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu></FormItem>)} />
+                            
+                            {/* Creatable Tag Selector */}
+                            <FormField control={form.control} name="tags" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="flex items-center gap-2"><TagsIcon className="h-4 w-4" /> ট্যাগ যোগ করুন (Tags)</FormLabel>
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap gap-2 min-h-10 p-2 border-2 rounded-xl bg-muted/10 border-dashed">
+                                            {field.value?.map((tag) => (
+                                                <Badge key={tag} className="gap-1.5 py-1 px-3 bg-primary text-primary-foreground">
+                                                    {tag}
+                                                    <X className="h-3 w-3 cursor-pointer hover:text-white/80" onClick={() => handleRemoveTag(tag)} />
+                                                </Badge>
+                                            ))}
+                                            {(!field.value || field.value.length === 0) && <span className="text-xs text-muted-foreground self-center px-2">কোনো ট্যাগ যোগ করা হয়নি</span>}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-grow">
+                                                <Input 
+                                                    placeholder="নতুন ট্যাগ লিখুন..." 
+                                                    value={tagInput} 
+                                                    onChange={(e) => setTagInput(e.target.value)} 
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddTag(tagInput.trim());
+                                                        }
+                                                    }}
+                                                    className="h-11 pr-10"
+                                                />
+                                                <Button 
+                                                    type="button" 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 text-muted-foreground"
+                                                    onClick={() => handleAddTag(tagInput.trim())}
+                                                >
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" size="icon" className="h-11 w-11 shrink-0"><ChevronDown className="h-4 w-4" /></Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-56 max-h-60 overflow-y-auto">
+                                                    <div className="p-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b">বিদ্যমান ট্যাগসমূহ</div>
+                                                    {tagOptions.length > 0 ? tagOptions.map(tag => (
+                                                        <DropdownMenuCheckboxItem 
+                                                            key={tag} 
+                                                            checked={field.value?.includes(tag)} 
+                                                            onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), tag] : field.value.filter((v: string) => v !== tag))}
+                                                        >
+                                                            {tag}
+                                                        </DropdownMenuCheckboxItem>
+                                                    )) : <div className="p-4 text-xs text-muted-foreground text-center italic">কোনো ট্যাগ পাওয়া যায়নি</div>}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                        <FormDescription className="text-[10px]">ট্যাগ লিখে Enter চাপুন অথবা ড্রপডাউন থেকে সিলেক্ট করুন।</FormDescription>
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
                             <FormField control={form.control} name="origin" render={({ field }) => (<FormItem><FormLabel>উৎপত্তি স্থল (Origin)</FormLabel><FormControl><Input {...field} placeholder="যেমন: রাজশাহী, খুলনা" className="h-11" /></FormControl></FormItem>)} />
                             <div className="space-y-4">
                                 {(['brand', 'color'] as const).map((attrName) => (
