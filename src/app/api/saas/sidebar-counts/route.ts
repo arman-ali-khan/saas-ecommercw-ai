@@ -1,44 +1,29 @@
 
 import { NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false }
+  });
 
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { persistSession: false } }
-    );
-
     // Run count queries in parallel
     const [
         notifRes,
         subRes,
         seoRes,
-        reviewRes
+        reviewRes,
+        domainRes
     ] = await Promise.all([
         supabaseAdmin.from('notifications').select('*', { count: 'exact', head: true }).eq('is_read', false),
-        supabaseAdmin.from('subscription_payments').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabaseAdmin.from('subscription_payments').select('*', { count: 'exact', head: true }).or('status.eq.pending,status.eq.pending_verification'),
         supabaseAdmin.from('seo_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabaseAdmin.from('saas_reviews').select('*', { count: 'exact', head: true }).eq('is_approved', false)
+        supabaseAdmin.from('saas_reviews').select('*', { count: 'exact', head: true }).eq('is_approved', false),
+        supabaseAdmin.from('custom_domain_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
     ]);
 
     return NextResponse.json({
@@ -46,6 +31,7 @@ export async function GET(request: Request) {
         pendingSubscriptions: subRes.count || 0,
         pendingSeoRequests: seoRes.count || 0,
         pendingReviews: reviewRes.count || 0,
+        pendingDomains: domainRes.count || 0,
     });
 
   } catch (e: any) {

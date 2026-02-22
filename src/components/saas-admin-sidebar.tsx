@@ -45,6 +45,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     pendingSubscriptions: 0,
     pendingSeoRequests: 0,
     pendingReviews: 0,
+    pendingDomains: 0,
   });
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
@@ -112,7 +113,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const adminNavLinks = [
     { href: `/dashboard`, label: 'Dashboard', icon: Home },
     { href: `/dashboard/users`, label: 'Stores', icon: Store },
-    { href: `/dashboard/custom-domains`, label: 'Custom Domains', icon: Globe },
+    { href: `/dashboard/custom-domains`, label: 'Custom Domains', icon: Globe, count: counts.pendingDomains },
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: counts.pendingSubscriptions },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
@@ -148,9 +149,9 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
         )}
       >
         <Icon className="h-4 w-4" />
-        {label}
+        <span className="flex-1 truncate">{label}</span>
         {count && count > 0 ? (
-          <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground">{count}</Badge>
+          <Badge className="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">{count > 99 ? '9+' : count}</Badge>
         ) : null}
       </Link>
     );
@@ -196,7 +197,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
         </div>
       )}
       <div className="flex-1 overflow-auto py-2">
-        <nav className="grid items-start px-4 text-sm font-medium">
+        <nav className="grid items-start px-4 text-sm font-medium gap-1">
           {adminNavLinks.map((link) => (
             <NavLink key={link.href} {...link} />
           ))}
@@ -204,12 +205,12 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
       </div>
       <div className="mt-auto p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-2">
-            <div className='flex-1'>
-                <p className="font-semibold text-sm">{user.fullName}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+            <div className='flex-1 min-w-0'>
+                <p className="font-semibold text-sm truncate">{user.fullName}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
             </div>
-            <Button onClick={logout} variant="outline" size="sm">
-              <LogOut className="mr-2 h-4 w-4" />
+            <Button onClick={logout} variant="outline" size="sm" className="h-8 px-2 text-xs">
+              <LogOut className="mr-1.5 h-3 w-3" />
               Logout
             </Button>
           </div>
