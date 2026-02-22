@@ -223,24 +223,50 @@ export default function ManagePage() {
 
         return (
             <div className="space-y-4">
-                {slideFields.map((slide, index) => (
-                    <Card key={slide.id} className="p-3 bg-background/50">
-                        <div className="flex justify-between items-center mb-3">
-                            <p className="font-semibold text-sm">Slide {index + 1}</p>
-                            <div className="flex items-center gap-1">
-                                <Button type="button" variant="ghost" size="icon" onClick={() => moveSlide(index, index - 1)} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => moveSlide(index, index + 1)} disabled={index === slideFields.length - 1}><ArrowDown className="h-4 w-4" /></Button>
-                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeSlide(index)}><Trash2 className="h-4 w-4" /></Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {slideFields.map((slide, index) => (
+                        <Card key={slide.id} className="p-3 bg-background/50 flex flex-col h-full">
+                            <div className="flex justify-between items-center mb-3">
+                                <p className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Slide {index + 1}</p>
+                                <div className="flex items-center gap-1">
+                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveSlide(index, index - 1)} disabled={index === 0}><ArrowUp className="h-3 w-3" /></Button>
+                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveSlide(index, index + 1)} disabled={index === slideFields.length - 1}><ArrowDown className="h-3 w-3" /></Button>
+                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeSlide(index)}><Trash2 className="h-3 w-3" /></Button>
+                                </div>
                             </div>
-                        </div>
-                        <div className="space-y-3">
-                            <FormField control={control} name={`${namePrefix}.slides.${index}.image`} render={({ field: imgField }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...imgField} /></FormControl><ImageUploader onUpload={(res) => form.setValue(`${namePrefix}.slides.${index}.image` as any, res.info.secure_url)} /><FormMessage /></FormItem>)} />
-                            <FormField control={control} name={`${namePrefix}.slides.${index}.title`} render={({ field: titleField }) => (<FormItem><FormLabel>Title (Optional)</FormLabel><FormControl><Input {...titleField} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={control} name={`${namePrefix}.slides.${index}.subtitle`} render={({ field: subField }) => (<FormItem><FormLabel>Subtitle (Optional)</FormLabel><FormControl><Input {...subField} /></FormControl><FormMessage /></FormItem>)} />
-                        </div>
-                    </Card>
-                ))}
-                <Button type="button" variant="outline" onClick={addSlide} className="w-full"><Plus className="mr-2" /> Add Slide</Button>
+                            <div className="space-y-3 flex-grow">
+                                <FormField control={control} name={`${namePrefix}.slides.${index}.image`} render={({ field: imgField }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] uppercase font-black">Image</FormLabel>
+                                        <div className="space-y-2">
+                                            <div className="relative aspect-video rounded-md border bg-muted overflow-hidden">
+                                                {imgField.value ? <Image src={imgField.value} alt="Preview" fill className="object-cover" /> : <div className="h-full w-full flex items-center justify-center text-[10px] text-muted-foreground">No Image</div>}
+                                            </div>
+                                            <FormControl><Input {...imgField} className="h-8 text-xs" /></FormControl>
+                                            <ImageUploader onUpload={(res) => form.setValue(`${namePrefix}.slides.${index}.image` as any, res.info.secure_url)} label="Replace Image" />
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={control} name={`${namePrefix}.slides.${index}.title`} render={({ field: titleField }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] uppercase font-black">Title (Optional)</FormLabel>
+                                        <FormControl><Input {...titleField} className="h-8 text-xs" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={control} name={`${namePrefix}.slides.${index}.subtitle`} render={({ field: subField }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] uppercase font-black">Subtitle (Optional)</FormLabel>
+                                        <FormControl><Input {...subField} className="h-8 text-xs" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+                <Button type="button" variant="outline" onClick={addSlide} className="w-full border-dashed"><Plus className="mr-2 h-4 w-4" /> Add Slide</Button>
             </div>
         )
     }

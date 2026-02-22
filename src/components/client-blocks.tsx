@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -65,23 +64,23 @@ export function CarouselBlock({ slides }: { slides: CarouselSlide[] }) {
   
   return (
     <ShadCarousel 
-      className="w-full relative" 
-      opts={{ loop: true }}
+      className="w-full relative px-0" 
+      opts={{ loop: true, align: 'start' }}
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
     >
-      <CarouselContent>
+      <CarouselContent className="-ml-4">
         {slides.map((slide) => {
           const hasText = !!(slide.title?.trim() || slide.subtitle?.trim());
           return (
-            <CarouselItem key={slide.id}>
-              <div className="relative aspect-video">
-                <Image src={slide.image} alt={slide.title || 'Slide Image'} fill className="object-cover rounded-lg" />
+            <CarouselItem key={slide.id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+              <div className="relative aspect-video group overflow-hidden rounded-2xl border-2 border-primary/10 shadow-lg">
+                <Image src={slide.image} alt={slide.title || 'Slide Image'} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
                 {hasText && (
-                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center p-4 rounded-lg">
-                    {slide.title && <h3 className="text-2xl md:text-4xl font-bold text-white">{slide.title}</h3>}
-                    {slide.subtitle && <p className="text-sm md:text-lg text-white/90 mt-2">{slide.subtitle}</p>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col items-center justify-end text-center p-6 sm:p-8">
+                    {slide.title && <h3 className="text-lg sm:text-2xl font-black text-white drop-shadow-md leading-tight">{slide.title}</h3>}
+                    {slide.subtitle && <p className="text-xs sm:text-sm text-white/90 mt-2 font-medium">{slide.subtitle}</p>}
                   </div>
                 )}
               </div>
@@ -89,8 +88,8 @@ export function CarouselBlock({ slides }: { slides: CarouselSlide[] }) {
           );
         })}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 flex h-8 w-8" />
-      <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 flex h-8 w-8" />
+      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
+      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
     </ShadCarousel>
   );
 }
