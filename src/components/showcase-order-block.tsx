@@ -21,6 +21,7 @@ import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from './ui/badge';
 
 const showcaseOrderSchema = z.object({
   name: z.string().min(2, 'আপনার নাম লিখুন'),
