@@ -4,18 +4,14 @@ import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   Bold,
   Italic,
   Strikethrough,
-  Code,
-  Pilcrow,
   List,
   ListOrdered,
   Quote,
-  Undo,
-  Redo,
   CheckSquare,
 } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
@@ -26,20 +22,20 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
   }
 
   return (
-    <div className="border border-input rounded-md p-1 flex flex-wrap gap-1">
+    <div className="border border-input rounded-md p-1 flex flex-wrap gap-1 sticky top-0 bg-background z-10">
       <Toggle
         size="sm"
         pressed={editor.isActive('heading', { level: 2 })}
         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
       >
-        <span className="font-bold">H2</span>
+        <span className="font-bold text-xs">H2</span>
       </Toggle>
        <Toggle
         size="sm"
         pressed={editor.isActive('heading', { level: 3 })}
         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
       >
-        <span className="font-bold">H3</span>
+        <span className="font-bold text-xs">H3</span>
       </Toggle>
       <Toggle
         size="sm"
@@ -102,17 +98,20 @@ interface RichTextEditorProps {
 }
 
 export default function RichTextEditor({ value, onChange, isEditable = true }: RichTextEditorProps) {
+  const isInternalChange = useRef(false);
   
-  let initialContent: any = value;
+  let initialContent: any = '';
   try {
     if (value && typeof value === 'string' && value.startsWith('{')) {
       const parsed = JSON.parse(value);
       if (typeof parsed === 'object' && parsed !== null && parsed.type === 'doc') {
         initialContent = parsed;
       }
+    } else {
+        initialContent = value || '';
     }
   } catch (error) {
-    initialContent = value;
+    initialContent = value || '';
   }
   
   const editor = useEditor({
@@ -126,30 +125,35 @@ export default function RichTextEditor({ value, onChange, isEditable = true }: R
     content: initialContent,
     editable: isEditable,
     onUpdate: ({ editor }) => {
+      isInternalChange.current = true;
       onChange(JSON.stringify(editor.getJSON()));
+      setTimeout(() => {
+        isInternalChange.current = false;
+      }, 0);
     },
     editorProps: {
         attributes: {
-            class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl min-h-[250px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+            class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg min-h-[250px] max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
         }
     }
   });
 
-  // Reactive update when 'value' prop changes (e.g., from AI generation)
+  // Reactive update when 'value' prop changes externally (e.g., from AI generation)
   useEffect(() => {
-    if (!editor || value === undefined) return;
+    if (!editor || value === undefined || isInternalChange.current) return;
 
-    const currentContent = JSON.stringify(editor.getJSON());
-    if (value !== currentContent) {
+    const currentJSON = JSON.stringify(editor.getJSON());
+    
+    if (value !== currentJSON) {
       try {
-        if (value.startsWith('{')) {
+        if (value && value.startsWith('{')) {
           const parsed = JSON.parse(value);
-          editor.commands.setContent(parsed);
+          editor.commands.setContent(parsed, false); // false to not trigger onUpdate
         } else {
-          editor.commands.setContent(value);
+          editor.commands.setContent(value || '', false);
         }
       } catch (e) {
-        editor.commands.setContent(value);
+        editor.commands.setContent(value || '', false);
       }
     }
   }, [value, editor]);

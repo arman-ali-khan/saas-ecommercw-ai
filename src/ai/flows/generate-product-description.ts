@@ -5,7 +5,7 @@
  */
 
 /**
- * Helper to extract JSON from AI response
+ * Helper to extract JSON from AI response more robustly
  */
 function extractJson(text: string) {
     try {
@@ -31,7 +31,7 @@ async function callOpenRouter(apiKey: string, prompt: string) {
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
                 "Content-Type": "application/json",
-                "HTTP-Referer": "https://banglanaturals.site", // Optional, for OpenRouter tracking
+                "HTTP-Referer": "https://banglanaturals.site",
                 "X-Title": "Bangla Naturals SaaS"
             },
             body: JSON.stringify({
@@ -70,26 +70,39 @@ export async function generateProductDescription(input: any) {
 
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
-        const prompt = `You are a premium e-commerce copywriter for "Bangla Naturals", specializing in organic and natural products.
+        const prompt = `You are a premium e-commerce copywriter for "Bangla Naturals".
         
-        Task: Generate a beautiful, persuasive, and long detailed description for the product: "${name}".
+        Task: Generate a beautiful, persuasive, and detailed description for: "${name}".
         Context: ${description || ''}
         Origin: ${origin || 'Bangladesh'}
         Categories: ${categoryString}
 
         REQUIREMENTS:
         1. Language: Bengali.
-        2. Tone: Trustworthy, Premium, and Emotional.
-        3. Include: Product benefits, why it's pure, how to use it, and a story about its origin.
-        4. Structure: Use headings, paragraphs, and lists.
-        5. FORMAT: Return ONLY a valid Tiptap/ProseMirror JSON object: {"type": "doc", "content": [...]}.
+        2. Structure: Use a clear layout with headers (level 2), impactful paragraphs, and bullet point lists for benefits.
+        3. Experience: Make it sound high-end and trustworthy.
+        4. FORMAT: Return ONLY a valid Tiptap/ProseMirror JSON object: {"type": "doc", "content": [...]}.
         
-        DO NOT include any markdown code blocks (like \`\`\`json) in your response. Just the raw JSON object.`;
+        Example Structure:
+        {
+          "type": "doc",
+          "content": [
+            { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "পণ্যের বিশেষত্ব" }] },
+            { "type": "paragraph", "content": [{ "type": "text", "text": "বর্ণনা..." }] },
+            { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "কেন আমাদের পণ্যটি সেরা?" }] },
+            { "type": "bulletList", "content": [
+                { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "উপকারিতা ১" }] }] }
+              ] 
+            }
+          ]
+        }
+
+        DO NOT include markdown code blocks. Just the raw JSON object.`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
         
-        if (!resultJson) throw new Error("AI failed to return valid JSON format.");
+        if (!resultJson || !resultJson.type) throw new Error("AI failed to return valid Tiptap JSON format.");
 
         return { success: true, longDescription: JSON.stringify(resultJson) };
     } catch (e: any) {
@@ -111,28 +124,20 @@ export async function beautifyProductDetails(input: any) {
 
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
-        const prompt = `You are an expert SEO copywriter. Optimize and "Beautify" the following product information for high sales conversion and search ranking.
+        const prompt = `You are an expert SEO copywriter. Optimize the following product info for high conversion.
         
         Current Name: ${name}
-        Current Short Description: ${description || 'N/A'}
-        Current Story: ${story || 'N/A'}
-        Current Origin: ${origin || 'N/A'}
+        Short Description: ${description || 'N/A'}
+        Story: ${story || 'N/A'}
+        Origin: ${origin || 'N/A'}
         Categories: ${categoryString}
 
-        Task: Return a JSON object with optimized versions of these fields.
-        
         REQUIREMENTS:
         1. Language: Bengali.
-        2. Name: Catchy and SEO optimized.
-        3. Description: Short, impactful 2-3 lines.
-        4. Story: A compelling narrative about tradition or purity.
-        5. Origin: Clean location name.
-        6. longDescription: A full, detailed Tiptap JSON document.
+        2. Return a JSON object with optimized fields.
+        3. "longDescription" field MUST be a full Tiptap JSON document with headings and lists.
 
-        FORMAT: Return ONLY a valid JSON object with keys: "name", "description", "story", "origin", "longDescription".
-        "longDescription" MUST be a Tiptap JSON object (the raw object, not a string).
-        
-        Example JSON format:
+        FORMAT: Return ONLY a valid JSON object:
         {
           "name": "...",
           "description": "...",
@@ -141,12 +146,12 @@ export async function beautifyProductDetails(input: any) {
           "longDescription": {"type": "doc", "content": [...]}
         }
 
-        DO NOT include any markdown code blocks. Just the raw JSON object.`;
+        DO NOT include markdown code blocks. Just the raw JSON object.`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
         
-        if (!resultJson) throw new Error("Could not parse AI response as JSON");
+        if (!resultJson || !resultJson.longDescription) throw new Error("Could not parse valid AI response");
         
         return {
             success: true,
