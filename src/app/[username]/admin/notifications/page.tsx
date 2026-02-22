@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, BellOff, CheckCheck, Eye, X, MessageSquare, ShoppingCart, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const ITEMS_PER_PAGE = 10;
 
