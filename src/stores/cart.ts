@@ -9,8 +9,8 @@ interface CartState {
   cartItems: CartItem[];
   lastOrder: any | null;
   addToCart: (product: Product, quantity: number) => void;
-  removeFromCart: (productId: string, unit?: string) => void;
-  updateQuantity: (productId: string, quantity: number, unit?: string) => void;
+  removeFromCart: (productId: string, unit?: string | null) => void;
+  updateQuantity: (productId: string, quantity: number, unit?: string | null) => void;
   clearCart: () => void;
   setLastOrder: (order: any | null) => void;
 }
@@ -39,20 +39,22 @@ export const useCart = create<CartState>()(
         set({ cartItems: updatedItems });
       },
       removeFromCart: (productId, unit) => {
+        const targetUnit = unit === undefined ? null : unit;
         set((state) => ({
           cartItems: state.cartItems.filter((item) => 
-            !(item.id === productId && item.selected_unit === (unit || null))
+            !(item.id === productId && (item.selected_unit || null) === targetUnit)
           ),
         }));
       },
       updateQuantity: (productId, quantity, unit) => {
+        const targetUnit = unit === undefined ? null : unit;
         if (quantity <= 0) {
-          get().removeFromCart(productId, unit);
+          get().removeFromCart(productId, targetUnit);
           return;
         }
         set((state) => ({
           cartItems: state.cartItems.map((item) =>
-            (item.id === productId && item.selected_unit === (unit || null)) 
+            (item.id === productId && (item.selected_unit || null) === targetUnit) 
                 ? { ...item, quantity } 
                 : item
           ),

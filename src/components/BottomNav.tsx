@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, User, Menu, Search, ShoppingBag as ShoppingBagIcon, Trash2, Plus, Minus,List } from 'lucide-react';
+import { Home, User, Menu, Search, ShoppingBag as ShoppingBagIcon, Trash2, Plus, Minus, List } from 'lucide-react';
 import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -85,8 +85,8 @@ function CartDrawerContent() {
     const cartTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
     const { toast } = useToast();
 
-    const handleRemoveFromCart = (productId: string) => {
-        removeFromCart(productId);
+    const handleRemoveFromCart = (productId: string, unit?: string | null) => {
+        removeFromCart(productId, unit);
         toast({
           title: 'Bag থেকে সরানো হয়েছে',
           variant: 'destructive',
@@ -102,35 +102,37 @@ function CartDrawerContent() {
                 <>
                     <ScrollArea className="flex-grow my-4 -mr-6">
                         <div className="space-y-6 pr-6">
-                            {cartItems.map((item) => (
-                                <div key={item.id} className="flex gap-4">
-                                    <div className="relative h-24 w-24 rounded-md overflow-hidden">
+                            {cartItems.map((item, index) => (
+                                <div key={`${item.id}-${item.selected_unit || index}`} className="flex gap-4">
+                                    <div className="relative h-24 w-24 rounded-md overflow-hidden shrink-0 border">
                                         <Image
                                             src={item.images[0].imageUrl}
                                             alt={item.name}
-                                            width={96}
-                                            height={96}
+                                            fill
                                             className="object-cover"
                                         />
                                     </div>
-                                    <div className="flex flex-col justify-between flex-grow">
+                                    <div className="flex flex-col justify-between flex-grow min-w-0">
                                         <div>
-                                            <h3 className="font-semibold">{item.name}</h3>
-                                            <p className="text-sm text-muted-foreground">
+                                            <h3 className="font-semibold truncate">{item.name}</h3>
+                                            {item.selected_unit && (
+                                                <p className="text-[10px] uppercase font-black text-muted-foreground">{item.selected_unit}</p>
+                                            )}
+                                            <p className="text-sm text-primary font-bold">
                                                 {item.price.toFixed(2)} {item.currency}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity - 1, item.selected_unit)}>
                                                 <Minus className="h-4 w-4" />
                                             </Button>
-                                            <Input type="number" value={item.quantity} onChange={(e) => updateQuantity(item.id, Math.max(1, parseInt(e.target.value) || 1))} className="h-8 w-12 text-center" min={1} />
-                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                                            <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
+                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity + 1, item.selected_unit)}>
                                                 <Plus className="h-4 w-4" />
                                             </Button>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => handleRemoveFromCart(item.id)}>
+                                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive shrink-0" onClick={() => handleRemoveFromCart(item.id, item.selected_unit)}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -148,7 +150,7 @@ function CartDrawerContent() {
                             </Button>
                         </SheetClose>
                          <SheetClose asChild>
-                            <Button variant="outline" className="w-full">Close</Button>
+                            <Button variant="outline" className="w-full">বন্ধ করুন</Button>
                         </SheetClose>
                     </div>
                 </>
@@ -227,5 +229,3 @@ export default function BottomNav() {
     </div>
   );
 }
-
-    
