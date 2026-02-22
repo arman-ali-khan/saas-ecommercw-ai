@@ -11,8 +11,8 @@ export interface ProductVariant {
 }
 
 export interface Product {
-  id: string; // This is the slug, e.g., 'mango-himsagar'
-  site_id: string; // The user's ID
+  id: string;
+  site_id: string;
   name: string;
   description: string;
   long_description: string;
@@ -79,7 +79,7 @@ export interface FlashDeal {
   end_date: string;
   is_active: boolean;
   created_at: string;
-  products: Product; // For joining data
+  products: Product;
 }
 
 export interface Order {
@@ -118,6 +118,7 @@ export interface User {
   fullName: string;
   email: string;
   domain: string;
+  custom_domain?: string | null;
   siteName: string;
   siteDescription: string | null;
   subscriptionPlan: string | null;
@@ -258,7 +259,7 @@ export interface Page {
   site_id: string;
   title: string;
   slug: string;
-  content: any; // For now, will refine later
+  content: any;
   is_published: boolean;
   created_at: string;
   updated_at: string;
@@ -344,7 +345,7 @@ export interface Address {
     customer_id: string;
     site_id: string;
     name: string;
-    details: string; // Street address, etc.
+    details: string;
     city: string;
     phone: string | null;
     type: 'home' | 'work' | 'other' | null;
@@ -373,7 +374,7 @@ export interface FooterLinkCategory {
   site_id: string;
   title: string;
   order: number;
-  links?: FooterLink[]; // For grouping in UI
+  links?: FooterLink[];
   footer_links: FooterLink[];
 }
 
@@ -408,4 +409,23 @@ export interface SaasSettings {
   cta_bg_color: string | null;
   homepage_sections: any[] | null;
   global_ai_api_key: string | null;
+}
+
+export interface CustomDomainRequest {
+  id: string;
+  site_id: string;
+  custom_domain: string;
+  status: 'pending' | 'approved' | 'rejected' | 'active';
+  dns_info?: {
+    type: string;
+    value: string;
+    pointsTo: string;
+  } | null;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    site_name: string;
+    domain: string;
+    full_name: string;
+  } | null;
 }

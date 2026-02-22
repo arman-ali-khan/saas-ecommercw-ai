@@ -19,6 +19,7 @@ import {
   GalleryVertical,
   LayoutList,
   Monitor,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -111,6 +112,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const adminNavLinks = [
     { href: `/dashboard`, label: 'Dashboard', icon: Home },
     { href: `/dashboard/users`, label: 'Stores', icon: Store },
+    { href: `/dashboard/custom-domains`, label: 'Custom Domains', icon: Globe },
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: counts.pendingSubscriptions },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
