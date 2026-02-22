@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/stores/cart';
@@ -124,6 +125,7 @@ export default function CheckoutPage() {
         name: item.name,
         quantity: item.quantity,
         price: item.price,
+        selected_unit: item.selected_unit || null,
         imageUrl: item.images[0]?.imageUrl
       })),
       cart_total: cartSubtotal,
@@ -278,6 +280,7 @@ export default function CheckoutPage() {
         name: item.name,
         quantity: item.quantity,
         price: item.price,
+        selected_unit: item.selected_unit || null,
         imageUrl: item.images[0]?.imageUrl,
       })),
       total: cartTotal,
@@ -319,13 +322,16 @@ export default function CheckoutPage() {
           <CardHeader><CardTitle>{t_checkout.summary}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
-            {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 text-sm">
+            {cartItems.map((item, index) => (
+                <div key={`${item.id}-${item.selected_unit || index}`} className="flex items-center gap-4 text-sm">
                 <div className="relative h-16 w-16 rounded-md overflow-hidden">
                     <Image src={item.images[0].imageUrl} alt={item.name} fill className="object-cover" />
                     <span className="absolute -top-0 -right-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{item.quantity}</span>
                 </div>
-                <div className="flex-grow font-medium">{item.name}</div>
+                <div className="flex-grow font-medium">
+                    <p>{item.name}</p>
+                    {item.selected_unit && <p className="text-[10px] uppercase font-black text-muted-foreground">{item.selected_unit}</p>}
+                </div>
                 <p>{(item.price * item.quantity).toFixed(2)} {item.currency}</p>
                 </div>
             ))}

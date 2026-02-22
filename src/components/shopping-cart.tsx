@@ -46,8 +46,8 @@ export default function ShoppingCart() {
   
   const checkoutUrl = `/checkout`;
 
-  const handleRemoveFromCart = (productId: string) => {
-    removeFromCart(productId);
+  const handleRemoveFromCart = (productId: string, unit?: string) => {
+    removeFromCart(productId, unit);
     toast({
       title: t_toast.removedFromBag,
       variant: 'destructive',
@@ -75,8 +75,8 @@ export default function ShoppingCart() {
           <>
             <ScrollArea className="flex-grow my-4">
               <div className="space-y-6 pr-6">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex gap-4">
+                {cartItems.map((item, index) => (
+                  <div key={`${item.id}-${item.selected_unit || index}`} className="flex gap-4">
                     <div className="relative h-24 w-24 rounded-md overflow-hidden">
                       <Image
                         src={item.images[0].imageUrl}
@@ -89,6 +89,9 @@ export default function ShoppingCart() {
                     <div className="flex flex-col justify-between flex-grow">
                       <div>
                         <h3 className="font-semibold">{item.name}</h3>
+                        {item.selected_unit && (
+                            <p className="text-[10px] uppercase font-black text-muted-foreground">{item.selected_unit}</p>
+                        )}
                         <p className="text-sm text-muted-foreground">
                           {item.price.toFixed(2)} {item.currency}
                         </p>
@@ -99,7 +102,7 @@ export default function ShoppingCart() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() =>
-                            updateQuantity(item.id, item.quantity - 1)
+                            updateQuantity(item.id, item.quantity - 1, item.selected_unit)
                           }
                         >
                           <Minus className="h-4 w-4" />
@@ -110,7 +113,8 @@ export default function ShoppingCart() {
                           onChange={(e) =>
                             updateQuantity(
                               item.id,
-                              Math.max(1, parseInt(e.target.value) || 1)
+                              Math.max(1, parseInt(e.target.value) || 1),
+                              item.selected_unit
                             )
                           }
                           className="h-8 w-12 text-center"
@@ -121,7 +125,7 @@ export default function ShoppingCart() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() =>
-                            updateQuantity(item.id, item.quantity + 1)
+                            updateQuantity(item.id, item.quantity + 1, item.selected_unit)
                           }
                         >
                           <Plus className="h-4 w-4" />
@@ -132,7 +136,7 @@ export default function ShoppingCart() {
                       variant="ghost"
                       size="icon"
                       className="text-muted-foreground hover:text-destructive"
-                      onClick={() => handleRemoveFromCart(item.id)}
+                      onClick={() => handleRemoveFromCart(item.id, item.selected_unit)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

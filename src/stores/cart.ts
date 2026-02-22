@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -8,8 +9,8 @@ interface CartState {
   cartItems: CartItem[];
   lastOrder: any | null;
   addToCart: (product: Product, quantity: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeFromCart: (productId: string, unit?: string) => void;
+  updateQuantity: (productId: string, quantity: number, unit?: string) => void;
   clearCart: () => void;
   setLastOrder: (order: any | null) => void;
 }
@@ -21,29 +22,39 @@ export const useCart = create<CartState>()(
       lastOrder: null,
       addToCart: (product, quantity) => {
         const { cartItems } = get();
-        const existingItem = cartItems.find((item) => item.id === product.id);
+        const selectedUnit = (product as any).selected_unit || null;
+        
+        const existingItem = cartItems.find((item) => 
+            item.id === product.id && item.selected_unit === selectedUnit
+        );
+
         const updatedItems = existingItem
           ? cartItems.map((item) =>
-              item.id === product.id
+              (item.id === product.id && item.selected_unit === selectedUnit)
                 ? { ...item, quantity: item.quantity + quantity }
                 : item
             )
-          : [...cartItems, { ...product, quantity }];
+          : [...cartItems, { ...product, selected_unit: selectedUnit, quantity } as CartItem];
+        
         set({ cartItems: updatedItems });
       },
-      removeFromCart: (productId) => {
+      removeFromCart: (productId, unit) => {
         set((state) => ({
-          cartItems: state.cartItems.filter((item) => item.id !== productId),
+          cartItems: state.cartItems.filter((item) => 
+            !(item.id === productId && item.selected_unit === (unit || null))
+          ),
         }));
       },
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (productId, quantity, unit) => {
         if (quantity <= 0) {
-          get().removeFromCart(productId);
+          get().removeFromCart(productId, unit);
           return;
         }
         set((state) => ({
           cartItems: state.cartItems.map((item) =>
-            item.id === productId ? { ...item, quantity } : item
+            (item.id === productId && item.selected_unit === (unit || null)) 
+                ? { ...item, quantity } 
+                : item
           ),
         }));
       },

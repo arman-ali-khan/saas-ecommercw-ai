@@ -74,20 +74,25 @@ export async function POST(request: Request) {
         if (pError || !product) continue;
 
         let updates: any = {};
+        let variantUpdated = false;
 
-        // Case A: Product has variants and a unit was selected
+        // Case A: Product has variants and a unit was selected in the order
         if (item.selected_unit && product.variants && Array.isArray(product.variants)) {
           const updatedVariants = product.variants.map((v: any) => {
             if (v.unit === item.selected_unit) {
+              variantUpdated = true;
               return { ...v, stock: Math.max(0, (v.stock || 0) - item.quantity) };
             }
             return v;
           });
-          updates.variants = updatedVariants;
+          
+          if (variantUpdated) {
+            updates.variants = updatedVariants;
+          }
         } 
         
-        // Case B: Product has a main stock count (simple product)
-        if (product.stock !== undefined && product.stock !== null) {
+        // Case B: Only update base stock if NO specific variant was found/updated
+        if (!variantUpdated && product.stock !== undefined && product.stock !== null) {
           updates.stock = Math.max(0, product.stock - item.quantity);
         }
 
