@@ -318,7 +318,7 @@ export function ShowcaseOrderBlock({
             <CardHeader className="bg-muted/30 border-b p-6">
                 <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
                     <ShoppingBasket className="h-6 w-6 text-primary" />
-                    {also_buy_title || 'Quick Order'}
+                    {also_buy_title || 'অর্ডার করতে নিচের ফর্মটি পূরণ করুন'}
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-8 p-6">
@@ -356,7 +356,7 @@ export function ShowcaseOrderBlock({
                                     <div className="flex items-center gap-3 px-2">
                                         <div className="h-px flex-grow bg-border" />
                                         <h4 className="font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] text-muted-foreground whitespace-nowrap bg-background px-2">
-                                            {also_buy_title || 'আরও যোগ করুন (Also Buy)'}
+                                            আরও যোগ করুন (Optional Products)
                                         </h4>
                                         <div className="h-px flex-grow bg-border" />
                                     </div>
