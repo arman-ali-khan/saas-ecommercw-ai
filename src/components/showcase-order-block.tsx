@@ -314,7 +314,7 @@ export function ShowcaseOrderBlock({
 
     return (
         <>
-        <Card className="my-8 overflow-hidden border-2 shadow-xl rounded-[2rem]">
+        <Card id='order' className="my-8 overflow-hidden border-2 shadow-xl rounded-[2rem]">
             <CardHeader className="bg-muted/30 border-b p-6">
                 <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
                     <ShoppingBasket className="h-6 w-6 text-primary" />
