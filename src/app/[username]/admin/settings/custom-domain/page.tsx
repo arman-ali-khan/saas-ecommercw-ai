@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Label } from '@radix-ui/react-label';
 
 const domainSchema = z.object({
   domain: z.string().min(3, "Domain name is too short").regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "Please enter a valid domain (e.g., example.com)"),
