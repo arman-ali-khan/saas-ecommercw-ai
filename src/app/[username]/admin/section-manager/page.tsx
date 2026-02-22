@@ -44,6 +44,10 @@ export default function SectionManagerPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const [brands, setBrands] = useState<string[]>([]);
+  const [colors, setColors] = useState<string[]>([]);
+  const [origins, setOrigins] = useState<string[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
@@ -51,12 +55,15 @@ export default function SectionManagerPage() {
 
   // Form state for new dynamic section
   const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState<string>('');
+  const [newCategory, setNewCategory] = useState<string>('all');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [newBrand, setNewBrand] = useState<string>('all');
+  const [newOrigin, setNewOrigin] = useState<string>('all');
+  const [newColor, setNewColor] = useState<string>('all');
   const [minPrice, setMinPrice] = useState<string>('0');
-  const [maxPrice, setMaxPrice] = useState<string>('10000');
+  const [maxPrice, setMaxPrice] = useState<string>('50000');
   const [newMobileView, setNewMobileView] = useState<'1-col' | '2-col' | 'list'>('2-col');
-  const [newProductLimit, setNewProductLimit] = useState<string>('10');
+  const [newProductLimit, setNewProductLimit] = useState<string>('8');
 
   const fetchAndBuildSections = useCallback(async () => {
     if (!user) return;
@@ -74,13 +81,18 @@ export default function SectionManagerPage() {
             productsRes.json(), categoriesRes.json(), attrRes.json(), sectionsRes.json()
         ]);
 
-        setProducts(productsData.products || []);
+        const fetchedProducts = (productsData.products || []) as Product[];
+        setProducts(fetchedProducts);
         setCategories(categoriesData.categories || []);
         
-        const tagList = (attrData.attributes as ProductAttribute[] || [])
-            .filter(a => a.type === 'tag')
-            .map(a => a.value);
-        setTags(tagList);
+        const allAttributes = (attrData.attributes as ProductAttribute[] || []);
+        setTags(allAttributes.filter(a => a.type === 'tag').map(a => a.value));
+        setBrands(allAttributes.filter(a => a.type === 'brand').map(a => a.value));
+        setColors(allAttributes.filter(a => a.type === 'color').map(a => a.value));
+        
+        // Extract unique origins from products
+        const uniqueOrigins = Array.from(new Set(fetchedProducts.map(p => p.origin).filter(Boolean)));
+        setOrigins(uniqueOrigins);
 
         let currentSections: Section[] = [];
         if (sectionsData.sections) {
@@ -181,8 +193,11 @@ export default function SectionManagerPage() {
           title: newTitle,
           enabled: true,
           isCategorySection: true,
-          category: newCategory && newCategory !== 'all' ? newCategory : undefined,
+          category: newCategory !== 'all' ? newCategory : undefined,
           tags: selectedTags.length > 0 ? selectedTags : undefined,
+          brand: newBrand !== 'all' ? newBrand : undefined,
+          origin: newOrigin !== 'all' ? newOrigin : undefined,
+          color: newColor !== 'all' ? newColor : undefined,
           minPrice: parseInt(minPrice) || 0,
           maxPrice: parseInt(maxPrice) || 50000,
           mobileView: newMobileView,
@@ -191,13 +206,19 @@ export default function SectionManagerPage() {
 
       setSections(prev => [...prev, newSection]);
       setIsCreateOpen(false);
+      
+      // Reset
       setNewTitle('');
-      setNewCategory('');
+      setNewCategory('all');
       setSelectedTags([]);
+      setNewBrand('all');
+      setNewOrigin('all');
+      setNewColor('all');
       setMinPrice('0');
       setMaxPrice('10000');
       setNewMobileView('2-col');
       setNewProductLimit('8');
+      
       toast({ title: 'সেকশন যোগ করা হয়েছে। দয়া করে পরিবর্তনগুলো সেভ করুন।' });
   };
 
@@ -289,6 +310,9 @@ export default function SectionManagerPage() {
                                     {section.isCategorySection && (
                                         <>
                                             {section.category && <Badge variant="secondary" className="text-[10px] py-0">{section.category}</Badge>}
+                                            {section.brand && <Badge variant="secondary" className="text-[10px] py-0">Brand: {section.brand}</Badge>}
+                                            {section.origin && <Badge variant="secondary" className="text-[10px] py-0">Origin: {section.origin}</Badge>}
+                                            {section.color && <Badge variant="secondary" className="text-[10px] py-0">Color: {section.color}</Badge>}
                                             {section.tags?.map(t => <Badge key={t} variant="outline" className="text-[10px] py-0">{t}</Badge>)}
                                             {(section.minPrice !== undefined || section.maxPrice !== undefined) && <Badge variant="outline" className="text-[10px] py-0">৳{section.minPrice ?? 0}-{section.maxPrice ?? '∞'}</Badge>}
                                         </>
@@ -465,7 +489,7 @@ export default function SectionManagerPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>ক্যাটাগরি ফিল্টার (Optional)</Label>
+                            <Label>ক্যাটাগরি ফিল্টার</Label>
                             <Select value={newCategory} onValueChange={setNewCategory}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="সব ক্যাটাগরি" />
@@ -477,6 +501,48 @@ export default function SectionManagerPage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
+                            <Label>ব্র্যান্ড ফিল্টার</Label>
+                            <Select value={newBrand} onValueChange={setNewBrand}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="সব ব্র্যান্ড" />
+                                </SelectTrigger>
+                                <SelectContent className="z-[110]">
+                                    <SelectItem value="all">সব ব্র্যান্ড</SelectItem>
+                                    {brands.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>অরিজিন ফিল্টার</Label>
+                            <Select value={newOrigin} onValueChange={setNewOrigin}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="সব অরিজিন" />
+                                </SelectTrigger>
+                                <SelectContent className="z-[110]">
+                                    <SelectItem value="all">সব অরিজিন</SelectItem>
+                                    {origins.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>কালার ফিল্টার</Label>
+                            <Select value={newColor} onValueChange={setNewColor}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="সব কালার" />
+                                </SelectTrigger>
+                                <SelectContent className="z-[110]">
+                                    <SelectItem value="all">সব কালার</SelectItem>
+                                    {colors.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
                             <Label>পণ্য সংখ্যা (Limit)</Label>
                             <Input 
                                 type="number" 
@@ -484,20 +550,19 @@ export default function SectionManagerPage() {
                                 onChange={(e) => setNewProductLimit(e.target.value)}
                             />
                         </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Mobile View Layout</Label>
-                        <Select value={newMobileView} onValueChange={(val: any) => setNewMobileView(val)}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="z-[110]">
-                                <SelectItem value="2-col">2 Column Grid</SelectItem>
-                                <SelectItem value="1-col">1 Column Grid</SelectItem>
-                                <SelectItem value="list">List View</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="space-y-2">
+                            <Label>Mobile View Layout</Label>
+                            <Select value={newMobileView} onValueChange={(val: any) => setNewMobileView(val)}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="z-[110]">
+                                    <SelectItem value="2-col">2 Column Grid</SelectItem>
+                                    <SelectItem value="1-col">1 Column Grid</SelectItem>
+                                    <SelectItem value="list">List View</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     <div className="space-y-3">

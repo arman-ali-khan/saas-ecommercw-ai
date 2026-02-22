@@ -132,6 +132,18 @@ async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, 
       query = query.overlaps('categories', section.tags); 
   }
 
+  if (section.brand) {
+      query = query.overlaps('brand', [section.brand]);
+  }
+
+  if (section.origin) {
+      query = query.eq('origin', section.origin);
+  }
+
+  if (section.color) {
+      query = query.overlaps('color', [section.color]);
+  }
+
   if (section.minPrice !== undefined) {
       query = query.gte('price', section.minPrice);
   }

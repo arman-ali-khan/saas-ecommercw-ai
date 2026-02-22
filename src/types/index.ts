@@ -230,6 +230,9 @@ export interface Section {
   isCategorySection: boolean;
   category?: string;
   tags?: string[];
+  brand?: string;
+  origin?: string;
+  color?: string;
   minPrice?: number;
   maxPrice?: number;
   mobileView?: '1-col' | '2-col' | 'list';
