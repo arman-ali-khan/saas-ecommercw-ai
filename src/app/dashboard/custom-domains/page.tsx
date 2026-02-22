@@ -15,6 +15,7 @@ import { Loader2, Search, X, CheckCircle2, ShieldAlert, Globe, ExternalLink, Fil
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/stores/auth';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@radix-ui/react-separator';
 
 const ITEMS_PER_PAGE = 10;
 
