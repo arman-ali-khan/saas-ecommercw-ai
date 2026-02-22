@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -15,6 +14,14 @@ import { Globe, Loader2, CheckCircle2, AlertTriangle, ExternalLink, Copy, Check 
 import type { CustomDomainRequest } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const domainSchema = z.object({
   domain: z.string().min(3, "Domain name is too short").regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "Please enter a valid domain (e.g., example.com)"),
@@ -113,7 +120,7 @@ export default function CustomDomainAdminPage() {
                 {request.status === 'active' ? 'Connected' : 'In Review'}
               </Badge>
             </div>
-          </Header>
+          </CardHeader>
           <CardContent className="space-y-6 pt-4">
             {request.status === 'pending' && (
               <div className="p-4 rounded-xl bg-muted/50 border flex gap-4">
