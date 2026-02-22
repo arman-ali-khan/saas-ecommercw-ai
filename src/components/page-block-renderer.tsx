@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,9 @@ import { ShowcaseOrderBlock } from '@/components/showcase-order-block';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Product } from '@/types';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Star, User, Facebook, Twitter, Instagram, Linkedin, Youtube } from 'lucide-react';
 
 const alignmentClasses = {
     left: 'text-left',
@@ -160,6 +164,52 @@ export async function PageBlock({ block, username, siteId }: { block: any, usern
             <div className="my-8">
                 <CarouselBlock slides={block.slides} />
             </div>
+        );
+    case 'review':
+        const SocialIcon = {
+            facebook: Facebook,
+            twitter: Twitter,
+            instagram: Instagram,
+            linkedin: Linkedin,
+            youtube: Youtube,
+            none: () => null
+        }[block.social_platform as string || 'none'] as React.ElementType;
+
+        return (
+            <Card className="my-6 border-2 shadow-md rounded-2xl overflow-hidden max-w-lg mx-auto">
+                <CardContent className="p-6">
+                    <div className="flex items-center gap-4 mb-4">
+                        <Avatar className="h-14 w-14 border-2 border-primary/10 shadow-sm">
+                            {block.reviewer_image ? (
+                                <Image src={block.reviewer_image} alt={block.reviewer_name} width={56} height={56} className="object-cover" />
+                            ) : (
+                                <AvatarFallback><User className="h-6 w-6 text-muted-foreground" /></AvatarFallback>
+                            )}
+                        </Avatar>
+                        <div className="flex-grow min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                                <h4 className="font-bold text-lg truncate">{block.reviewer_name}</h4>
+                                {block.social_platform !== 'none' && (
+                                    <div className="text-primary bg-primary/10 p-1.5 rounded-full shrink-0">
+                                        <SocialIcon className="h-4 w-4" />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-0.5 mt-1">
+                                {[...Array(5)].map((_, i) => (
+                                    <Star key={i} className={cn("h-4 w-4", i < (block.rating || 5) ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="relative">
+                        <span className="absolute -top-4 -left-2 text-6xl text-primary/10 font-serif leading-none">"</span>
+                        <p className="text-muted-foreground italic leading-relaxed relative z-10">
+                            {block.message}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
         );
     default:
       return (

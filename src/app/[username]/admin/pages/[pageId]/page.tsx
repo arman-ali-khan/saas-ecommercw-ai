@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useTransition } from 'react';
@@ -16,7 +17,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette, Columns, AlignLeft, AlignCenter, AlignRight, Plus, ShoppingBag, Clock, GalleryHorizontal, CalendarIcon, ChevronDown } from 'lucide-react';
+import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette, Columns, AlignLeft, AlignCenter, AlignRight, Plus, ShoppingBag, Clock, GalleryHorizontal, CalendarIcon, ChevronDown, Star, User } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
@@ -30,6 +31,7 @@ import RichTextEditor from '@/components/rich-text-editor';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 const generateSlug = (title: string) => {
   return title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
@@ -90,6 +92,15 @@ const countdownBlockSchema = blockBaseSchema.extend({
     endDate: z.date({ required_error: "End date is required." }),
 });
 
+const reviewBlockSchema = blockBaseSchema.extend({
+  type: z.literal('review'),
+  reviewer_name: z.string().min(1, 'Reviewer name is required.'),
+  reviewer_image: z.string().url('A valid image URL is required.').optional().or(z.literal('')),
+  rating: z.number().min(1).max(5).default(5),
+  social_platform: z.enum(['facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'none']).default('none'),
+  message: z.string().min(1, 'Review message is required.'),
+});
+
 const carouselSlideSchema = z.object({
     id: z.string(),
     image: z.string().url('A valid image URL is required.'),
@@ -126,6 +137,7 @@ const blockSchema = z.discriminatedUnion('type', [
   productShowcaseBlockSchema,
   countdownBlockSchema,
   carouselBlockSchema,
+  reviewBlockSchema,
 ]);
 
 const pageFormSchema = z.object({
@@ -277,7 +289,7 @@ export default function ManagePage() {
           name: namePrefix as any,
       });
   
-      const addBlock = (type: 'heading' | 'paragraph' | 'image' | 'button' | 'youtube' | 'coloredBox' | 'layout' | 'product_showcase' | 'countdown' | 'carousel', columnCount?: number) => {
+      const addBlock = (type: 'heading' | 'paragraph' | 'image' | 'button' | 'youtube' | 'coloredBox' | 'layout' | 'product_showcase' | 'countdown' | 'carousel' | 'review', columnCount?: number) => {
           const id = uuidv4();
           let newBlock: any;
   
@@ -292,6 +304,7 @@ export default function ManagePage() {
               case 'product_showcase': newBlock = { id, type: 'product_showcase', optional_product_ids: [], also_buy_title: 'Also Buy' }; break;
               case 'countdown': newBlock = { id, type: 'countdown', title: 'Countdown', endDate: new Date() }; break;
               case 'carousel': newBlock = { id, type: 'carousel', slides: [] }; break;
+              case 'review': newBlock = { id, type: 'review', reviewer_name: 'John Doe', reviewer_image: '', rating: 5, social_platform: 'none', message: 'This is a great product!' }; break;
           }
           appendBlock(newBlock);
       };
@@ -502,6 +515,58 @@ export default function ManagePage() {
                               {(field as any).type === 'carousel' && (
                                   <CarouselBlockEditor namePrefix={currentFieldName} control={control} />
                               )}
+                              {(field as any).type === 'review' && (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField control={control} name={`${currentFieldName}.reviewer_name`} render={({ field: rnField }) => (<FormItem><FormLabel>Reviewer Name</FormLabel><FormControl><Input {...rnField} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={control} name={`${currentFieldName}.rating`} render={({ field: rtField }) => (
+                                            <FormItem>
+                                                <FormLabel>Rating (1-5)</FormLabel>
+                                                <div className="flex items-center gap-1 pt-2">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <Star
+                                                            key={star}
+                                                            className={cn("h-6 w-6 cursor-pointer", rtField.value >= star ? "text-primary fill-primary" : "text-muted-foreground/30")}
+                                                            onClick={() => rtField.onChange(star)}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField control={control} name={`${currentFieldName}.reviewer_image`} render={({ field: riField }) => (
+                                            <FormItem>
+                                                <FormLabel>Reviewer Photo (URL)</FormLabel>
+                                                <div className="flex items-center gap-2">
+                                                    <FormControl><Input {...riField} /></FormControl>
+                                                    <ImageUploader onUpload={(res) => form.setValue(`${currentFieldName}.reviewer_image` as any, res.info.secure_url)} />
+                                                </div>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={control} name={`${currentFieldName}.social_platform`} render={({ field: spField }) => (
+                                            <FormItem>
+                                                <FormLabel>Social Media Icon</FormLabel>
+                                                <Select onValueChange={spField.onChange} defaultValue={spField.value}>
+                                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">None</SelectItem>
+                                                        <SelectItem value="facebook">Facebook</SelectItem>
+                                                        <SelectItem value="twitter">Twitter / X</SelectItem>
+                                                        <SelectItem value="instagram">Instagram</SelectItem>
+                                                        <SelectItem value="linkedin">LinkedIn</SelectItem>
+                                                        <SelectItem value="youtube">YouTube</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                    </div>
+                                    <FormField control={control} name={`${currentFieldName}.message`} render={({ field: mField }) => (<FormItem><FormLabel>Review Message</FormLabel><FormControl><Textarea {...mField} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                                </>
+                            )}
                           </div>
                       </Card>
                   )
@@ -523,6 +588,7 @@ export default function ManagePage() {
                       <DropdownMenuItem onSelect={() => addBlock('product_showcase')}><ShoppingBag className="mr-2" /> Product Showcase</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => addBlock('countdown')}><Clock className="mr-2" /> Countdown</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => addBlock('carousel')}><GalleryHorizontal className="mr-2" /> Carousel</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => addBlock('review')}><Star className="mr-2" /> Review / Testimonial</DropdownMenuItem>
                       <DropdownMenuSub>
                           <DropdownMenuSubTrigger><Columns className="mr-2" /> Layout</DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
