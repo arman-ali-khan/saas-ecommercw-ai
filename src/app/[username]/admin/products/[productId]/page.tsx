@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -254,6 +253,7 @@ export default function ManageProductPage() {
             form.setValue('description', result.description, { shouldValidate: true, shouldDirty: true });
             form.setValue('story', result.story, { shouldValidate: true, shouldDirty: true });
             form.setValue('origin', result.origin, { shouldValidate: true, shouldDirty: true });
+            form.setValue('tags', result.tags || [], { shouldValidate: true, shouldDirty: true });
             form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
             toast({ title: 'SEO Beautification সম্পন্ন!' });
         } else { throw new Error(result.error); }
@@ -597,7 +597,7 @@ export default function ManageProductPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
                                                     {(groupedAttributes[attrName] || []).map((opt) => (
-                                                        <DropdownMenuCheckboxItem key={opt} checked={field.value?.includes(opt)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), opt] : field.value.filter((v: string) => v !== opt))}>
+                                                        <DropdownMenuCheckboxItem key={opt} checked={field.value?.includes(opt)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), opt] : field.value.filter((v) => v !== opt))}>
                                                             {opt}
                                                         </DropdownMenuCheckboxItem>
                                                     ))}

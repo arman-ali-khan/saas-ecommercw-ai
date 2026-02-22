@@ -112,7 +112,7 @@ export async function generateProductDescription(input: any) {
 }
 
 /**
- * Beautifies all product details for SEO and conversion
+ * Beautifies all product details for SEO and conversion, including tag generation
  */
 export async function beautifyProductDetails(input: any) {
     try {
@@ -124,7 +124,7 @@ export async function beautifyProductDetails(input: any) {
 
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
-        const prompt = `You are an expert SEO copywriter. Optimize the following product info for high conversion.
+        const prompt = `You are an expert SEO copywriter and e-commerce specialist. Optimize the following product info for high conversion and generate relevant SEO tags.
         
         Current Name: ${name}
         Short Description: ${description || 'N/A'}
@@ -133,9 +133,10 @@ export async function beautifyProductDetails(input: any) {
         Categories: ${categoryString}
 
         REQUIREMENTS:
-        1. Language: Bengali.
+        1. Language: Bengali (except for tags which can be a mix of Bengali and English if appropriate for SEO).
         2. Return a JSON object with optimized fields.
         3. "longDescription" field MUST be a full Tiptap JSON document with headings and lists.
+        4. "tags" field: Generate 5-10 relevant SEO tags (single words or short phrases) based on the product.
 
         FORMAT: Return ONLY a valid JSON object:
         {
@@ -143,6 +144,7 @@ export async function beautifyProductDetails(input: any) {
           "description": "...",
           "story": "...",
           "origin": "...",
+          "tags": ["tag1", "tag2", ...],
           "longDescription": {"type": "doc", "content": [...]}
         }
 
@@ -159,6 +161,7 @@ export async function beautifyProductDetails(input: any) {
             description: resultJson.description,
             story: resultJson.story,
             origin: resultJson.origin,
+            tags: resultJson.tags || [],
             longDescription: JSON.stringify(resultJson.longDescription),
         };
     } catch (e: any) {
