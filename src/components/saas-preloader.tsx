@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -35,6 +36,16 @@ export default function SaasPreloader() {
       window.addEventListener('load', handleLoad);
       return () => window.removeEventListener('load', handleLoad);
     }
+
+    // Safety fallback: ensure preloader hides after 5 seconds no matter what
+    const fallbackTimer = setTimeout(() => {
+        if (!document.body.classList.contains('loaded')) {
+            document.body.classList.add('loaded');
+            setIsVisible(false);
+        }
+    }, 5000);
+
+    return () => clearTimeout(fallbackTimer);
 
   }, [pathname, isHomePage]);
 

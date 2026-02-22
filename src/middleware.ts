@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
 
   // Handle static files. 
   // We want to skip them UNLESS they are our specific dynamic files that vary by subdomain.
-  const dynamicFiles = ['/sitemap.xml', '/robots.txt', '/manifest.json'];
+  const dynamicFiles = ['/sitemap.xml', '/robots.txt', '/manifest.json', '/sw.js'];
   const isStaticFile = url.pathname.includes('.');
   
   if (isStaticFile && !dynamicFiles.includes(url.pathname)) {

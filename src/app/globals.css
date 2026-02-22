@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -151,18 +152,6 @@ body.loaded #preloader {
   50% { width: 65%; }
   75% { width: 85%; }
   100% { width: 100%; }
-}
-
-/* Prevent layout jump */
-body:not(.loaded) #root-main {
-  opacity: 0;
-  visibility: hidden;
-}
-
-body.loaded #root-main {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 0.8s ease;
 }
 
 ul[data-type="taskList"] li {
