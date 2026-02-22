@@ -196,7 +196,7 @@ export default function BottomNav() {
           const content = (
             <div className="flex items-center justify-center h-full w-full">
               <div className="relative">
-                <link.icon className={cn("h-6 w-6", isActive ? "text-primary" : "text-muted-foreground")} />
+                <link.icon className={cn("h-6 rotate-90 w-6", isActive ? "text-primary" : "text-muted-foreground")} />
                 {link.label === 'Cart' && cartCount > 0 && (
                   <span className="absolute -top-1 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                     {cartCount}
