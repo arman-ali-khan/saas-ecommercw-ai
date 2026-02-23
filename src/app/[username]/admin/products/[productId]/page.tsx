@@ -342,10 +342,22 @@ export default function ManageProductPage() {
   if (isLoading || (authLoading && !user)) {
       return (
         <div className="space-y-6">
-            <Skeleton className="h-10 w-48" />
+            <div className="flex items-center justify-between">
+                <Skeleton className="h-10 w-48" />
+                <div className="flex gap-2">
+                    <Skeleton className="h-10 w-24" />
+                    <Skeleton className="h-10 w-36" />
+                </div>
+            </div>
             <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8"><Skeleton className="h-64 w-full" /><Skeleton className="h-40 w-full" /></div>
-                <div className="space-y-8"><Skeleton className="h-48 w-full" /><Skeleton className="h-64 w-full" /></div>
+                <div className="lg:col-span-2 space-y-8">
+                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-12 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-24 w-full" /></CardContent></Card>
+                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6"><div className="grid grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square w-full rounded-xl" />)}</div></CardContent></Card>
+                </div>
+                <div className="space-y-8">
+                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent></Card>
+                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent></Card>
+                </div>
             </div>
         </div>
       );
