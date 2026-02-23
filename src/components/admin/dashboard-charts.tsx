@@ -86,6 +86,19 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
   const totalOrdersForMonth = orderStatusData.reduce((sum, item) => sum + item.value, 0);
   const totalSales = paymentMethodData.reduce((sum, item) => sum + item.value, 0);
 
+  const tooltipStyle = {
+    backgroundColor: 'hsl(var(--card))',
+    borderColor: 'hsl(var(--border))',
+    borderRadius: '8px',
+    color: 'hsl(var(--foreground))',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+  };
+
+  const itemStyle = {
+    color: 'hsl(var(--foreground))',
+    fontSize: '12px',
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -96,12 +109,35 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
           {isLoading ? <Skeleton className="h-full w-full" /> : (
             <ResponsiveContainer width="100%" height="100%">
               <RechartsLineChart data={revenueChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))' }} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="hsl(var(--muted-foreground))" 
+                  fontSize={12} 
+                  tickLine={false} 
+                  axisLine={false} 
+                />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))" 
+                  fontSize={12} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  tickFormatter={(value) => `৳${value}`}
+                />
+                <Tooltip 
+                  contentStyle={tooltipStyle}
+                  itemStyle={itemStyle}
+                  labelStyle={{ color: 'hsl(var(--muted-foreground))', fontWeight: 'bold', marginBottom: '4px' }}
+                />
                 <Legend />
-                <Line type="monotone" dataKey="Revenue" stroke="hsl(var(--primary))" strokeWidth={2} />
+                <Line 
+                  type="monotone" 
+                  dataKey="Revenue" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={3} 
+                  dot={{ r: 4, fill: 'hsl(var(--primary))', strokeWidth: 0 }} 
+                  activeDot={{ r: 6, strokeWidth: 0 }} 
+                />
               </RechartsLineChart>
             </ResponsiveContainer>
           )}
@@ -123,8 +159,9 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'hsl(var(--background))' }}
-                    formatter={(value: number) => `BDT ${value.toFixed(2)}`}
+                    contentStyle={tooltipStyle}
+                    itemStyle={itemStyle}
+                    formatter={(value: number) => `৳ ${value.toFixed(2)}`}
                   />
                   <Pie
                     data={paymentMethodData}
@@ -183,7 +220,10 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))' }} />
+                  <Tooltip 
+                    contentStyle={tooltipStyle}
+                    itemStyle={itemStyle}
+                  />
                   <Pie
                     data={orderStatusData}
                     dataKey="value"
