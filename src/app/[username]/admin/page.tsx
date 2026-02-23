@@ -108,7 +108,7 @@ export default function AdminDashboard() {
         }).sort((aItemRecord: any, bItemRecord: any) => {
             const getEffectiveStock = (productItemForStock: any) => {
                 const hasV = productItemForStock.variants && Array.isArray(productItemForStock.variants) && productItemForStock.variants.length > 0;
-                if (hasV) return Math.min(...productItemForStock.variants.map((vInner: any) => vItemForMap.stock ?? 0));
+                if (hasV) return Math.min(...productItemForStock.variants.map((vInner: any) => vInner.stock ?? 0));
                 return productItemForStock.stock ?? 0;
             };
             return getEffectiveStock(aItemRecord) - getEffectiveStock(bItemRecord);

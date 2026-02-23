@@ -118,8 +118,6 @@ export default function AdminLayout({
     }
   }, [user, loading, username, router, pathname]);
 
-  // If we are on the login page, we let UsernameLayout handle the Header/Footer
-  // and just render the login form content here.
   if (pathname === `/admin/login`) {
     return <>{children}</>;
   }

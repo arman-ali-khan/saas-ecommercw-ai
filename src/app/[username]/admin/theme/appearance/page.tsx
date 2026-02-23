@@ -109,7 +109,7 @@ const ColorInput = ({ field, label }: { field: any, label: string }) => {
                     type="color"
                     value={hexColor}
                     onChange={(e) => field.onChange(hexToHslString(e.target.value))}
-                    className="w-12 h-10 p-1"
+                    className="w-12 h-10 p-1 cursor-pointer"
                     />
                 <FormControl>
                     <Input {...field} placeholder="e.g. 224 71% 4%" />
@@ -121,21 +121,20 @@ const ColorInput = ({ field, label }: { field: any, label: string }) => {
 };
 
 const palettes = [
-    { name: 'Simple White', colors: { theme_primary: '0 0% 0%', theme_secondary: '0 0% 96%', theme_accent: '0 0% 40%', theme_background: '0 0% 100%', theme_foreground: '0 0% 0%', theme_card: '0 0% 100%' } },
-    { name: 'Default Dark', colors: { theme_primary: '207 90% 61%', theme_secondary: '217 33% 17%', theme_accent: '207 92% 77%', theme_background: '224 71% 4%', theme_foreground: '210 40% 98%', theme_card: '224 71% 6%' } },
-    { name: 'Corporate Blue', colors: { theme_primary: '210 100% 20%', theme_secondary: '206 33% 90%', theme_accent: '36 100% 50%', theme_background: '206 33% 97%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%' } },
-    { name: 'Luxury Gold', colors: { theme_primary: '46 65% 52%', theme_secondary: '0 0% 15%', theme_accent: '0 0% 46%', theme_background: '0 0% 7%', theme_foreground: '0 0% 98%', theme_card: '0 0% 10%' } },
-    { name: 'Modern Tech', colors: { theme_primary: '258 83% 58%', theme_secondary: '215 25% 17%', theme_accent: '189 94% 43%', theme_background: '220 29% 6%', theme_foreground: '0 0% 98%', theme_card: '215 25% 12%' } },
-    { name: 'Organic Eco', colors: { theme_primary: '113 39% 25%', theme_secondary: '82 20% 62%', theme_accent: '22 47% 18%', theme_background: '33 51% 89%', theme_foreground: '22 47% 10%', theme_card: '33 51% 95%' } },
-    { name: 'Energetic Retail', colors: { theme_primary: '346 77% 50%', theme_secondary: '45 96% 56%', theme_accent: '0 0% 20%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 98%' } },
-    { name: 'Clean Soft', colors: { theme_primary: '218 100% 81%', theme_secondary: '346 100% 91%', theme_accent: '197 24% 85%', theme_background: '0 0% 100%', theme_foreground: '218 20% 20%', theme_card: '197 24% 97%' } },
-    { name: 'Creative Indigo', colors: { theme_primary: '243 75% 59%', theme_secondary: '175 84% 32%', theme_accent: '215 19% 35%', theme_background: '250 100% 98%', theme_foreground: '243 20% 10%', theme_card: '0 0% 100%' } },
-    { name: 'Bold Trendy', colors: { theme_primary: '82 84% 67%', theme_secondary: '330 81% 70%', theme_accent: '0 0% 100%', theme_background: '0 0% 0%', theme_foreground: '210 20% 98%', theme_card: '0 0% 10%' } },
-    { name: 'Warm Cozy', colors: { theme_primary: '1 48% 53%', theme_secondary: '33 94% 44%', theme_accent: '9 28% 19%', theme_background: '40 82% 97%', theme_foreground: '9 28% 10%', theme_card: '40 82% 94%' } },
-    { name: 'Royal Premium', colors: { theme_primary: '263 67% 35%', theme_secondary: '244 47% 21%', theme_accent: '250 95% 92%', theme_background: '214 15% 91%', theme_foreground: '263 67% 5%', theme_card: '0 0% 100%' } },
-    { name: 'Crimson Night', colors: { theme_primary: '355 70% 58%', theme_secondary: '0 0% 13%', theme_accent: '346 41% 57%', theme_background: '0 0% 4%', theme_foreground: '0 0% 98%', theme_card: '0 0% 8%' } },
-    { name: 'Oceanic', colors: { theme_primary: '221 41% 45%', theme_secondary: '221 59% 24%', theme_accent: '216 21% 77%', theme_background: '221 39% 11%', theme_foreground: '218 14% 86%', theme_card: '221 39% 15%' } },
-    { name: 'Lavender Light', colors: { theme_primary: '255 26% 54%', theme_secondary: '251 29% 96%', theme_accent: '251 51% 80%', theme_background: '0 0% 100%', theme_foreground: '251 14% 11%', theme_card: '251 29% 98%' } },
+    { name: 'Default (Bangla Naturals)', colors: { theme_primary: '207 90% 61%', theme_secondary: '217 33% 17%', theme_accent: '207 92% 77%', theme_background: '224 71% 4%', theme_foreground: '210 40% 98%', theme_card: '224 71% 6%' } },
+    { name: 'Amazon', colors: { theme_primary: '36 100% 50%', theme_secondary: '215 28% 19%', theme_accent: '215 28% 25%', theme_background: '0 0% 100%', theme_foreground: '215 28% 10%', theme_card: '0 0% 98%' } },
+    { name: 'Daraz', colors: { theme_primary: '22 89% 54%', theme_secondary: '210 100% 27%', theme_accent: '210 100% 35%', theme_background: '0 0% 100%', theme_foreground: '210 100% 10%', theme_card: '0 0% 98%' } },
+    { name: 'AliExpress', colors: { theme_primary: '0 100% 64%', theme_secondary: '0 0% 13%', theme_accent: '0 0% 20%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 98%' } },
+    { name: 'eBay', colors: { theme_primary: '358 78% 55%', theme_secondary: '211 100% 41%', theme_accent: '211 100% 50%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%' } },
+    { name: 'Walmart', colors: { theme_primary: '207 100% 40%', theme_secondary: '44 100% 56%', theme_accent: '44 100% 65%', theme_background: '0 0% 100%', theme_foreground: '207 100% 10%', theme_card: '0 0% 98%' } },
+    { name: 'Etsy', colors: { theme_primary: '19 87% 53%', theme_secondary: '0 0% 13%', theme_accent: '0 0% 20%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%' } },
+    { name: 'Shein', colors: { theme_primary: '0 0% 0%', theme_secondary: '0 0% 100%', theme_accent: '0 0% 20%', theme_background: '0 0% 100%', theme_foreground: '0 0% 0%', theme_card: '0 0% 98%' } },
+    { name: 'IKEA', colors: { theme_primary: '208 100% 32%', theme_secondary: '48 100% 50%', theme_accent: '48 100% 60%', theme_background: '0 0% 100%', theme_foreground: '208 100% 10%', theme_card: '0 0% 100%' } },
+    { name: 'Chaldal', colors: { theme_primary: '149 100% 31%', theme_secondary: '48 100% 50%', theme_accent: '48 100% 60%', theme_background: '0 0% 100%', theme_foreground: '149 100% 10%', theme_card: '0 0% 98%' } },
+    { name: 'Pickaboo', colors: { theme_primary: '195 100% 44%', theme_secondary: '0 0% 13%', theme_accent: '0 0% 20%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%' } },
+    { name: 'Shajgoj', colors: { theme_primary: '340 82% 52%', theme_secondary: '340 82% 95%', theme_accent: '340 82% 80%', theme_background: '0 0% 100%', theme_foreground: '340 82% 10%', theme_card: '0 0% 100%' } },
+    { name: 'Ozon', colors: { theme_primary: '219 100% 50%', theme_secondary: '330 100% 48%', theme_accent: '330 100% 60%', theme_background: '0 0% 100%', theme_foreground: '219 100% 10%', theme_card: '0 0% 100%' } },
+    { name: 'Xbox', colors: { theme_primary: '120 77% 28%', theme_secondary: '0 0% 0%', theme_accent: '0 0% 10%', theme_background: '0 0% 0%', theme_foreground: '0 0% 98%', theme_card: '0 0% 5%' } },
 ];
 
 
@@ -285,8 +284,8 @@ export default function AppearanceManagerPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5"/> Predefined Palettes</CardTitle>
-          <CardDescription>Quickly switch between professionally designed color themes.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5"/> E-commerce Brand Palettes</CardTitle>
+          <CardDescription>Apply the iconic look of popular e-commerce platforms to your store.</CardDescription>
         </CardHeader>
         <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
