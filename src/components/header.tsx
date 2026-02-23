@@ -205,6 +205,8 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
+    // Dispatch custom event for ThemeInitializer
+    window.dispatchEvent(new Event('theme-toggle'));
   };
 
   const {
@@ -379,6 +381,10 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
                   })}
                 </nav>
                 <div className="mt-auto pt-6 border-t space-y-4">
+                  <Button variant="ghost" className="w-full justify-start gap-3" onClick={toggleTheme}>
+                    {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+                  </Button>
                   {isLoadingAuth ? null : !currentUser ? (
                     <div className="space-y-4">
                         <Link href={'/login'} className="block text-lg font-medium text-foreground/80 transition-colors hover:text-foreground" onClick={() => setIsSheetOpen(false)}>

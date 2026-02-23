@@ -131,14 +131,14 @@ export default async function UsernameLayout({
     const secondaryFontVar = settingsData.font_secondary ? fontMap[settingsData.font_secondary]?.variable : null;
     
     const styleVars = [
-      settingsData.theme_background && `--background: ${settingsData.theme_background};`,
-      settingsData.theme_foreground && `--foreground: ${settingsData.theme_foreground};`,
       settingsData.theme_primary && `--primary: ${settingsData.theme_primary};`,
       settingsData.theme_primary_foreground && `--primary-foreground: ${settingsData.theme_primary_foreground};`,
       settingsData.theme_secondary && `--secondary: ${settingsData.theme_secondary};`,
       settingsData.theme_secondary_foreground && `--secondary-foreground: ${settingsData.theme_secondary_foreground};`,
       settingsData.theme_accent && `--accent: ${settingsData.theme_accent};`,
       settingsData.theme_accent_foreground && `--accent-foreground: ${settingsData.theme_accent_foreground};`,
+      settingsData.theme_background && `--background: ${settingsData.theme_background};`,
+      settingsData.theme_foreground && `--foreground: ${settingsData.theme_foreground};`,
       settingsData.theme_card && `--card: ${settingsData.theme_card};`,
       settingsData.theme_card_foreground && `--card-foreground: ${settingsData.theme_card_foreground};`,
       settingsData.theme_card && `--popover: ${settingsData.theme_card};`,
@@ -154,8 +154,10 @@ export default async function UsernameLayout({
     ].filter(Boolean).join(' ');
 
     if (styleVars) {
-      // Use html:not(.dark) so custom styles only apply in light mode or by default
-      themeStyles = `html:not(.dark) { ${styleVars} }`;
+      // In User site, we want custom colors to be default, 
+      // but if HTML has .dark class, we might want standard dark mode colors
+      // EXCEPT for the brand colors (primary, accent) which should stay custom.
+      themeStyles = `html:not(.dark) { ${styleVars} } html.dark { ${settingsData.theme_primary ? `--primary: ${settingsData.theme_primary};` : ''} ${settingsData.theme_accent ? `--accent: ${settingsData.theme_accent};` : ''} }`;
     }
   }
 

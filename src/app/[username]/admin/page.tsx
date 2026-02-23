@@ -68,17 +68,17 @@ export default function AdminDashboard() {
           qnaRes.json()
         ]);
 
-        const finalOrders = Array.isArray(ordersData.orders) ? ordersData.orders : [];
-        const finalProducts = Array.isArray(productsData.products) ? productsData.products : [];
-        const finalUncompleted = Array.isArray(uncompletedData.orders) ? uncompletedData.orders : [];
-        const finalDeals = Array.isArray(flashDealsData.deals) ? flashDealsData.deals : [];
-        const finalReviews = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
-        const finalQna = Array.isArray(qnaData.qna) ? qnaData.qna : [];
+        const finalOrdersList = Array.isArray(ordersData.orders) ? ordersData.orders : [];
+        const finalProductsList = Array.isArray(productsData.products) ? productsData.products : [];
+        const finalUncompletedList = Array.isArray(uncompletedData.orders) ? uncompletedData.orders : [];
+        const finalDealsList = Array.isArray(flashDealsData.deals) ? flashDealsData.deals : [];
+        const finalReviewsList = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
+        const finalQnaList = Array.isArray(qnaData.qna) ? qnaData.qna : [];
 
-        const totalRevenueCalculated = finalOrders.filter((orderRecord: any) => orderRecord.status === 'delivered').reduce((acc: number, orderRecord: any) => acc + (orderRecord.total || 0), 0);
-        const monthlyOrdersCounted = finalOrders.filter((orderRecord: any) => new Date(orderRecord.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && orderRecord.status !== 'canceled').length;
-        const unviewedCartsCount = finalUncompleted.filter((ucRecord: any) => !ucRecord.is_viewed).length;
-        const activeFlashDealsCount = finalDeals.filter((dealRecord: any) => dealRecord.is_active && new Date(dealRecord.end_date) > new Date()).length;
+        const totalRevenueCalculated = finalOrdersList.filter((orderRec: any) => orderRec.status === 'delivered').reduce((acc: number, orderRec: any) => acc + (orderRec.total || 0), 0);
+        const monthlyOrdersCounted = finalOrdersList.filter((orderRec: any) => new Date(orderRec.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && orderRec.status !== 'canceled').length;
+        const unviewedCartsCount = finalUncompletedList.filter((ucRecord: any) => !ucRecord.is_viewed).length;
+        const activeFlashDealsCount = finalDealsList.filter((dealRecord: any) => dealRecord.is_active && new Date(dealRecord.end_date) > new Date()).length;
 
         // Daily Revenue Mapping
         const dailyRevenueMap: { [key: string]: number } = {};
@@ -88,43 +88,43 @@ export default function AdminDashboard() {
           dailyRevenueMap[dateLabelString] = 0;
         }
         
-        finalOrders.filter((orderRecord: any) => orderRecord.status === 'delivered' && new Date(orderRecord.created_at) >= lastWeekDateTime).forEach((orderRecord: any) => {
-          const dateLabelString = safeDateFormatter(new Date(orderRecord.created_at), 'MMM d');
+        finalOrdersList.filter((orderRec: any) => orderRec.status === 'delivered' && new Date(orderRec.created_at) >= lastWeekDateTime).forEach((orderRec: any) => {
+          const dateLabelString = safeDateFormatter(new Date(orderRec.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenueMap, dateLabelString)) {
-            dailyRevenueMap[dateLabelString] += (orderRecord.total || 0);
+            dailyRevenueMap[dateLabelString] += (orderRec.total || 0);
           }
         });
 
         // Advanced Low Stock Detection
-        const detectedLowStockItems = finalProducts.filter((productItemRecord: any) => {
-            const hasVariants = productItemRecord.variants && Array.isArray(productItemRecord.variants) && productItemRecord.variants.length > 0;
+        const detectedLowStockItems = finalProductsList.filter((productItemRec: any) => {
+            const hasVariants = productItemRec.variants && Array.isArray(productItemRec.variants) && productItemRec.variants.length > 0;
             if (hasVariants) {
-                return productItemRecord.variants.some((vRecord: any) => (vRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
+                return productItemRec.variants.some((vRecord: any) => (vRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
             }
-            return (productItemRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
-        }).sort((aRecord: any, bRecord: any) => {
+            return (productItemRec.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
+        }).sort((aRec: any, bRec: any) => {
             const getEffStock = (pItem: any) => {
                 const hasV = pItem.variants && Array.isArray(pItem.variants) && pItem.variants.length > 0;
                 if (hasV) return Math.min(...pItem.variants.map((v: any) => v.stock ?? 0));
                 return pItem.stock ?? 0;
             };
-            return getEffStock(aRecord) - getEffStock(bRecord);
+            return getEffStock(aRec) - getEffStock(bRec);
         }).slice(0, 5);
 
         const comprehensiveDashboardData = {
           totalRevenue: totalRevenueCalculated,
-          totalProducts: finalProducts.length,
+          totalProducts: finalProductsList.length,
           uncompletedOrders: unviewedCartsCount,
-          totalUncompletedOrders: finalUncompleted.length,
+          totalUncompletedOrders: finalUncompletedList.length,
           totalCustomers: (customersData.customers || []).length,
           ordersThisMonth: monthlyOrdersCounted,
           activeFlashDeals: activeFlashDealsCount,
-          allOrders: finalOrders,
+          allOrders: finalOrdersList,
           revenueChartData: Object.keys(dailyRevenueMap).map(dateKey => ({ date: dateKey, Revenue: dailyRevenueMap[dateKey] })),
-          pendingOrders: finalOrders.filter((orderRecord: any) => orderRecord.status === 'pending').slice(0, 5),
+          pendingOrders: finalOrdersList.filter((orderRec: any) => orderRec.status === 'pending').slice(0, 5),
           lowStockProducts: detectedLowStockItems,
-          pendingReviews: finalReviews.filter((reviewRecord: any) => !reviewRecord.is_approved).slice(0, 5),
-          unansweredQuestions: finalQna.filter((qnaRecord: any) => !qnaRecord.is_approved).slice(0, 5),
+          pendingReviews: finalReviewsList.filter((reviewRecord: any) => !reviewRecord.is_approved).slice(0, 5),
+          unansweredQuestions: finalQnaList.filter((qnaRecord: any) => !qnaRecord.is_approved).slice(0, 5),
         };
 
         globalAdminStore.setDashboard(comprehensiveDashboardData);

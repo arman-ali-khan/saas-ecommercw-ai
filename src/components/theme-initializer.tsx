@@ -22,9 +22,15 @@ export default function ThemeInitializer({ defaultMode }: ThemeInitializerProps)
 
     applyTheme();
     
-    // Watch for manual changes in other tabs
+    // Listen for custom theme toggle events
+    const handleToggle = () => applyTheme();
+    window.addEventListener('theme-toggle', handleToggle);
     window.addEventListener('storage', applyTheme);
-    return () => window.removeEventListener('storage', applyTheme);
+    
+    return () => {
+        window.removeEventListener('theme-toggle', handleToggle);
+        window.removeEventListener('storage', applyTheme);
+    };
   }, [defaultMode]);
 
   return null;
