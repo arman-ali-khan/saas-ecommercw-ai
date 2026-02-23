@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
 import ImageUploader from '@/components/image-uploader';
+import { Skeleton } from '@/components/ui/skeleton';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 
@@ -222,8 +223,42 @@ export default function CategoriesAdminPage() {
     
     if (isLoading && categories.length === 0) {
         return (
-            <div className="flex items-center justify-center p-16">
-                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-4 w-80" />
+                    </div>
+                    <Skeleton className="h-10 w-36" />
+                </div>
+                <Card>
+                    <CardHeader className="p-0 border-b">
+                        <div className="p-4 grid grid-cols-5 gap-4">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="p-4 flex items-center justify-between border-b last:border-0">
+                                <div className="flex items-center gap-4">
+                                    <Skeleton className="h-12 w-12 rounded-md" />
+                                    <div className="space-y-2">
+                                        <Skeleton className="h-5 w-32" />
+                                        <Skeleton className="h-3 w-48" />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Skeleton className="h-8 w-20" />
+                                    <Skeleton className="h-8 w-20" />
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
             </div>
         );
     }

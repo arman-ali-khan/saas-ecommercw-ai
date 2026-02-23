@@ -21,6 +21,7 @@ import { Loader2, BellOff, CheckCheck, Eye, X, MessageSquare, ShoppingCart, Bell
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -132,15 +133,25 @@ export default function AdminNotificationsPage() {
 
   if (isLoading && notifications.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="flex flex-col gap-2">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground animate-pulse">লোড হচ্ছে...</p>
+      <div className="space-y-6 max-w-5xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-1">
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-full" />
         </div>
-        <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-20 w-full bg-muted animate-pulse rounded-xl" />
-            ))}
+        <div className="space-y-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4 p-4 rounded-2xl border border-border/40">
+              <Skeleton className="h-12 w-12 rounded-full shrink-0" />
+              <div className="flex-grow space-y-2">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-3 w-1/4" />
+              </div>
+              <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+            </div>
+          ))}
         </div>
       </div>
     );
