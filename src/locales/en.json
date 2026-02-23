@@ -1,3 +1,4 @@
+
 {
   "common": {
     "save": "Save",
@@ -130,13 +131,17 @@
     "paymentMethod": "Payment Method",
     "cod": "Cash on Delivery",
     "mobileBanking": "Mobile Banking",
-    "merchantNumber": "Merchant Number",
+    "merchantNumber": "Number",
     "transactionId": "Transaction ID",
     "placeOrder": "Place Order",
     "placingOrder": "Placing order...",
     "savedAddresses": "Saved Addresses",
     "addressSelected": "Address selected",
-    "noShipping": "No shipping methods found. Please contact the administrator."
+    "noShipping": "No shipping methods found. Please contact the administrator.",
+    "sendMoney": "Send Money",
+    "cashOut": "Cash Out",
+    "payment": "Payment",
+    "numberType": "Number Type"
   },
   "success": {
     "title": "Your order has been placed!",

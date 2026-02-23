@@ -400,6 +400,7 @@ export interface SaasSettings {
   seo_keywords: string | null;
   mobile_banking_enabled: boolean;
   mobile_banking_number: string | null;
+  mobile_banking_type: 'personal' | 'agent' | 'merchant' | null;
   accepted_banking_methods: string[] | null;
   hero_title: string | null;
   hero_description: string | null;

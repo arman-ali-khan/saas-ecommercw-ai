@@ -41,13 +41,12 @@ import { type SeoRequest, type Plan } from '@/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-  } from '@/components/ui/dropdown-menu';
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 
 const availableBankingMethods = [
@@ -71,6 +70,7 @@ const seoSchema = z.object({
 const paymentSchema = z.object({
   mobileBankingEnabled: z.boolean().default(false),
   mobileBankingNumber: z.string().optional(),
+  mobileBankingType: z.enum(['personal', 'agent', 'merchant']).default('personal'),
   acceptedBankingMethods: z.array(z.string()).default([]),
 });
 
@@ -115,7 +115,7 @@ export default function SettingsAdminPage() {
 
   const paymentForm = useForm<z.infer<typeof paymentSchema>>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { mobileBankingEnabled: false, mobileBankingNumber: '', acceptedBankingMethods: []},
+    defaultValues: { mobileBankingEnabled: false, mobileBankingNumber: '', mobileBankingType: 'personal', acceptedBankingMethods: []},
   });
 
   const brandingForm = useForm<z.infer<typeof brandingSchema>>({
@@ -160,6 +160,7 @@ export default function SettingsAdminPage() {
             paymentForm.reset({
                 mobileBankingEnabled: settings.mobile_banking_enabled ?? false,
                 mobileBankingNumber: settings.mobile_banking_number || '',
+                mobileBankingType: settings.mobile_banking_type || 'personal',
                 acceptedBankingMethods: settings.accepted_banking_methods || [],
             });
 
@@ -171,7 +172,6 @@ export default function SettingsAdminPage() {
                 social_share_image_url: settings.social_share_image_url || '',
             });
 
-            // Handle SEO Requests separately if needed
             const { data: seoReq } = await supabase.from('seo_requests').select('*').eq('site_id', user.id).order('created_at', { ascending: false }).limit(1).single();
             if (seoReq) setSeoRequest(seoReq as SeoRequest);
             setIsSeoRequestLoading(false);
@@ -422,17 +422,6 @@ export default function SettingsAdminPage() {
         return false;
     }
   }, [socialShareImageUrl]);
-
-  const defaultColorPalette = [
-    { name: 'Navy', color: '#172554' },
-    { name: 'Green', color: '#064e3b' },
-    { name: 'Red', color: '#7f1d1d' },
-    { name: 'Amber', color: '#854d0e' },
-    { name: 'Indigo', color: '#1e1b4b' },
-    { name: 'Fuchsia', color: '#4a044e' },
-    { name: 'Slate', color: '#334155' },
-    { name: 'Stone', color: '#44403c' },
-  ];
 
   if (isLoading) {
     return (
@@ -824,22 +813,49 @@ export default function SettingsAdminPage() {
                             </FormItem>
                             )}
                         />
-                        <FormField
-                            control={paymentForm.control}
-                            name="mobileBankingNumber"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>মোবাইল ব্যাংকিং নম্বর</FormLabel>
-                                <FormControl>
-                                <Input placeholder="e.g., 01234567890" {...field} />
-                                </FormControl>
-                                <FormDescription>
-                                গ্রাহকরা যে নম্বরে পেমেন্ট পাঠাবে।
-                                </FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <FormField
+                                control={paymentForm.control}
+                                name="mobileBankingNumber"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>মোবাইল ব্যাংকিং নম্বর</FormLabel>
+                                    <FormControl>
+                                    <Input placeholder="e.g., 01234567890" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                    গ্রাহকরা যে নম্বরে পেমেন্ট পাঠাবে।
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={paymentForm.control}
+                                name="mobileBankingType"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>নম্বরের ধরন (Number Type)</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="সিলেক্ট করুন" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="personal">Personal (ব্যক্তিগত)</SelectItem>
+                                            <SelectItem value="agent">Agent (এজেন্ট)</SelectItem>
+                                            <SelectItem value="merchant">Merchant (মার্চেন্ট)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormDescription>
+                                        এটি চেকআউট পেজে গ্রাহককে সঠিক পেমেন্ট নির্দেশনা দিতে সাহায্য করবে।
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
                         <FormField
                             control={paymentForm.control}
                             name="acceptedBankingMethods"

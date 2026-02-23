@@ -21,6 +21,7 @@ export async function POST(request: Request) {
         site_id: siteId,
         mobile_banking_enabled: paymentData.mobileBankingEnabled,
         mobile_banking_number: paymentData.mobileBankingNumber,
+        mobile_banking_type: paymentData.mobileBankingType,
         accepted_banking_methods: paymentData.acceptedBankingMethods
       }, { onConflict: 'site_id' });
 
@@ -29,6 +30,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err: any) {
     console.error('Save Payments API Error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }
