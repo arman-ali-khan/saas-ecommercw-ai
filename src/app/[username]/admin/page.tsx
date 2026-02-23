@@ -103,10 +103,15 @@ export default function AdminDashboard() {
           revenueChartData: Object.keys(dailyRevenue).map(dateKey => ({ date: dateKey, Revenue: dailyRevenue[dateKey] })),
           pendingOrders: fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5),
           lowStockProducts: fetchedProducts.filter((p: any) => {
-            if (!p.variants || p.variants.length === 0) {
-              return p.stock !== null && p.stock < LOW_STOCK_THRESHOLD;
+            const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+            if (!hasVariants) {
+              const stock = p.stock === null || p.stock === undefined ? 0 : Number(p.stock);
+              return stock < LOW_STOCK_THRESHOLD;
             }
-            return p.variants.some((v: any) => v.stock !== null && v.stock < LOW_STOCK_THRESHOLD);
+            return p.variants.some((v: any) => {
+              const vStock = v.stock === null || v.stock === undefined ? 0 : Number(v.stock);
+              return vStock < LOW_STOCK_THRESHOLD;
+            });
           }).slice(0, 5),
           pendingReviews: fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5),
           unansweredQuestions: fetchedQna.filter((q: any) => !q.is_approved).slice(0, 5),

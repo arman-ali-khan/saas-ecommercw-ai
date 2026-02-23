@@ -107,14 +107,14 @@ export default function DashboardTables({
                           <TableCell>
                             {product.variants && product.variants.length > 0 ? (
                                 <div className="flex flex-wrap gap-1">
-                                    {product.variants.filter(v => v.stock < 10).map((v, i) => (
+                                    {product.variants.filter(v => (v.stock === null || v.stock === undefined ? 0 : Number(v.stock)) < 10).map((v, i) => (
                                         <Badge key={i} variant="destructive" className="text-[10px] py-0">
-                                            {v.unit}: {v.stock}
+                                            {v.unit}: {v.stock ?? 0}
                                         </Badge>
                                     ))}
                                 </div>
                             ) : (
-                                <Badge variant="destructive">{product.stock}</Badge>
+                                <Badge variant="destructive">{(product.stock === null || product.stock === undefined) ? 0 : product.stock}</Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/products/${product.id}`}><Eye className="mr-2 h-4 w-4" />{t.edit}</Link></Button></TableCell>
@@ -132,13 +132,13 @@ export default function DashboardTables({
                       <CardContent className="p-4 pt-0">
                         <div className="flex flex-wrap gap-1 mt-1">
                             {product.variants && product.variants.length > 0 ? (
-                                product.variants.filter(v => v.stock < 10).map((v, i) => (
+                                product.variants.filter(v => (v.stock === null || v.stock === undefined ? 0 : Number(v.stock)) < 10).map((v, i) => (
                                     <Badge key={i} variant="destructive" className="text-[10px]">
-                                        {v.unit}: {v.stock}
+                                        {v.unit}: {v.stock ?? 0}
                                     </Badge>
                                 ))
                             ) : (
-                                <Badge variant="destructive">{t.stock}: {product.stock}</Badge>
+                                <Badge variant="destructive">{t.stock}: {product.stock ?? 0}</Badge>
                             )}
                         </div>
                       </CardContent>
