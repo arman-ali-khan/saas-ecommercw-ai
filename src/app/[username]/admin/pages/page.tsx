@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Plus, Loader2, Edit, Trash2, Eye, AlertTriangle, X } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function PagesAdminPage() {
   const { user } = useAuth();
@@ -114,15 +115,33 @@ export default function PagesAdminPage() {
   
   if (isLoading && pages.length === 0) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Page Manager</CardTitle>
-                <CardDescription>Create, edit, and manage custom pages for your site.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center py-16">
-                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-            </CardContent>
-        </Card>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between px-1">
+                <div className="space-y-2">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-80" />
+                </div>
+                <Skeleton className="h-10 w-36 rounded-md" />
+            </div>
+            <Card>
+                <CardHeader className="p-0 border-b">
+                    <div className="p-4 grid grid-cols-5 gap-4">
+                        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="p-4 grid grid-cols-5 gap-4 items-center border-b last:border-0">
+                            <Skeleton className="h-5 w-40" />
+                            <Skeleton className="h-4 w-32 font-mono" />
+                            <Skeleton className="h-6 w-16 rounded-full" />
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-8 w-8 rounded-md ml-auto" />
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+        </div>
     );
   }
 

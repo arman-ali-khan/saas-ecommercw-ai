@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -28,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Mail, Eye, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -111,17 +111,33 @@ export default function UncompletedOrdersPage() {
         return uncompletedOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
     }, [uncompletedOrders, currentPage]);
 
-    if (isLoading) {
+    if (isLoading && uncompletedOrders.length === 0) {
         return (
-             <Card>
-                <CardHeader>
-                    <CardTitle>অসম্পূর্ণ অর্ডার</CardTitle>
-                    <CardDescription>যেসব অর্ডার শুরু হয়েছে কিন্তু সম্পূর্ণ হয়নি সেগুলো দেখুন এবং পরিচালনা করুন।</CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-center items-center py-16">
-                    <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-                </CardContent>
-            </Card>
+            <div className="space-y-6">
+                <div className="flex flex-col items-start px-1">
+                    <Skeleton className="h-8 w-48 mb-2" />
+                    <Skeleton className="h-4 w-80" />
+                </div>
+                <Card>
+                    <CardHeader className="p-0 border-b">
+                        <div className="p-4 grid grid-cols-6 gap-4">
+                            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="p-4 grid grid-cols-6 gap-4 items-center border-b last:border-0">
+                                <Skeleton className="h-4 w-20" />
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-6 w-20 rounded-full" />
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-8 w-8 rounded-md ml-auto" />
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            </div>
         )
     }
 
@@ -240,7 +256,6 @@ export default function UncompletedOrdersPage() {
                         পরবর্তী
                     </Button>
                 </CardFooter>
-            )}
-        </Card>
+            </Card>
     )
 }

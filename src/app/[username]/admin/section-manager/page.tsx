@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
@@ -34,6 +33,7 @@ import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X, Smartphone,
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const CORE_SECTION_IDS = ['hero', 'categories', 'flash_deals', 'featured', 'why-us', 'customer-reviews'];
 
@@ -249,21 +249,33 @@ export default function SectionManagerPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && sections.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Homepage Section Manager</CardTitle>
-          <CardDescription>
-            Enable, disable, and reorder sections on your homepage.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center p-16">
-            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between px-1">
+            <div className="space-y-2">
+                <Skeleton className="h-8 w-64" />
+                <Skeleton className="h-4 w-96" />
+            </div>
+            <Skeleton className="h-10 w-48 rounded-md" />
+        </div>
+        <Card>
+            <CardContent className="p-6 space-y-4">
+                {[...Array(6)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center gap-4">
+                            <Skeleton className="h-5 w-5" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-5 w-40" />
+                                <Skeleton className="h-3 w-60" />
+                            </div>
+                        </div>
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+      </div>
     );
   }
 
