@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -7,6 +6,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -31,11 +31,13 @@ export default function TicketDetailPage() {
   const { ticketId } = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { currentTicket: ticket, currentMessages: messages, setCurrentTicket, setCurrentMessages } = useAdminStore();
   const { toast } = useToast();
   
-  const [ticket, setTicket] = useState<SupportTicket | null>(null);
-  const [messages, setMessages] = useState<SupportMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    const store = useAdminStore.getState();
+    return store.currentTicket?.id !== ticketId;
+  });
   const [newMessage, setNewMessage] = useState('');
   const [image, setImage] = useState('');
   const [isSending, setIsSubmitting] = useState(false);
@@ -44,7 +46,12 @@ export default function TicketDetailPage() {
 
   const fetchTicketDetails = useCallback(async (isSilent = false) => {
     if (!ticketId || !user) return;
-    if (!isSilent) setIsLoading(true);
+    
+    // Check if we already have this ticket's data to avoid flickering
+    const store = useAdminStore.getState();
+    const hasData = store.currentTicket?.id === ticketId && store.currentMessages.length > 0;
+
+    if (!isSilent && !hasData) setIsLoading(true);
     
     try {
       const response = await fetch('/api/support/tickets/get', {
@@ -54,20 +61,20 @@ export default function TicketDetailPage() {
       });
       const result = await response.json();
       if (response.ok) {
-        setTicket(result.ticket);
-        setMessages(result.messages || []);
+        setCurrentTicket(result.ticket);
+        setCurrentMessages(result.messages || []);
       } else {
         throw new Error(result.error);
       }
     } catch (e: any) {
-      if (!isSilent) {
+      if (!isSilent && !hasData) {
         toast({ variant: 'destructive', title: 'Error', description: e.message });
         router.push('/admin/support');
       }
     } finally {
-      if (!isSilent) setIsLoading(false);
+      setIsLoading(false);
     }
-  }, [ticketId, user, router, toast]);
+  }, [ticketId, user, router, toast, setCurrentTicket, setCurrentMessages]);
 
   useEffect(() => {
     fetchTicketDetails();
@@ -123,7 +130,7 @@ export default function TicketDetailPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !ticket) {
     return <div className="flex justify-center p-20"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>;
   }
 

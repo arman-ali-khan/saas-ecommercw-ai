@@ -10,7 +10,9 @@ import type {
     FlashDeal, 
     StoreFeature, 
     ProductAttribute, 
-    Page 
+    Page,
+    SupportTicket,
+    SupportMessage
 } from '@/types';
 
 interface DashboardStats {
@@ -51,6 +53,9 @@ interface AdminState {
     features: StoreFeature[];
     attributes: ProductAttribute[];
     pages: Page[];
+    supportTickets: SupportTicket[];
+    currentTicket: SupportTicket | null;
+    currentMessages: SupportMessage[];
     sidebarCounts: SidebarCounts;
     
     // Fetch Status (Timestamps)
@@ -68,6 +73,9 @@ interface AdminState {
     setFeatures: (features: StoreFeature[]) => void;
     setAttributes: (attributes: ProductAttribute[]) => void;
     setPages: (pages: Page[]) => void;
+    setSupportTickets: (tickets: SupportTicket[]) => void;
+    setCurrentTicket: (ticket: SupportTicket | null) => void;
+    setCurrentMessages: (messages: SupportMessage[]) => void;
     setSidebarCounts: (counts: SidebarCounts) => void;
     
     invalidateEntity: (entity: string) => void;
@@ -86,6 +94,7 @@ const INITIAL_LAST_FETCHED = {
     features: 0,
     attributes: 0,
     pages: 0,
+    supportTickets: 0,
     sidebarCounts: 0,
 };
 
@@ -110,6 +119,9 @@ export const useAdminStore = create<AdminState>()((set) => ({
     features: [],
     attributes: [],
     pages: [],
+    supportTickets: [],
+    currentTicket: null,
+    currentMessages: [],
     sidebarCounts: INITIAL_SIDEBAR_COUNTS,
     
     lastFetched: INITIAL_LAST_FETCHED,
@@ -169,6 +181,14 @@ export const useAdminStore = create<AdminState>()((set) => ({
         lastFetched: { ...state.lastFetched, pages: Date.now() } 
     })),
 
+    setSupportTickets: (supportTickets) => set((state) => ({
+        supportTickets,
+        lastFetched: { ...state.lastFetched, supportTickets: Date.now() }
+    })),
+
+    setCurrentTicket: (currentTicket) => set({ currentTicket }),
+    setCurrentMessages: (currentMessages) => set({ currentMessages }),
+
     setSidebarCounts: (sidebarCounts) => set((state) => ({
         sidebarCounts,
         lastFetched: { ...state.lastFetched, sidebarCounts: Date.now() }
@@ -190,6 +210,9 @@ export const useAdminStore = create<AdminState>()((set) => ({
         features: [],
         attributes: [],
         pages: [],
+        supportTickets: [],
+        currentTicket: null,
+        currentMessages: [],
         sidebarCounts: INITIAL_SIDEBAR_COUNTS,
         lastFetched: INITIAL_LAST_FETCHED,
     })

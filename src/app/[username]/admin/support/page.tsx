@@ -1,9 +1,9 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { bn } from 'date-fns/locale';
@@ -46,9 +46,13 @@ type TicketFormData = z.infer<typeof ticketSchema>;
 
 export default function SupportForumPage() {
   const { user } = useAuth();
+  const { supportTickets: tickets, setSupportTickets: setTickets } = useAdminStore();
   const { toast } = useToast();
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isLoading, setIsLoading] = useState(() => {
+    const store = useAdminStore.getState();
+    return store.supportTickets.length === 0;
+  });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -57,9 +61,21 @@ export default function SupportForumPage() {
     defaultValues: { title: '', description: '', image_url: '', priority: 'normal' },
   });
 
-  const fetchTickets = useCallback(async () => {
+  const fetchTickets = useCallback(async (force = false) => {
     if (!user) return;
-    setIsLoading(true);
+    
+    const store = useAdminStore.getState();
+    const isFresh = Date.now() - store.lastFetched.supportTickets < 300000;
+    
+    if (!force && store.supportTickets.length > 0 && isFresh) {
+        setIsLoading(false);
+        return;
+    }
+
+    if (store.supportTickets.length === 0 || force) {
+        setIsLoading(true);
+    }
+
     try {
       const response = await fetch('/api/support/tickets/list', {
         method: 'POST',
@@ -75,7 +91,7 @@ export default function SupportForumPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, setTickets]);
 
   useEffect(() => {
     fetchTickets();
@@ -94,7 +110,7 @@ export default function SupportForumPage() {
         toast({ title: 'টিকেট তৈরি হয়েছে', description: 'আমাদের টিম শীঘ্রই আপনার সাথে যোগাযোগ করবে।' });
         setIsFormOpen(false);
         form.reset();
-        await fetchTickets();
+        await fetchTickets(true);
       } else {
         const res = await response.json();
         throw new Error(res.error);
@@ -129,7 +145,7 @@ export default function SupportForumPage() {
       </div>
 
       <div className="grid gap-6">
-        {isLoading ? (
+        {isLoading && tickets.length === 0 ? (
           <div className="flex justify-center p-20"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>
         ) : tickets.length > 0 ? (
           <Card>
