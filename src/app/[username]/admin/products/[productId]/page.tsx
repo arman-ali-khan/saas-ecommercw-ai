@@ -121,7 +121,6 @@ export default function ManageProductPage() {
   const watchedValues = form.watch();
   const productName = form.watch('name');
 
-  // LIMIT LOGIC
   const productLimit = user?.product_limit;
   const currentProductCount = dashboard?.totalProducts || 0;
   const isLimitReached = isNew && productLimit !== null && currentProductCount >= productLimit;
@@ -364,16 +363,9 @@ export default function ManageProductPage() {
   }
 
   return (
-    <div className="pb-20">
+    <div className="pb-32">
       <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" />পণ্য তালিকায় ফিরে যান</Link></Button>
-        <div className="flex gap-2">
-             <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>বাতিল</Button>
-             <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting || isLimitReached}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isNew ? 'পণ্যটি তৈরি করুন' : 'পরিবর্তনগুলো সেভ করুন'}
-            </Button>
-        </div>
       </div>
 
       {isLimitReached && (
@@ -532,7 +524,6 @@ export default function ManageProductPage() {
                         <CardContent className="space-y-6 pt-6">
                             <FormField control={form.control} name="categories" render={({ field }) => (<FormItem><FormLabel>ক্যাটাগরি সিলেক্ট করুন</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full h-11 justify-between font-normal"><span className="truncate">{field.value?.length ? field.value.join(', ') : "সিলেক্ট করুন"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((cat) => (<DropdownMenuCheckboxItem key={cat.id} checked={field.value?.includes(cat.name)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), cat.name] : field.value.filter((v) => v !== cat.name))}>{cat.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu></FormItem>)} />
                             
-                            {/* Creatable Tag Selector */}
                             <FormField control={form.control} name="tags" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="flex items-center gap-2"><TagsIcon className="h-4 w-4" /> ট্যাগ যোগ করুন (Tags)</FormLabel>
@@ -624,10 +615,17 @@ export default function ManageProductPage() {
                 </div>
             </div>
 
-            <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-40 md:left-[220px] lg:left-[280px]">
-                <div className="container max-w-5xl mx-auto flex justify-end gap-4">
-                    <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>বাতিল করুন</Button>
-                    <Button type="submit" disabled={isSubmitting || isLimitReached} className="min-w-[150px] shadow-lg shadow-primary/20">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><CheckCircle2 className="mr-2 h-4 w-4" /> {isNew ? 'পণ্যটি তৈরি করুন' : 'সেভ করুন'}</>}</Button>
+            {/* Sticky Action Bar */}
+            <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t p-4 z-[100] md:left-[220px] lg:left-[280px] shadow-[0_-10px_20px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom duration-500">
+                <div className="container max-w-5xl mx-auto flex flex-col sm:flex-row justify-end items-center gap-3">
+                    <Button type="button" variant="outline" onClick={() => router.push('/admin/products')} className="w-full sm:w-auto h-12 rounded-xl">বাতিল করুন</Button>
+                    <Button type="submit" disabled={isSubmitting || isLimitReached} className="w-full sm:w-auto min-w-[180px] h-12 rounded-xl shadow-lg shadow-primary/20 font-bold text-lg">
+                        {isSubmitting ? (
+                            <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> সেভ হচ্ছে...</>
+                        ) : (
+                            <><CheckCircle2 className="mr-2 h-5 w-5" /> {isNew ? 'পণ্যটি তৈরি করুন' : 'পরিবর্তনগুলো সেভ করুন'}</>
+                        )}
+                    </Button>
                 </div>
             </div>
         </form>
