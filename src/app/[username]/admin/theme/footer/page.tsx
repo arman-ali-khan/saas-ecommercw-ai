@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -6,16 +5,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
-import type { FooterLinkCategory, FooterLink } from '@/types';
+import type { FooterLinkCategory, FooterLink, Page } from '@/types';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, Wand2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const categorySchema = z.object({ title: z.string().min(1, 'Title is required') });
 const linkSchema = z.object({ label: z.string().min(1, 'Label is required'), href: z.string().min(1, 'URL is required') });
@@ -23,6 +24,7 @@ const linkSchema = z.object({ label: z.string().min(1, 'Label is required'), hre
 export default function FooterManagerPage() {
     const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
+    const { pages, setPages } = useAdminStore();
     const [categories, setCategories] = useState<FooterLinkCategory[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,23 +37,34 @@ export default function FooterManagerPage() {
         if (!user) return;
         setIsLoading(true);
         try {
-            const response = await fetch('/api/footer/categories/list', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ siteId: user.id }),
-            });
-            const result = await response.json();
-            if (response.ok) {
-                setCategories(result.categories || []);
-            } else {
-                throw new Error(result.error);
+            const [footerRes, pagesRes] = await Promise.all([
+                fetch('/api/footer/categories/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ siteId: user.id }),
+                }),
+                fetch('/api/pages/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ siteId: user.id }),
+                })
+            ]);
+
+            const footerResult = await footerRes.json();
+            const pagesResult = await pagesRes.json();
+
+            if (footerRes.ok) {
+                setCategories(footerResult.categories || []);
+            }
+            if (pagesRes.ok) {
+                setPages(pagesResult.pages || []);
             }
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error fetching footer data', description: error.message });
         } finally {
             setIsLoading(false);
         }
-    }, [user, toast]);
+    }, [user, toast, setPages]);
 
     useEffect(() => {
         if (user && !authLoading) fetchFooterData();
@@ -126,6 +139,14 @@ export default function FooterManagerPage() {
             toast({ variant: 'destructive', title: `Failed to delete ${type}`, description: error.message });
         }
     };
+
+    const staticLinks = [
+        { label: 'Home', href: '/' },
+        { label: 'Products', href: '/products' },
+        { label: 'Flash Deals', href: '/flash-deals' },
+        { label: 'Track Order', href: '/track-order' },
+        { label: 'About Us', href: '/about' },
+    ];
     
     if (isLoading && categories.length === 0) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-muted-foreground" /></div>;
@@ -199,7 +220,42 @@ export default function FooterManagerPage() {
                         <Form {...linkForm}>
                             <form onSubmit={linkForm.handleSubmit(handleDialogSubmit)} className="space-y-4 pt-2">
                                 <FormField control={linkForm.control} name="label" render={({ field }) => (<FormItem><FormLabel>Link Label</FormLabel><FormControl><Input placeholder="e.g., All Products" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={linkForm.control} name="href" render={({ field }) => (<FormItem><FormLabel>Link URL</FormLabel><FormControl><Input placeholder="e.g., /products" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={linkForm.control} name="href" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Link URL</FormLabel>
+                                        <div className="flex gap-2">
+                                            <FormControl><Input placeholder="e.g., /products" {...field} /></FormControl>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button type="button" variant="outline" size="icon" className="shrink-0"><Wand2 className="h-4 w-4" /></Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-56">
+                                                    <DropdownMenuLabel>Default Links</DropdownMenuLabel>
+                                                    {staticLinks.map(link => (
+                                                        <DropdownMenuItem key={link.href} onSelect={() => {
+                                                            linkForm.setValue('href', link.href);
+                                                            if (!linkForm.getValues('label')) linkForm.setValue('label', link.label);
+                                                        }}>{link.label}</DropdownMenuItem>
+                                                    ))}
+                                                    {pages.length > 0 && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuLabel>Created Pages</DropdownMenuLabel>
+                                                            {pages.filter(p => p.is_published).map(p => (
+                                                                <DropdownMenuItem key={p.id} onSelect={() => {
+                                                                    linkForm.setValue('href', `/pages/${p.slug}`);
+                                                                    if (!linkForm.getValues('label')) linkForm.setValue('label', p.title);
+                                                                }}>{p.title}</DropdownMenuItem>
+                                                            ))}
+                                                        </>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                        <FormDescription>Select from suggestions using the magic wand icon.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
                                 <DialogFooter><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2 h-4 w-4" />} Save Link</Button></DialogFooter>
                             </form>
                         </Form>

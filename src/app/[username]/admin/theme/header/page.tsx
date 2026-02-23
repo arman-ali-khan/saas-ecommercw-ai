@@ -5,18 +5,20 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
-import type { HeaderLink } from '@/types';
+import type { HeaderLink, Page } from '@/types';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit, Trash2, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, ArrowUp, ArrowDown, Wand2, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const headerLinkSchema = z.object({
   label: z.string().min(1, 'Label is required'),
@@ -28,6 +30,7 @@ type HeaderLinkFormData = z.infer<typeof headerLinkSchema>;
 export default function HeaderManagerPage() {
     const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
+    const { pages, setPages } = useAdminStore();
     const [links, setLinks] = useState<HeaderLink[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,23 +44,34 @@ export default function HeaderManagerPage() {
         if (!user) return;
         setIsLoading(true);
         try {
-            const response = await fetch('/api/header-links/list', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ siteId: user.id }),
-            });
-            const result = await response.json();
-            if (response.ok) {
-                setLinks(result.links as HeaderLink[]);
-            } else {
-                throw new Error(result.error || 'Failed to fetch header links');
+            const [linksRes, pagesRes] = await Promise.all([
+                fetch('/api/header-links/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ siteId: user.id }),
+                }),
+                fetch('/api/pages/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ siteId: user.id }),
+                })
+            ]);
+
+            const linksResult = await linksRes.json();
+            const pagesResult = await pagesRes.json();
+
+            if (linksRes.ok) {
+                setLinks(linksResult.links as HeaderLink[]);
+            }
+            if (pagesRes.ok) {
+                setPages(pagesResult.pages || []);
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error fetching header links', description: error.message });
+            toast({ variant: 'destructive', title: 'Error fetching data', description: error.message });
         } finally {
             setIsLoading(false);
         }
-    }, [user, toast]);
+    }, [user, toast, setPages]);
     
     useEffect(() => {
         if (user && !authLoading) {
@@ -121,13 +135,11 @@ export default function HeaderManagerPage() {
                 }),
             });
 
-            const result = await response.json();
-
             if (response.ok) {
                 toast({ title: 'Link deleted.' });
                 await fetchData();
             } else {
-                throw new Error(result.error || 'Failed to delete link');
+                throw new Error('Failed to delete link');
             }
         } catch (error: any) {
             toast({ title: 'Error Deleting Link', variant: 'destructive', description: error.message });
@@ -146,7 +158,6 @@ export default function HeaderManagerPage() {
         const [movedItem] = newList.splice(index, 1);
         newList.splice(newIndex, 0, movedItem);
         
-        // Include the entire item object to satisfy DB constraints during upsert
         const updates = newList.map((item, idx) => ({ ...item, order: idx }));
         
         setIsLoading(true);
@@ -160,21 +171,27 @@ export default function HeaderManagerPage() {
                 }),
             });
 
-            const result = await response.json();
-
             if (response.ok) {
                 toast({ title: 'Order updated' });
                 setLinks(newList);
             } else {
-                throw new Error(result.error || 'Failed to reorder');
+                throw new Error('Failed to reorder');
             }
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Failed to reorder', description: error.message });
-            await fetchData(); // Revert from server
+            await fetchData();
         } finally {
             setIsLoading(false);
         }
     };
+
+    const staticLinks = [
+        { label: 'Home', href: '/' },
+        { label: 'Products', href: '/products' },
+        { label: 'Flash Deals', href: '/flash-deals' },
+        { label: 'Track Order', href: '/track-order' },
+        { label: 'About Us', href: '/about' },
+    ];
 
     if (isLoading && links.length === 0) return <div className="flex justify-center p-16"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>;
     
@@ -248,7 +265,42 @@ export default function HeaderManagerPage() {
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(handleDialogSubmit)} className="space-y-4 pt-4">
                             <FormField control={form.control} name="label" render={({ field }) => (<FormItem><FormLabel>Label</FormLabel><FormControl><Input placeholder="e.g., Home" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="href" render={({ field }) => (<FormItem><FormLabel>URL</FormLabel><FormControl><Input placeholder="e.g., /products" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="href" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>URL</FormLabel>
+                                    <div className="flex gap-2">
+                                        <FormControl><Input placeholder="e.g., /products" {...field} /></FormControl>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button type="button" variant="outline" size="icon" className="shrink-0"><Wand2 className="h-4 w-4" /></Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-56">
+                                                <DropdownMenuLabel>Default Links</DropdownMenuLabel>
+                                                {staticLinks.map(link => (
+                                                    <DropdownMenuItem key={link.href} onSelect={() => {
+                                                        form.setValue('href', link.href);
+                                                        if (!form.getValues('label')) form.setValue('label', link.label);
+                                                    }}>{link.label}</DropdownMenuItem>
+                                                ))}
+                                                {pages.length > 0 && (
+                                                    <>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuLabel>Created Pages</DropdownMenuLabel>
+                                                        {pages.filter(p => p.is_published).map(p => (
+                                                            <DropdownMenuItem key={p.id} onSelect={() => {
+                                                                form.setValue('href', `/pages/${p.slug}`);
+                                                                if (!form.getValues('label')) form.setValue('label', p.title);
+                                                            }}>{p.title}</DropdownMenuItem>
+                                                        ))}
+                                                    </>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                    <FormDescription>Select from suggestions using the magic wand icon.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
                             <DialogFooter><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2 h-4 w-4" />} Save Link</Button></DialogFooter>
                         </form>
                     </Form>
