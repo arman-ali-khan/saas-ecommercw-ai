@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -19,7 +18,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { format, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
+import { format as formatDate, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 
 const ORDER_STATUSES = {
   pending: { label: 'Pending', color: 'hsl(var(--chart-1))' },
@@ -199,14 +198,14 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
               <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" /> {t.orderStatus}</CardTitle>
               <CardDescription>{t.orderStatusDesc}</CardDescription>
             </div>
-            <Select onValueChange={(value) => setSelectedMonth(new Date(value))} defaultValue={format(selectedMonth, 'yyyy-MM-dd')}>
+            <Select onValueChange={(value) => setSelectedMonth(new Date(value))} defaultValue={formatDate(selectedMonth, 'yyyy-MM-dd')}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder={t.selectMonth} />
               </SelectTrigger>
               <SelectContent>
                 {monthOptions.map(month => (
                   <SelectItem key={month.toISOString()} value={month.toISOString()}>
-                    {format(month, 'MMMM yyyy')}
+                    {formatDate(month, 'MMMM yyyy')}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -1,11 +1,10 @@
-
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import Link from 'next/link';
-import { format, subDays } from 'date-fns';
+import { format as formatDate, subDays } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Ban, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +16,6 @@ import DashboardStats from '@/components/admin/dashboard-stats';
 import DashboardCharts from '@/components/admin/dashboard-charts';
 import DashboardTables from '@/components/admin/dashboard-tables';
 
-const dashboardTranslations = { en, bn };
 const LOW_STOCK_THRESHOLD = 10;
 
 export default function AdminDashboard() {
@@ -83,12 +81,13 @@ export default function AdminDashboard() {
 
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
-          const dateStr = format(subDays(new Date(), i), 'MMM d');
+          const d = subDays(new Date(), i);
+          const dateStr = formatDate(d, 'MMM d');
           dailyRevenue[dateStr] = 0;
         }
         
         fetchedOrders.filter((o: any) => new Date(o.created_at) >= sevenDaysAgo && o.status === 'delivered').forEach((o: any) => {
-          const dateStr = format(new Date(o.created_at), 'MMM d');
+          const dateStr = formatDate(new Date(o.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) {
             dailyRevenue[dateStr] += o.total;
           }
@@ -142,10 +141,11 @@ export default function AdminDashboard() {
   }, [user?.id, fetchDashboardStats]);
 
   const lang = user?.language || 'bn';
-  const t = dashboardTranslations[lang as keyof typeof dashboardTranslations]?.dashboard || dashboardTranslations.bn.dashboard;
+  const translations = { en, bn };
+  const t = translations[lang as keyof typeof translations]?.dashboard || translations.bn.dashboard;
   const productLimit = user?.product_limit;
   
-  const stats = dashboard || {
+  const stats = useMemo(() => dashboard || {
     totalRevenue: 0,
     totalProducts: 0,
     uncompletedOrders: 0,
@@ -159,10 +159,10 @@ export default function AdminDashboard() {
     lowStockProducts: [],
     pendingReviews: [],
     unansweredQuestions: [],
-  };
+  }, [dashboard]);
 
   const showSkeleton = isLoading && !dashboard;
-  const isLimitReached = (productLimit !== null && stats.totalProducts >= productLimit);
+  const isLimitReached = productLimit !== null && stats.totalProducts >= productLimit;
 
   return (
     <div className="space-y-6">
