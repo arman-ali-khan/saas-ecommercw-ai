@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import Link from 'next/link';
-import { format as formatDate, subDays } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Ban, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -83,15 +83,17 @@ export default function AdminDashboard() {
 
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
-          const dateStr = formatDate(subDays(new Date(), i), 'MMM d');
+          const dateStr = format(subDays(new Date(), i), 'MMM d');
           dailyRevenue[dateStr] = 0;
         }
+        
         fetchedOrders.filter((o: any) => new Date(o.created_at) >= sevenDaysAgo && o.status === 'delivered').forEach((o: any) => {
-          const dateStr = formatDate(new Date(o.created_at), 'MMM d');
-          if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) dailyRevenue[dateStr] += o.total;
+          const dateStr = format(new Date(o.created_at), 'MMM d');
+          if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) {
+            dailyRevenue[dateStr] += o.total;
+          }
         });
 
-        // Enhanced logic to identify and sort low stock products correctly
         const lowStockProducts = fetchedProducts
           .map((p: any) => {
             let minStock = 0;
@@ -143,7 +145,6 @@ export default function AdminDashboard() {
   const t = dashboardTranslations[lang as keyof typeof dashboardTranslations]?.dashboard || dashboardTranslations.bn.dashboard;
   const productLimit = user?.product_limit;
   
-  const showSkeleton = isLoading && !dashboard;
   const stats = dashboard || {
     totalRevenue: 0,
     totalProducts: 0,
@@ -160,6 +161,7 @@ export default function AdminDashboard() {
     unansweredQuestions: [],
   };
 
+  const showSkeleton = isLoading && !dashboard;
   const isLimitReached = (productLimit !== null && stats.totalProducts >= productLimit);
 
   return (
