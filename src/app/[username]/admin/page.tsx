@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { subDays, format as safeDateFormatter } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Ban, Loader2, AlertTriangle } from 'lucide-react';
@@ -20,8 +21,9 @@ import DashboardTables from '@/components/admin/dashboard-tables';
 const MINIMUM_QUANTITY_THRESHOLD = 10;
 
 export default function AdminDashboard() {
-  const { user: currentAdminUser } = useAuth();
-  const { dashboard: cachedDashboardData, setDashboard: setGlobalDashboardData } = useAdminStore();
+  const adminDashboardParams = useParams();
+  const activeAdminUser = useAuth((state) => state.user);
+  const globalAdminStore = useAdminStore();
   const { toast } = useToast();
 
   const [isDataLoading, setIsDataLoading] = useState(() => {
@@ -29,7 +31,7 @@ export default function AdminDashboard() {
   });
 
   const fetchDashboardStats = useCallback(async (forceRefreshAction = false) => {
-    const activeSiteIdentifier = currentAdminUser?.id;
+    const activeSiteIdentifier = activeAdminUser?.id;
     if (!activeSiteIdentifier) return;
 
     const storeCurrentState = useAdminStore.getState();
@@ -94,15 +96,23 @@ export default function AdminDashboard() {
           }
         });
 
-        // Detailed Low Stock Detection
-        const detectedLowStockItems = finalProducts.filter((productItem: any) => {
-            const hasVariantWithLowStock = productItem.variants?.some((variant: any) => (variant.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
-            const baseStockIsLow = (productItem.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
-            return baseStockIsLow || hasVariantWithLowStock;
-        }).sort((firstItem: any, secondItem: any) => {
-            const minStockA = Math.min(firstItem.stock ?? 0, ...(firstItem.variants?.map((v: any) => v.stock ?? 0) || []));
-            const minStockB = Math.min(secondItem.stock ?? 0, ...(secondItem.variants?.map((v: any) => v.stock ?? 0) || []));
-            return minStockA - minStockB;
+        // Advanced Low Stock Detection
+        const detectedLowStockItems = finalProducts.filter((individualItem: any) => {
+            const hasVariants = individualItem.variants && Array.isArray(individualItem.variants) && individualItem.variants.length > 0;
+            
+            if (hasVariants) {
+                // If it has variants, only check variant stocks
+                return individualItem.variants.some((v: any) => (v.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
+            }
+            // If no variants, check base stock
+            return (individualItem.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
+        }).sort((aItem: any, bItem: any) => {
+            const getEffectiveStock = (p: any) => {
+                const hasV = p.variants && Array.isArray(p.variants) && p.variants.length > 0;
+                if (hasV) return Math.min(...p.variants.map((v: any) => v.stock ?? 0));
+                return p.stock ?? 0;
+            };
+            return getEffectiveStock(aItem) - getEffectiveStock(bItem);
         }).slice(0, 5);
 
         const comprehensiveDashboardData = {
@@ -121,7 +131,7 @@ export default function AdminDashboard() {
           unansweredQuestions: finalQna.filter((q: any) => !q.is_approved).slice(0, 5),
         };
 
-        setGlobalDashboardData(comprehensiveDashboardData);
+        globalAdminStore.setDashboard(comprehensiveDashboardData);
       } catch (dashboardFetchError: any) {
         console.error("Dashboard Stats Processing Error:", dashboardFetchError);
         if (!useAdminStore.getState().dashboard) {
@@ -130,19 +140,19 @@ export default function AdminDashboard() {
       } finally {
         setIsDataLoading(false);
     }
-  }, [currentAdminUser?.id, setGlobalDashboardData, toast]);
+  }, [activeAdminUser?.id, globalAdminStore, toast]);
 
   useEffect(() => {
-    if (currentAdminUser?.id) {
+    if (activeAdminUser?.id) {
         fetchDashboardStats();
     }
-  }, [currentAdminUser?.id, fetchDashboardStats]);
+  }, [activeAdminUser?.id, fetchDashboardStats]);
 
-  const activeLanguage = currentAdminUser?.language || 'bn';
+  const activeLanguage = activeAdminUser?.language || 'bn';
   const dashboardTranslations = { en, bn };
   const currentLang = dashboardTranslations[activeLanguage as keyof typeof dashboardTranslations]?.dashboard || dashboardTranslations.bn.dashboard;
   
-  const dashboardDisplayStats = useMemo(() => cachedDashboardData || {
+  const dashboardDisplayStats = useMemo(() => globalAdminStore.dashboard || {
     totalRevenue: 0,
     totalProducts: 0,
     uncompletedOrders: 0,
@@ -156,10 +166,10 @@ export default function AdminDashboard() {
     lowStockProducts: [],
     pendingReviews: [],
     unansweredQuestions: [],
-  }, [cachedDashboardData]);
+  }, [globalAdminStore.dashboard]);
 
-  const shouldShowSkeleton = isDataLoading && !cachedDashboardData;
-  const isProductLimitHit = currentAdminUser?.product_limit !== null && (dashboardDisplayStats.totalProducts || 0) >= (currentAdminUser?.product_limit || 0);
+  const shouldShowSkeleton = isDataLoading && !globalAdminStore.dashboard;
+  const isProductLimitHit = activeAdminUser?.product_limit !== null && (dashboardDisplayStats.totalProducts || 0) >= (activeAdminUser?.product_limit || 0);
 
   return (
     <div className="space-y-6">
@@ -178,9 +188,9 @@ export default function AdminDashboard() {
       <DashboardStats 
         stats={dashboardDisplayStats} 
         limits={{ 
-            productLimit: currentAdminUser?.product_limit ?? null, 
-            customerLimit: currentAdminUser?.customer_limit ?? null, 
-            orderLimit: currentAdminUser?.order_limit ?? null 
+            productLimit: activeAdminUser?.product_limit ?? null, 
+            customerLimit: activeAdminUser?.customer_limit ?? null, 
+            orderLimit: activeAdminUser?.order_limit ?? null 
         }} 
         isLoading={shouldShowSkeleton} 
         t={currentLang} 

@@ -106,10 +106,17 @@ export default function DashboardTables({
                     <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Stock Status</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {lowStockProducts.map(lowStockItemRecord => {
-                        const calculatedMinimumAmount = Math.min(lowStockItemRecord.stock ?? 0, ...(lowStockItemRecord.variants?.map((v: any) => v.stock ?? 0) || []));
+                        const hasVariants = lowStockItemRecord.variants && Array.isArray(lowStockItemRecord.variants) && lowStockItemRecord.variants.length > 0;
+                        const calculatedMinimumAmount = hasVariants 
+                            ? Math.min(...lowStockItemRecord.variants!.map((v: any) => v.stock ?? 0))
+                            : (lowStockItemRecord.stock ?? 0);
+                        
                         return (
                           <TableRow key={lowStockItemRecord.id}>
-                            <TableCell className="text-xs font-medium max-w-[150px] truncate">{lowStockItemRecord.name}</TableCell>
+                            <TableCell className="text-xs font-medium max-w-[150px] truncate">
+                                {lowStockItemRecord.name}
+                                {hasVariants && <span className="text-[10px] text-muted-foreground block">(Multi-price)</span>}
+                            </TableCell>
                             <TableCell>
                                 <Badge variant={calculatedMinimumAmount === 0 ? "destructive" : "secondary"} className="text-[10px] uppercase font-black px-1.5 h-5">
                                     {calculatedMinimumAmount === 0 ? "Out" : `${calculatedMinimumAmount} Low`}
@@ -124,12 +131,16 @@ export default function DashboardTables({
                 </div>
                 <div className="grid gap-4 md:hidden">
                   {lowStockProducts.map(lowStockItemRecord => {
-                    const calculatedMinimumAmount = Math.min(lowStockItemRecord.stock ?? 0, ...(lowStockItemRecord.variants?.map((v: any) => v.stock ?? 0) || []));
+                    const hasVariants = lowStockItemRecord.variants && Array.isArray(lowStockItemRecord.variants) && lowStockItemRecord.variants.length > 0;
+                    const calculatedMinimumAmount = hasVariants 
+                        ? Math.min(...lowStockItemRecord.variants!.map((v: any) => v.stock ?? 0))
+                        : (lowStockItemRecord.stock ?? 0);
+                    
                     return (
                         <div key={lowStockItemRecord.id} className="flex justify-between items-center p-3 border rounded-xl">
                             <div className="flex flex-col max-w-[150px]">
                                 <span className="text-xs font-bold truncate">{lowStockItemRecord.name}</span>
-                                <span className="text-[10px] text-muted-foreground">{lowStockItemRecord.categories?.[0]}</span>
+                                <span className="text-[10px] text-muted-foreground">{hasVariants ? "Multi-price" : lowStockItemRecord.categories?.[0]}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Badge variant={calculatedMinimumAmount === 0 ? "destructive" : "secondary"} className="text-[10px] h-5">
