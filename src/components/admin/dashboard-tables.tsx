@@ -200,7 +200,7 @@ export default function DashboardTables({
                         </div>
                       </CardHeader>
                       <CardFooter className="p-4 pt-0 justify-end">
-                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/reviews`}>Viiew</Link></Button>
+                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/reviews`}>View</Link></Button>
                       </CardFooter>
                     </Card>
                   ))}
