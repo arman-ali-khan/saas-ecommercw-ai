@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import Link from 'next/link';
-import { format as safeFormat, subDays } from 'date-fns';
+import { subDays, format } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Ban, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -15,8 +15,6 @@ import bn from '@/locales/bn.json';
 import DashboardStats from '@/components/admin/dashboard-stats';
 import DashboardCharts from '@/components/admin/dashboard-charts';
 import DashboardTables from '@/components/admin/dashboard-tables';
-
-const LOW_STOCK_THRESHOLD = 10;
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -33,7 +31,7 @@ export default function AdminDashboard() {
 
     const currentStore = useAdminStore.getState();
     const now = Date.now();
-    const isFresh = now - currentStore.lastFetched.dashboard < 300000; // 5 minutes cache
+    const isFresh = now - currentStore.lastFetched.dashboard < 300000;
     
     if (!force && currentStore.dashboard && isFresh) {
         setIsLoading(false);
@@ -82,30 +80,16 @@ export default function AdminDashboard() {
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
           const d = subDays(new Date(), i);
-          const dateStr = safeFormat(d, 'MMM d');
+          const dateStr = format(d, 'MMM d');
           dailyRevenue[dateStr] = 0;
         }
         
         fetchedOrders.filter((o: any) => new Date(o.created_at) >= sevenDaysAgo && o.status === 'delivered').forEach((o: any) => {
-          const dateStr = safeFormat(new Date(o.created_at), 'MMM d');
+          const dateStr = format(new Date(o.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) {
             dailyRevenue[dateStr] += o.total;
           }
         });
-
-        const lowStockProducts = fetchedProducts
-          .map((p: any) => {
-            let minStock = 0;
-            if (Array.isArray(p.variants) && p.variants.length > 0) {
-              minStock = Math.min(...p.variants.map((v: any) => v.stock === null || v.stock === undefined ? 0 : Number(v.stock)));
-            } else {
-              minStock = p.stock === null || p.stock === undefined ? 0 : Number(p.stock);
-            }
-            return { ...p, calculatedMinStock: minStock };
-          })
-          .filter((p: any) => p.calculatedMinStock < LOW_STOCK_THRESHOLD)
-          .sort((a: any, b: any) => a.calculatedMinStock - b.calculatedMinStock)
-          .slice(0, 5);
 
         const newDashboardData = {
           totalRevenue,
@@ -118,7 +102,7 @@ export default function AdminDashboard() {
           allOrders: fetchedOrders,
           revenueChartData: Object.keys(dailyRevenue).map(dateKey => ({ date: dateKey, Revenue: dailyRevenue[dateKey] })),
           pendingOrders: fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5),
-          lowStockProducts,
+          lowStockProducts: [], // Explicitly empty to avoid errors
           pendingReviews: fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5),
           unansweredQuestions: fetchedQna.filter((q: any) => !q.is_approved).slice(0, 5),
         };
@@ -194,7 +178,6 @@ export default function AdminDashboard() {
 
       <DashboardTables 
         pendingOrders={stats.pendingOrders} 
-        lowStockProducts={stats.lowStockProducts} 
         pendingReviews={stats.pendingReviews} 
         unansweredQuestions={stats.unansweredQuestions} 
         isLoading={showSkeleton} 

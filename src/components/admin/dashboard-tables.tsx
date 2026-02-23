@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -9,13 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowRight, Eye, Star, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Eye, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Order, Product, ProductReview, ProductQna } from '@/types';
+import type { Order, ProductReview, ProductQna } from '@/types';
 
 interface DashboardTablesProps {
   pendingOrders: Order[];
-  lowStockProducts: Product[];
   pendingReviews: ProductReview[];
   unansweredQuestions: ProductQna[];
   isLoading: boolean;
@@ -35,7 +33,6 @@ const TableSkeleton = () => (
 
 export default function DashboardTables({ 
   pendingOrders, 
-  lowStockProducts, 
   pendingReviews, 
   unansweredQuestions, 
   isLoading, 
@@ -43,7 +40,7 @@ export default function DashboardTables({
 }: DashboardTablesProps) {
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-1">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -77,94 +74,6 @@ export default function DashboardTables({
                     <Card key={order.id}>
                       <CardHeader><CardTitle className="text-sm">{order.order_number}</CardTitle><CardDescription>{(order as any).shipping_info?.name || 'N/A'}</CardDescription></CardHeader>
                       <CardContent className="flex justify-between items-center"><p className="font-bold">BDT {order.total.toFixed(2)}</p><Button variant="secondary" size="sm" asChild><Link href={`/admin/orders/${order.id}`}>{t.viewOrder}</Link></Button></CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                {t.lowStock}
-                {!isLoading && lowStockProducts.length > 0 && <Badge variant="destructive" className="h-5 px-1.5 animate-pulse">Low Stock</Badge>}
-              </CardTitle>
-              <CardDescription>{t.lowStockDesc}</CardDescription>
-            </div>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/admin/products`}>{t.viewAll} <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? <TableSkeleton /> : lowStockProducts.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.sufficientStock}</p> : (
-              <>
-                <div className="hidden md:block">
-                  <Table>
-                    <TableHeader><TableRow><TableHead>{t.products}</TableHead><TableHead>{t.stockLeft}</TableHead><TableHead className="text-right">{t.action}</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {lowStockProducts.map(product => (
-                        <TableRow key={product.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                                {product.name}
-                                {((product.variants && product.variants.some(v => Number(v.stock || 0) === 0)) || (!product.variants && Number(product.stock || 0) === 0)) && (
-                                    <Badge variant="destructive" className="text-[8px] h-4 px-1 uppercase">Out of Stock</Badge>
-                                )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {product.variants && product.variants.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                    {product.variants.filter(v => Number(v.stock || 0) < 10).map((v, i) => (
-                                        <Badge key={i} variant="destructive" className="text-[10px] py-0 gap-1 bg-destructive/10 text-destructive border-destructive/20">
-                                            {Number(v.stock || 0) === 0 ? 'Out:' : 'Low:'} {v.unit} ({v.stock ?? 0})
-                                        </Badge>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="destructive" className="font-bold">
-                                        {Number(product.stock || 0) === 0 ? 'Out' : `Low: ${product.stock ?? 0}`}
-                                    </Badge>
-                                </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/products/${product.id}`}><Eye className="mr-2 h-4 w-4" />{t.edit}</Link></Button></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                <div className="grid gap-4 md:hidden">
-                  {lowStockProducts.map(product => (
-                    <Card key={product.id}>
-                      <CardHeader className="p-4 pb-2">
-                        <div className="flex justify-between items-start">
-                            <CardTitle className="text-sm">{product.name}</CardTitle>
-                            {((product.variants && product.variants.some(v => Number(v.stock || 0) === 0)) || (!product.variants && Number(product.stock || 0) === 0)) && (
-                                <Badge variant="destructive" className="text-[8px] h-4">OUT</Badge>
-                            )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <div className="flex flex-wrap gap-1 mt-1">
-                            {product.variants && product.variants.length > 0 ? (
-                                product.variants.filter(v => Number(v.stock || 0) < 10).map((v, i) => (
-                                    <Badge key={i} variant="destructive" className="text-[10px] bg-destructive/10 text-destructive">
-                                        {v.unit}: {v.stock ?? 0} {Number(v.stock || 0) === 0 ? '(Out)' : ''}
-                                    </Badge>
-                                ))
-                            ) : (
-                                <Badge variant="destructive">{Number(product.stock || 0) === 0 ? 'Out of Stock' : `${t.stock}: ${product.stock ?? 0}`}</Badge>
-                            )}
-                        </div>
-                      </CardContent>
-                      <CardFooter className="p-4 pt-0 justify-end">
-                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/products/${product.id}`}>{t.edit}</Link></Button>
-                      </CardFooter>
                     </Card>
                   ))}
                 </div>
