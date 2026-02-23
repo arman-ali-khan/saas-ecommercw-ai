@@ -1,6 +1,7 @@
+
 'use client';
 
-import { Bell, Settings, LogOut, Wand2 } from 'lucide-react';
+import { Bell, Settings, LogOut, Wand2, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -35,7 +36,6 @@ export default function AdminHeader() {
     if (!user?.id) return;
     
     try {
-      // 1. Fetch latest 5 notifications
       const listResponse = await fetch('/api/notifications/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,7 +51,6 @@ export default function AdminHeader() {
         setNotifications(listResult.notifications || []);
       }
 
-      // 2. Fetch total unread count for the badge
       const countResponse = await fetch('/api/admin/dashboard-counts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,7 +69,6 @@ export default function AdminHeader() {
     if (user?.id) {
       fetchNotificationsData();
 
-      // Set up real-time listener for notifications
       const channel = supabase
         .channel(`admin-header-notifications-${user.id}`)
         .on(
@@ -109,7 +107,6 @@ export default function AdminHeader() {
   const markAsRead = async (id: string) => {
     if (!user) return;
     
-    // Optimistic UI update
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     const wasUnread = notifications.find(n => n.id === id && !n.is_read);
     if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
@@ -124,10 +121,15 @@ export default function AdminHeader() {
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
       <div className="w-full flex-1">
-        {/* Placeholder for future breadcrumbs */}
       </div>
       <div className="flex items-center gap-2">
-        {/* Notification Dropdown */}
+        <Button variant="ghost" size="sm" asChild className="hidden sm:flex gap-2">
+            <Link href="/admin/support">
+                <HelpCircle className="h-4 w-4" />
+                <span>সাপোর্ট ফোরাম</span>
+            </Link>
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
@@ -187,7 +189,6 @@ export default function AdminHeader() {
 
         <div className="h-6 w-px bg-border mx-1" />
 
-        {/* User Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 overflow-hidden ring-offset-background transition-all hover:ring-2 hover:ring-primary/20">
@@ -213,9 +214,9 @@ export default function AdminHeader() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer py-2.5">
-              <Link href={`/admin/settings/ai`}>
-                <Wand2 className="mr-3 h-4 w-4 text-muted-foreground" />
-                <span>এআই সেটিংস</span>
+              <Link href={`/admin/support`}>
+                <HelpCircle className="mr-3 h-4 w-4 text-muted-foreground" />
+                <span>সাপোর্ট টিকেট</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

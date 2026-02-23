@@ -429,3 +429,33 @@ export interface CustomDomainRequest {
     full_name: string;
   } | null;
 }
+
+export interface SupportTicket {
+  id: string;
+  site_id: string;
+  title: string;
+  description: string;
+  image_url?: string | null;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    site_name: string;
+    full_name: string;
+    email: string;
+  } | null;
+}
+
+export interface SupportMessage {
+  id: string;
+  ticket_id: string;
+  sender_id: string;
+  sender_role: 'admin' | 'saas_admin';
+  message: string;
+  image_url?: string | null;
+  created_at: string;
+  profiles?: {
+    full_name: string;
+  } | null;
+}

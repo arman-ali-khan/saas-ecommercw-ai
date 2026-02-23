@@ -11,19 +11,20 @@ export async function GET(request: Request) {
   });
 
   try {
-    // Run count queries in parallel
     const [
         notifRes,
         subRes,
         seoRes,
         reviewRes,
-        domainRes
+        domainRes,
+        supportRes
     ] = await Promise.all([
         supabaseAdmin.from('notifications').select('*', { count: 'exact', head: true }).eq('is_read', false),
         supabaseAdmin.from('subscription_payments').select('*', { count: 'exact', head: true }).or('status.eq.pending,status.eq.pending_verification'),
         supabaseAdmin.from('seo_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabaseAdmin.from('saas_reviews').select('*', { count: 'exact', head: true }).eq('is_approved', false),
-        supabaseAdmin.from('custom_domain_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+        supabaseAdmin.from('custom_domain_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabaseAdmin.from('support_tickets').select('*', { count: 'exact', head: true }).or('status.eq.open,status.eq.in_progress')
     ]);
 
     return NextResponse.json({
@@ -32,6 +33,7 @@ export async function GET(request: Request) {
         pendingSeoRequests: seoRes.count || 0,
         pendingReviews: reviewRes.count || 0,
         pendingDomains: domainRes.count || 0,
+        openSupportTickets: supportRes.count || 0,
     });
 
   } catch (e: any) {

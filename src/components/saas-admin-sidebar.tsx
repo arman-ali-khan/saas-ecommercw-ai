@@ -20,6 +20,7 @@ import {
   LayoutList,
   Monitor,
   Globe,
+  LifeBuoy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -46,6 +47,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     pendingSeoRequests: 0,
     pendingReviews: 0,
     pendingDomains: 0,
+    openSupportTickets: 0,
   });
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
@@ -71,7 +73,6 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     };
 
     fetchCounts();
-    // Refresh counts every 30 seconds
     const interval = setInterval(fetchCounts, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -115,6 +116,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard/users`, label: 'Stores', icon: Store },
     { href: `/dashboard/custom-domains`, label: 'Custom Domains', icon: Globe, count: counts.pendingDomains },
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: counts.pendingSubscriptions },
+    { href: `/dashboard/support`, label: 'Support Tickets', icon: LifeBuoy, count: counts.openSupportTickets },
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
     { href: `/dashboard/landing-page`, label: 'Landing Page', icon: Monitor },
@@ -163,32 +165,6 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     return linkComponent;
   };
   
-  const HeaderLogo = () => {
-    if (isInfoLoading || !siteInfo) {
-      return (
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10" />
-          <Skeleton className="h-6 w-32" />
-        </div>
-      );
-    }
-
-    return (
-      <Link href="/dashboard" className="flex items-center gap-3">
-        {siteInfo.logoUrl ? (
-          <div className="relative h-10 w-10">
-            <Image src={siteInfo.logoUrl} alt={siteInfo.name} fill className="object-contain" />
-          </div>
-        ) : (
-          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center font-bold text-lg">
-            {siteInfo.name.charAt(0)}
-          </div>
-        )}
-        <span className="text-xl font-bold font-headline">{siteInfo.name}</span>
-      </Link>
-    );
-  };
-  
   const SidebarContent = () => (
     <div className="flex h-full max-h-screen flex-col gap-2 text-sidebar-foreground bg-sidebar">
       {!isMobile && (
@@ -217,6 +193,32 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
       </div>
     </div>
   );
+
+  const HeaderLogo = () => {
+    if (isInfoLoading || !siteInfo) {
+      return (
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10" />
+          <Skeleton className="h-6 w-32" />
+        </div>
+      );
+    }
+
+    return (
+      <Link href="/dashboard" className="flex items-center gap-3">
+        {siteInfo.logoUrl ? (
+          <div className="relative h-10 w-10">
+            <Image src={siteInfo.logoUrl} alt={siteInfo.name} fill className="object-contain" />
+          </div>
+        ) : (
+          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center font-bold text-lg">
+            {siteInfo.name.charAt(0)}
+          </div>
+        )}
+        <span className="text-xl font-bold font-headline">{siteInfo.name}</span>
+      </Link>
+    );
+  };
 
   if (isMobile) {
     return <SidebarContent />;
