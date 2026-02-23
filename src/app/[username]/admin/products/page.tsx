@@ -291,11 +291,11 @@ export default function ProductsAdminPage() {
             </CardContent>
             {totalPages > 1 && (
                 <CardFooter className="flex justify-center gap-4 py-4 border-t">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1}>
                         আগেরটি
                     </Button>
                     <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))} disabled={currentPage === totalPages}>
                         পরবর্তী
                     </Button>
                 </CardFooter>
@@ -335,11 +335,11 @@ export default function ProductsAdminPage() {
             ))}
             {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-4 py-4">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1}>
                         আগেরটি
                     </Button>
                     <span className="text-xs font-medium">{currentPage} / {totalPages}</span>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))} disabled={currentPage === totalPages}>
                         পরবর্তী
                     </Button>
                 </div>

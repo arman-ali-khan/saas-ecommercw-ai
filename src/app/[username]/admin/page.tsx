@@ -5,7 +5,7 @@ import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { subDays, format as safeDateFormatter } from 'date-fns';
+import { subDays, format as dateFnsFormat } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Ban, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -82,14 +82,14 @@ export default function AdminDashboard() {
 
         // Daily Revenue Calculation
         const dailyRevenueMap: { [key: string]: number } = {};
-        for (let i = 6; i >= 0; i--) {
-          const dayInstance = subDays(new Date(), i);
-          const dateLabelString = safeDateFormatter(dayInstance, 'MMM d');
+        for (let idx = 6; idx >= 0; idx--) {
+          const dayInstance = subDays(new Date(), idx);
+          const dateLabelString = dateFnsFormat(dayInstance, 'MMM d');
           dailyRevenueMap[dateLabelString] = 0;
         }
         
         finalOrders.filter((ordRecord: any) => new Date(ordRecord.created_at) >= lastWeekDateTime && ordRecord.status === 'delivered').forEach((ordRecord: any) => {
-          const dateLabelString = safeDateFormatter(new Date(ordRecord.created_at), 'MMM d');
+          const dateLabelString = dateFnsFormat(new Date(ordRecord.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenueMap, dateLabelString)) {
             dailyRevenueMap[dateLabelString] += (ordRecord.total || 0);
           }

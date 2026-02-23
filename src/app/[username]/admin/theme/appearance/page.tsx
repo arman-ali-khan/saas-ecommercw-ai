@@ -63,7 +63,6 @@ const appearanceSchema = z.object({
 
 type AppearanceFormData = z.infer<typeof appearanceSchema>;
 
-// --- Conversion helpers ---
 const hexToHslString = (hex: string) => {
     hex = hex.replace(/^#/, '');
     const r = parseInt(hex.substring(0, 2), 16) / 255;
@@ -103,7 +102,7 @@ const hslStringToHex = (hslStr: string) => {
         r = Math.round((r + m) * 255);
         g = Math.round((g + m) * 255);
         b = Math.round((b + m) * 255);
-        const toHex = (c: number) => ('0' + c.toString(16)).slice(-2);
+        const toHex = (colorComp: number) => ('0' + colorComp.toString(16)).slice(-2);
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     } catch (e) {
         return '#000000';
@@ -141,10 +140,6 @@ const palettes = [
     { name: 'Daraz (Dark)', colors: { theme_primary: '22 89% 54%', theme_primary_foreground: '0 0% 100%', theme_secondary: '210 100% 10%', theme_secondary_foreground: '0 0% 100%', theme_accent: '210 100% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '210 100% 5%', theme_foreground: '0 0% 100%', theme_card: '210 100% 8%', theme_card_foreground: '0 0% 100%', theme_muted: '210 100% 12%', theme_muted_foreground: '210 100% 70%', theme_border: '210 100% 15%', theme_input: '210 100% 15%', theme_destructive: '0 100% 40%' } },
     { name: 'AliExpress (Light)', colors: { theme_primary: '0 100% 64%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 13%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 98%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
     { name: 'AliExpress (Dark)', colors: { theme_primary: '0 100% 64%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 5%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 10%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 2%', theme_foreground: '0 0% 100%', theme_card: '0 0% 5%', theme_card_foreground: '0 0% 100%', theme_muted: '0 0% 8%', theme_muted_foreground: '0 0% 70%', theme_border: '0 0% 12%', theme_input: '0 0% 12%', theme_destructive: '0 100% 40%' } },
-    { name: 'IKEA (Light)', colors: { theme_primary: '208 100% 32%', theme_primary_foreground: '0 0% 100%', theme_secondary: '48 100% 50%', theme_secondary_foreground: '208 100% 10%', theme_accent: '48 100% 60%', theme_accent_foreground: '208 100% 10%', theme_background: '0 0% 100%', theme_foreground: '208 100% 10%', theme_card: '0 0% 100%', theme_card_foreground: '208 100% 10%', theme_muted: '208 100% 95%', theme_muted_foreground: '208 100% 40%', theme_border: '208 100% 90%', theme_input: '208 100% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'IKEA (Dark)', colors: { theme_primary: '208 100% 32%', theme_primary_foreground: '0 0% 100%', theme_secondary: '48 100% 30%', theme_secondary_foreground: '0 0% 100%', theme_accent: '48 100% 40%', theme_accent_foreground: '0 0% 100%', theme_background: '208 100% 5%', theme_foreground: '0 0% 100%', theme_card: '208 100% 8%', theme_card_foreground: '0 0% 100%', theme_muted: '208 100% 12%', theme_muted_foreground: '208 100% 70%', theme_border: '208 100% 15%', theme_input: '208 100% 15%', theme_destructive: '0 100% 40%' } },
-    { name: 'Xbox (Dark)', colors: { theme_primary: '120 77% 28%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 0%', theme_secondary_foreground: '0 0% 98%', theme_accent: '0 0% 10%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 0%', theme_foreground: '0 0% 98%', theme_card: '0 0% 5%', theme_card_foreground: '0 0% 98%', theme_muted: '0 0% 10%', theme_muted_foreground: '0 0% 60%', theme_border: '0 0% 15%', theme_input: '0 0% 15%', theme_destructive: '0 100% 40%' } },
-    { name: 'Xbox (Light)', colors: { theme_primary: '120 77% 28%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 96%', theme_secondary_foreground: '0 0% 10%', theme_accent: '0 0% 90%', theme_accent_foreground: '0 0% 10%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 96%', theme_muted_foreground: '0 0% 45%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
 ];
 
 

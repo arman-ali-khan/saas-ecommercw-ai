@@ -228,11 +228,11 @@ export default function CustomersAdminPage() {
       </CardContent>
       {totalPages > 1 && (
         <CardFooter className="flex justify-center gap-4 py-4 border-t">
-            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1}>
                 <ChevronLeft className="h-4 w-4 mr-1" /> আগেরটি
             </Button>
             <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
-            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))} disabled={currentPage === totalPages}>
                 পরবর্তী <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
         </CardFooter>

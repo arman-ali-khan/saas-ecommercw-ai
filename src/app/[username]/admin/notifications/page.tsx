@@ -259,7 +259,7 @@ export default function AdminNotificationsPage() {
                             variant="outline"
                             size="sm"
                             className="rounded-xl h-10 w-10 p-0"
-                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))}
                             disabled={currentPage === 1}
                         >
                             <ChevronLeft className="h-5 w-5" />
@@ -271,7 +271,7 @@ export default function AdminNotificationsPage() {
                             variant="outline"
                             size="sm"
                             className="rounded-xl h-10 w-10 p-0"
-                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))}
                             disabled={currentPage === totalPages}
                         >
                             <ChevronRight className="h-5 w-5" />

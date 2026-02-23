@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
-    const { siteId } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const siteId = body.siteId;
 
     if (!siteId) {
       return NextResponse.json({ error: 'Site ID is required' }, { status: 400 });
@@ -14,33 +15,16 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Explicitly select ALL theme fields to ensure consistency
+    // We select * because the user might not have run the SQL to add new columns yet.
+    // Selecting specific columns that don't exist causes a 500 error in PostgREST.
     const { data, error } = await supabaseAdmin
       .from('store_settings')
-      .select(`
-        theme_mode,
-        theme_primary, 
-        theme_primary_foreground,
-        theme_secondary, 
-        theme_secondary_foreground,
-        theme_accent, 
-        theme_accent_foreground,
-        theme_background, 
-        theme_foreground, 
-        theme_card, 
-        theme_card_foreground,
-        theme_muted,
-        theme_muted_foreground,
-        theme_border,
-        theme_input,
-        theme_destructive,
-        font_primary, 
-        font_secondary
-      `)
+      .select('*')
       .eq('site_id', siteId)
-      .single();
+      .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
+      console.error('Database query error in get appearance:', error);
       throw error;
     }
 
