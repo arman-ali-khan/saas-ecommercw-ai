@@ -354,8 +354,8 @@ export default function ManageProductPage() {
                     <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6"><div className="grid grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square w-full rounded-xl" />)}</div></CardContent></Card>
                 </div>
                 <div className="space-y-8">
-                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent></Card>
-                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent></Card>
+                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent>
+                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent>
                 </div>
             </div>
         </div>
@@ -617,9 +617,9 @@ export default function ManageProductPage() {
 
             {/* Sticky Action Bar */}
             <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t p-4 z-[100] md:left-[220px] lg:left-[280px] shadow-[0_-10px_20px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom duration-500">
-                <div className="container max-w-5xl mx-auto flex flex-col sm:flex-row justify-end items-center gap-3">
-                    <Button type="button" variant="outline" onClick={() => router.push('/admin/products')} className="w-full sm:w-auto h-12 rounded-xl">বাতিল করুন</Button>
-                    <Button type="submit" disabled={isSubmitting || isLimitReached} className="w-full sm:w-auto min-w-[180px] h-12 rounded-xl shadow-lg shadow-primary/20 font-bold text-lg">
+                <div className="container max-w-5xl mx-auto flex flex-row justify-end items-center gap-3">
+                    <Button type="button" variant="outline" onClick={() => router.push('/admin/products')} className="flex-1 sm:flex-none sm:min-w-[120px] h-11 sm:h-12 rounded-xl text-sm sm:text-base whitespace-nowrap">বাতিল করুন</Button>
+                    <Button type="submit" disabled={isSubmitting || isLimitReached} className="flex-[2] sm:flex-none sm:min-w-[220px] h-11 sm:h-12 rounded-xl shadow-lg shadow-primary/20 font-bold text-sm sm:text-lg whitespace-nowrap">
                         {isSubmitting ? (
                             <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> সেভ হচ্ছে...</>
                         ) : (
