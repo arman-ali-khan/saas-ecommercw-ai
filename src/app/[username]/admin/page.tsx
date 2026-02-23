@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -100,8 +101,10 @@ export default function AdminDashboard() {
             const hasVariants = individualItemRecord.variants && Array.isArray(individualItemRecord.variants) && individualItemRecord.variants.length > 0;
             
             if (hasVariants) {
+                // If has variants, check if ANY variant is below threshold
                 return individualItemRecord.variants.some((vItemRecord: any) => (vItemRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
             }
+            // Standard product check
             return (individualItemRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
         }).sort((aItemRecord: any, bItemRecord: any) => {
             const getEffectiveStock = (productItemForStock: any) => {

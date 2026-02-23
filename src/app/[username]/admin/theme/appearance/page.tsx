@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -40,41 +41,42 @@ import { Switch } from '@/components/ui/switch';
 
 const hslColorRegex = /^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/;
 
+// Made schema more resilient by allowing optional strings or nulls initially
 const appearanceSchema = z.object({
   theme_mode: z.enum(['light', 'dark']).default('light'),
-  theme_primary: z.string().regex(hslColorRegex, 'Invalid HSL color format (e.g., 207 90% 61%)'),
-  theme_primary_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_secondary: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_secondary_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_accent: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_accent_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_background: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_card: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_card_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_muted: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_muted_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_border: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_input: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
-  theme_destructive: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
+  theme_primary: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_primary_foreground: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_secondary: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_secondary_foreground: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_accent: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_accent_foreground: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_background: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_foreground: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_card: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_card_foreground: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_muted: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_muted_foreground: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_border: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_input: z.string().optional().or(z.null()).or(z.literal('')),
+  theme_destructive: z.string().optional().or(z.null()).or(z.literal('')),
   font_primary: z.string().min(1, 'Primary font is required'),
   font_secondary: z.string().min(1, 'Secondary font is required'),
 });
 
 type AppearanceFormData = z.infer<typeof appearanceSchema>;
 
-const hexToHslString = (hex: string) => {
-    hex = hex.replace(/^#/, '');
-    const r = parseInt(hex.substring(0, 2), 16) / 255;
-    const g = parseInt(hex.substring(2, 4), 16) / 255;
-    const b = parseInt(hex.substring(4, 6), 16) / 255;
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let h = 0, s = 0, l = (max + min) / 2;
-    if (max !== min) {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
+const hexToHslString = (hexVal: string) => {
+    hexVal = hexVal.replace(/^#/, '');
+    const r = parseInt(hexVal.substring(0, 2), 16) / 255;
+    const g = parseInt(hexVal.substring(2, 4), 16) / 255;
+    const b = parseInt(hexVal.substring(4, 6), 16) / 255;
+    const maxVal = Math.max(r, g, b);
+    const minVal = Math.min(r, g, b);
+    let h = 0, s = 0, l = (maxVal + minVal) / 2;
+    if (maxVal !== minVal) {
+        const d = maxVal - minVal;
+        s = l > 0.5 ? d / (2 - maxVal - minVal) : d / (maxVal + minVal);
+        switch (maxVal) {
             case r: h = (g - b) / d + (g < b ? 6 : 0); break;
             case g: h = (b - r) / d + 2; break;
             case b: h = (r - g) / d + 4; break;
@@ -84,9 +86,10 @@ const hexToHslString = (hex: string) => {
     return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 };
 
-const hslStringToHex = (hslStr: string) => {
+const hslStringToHex = (hslStrVal: string) => {
     try {
-        let [h, s, l] = hslStr.split(' ').map(v => parseInt(v.replace('%', '')));
+        if (!hslStrVal || !hslColorRegex.test(hslStrVal)) return '#000000';
+        let [h, s, l] = hslStrVal.split(' ').map(vItem => parseInt(vItem.replace('%', '')));
         s /= 100;
         l /= 100;
         const c = (1 - Math.abs(2 * l - 1)) * s;
@@ -110,7 +113,7 @@ const hslStringToHex = (hslStr: string) => {
 };
 
 const ColorInput = ({ field, label }: { field: any, label: string }) => {
-    const hexColor = hslStringToHex(field.value || '0 0% 0%');
+    const hexColorVal = hslStringToHex(field.value || '0 0% 0%');
 
     return (
         <FormItem>
@@ -118,7 +121,7 @@ const ColorInput = ({ field, label }: { field: any, label: string }) => {
             <div className="flex items-center gap-2">
                  <Input
                     type="color"
-                    value={hexColor}
+                    value={hexColorVal}
                     onChange={(e) => field.onChange(hexToHslString(e.target.value))}
                     className="w-12 h-10 p-1 cursor-pointer shrink-0"
                     />
@@ -131,15 +134,12 @@ const ColorInput = ({ field, label }: { field: any, label: string }) => {
     );
 };
 
-const palettes = [
+const PREMIUM_PALETTES = [
     { name: 'eHut (Dark)', colors: { theme_primary: '207 90% 61%', theme_primary_foreground: '224 71% 4%', theme_secondary: '217 33% 17%', theme_secondary_foreground: '210 40% 98%', theme_accent: '207 92% 77%', theme_accent_foreground: '224 71% 4%', theme_background: '224 71% 4%', theme_foreground: '210 40% 98%', theme_card: '224 71% 6%', theme_card_foreground: '210 40% 98%', theme_muted: '217 33% 17%', theme_muted_foreground: '215 20% 65%', theme_border: '217 33% 27%', theme_input: '217 33% 27%', theme_destructive: '0 63% 31%' } },
     { name: 'eHut (Light)', colors: { theme_primary: '207 90% 61%', theme_primary_foreground: '0 0% 100%', theme_secondary: '210 40% 96%', theme_secondary_foreground: '224 71% 4%', theme_accent: '207 92% 77%', theme_accent_foreground: '224 71% 4%', theme_background: '0 0% 100%', theme_foreground: '224 71% 4%', theme_card: '0 0% 100%', theme_card_foreground: '224 71% 4%', theme_muted: '210 40% 96%', theme_muted_foreground: '215 20% 45%', theme_border: '214 32% 91%', theme_input: '214 32% 91%', theme_destructive: '0 84% 60%' } },
     { name: 'Amazon (Light)', colors: { theme_primary: '36 100% 50%', theme_primary_foreground: '0 0% 100%', theme_secondary: '215 28% 19%', theme_secondary_foreground: '0 0% 100%', theme_accent: '36 100% 60%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '215 28% 10%', theme_card: '0 0% 98%', theme_card_foreground: '215 28% 10%', theme_muted: '215 28% 95%', theme_muted_foreground: '215 28% 40%', theme_border: '215 28% 90%', theme_input: '215 28% 90%', theme_destructive: '0 100% 40%' } },
     { name: 'Amazon (Dark)', colors: { theme_primary: '36 100% 50%', theme_primary_foreground: '0 0% 100%', theme_secondary: '215 28% 10%', theme_secondary_foreground: '0 0% 100%', theme_accent: '36 100% 40%', theme_accent_foreground: '0 0% 100%', theme_background: '215 28% 5%', theme_foreground: '0 0% 100%', theme_card: '215 28% 8%', theme_card_foreground: '0 0% 100%', theme_muted: '215 28% 12%', theme_muted_foreground: '215 28% 70%', theme_border: '215 28% 15%', theme_input: '215 28% 15%', theme_destructive: '0 100% 40%' } },
     { name: 'Daraz (Light)', colors: { theme_primary: '22 89% 54%', theme_primary_foreground: '0 0% 100%', theme_secondary: '210 100% 27%', theme_secondary_foreground: '0 0% 100%', theme_accent: '210 100% 35%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '210 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '210 100% 10%', theme_muted: '210 100% 95%', theme_muted_foreground: '210 100% 40%', theme_border: '210 100% 90%', theme_input: '210 100% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'Daraz (Dark)', colors: { theme_primary: '22 89% 54%', theme_primary_foreground: '0 0% 100%', theme_secondary: '210 100% 10%', theme_secondary_foreground: '0 0% 100%', theme_accent: '210 100% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '210 100% 5%', theme_foreground: '0 0% 100%', theme_card: '210 100% 8%', theme_card_foreground: '0 0% 100%', theme_muted: '210 100% 12%', theme_muted_foreground: '210 100% 70%', theme_border: '210 100% 15%', theme_input: '210 100% 15%', theme_destructive: '0 100% 40%' } },
-    { name: 'AliExpress (Light)', colors: { theme_primary: '0 100% 64%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 13%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 98%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'AliExpress (Dark)', colors: { theme_primary: '0 100% 64%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 5%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 10%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 2%', theme_foreground: '0 0% 100%', theme_card: '0 0% 5%', theme_card_foreground: '0 0% 100%', theme_muted: '0 0% 8%', theme_muted_foreground: '0 0% 70%', theme_border: '0 0% 12%', theme_input: '0 0% 12%', theme_destructive: '0 100% 40%' } },
 ];
 
 
@@ -152,7 +152,7 @@ export default function AppearanceManagerPage() {
 
   const form = useForm<AppearanceFormData>({
     resolver: zodResolver(appearanceSchema),
-    defaultValues: { ...palettes[0].colors, theme_mode: 'light' } as any,
+    defaultValues: { ...PREMIUM_PALETTES[0].colors, theme_mode: 'light', font_primary: 'Poppins', font_secondary: 'Poppins' } as any,
   });
 
   const fetchAppearance = useCallback(async () => {
@@ -167,9 +167,14 @@ export default function AppearanceManagerPage() {
         
         if (response.ok && result.appearance) {
             const data = result.appearance;
+            // Provide explicit fallbacks from default palette if values are null/undefined from DB
+            const sanitizedData: any = { ...PREMIUM_PALETTES[0].colors };
+            Object.keys(PREMIUM_PALETTES[0].colors).forEach(key => {
+                if (data[key]) sanitizedData[key] = data[key];
+            });
+
             form.reset({
-                ...palettes[0].colors,
-                ...data,
+                ...sanitizedData,
                 theme_mode: data.theme_mode || 'light',
                 font_primary: data.font_primary || 'Poppins',
                 font_secondary: data.font_secondary || 'Poppins',
@@ -215,9 +220,9 @@ export default function AppearanceManagerPage() {
     }
   }
 
-  const handlePaletteSelect = (palette: typeof palettes[0]) => {
-    Object.entries(palette.colors).forEach(([key, value]) => {
-      form.setValue(key as keyof AppearanceFormData, value, { shouldDirty: true, shouldValidate: true });
+  const handlePaletteSelect = (palette: typeof PREMIUM_PALETTES[0]) => {
+    Object.entries(palette.colors).forEach(([key, valStr]) => {
+      form.setValue(key as keyof AppearanceFormData, valStr, { shouldDirty: true, shouldValidate: true });
     });
     toast({ title: `Applied "${palette.name}" palette.` });
   };
@@ -271,12 +276,12 @@ export default function AppearanceManagerPage() {
 
       <Card className="border-2 shadow-sm">
         <CardHeader className="bg-muted/30">
-          <CardTitle className="flex items-center gap-2 text-xl"><Palette className="h-5 w-5 text-primary"/> Premium Palettes (Light & Dark)</CardTitle>
-          <CardDescription>Apply the look of popular platforms. Switch between Light and Dark versions.</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-xl"><Palette className="h-5 w-5 text-primary"/> Premium Palettes</CardTitle>
+          <CardDescription>Apply the look of popular platforms instantly.</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {palettes.map((palette) => (
+                {PREMIUM_PALETTES.map((palette) => (
                     <button
                         key={palette.name}
                         type="button"
@@ -284,8 +289,8 @@ export default function AppearanceManagerPage() {
                         className="p-3 border-2 rounded-xl hover:ring-4 hover:ring-primary/10 hover:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all group bg-card/50 text-left"
                     >
                         <div className="flex gap-0.5 h-10 w-full mb-3 rounded-lg overflow-hidden shadow-inner border border-border/50">
-                            {Object.values(palette.colors).slice(0, 5).map((color, i) => (
-                                <div key={i} className="flex-1" style={{ backgroundColor: `hsl(${color})` }} />
+                            {Object.values(palette.colors).slice(0, 5).map((colorVal, iIdx) => (
+                                <div key={iIdx} className="flex-1" style={{ backgroundColor: `hsl(${colorVal})` }} />
                             ))}
                         </div>
                         <p className="text-[10px] font-black uppercase tracking-wider truncate group-hover:text-primary">{palette.name}</p>
@@ -354,7 +359,7 @@ export default function AppearanceManagerPage() {
                                       </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                      {fontOptions.map(font => <SelectItem key={font} value={font}>{font}</SelectItem>)}
+                                      {fontOptions.map(fOpt => <SelectItem key={fOpt} value={fOpt}>{fOpt}</SelectItem>)}
                                   </SelectContent>
                               </Select>
                               <FormMessage />
@@ -370,7 +375,7 @@ export default function AppearanceManagerPage() {
                                       </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                      {fontOptions.map(font => <SelectItem key={font} value={font}>{font}</SelectItem>)}
+                                      {fontOptions.map(fOpt => <SelectItem key={fOpt} value={fOpt}>{fOpt}</SelectItem>)}
                                   </SelectContent>
                               </Select>
                               <FormMessage />
