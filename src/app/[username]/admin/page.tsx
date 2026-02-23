@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import Link from 'next/link';
-import { format as formatDate, subDays } from 'date-fns';
+import { format as safeFormat, subDays } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Ban, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -82,12 +82,12 @@ export default function AdminDashboard() {
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
           const d = subDays(new Date(), i);
-          const dateStr = formatDate(d, 'MMM d');
+          const dateStr = safeFormat(d, 'MMM d');
           dailyRevenue[dateStr] = 0;
         }
         
         fetchedOrders.filter((o: any) => new Date(o.created_at) >= sevenDaysAgo && o.status === 'delivered').forEach((o: any) => {
-          const dateStr = formatDate(new Date(o.created_at), 'MMM d');
+          const dateStr = safeFormat(new Date(o.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) {
             dailyRevenue[dateStr] += o.total;
           }

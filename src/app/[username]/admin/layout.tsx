@@ -1,4 +1,3 @@
-
 'use client';
 
 import AdminSidebar from '@/components/admin-sidebar';
@@ -10,7 +9,7 @@ import { useAdminStore } from '@/stores/useAdminStore';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal, Loader2, AlertCircle, Bell, X } from 'lucide-react';
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { differenceInDays, isBefore, format } from 'date-fns';
+import { differenceInDays, isBefore, format as safeFormat } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import type { Notification } from '@/types';
@@ -195,7 +194,7 @@ export default function AdminLayout({
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Subscription Expired</AlertTitle>
                   <AlertDescription>
-                    Your subscription ended on {user?.subscription_end_date ? format(new Date(user.subscription_end_date), 'PP') : 'N/A'}. 
+                    Your subscription ended on {user?.subscription_end_date ? safeFormat(new Date(user.subscription_end_date), 'PP') : 'N/A'}. 
                     Please renew your plan to continue using all features.
                   </AlertDescription>
               </Alert>
