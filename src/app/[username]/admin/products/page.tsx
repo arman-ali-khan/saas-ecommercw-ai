@@ -179,7 +179,7 @@ export default function ProductsAdminPage() {
           <p className="text-muted-foreground">{currentTranslations.description}</p>
         </div>
         <Button asChild>
-          <Link href={`/admin/products/new`}><Plus className="mr-2 h-4 w-4" /> {currentTranslations.addProduct}</Link>
+          <Link href={`/admin/products/new`}><Plus className="mr-2 h-4 w-4" /> <span className='hidden sm:block'>{currentTranslations.addProduct}</span></Link>
         </Button>
       </div>
 
