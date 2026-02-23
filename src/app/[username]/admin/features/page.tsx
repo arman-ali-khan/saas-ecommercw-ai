@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
 import ImageUploader from '@/components/image-uploader';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const featureSchema = z.object({
     title: z.string().min(1, 'Title is required.'),
@@ -202,25 +203,53 @@ export default function FeaturesAdminPage() {
     };
     
     if (isLoading && features.length === 0) {
-        return <div className="flex items-center justify-center p-16"><Loader2 className="h-10 w-10 animate-spin text-muted-foreground" /></div>;
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between px-1">
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-4 w-80" />
+                    </div>
+                    <Skeleton className="h-10 w-32 rounded-md" />
+                </div>
+                <Card>
+                    <CardContent className="p-0">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="flex items-center p-4 gap-4 border-b last:border-0">
+                                <Skeleton className="h-5 w-5 rounded shrink-0" />
+                                <Skeleton className="h-16 w-16 rounded-md shrink-0" />
+                                <div className="flex-grow space-y-2">
+                                    <Skeleton className="h-5 w-1/3" />
+                                    <Skeleton className="h-3 w-1/2" />
+                                </div>
+                                <div className="flex gap-2">
+                                    <Skeleton className="h-8 w-8 rounded-md" />
+                                    <Skeleton className="h-8 w-8 rounded-md" />
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            </div>
+        );
     }
     
     return (
         <>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 px-1">
                 <div>
                     <h1 className="text-2xl font-bold">Store Features</h1>
-                    <p className="text-muted-foreground">Manage features for the "Why We Are Different" section.</p>
+                    <p className="text-muted-foreground text-sm">Manage features for the "Why We Are Different" section.</p>
                 </div>
-                <Button onClick={() => openForm(null)}><Plus className="mr-2 h-4 w-4" /> Add Feature</Button>
+                <Button onClick={() => openForm(null)}><Plus className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Add Feature</span></Button>
             </div>
 
             <Card>
                 <CardContent className="p-0">
                     {features.length === 0 ? (
-                        <div className="text-center py-16">
-                            <Sparkles className="mx-auto h-12 w-12 text-muted-foreground" />
-                             <p className="text-muted-foreground mt-4">You have no features yet.</p>
+                        <div className="text-center py-24 bg-card rounded-3xl border border-dashed border-border/50">
+                            <Sparkles className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+                             <p className="text-muted-foreground">You have no features yet.</p>
                              <Button className="mt-4" onClick={() => openForm(null)}><Plus className="mr-2 h-4 w-4" /> Add your first feature</Button>
                         </div>
                     ) : (
@@ -228,9 +257,9 @@ export default function FeaturesAdminPage() {
                             {/* Desktop View */}
                             <div className="divide-y divide-border hidden md:block">
                                 {features.map((feature, index) => (
-                                    <div key={feature.id} className="flex items-center p-4 gap-4">
-                                        <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />
-                                        <div className="relative h-16 w-16 rounded-md overflow-hidden shrink-0 bg-muted">
+                                    <div key={feature.id} className="flex items-center p-4 gap-4 group transition-colors hover:bg-muted/30">
+                                        <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 cursor-grab" />
+                                        <div className="relative h-16 w-16 rounded-md overflow-hidden shrink-0 bg-muted border">
                                             {feature.image_url ? (
                                                 <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
                                             ) : (
@@ -239,15 +268,15 @@ export default function FeaturesAdminPage() {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex-grow">
-                                            <h3 className="font-semibold">{feature.title}</h3>
-                                            <p className="text-sm text-muted-foreground truncate">{feature.description}</p>
+                                        <div className="flex-grow min-w-0">
+                                            <h3 className="font-bold text-sm sm:text-base leading-tight truncate">{feature.title}</h3>
+                                            <p className="text-xs sm:text-sm text-muted-foreground truncate mt-1">{feature.description}</p>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" onClick={() => handleMove(index, 'up')} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleMove(index, 'down')} disabled={index === features.length - 1}><ArrowDown className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => openForm(feature)}><Edit className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => openDeleteAlert(feature)}><Trash2 className="h-4 w-4" /></Button>
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleMove(index, 'up')} disabled={index === 0}><ArrowUp className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleMove(index, 'down')} disabled={index === features.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openForm(feature)}><Edit className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => openDeleteAlert(feature)}><Trash2 className="h-4 w-4" /></Button>
                                         </div>
                                     </div>
                                 ))}
@@ -256,11 +285,11 @@ export default function FeaturesAdminPage() {
                              {/* Mobile View */}
                             <div className="grid gap-4 md:hidden p-4">
                                 {features.map((feature, index) => (
-                                    <Card key={feature.id}>
-                                        <CardHeader>
+                                    <Card key={feature.id} className="border-2">
+                                        <CardHeader className="p-4 pb-2">
                                             <div className="flex justify-between items-start">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="relative h-12 w-12 rounded-md overflow-hidden shrink-0 bg-muted">
+                                                    <div className="relative h-12 w-12 rounded-md overflow-hidden shrink-0 bg-muted border">
                                                         {feature.image_url ? (
                                                             <Image src={feature.image_url} alt={feature.title} fill className="object-cover" />
                                                         ) : (
@@ -269,7 +298,7 @@ export default function FeaturesAdminPage() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <CardTitle>{feature.title}</CardTitle>
+                                                    <CardTitle className="text-base font-bold">{feature.title}</CardTitle>
                                                 </div>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="-mt-2 -mr-2"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -283,8 +312,8 @@ export default function FeaturesAdminPage() {
                                             </div>
                                         </CardHeader>
                                         {feature.description && (
-                                            <CardContent>
-                                                <p className="text-muted-foreground text-sm">{feature.description}</p>
+                                            <CardContent className="p-4 pt-0">
+                                                <p className="text-muted-foreground text-xs leading-relaxed">{feature.description}</p>
                                             </CardContent>
                                         )}
                                     </Card>
@@ -298,8 +327,8 @@ export default function FeaturesAdminPage() {
             {/* Form Modal */}
             {isFormOpen && (
                 <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsFormOpen(false)} />
-                    <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsFormOpen(false)} />
+                    <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col border-2 border-primary/10">
                         <div className="flex items-center justify-between p-6 border-b">
                             <h2 className="text-xl font-bold">{selectedFeature ? 'Edit Feature' : 'Add New Feature'}</h2>
                             <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
@@ -310,32 +339,32 @@ export default function FeaturesAdminPage() {
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                     <FormField control={form.control} name="title" render={({ field }) => (
-                                        <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., সরাসরি কৃষক থেকে" {...field} className="h-11" /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel className="font-bold">Title</FormLabel><FormControl><Input placeholder="e.g., সরাসরি কৃষক থেকে" {...field} className="h-11" /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField control={form.control} name="description" render={({ field }) => (
-                                        <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short description." {...field} rows={3} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel className="font-bold">Description</FormLabel><FormControl><Textarea placeholder="A short description." {...field} rows={3} className="resize-none" /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField control={form.control} name="image_url" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Feature Image (Optional)</FormLabel>
+                                            <FormLabel className="font-bold">Feature Image (Optional)</FormLabel>
                                             <div className="flex flex-col sm:flex-row items-start gap-4">
-                                                <div className="relative h-24 w-24 rounded-md border flex items-center justify-center bg-muted overflow-hidden shrink-0">
-                                                    {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Preview</span>}
+                                                <div className="relative h-24 w-24 rounded-xl border-2 border-dashed flex items-center justify-center bg-muted overflow-hidden shrink-0">
+                                                    {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-[10px] text-muted-foreground uppercase font-black">Preview</span>}
                                                 </div>
-                                                <div className="space-y-2 flex-grow w-full">
+                                                <div className="space-y-3 flex-grow w-full">
                                                     <FormControl><Input placeholder="https://example.com/image.png" {...field} className="h-11" /></FormControl>
-                                                    <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} label="Upload Image" />
+                                                    <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} label="Upload New Image" />
                                                 </div>
                                             </div>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                     <FormField control={form.control} name="icon" render={({ field }) => (
-                                        <FormItem><FormLabel>Fallback Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel className="font-bold">Fallback Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <div className="pt-4 flex gap-3 pb-8 sm:pb-0">
                                         <Button type="button" variant="outline" className="flex-1 h-12 rounded-xl" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-                                        <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20">
+                                        <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20 font-bold">
                                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Feature'}
                                         </Button>
                                     </div>
@@ -347,14 +376,19 @@ export default function FeaturesAdminPage() {
             )}
 
             <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-                <AlertDialogContent>
+                <AlertDialogContent className="rounded-2xl">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete this feature.</AlertDialogDescription>
+                        <div className="flex items-center gap-3 mb-2 text-destructive">
+                            <div className="p-2 bg-destructive/10 rounded-full"><Trash2 className="h-6 w-6" /></div>
+                            <AlertDialogTitle className="text-xl">Are you absolutely sure?</AlertDialogTitle>
+                        </div>
+                        <AlertDialogDescription>
+                            This will permanently delete this feature. This action cannot be undone.
+                        </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className={cn(buttonVariants({ variant: "destructive" }))}>
+                    <AlertDialogFooter className="mt-6">
+                        <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className={cn(buttonVariants({ variant: "destructive" }), "rounded-xl shadow-lg shadow-destructive/20")}>
                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Delete'}
                         </AlertDialogAction>
                     </AlertDialogFooter>

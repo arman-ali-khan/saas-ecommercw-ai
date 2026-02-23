@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -43,6 +42,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { ProductReview, Product } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const reviewFormSchema = z.object({
   product_id: z.string().min(1, 'Please select a product.'),
@@ -229,73 +229,102 @@ export default function ReviewsAdminPage() {
     return reviews.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   }, [reviews, currentPage]);
 
-  if (isLoading) {
+  if (isLoading && reviews.length === 0) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Review Manager</CardTitle>
-                <CardDescription>Approve and manage product reviews from your customers.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center py-16">
-                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-            </CardContent>
-        </Card>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between px-1">
+                <div className="space-y-2">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-80" />
+                </div>
+                <Skeleton className="h-10 w-28 rounded-md" />
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_, i) => (
+                    <Card key={i} className="flex flex-col">
+                        <CardHeader className="space-y-4">
+                            <div className="flex justify-between items-start">
+                                <div className="space-y-2">
+                                    <Skeleton className="h-5 w-32" />
+                                    <Skeleton className="h-3 w-24" />
+                                </div>
+                                <Skeleton className="h-6 w-16 rounded-full" />
+                            </div>
+                            <Skeleton className="h-4 w-24" />
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-3/4" />
+                        </CardContent>
+                        <CardFooter className="justify-between pt-4">
+                            <Skeleton className="h-3 w-20" />
+                            <div className="flex gap-2">
+                                <Skeleton className="h-8 w-8 rounded-md" />
+                                <Skeleton className="h-8 w-8 rounded-md" />
+                            </div>
+                        </CardFooter>
+                    </Card>
+                ))}
+            </div>
+        </div>
     );
   }
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle>Review Manager</CardTitle>
-                <CardDescription>Approve and manage product reviews from your customers.</CardDescription>
-            </div>
-            <Button onClick={() => openForm(null)}>
-              <Plus className="mr-2 h-4 w-4" /> Add Review
-            </Button>
-        </CardHeader>
-        <CardContent>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 px-1">
+          <div>
+              <h1 className="text-2xl font-bold">Review Manager</h1>
+              <p className="text-muted-foreground">Approve and manage product reviews from your customers.</p>
+          </div>
+          <Button onClick={() => openForm(null)}>
+            <Plus className="mr-2 h-4 w-4" /> Add Review
+          </Button>
+      </div>
+
+      <Card className="border-none shadow-none bg-transparent">
+        <CardContent className="p-0">
           {reviews.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <p>No reviews have been submitted yet.</p>
+            <div className="text-center py-24 bg-card rounded-3xl border border-dashed border-border/50">
+              <Star className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+              <p className="text-muted-foreground">No reviews have been submitted yet.</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {paginatedReviews.map(review => (
-                <Card key={review.id} className="flex flex-col">
+                <Card key={review.id} className="flex flex-col border-2 hover:border-primary/20 transition-all duration-300">
                   <CardHeader>
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle>{review.customer_name}</CardTitle>
-                            <CardDescription className="truncate max-w-[150px]">Product ID: {review.product_id}</CardDescription>
+                            <CardTitle className="text-lg">{review.customer_name}</CardTitle>
+                            <CardDescription className="truncate max-w-[150px] text-xs">Product ID: {review.product_id}</CardDescription>
                         </div>
-                        <Badge variant={review.is_approved ? 'default' : 'secondary'}>
+                        <Badge variant={review.is_approved ? 'default' : 'secondary'} className="text-[10px] h-5">
                             {review.is_approved ? 'Approved' : 'Pending'}
                         </Badge>
                     </div>
                      <div className="flex items-center gap-1 mt-4">
                         {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} className={cn("h-5 w-5", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                            <Star key={i} className={cn("h-4 w-4", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
                         ))}
                     </div>
                   </CardHeader>
                   <CardContent className="flex-grow">
-                    <p className="font-semibold">{review.title}</p>
-                    <p className="text-muted-foreground italic">"{review.review_text}"</p>
+                    <p className="font-semibold text-sm line-clamp-1">{review.title}</p>
+                    <p className="text-muted-foreground text-sm italic mt-2">"{review.review_text}"</p>
                   </CardContent>
-                  <CardFooter className="flex justify-between items-center">
-                    <p className="text-xs text-muted-foreground">{format(new Date(review.created_at), 'PP')}</p>
+                  <CardFooter className="flex justify-between items-center border-t pt-4">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{format(new Date(review.created_at), 'PP')}</p>
                     <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openForm(review)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openForm(review)}>
                             <Edit className="h-4 w-4" />
                         </Button>
                         {!review.is_approved && (
-                            <Button variant="ghost" size="icon" onClick={() => handleApprove(review.id)} disabled={isActionLoading}>
-                                {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4 text-green-500" />}
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600 hover:bg-green-500/10" onClick={() => handleApprove(review.id)} disabled={isActionLoading}>
+                                {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                             </Button>
                         )}
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setReviewToDelete(review)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setReviewToDelete(review)}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
@@ -306,15 +335,15 @@ export default function ReviewsAdminPage() {
           )}
         </CardContent>
         {totalPages > 1 && (
-            <CardFooter className="flex justify-center gap-4 py-4 border-t">
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                    আগেরটি
+            <div className="flex justify-center gap-4 py-8 border-t mt-8">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-full px-6">
+                    <ChevronLeft className="h-4 w-4 mr-1" /> আগেরটি
                 </Button>
-                <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                    পরবর্তী
+                <div className="text-sm font-bold flex items-center">পৃষ্ঠা {currentPage} / {totalPages}</div>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-full px-6">
+                    পরবর্তী <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
-            </CardFooter>
+            </div>
         )}
       </Card>
       
@@ -324,7 +353,7 @@ export default function ReviewsAdminPage() {
             {/* Backdrop */}
             <div 
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-                onClick={() => setIsFormOpen(false)}
+                onClick={() => !isActionLoading && setIsFormOpen(false)}
             />
             
             {/* Dialog Content */}
@@ -351,7 +380,7 @@ export default function ReviewsAdminPage() {
                                         <SelectValue placeholder="Select a product" />
                                         </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent>
+                                    <SelectContent className="z-[110]">
                                         {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                                     </SelectContent>
                                     </Select>
@@ -450,7 +479,7 @@ export default function ReviewsAdminPage() {
       )}
       
       <AlertDialog open={!!reviewToDelete} onOpenChange={() => setReviewToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -458,8 +487,8 @@ export default function ReviewsAdminPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isActionLoading} className={cn(buttonVariants({ variant: "destructive" }))}>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isActionLoading} className={cn(buttonVariants({ variant: "destructive" }), "rounded-xl")}>
               {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
             </AlertDialogAction>
