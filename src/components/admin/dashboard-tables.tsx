@@ -162,7 +162,7 @@ export default function DashboardTables({
               <CardDescription>{t.reviewDesc}</CardDescription>
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link href={`/admin/reviews`}>{t.viewAll} <ArrowRight className="ml-2 h-4 w-4" />View</Link>
+              <Link href={`/admin/reviews`}>{t.viewAll} <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </CardHeader>
           <CardContent>
@@ -182,7 +182,7 @@ export default function DashboardTables({
                               ))}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/reviews`}><Eye className="mr-2 h-4 w-4" />{t.view}</Link></Button></TableCell>
+                          <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/reviews`}><Eye className="mr-2 h-4 w-4" />View</Link></Button></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -200,7 +200,7 @@ export default function DashboardTables({
                         </div>
                       </CardHeader>
                       <CardFooter className="p-4 pt-0 justify-end">
-                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/reviews`}>{t.view}</Link></Button>
+                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/reviews`}>Viiew</Link></Button>
                       </CardFooter>
                     </Card>
                   ))}
