@@ -257,7 +257,7 @@ export default function ProductsAdminPage() {
               <Card key={productItem.id}>
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-start gap-4">
-                    <div className="relative h-20 w-20 rounded-md overflow-hidden bg-muted">
+                    <div className="relative w-16 h-16 min-w-16 min-h-16 sm:h-20 sm:w-20 rounded-md overflow-hidden bg-muted">
                       <Image src={productItem.images[0]?.imageUrl || 'https://placehold.co/100x100'} alt={productItem.name} fill className="object-cover" />
                     </div>
                     <div className="flex-grow">
