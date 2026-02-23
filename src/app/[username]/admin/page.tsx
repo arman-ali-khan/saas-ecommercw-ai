@@ -63,17 +63,17 @@ export default function AdminDashboard() {
           productsRes.json(), 
           uncompletedRes.json(), 
           customersRes.json(), 
-          flashDealsResult.json(), 
+          flashDealsRes.json(), 
           reviewsRes.json(), 
           qnaRes.json()
         ]);
 
         const fetchedOrders = ordersResult.orders || [];
         const fetchedProducts = productsResult.products || [];
-        const fetchedUncompleted = uncompletedRes.orders || [];
+        const fetchedUncompleted = uncompletedResult.orders || [];
         const fetchedDeals = flashDealsResult.deals || [];
-        const fetchedReviews = reviewsRes.reviews || [];
-        const fetchedQna = qnaRes.qna || [];
+        const fetchedReviews = reviewsResult.reviews || [];
+        const fetchedQna = qnaResult.qna || [];
 
         const totalRevenue = fetchedOrders.filter((o: any) => o.status === 'delivered').reduce((acc: number, o: any) => acc + o.total, 0);
         const monthlyOrdersCount = fetchedOrders.filter((o: any) => new Date(o.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && o.status !== 'canceled').length;
