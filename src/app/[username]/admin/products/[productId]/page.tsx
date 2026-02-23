@@ -285,7 +285,7 @@ export default function ManageProductPage() {
   const onSubmit = async (values: ProductFormData) => {
     if (!user) return;
     if (isLimitReached) {
-        toast({ variant: 'destructive', title: 'Limit Reached', description: 'আপনার প্রোডাক্ট লিমিট শেষ হয়ে গেছে। দয়া করে সাবস্ক্রিপশন আপগ্রেড করুন।' });
+        toast({ variant: 'destructive', title: 'Limit Reached', description: 'আপনার প্রোডাক্ট লিমিট শেষ হয়ে গেছে। আরও পণ্য যোগ করতে আপনার সাবস্ক্রিপশন আপগ্রেড করুন।' });
         return;
     }
     setIsSubmitting(true);
@@ -354,8 +354,8 @@ export default function ManageProductPage() {
                     <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6"><div className="grid grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square w-full rounded-xl" />)}</div></CardContent></Card>
                 </div>
                 <div className="space-y-8">
-                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent>
-                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent>
+                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent></Card>
+                    <Card className="border-2"><CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6 space-y-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></CardContent></Card>
                 </div>
             </div>
         </div>
@@ -439,7 +439,20 @@ export default function ManageProductPage() {
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30"><CardTitle>মূল্য এবং স্টক</CardTitle></CardHeader>
                         <CardContent className="space-y-6 pt-6">
-                            <FormField control={form.control} name="use_variants" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-muted/20"><div className="space-y-0.5"><FormLabel className="text-sm font-bold">একাধিক মূল্য ব্যবহার করুন</FormLabel><FormDescription className="text-[10px]">ওজন বা সাইজ অনুযায়ী আলাদা দাম।</FormDescription></div><FormControl><Switch checked={field.value} onCheckedChange={(val) => { field.onChange(val); if(val && variantFields.length === 0) appendVariant({ amount: '1', unitType: unitOptions[0], size: '', price: 0, stock: 0 }); }} /></FormControl></FormItem>)} />
+                            <FormField control={form.control} name="use_variants" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-muted/20">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-sm font-bold">একাধিক মূল্য ব্যবহার করুন</FormLabel>
+                                        <FormDescription className="text-[10px]">ওজন বা সাইজ অনুযায়ী আলাদা দাম।</FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch checked={field.value} onCheckedChange={(val) => { 
+                                            field.onChange(val); 
+                                            if(val && variantFields.length === 0) appendVariant({ amount: '1', unitType: unitOptions[0], size: '', price: 0, stock: 0 }); 
+                                        }} />
+                                    </FormControl>
+                                </FormItem>
+                            )} />
 
                             {!watchedValues.use_variants ? (
                                 <div className="space-y-6 animate-in fade-in">

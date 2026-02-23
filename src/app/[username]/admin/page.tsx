@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -97,22 +96,22 @@ export default function AdminDashboard() {
         });
 
         // Advanced Low Stock Detection
-        const detectedLowStockItems = finalProducts.filter((individualItem: any) => {
-            const hasVariants = individualItem.variants && Array.isArray(individualItem.variants) && individualItem.variants.length > 0;
+        const detectedLowStockItems = finalProducts.filter((individualItemRecord: any) => {
+            const hasVariants = individualItemRecord.variants && Array.isArray(individualItemRecord.variants) && individualItemRecord.variants.length > 0;
             
             if (hasVariants) {
                 // If it has variants, only check variant stocks
-                return individualItem.variants.some((v: any) => (v.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
+                return individualItemRecord.variants.some((vItem: any) => (vItem.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
             }
             // If no variants, check base stock
-            return (individualItem.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
-        }).sort((aItem: any, bItem: any) => {
-            const getEffectiveStock = (p: any) => {
-                const hasV = p.variants && Array.isArray(p.variants) && p.variants.length > 0;
-                if (hasV) return Math.min(...p.variants.map((v: any) => v.stock ?? 0));
-                return p.stock ?? 0;
+            return (individualItemRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
+        }).sort((aItemRecord: any, bItemRecord: any) => {
+            const getEffectiveStock = (productItemForStock: any) => {
+                const hasV = productItemForStock.variants && Array.isArray(productItemForStock.variants) && productItemForStock.variants.length > 0;
+                if (hasV) return Math.min(...productItemForStock.variants.map((vInner: any) => vItemForMap.stock ?? 0));
+                return productItemForStock.stock ?? 0;
             };
-            return getEffectiveStock(aItem) - getEffectiveStock(bItem);
+            return getEffectiveStock(aItemRecord) - getEffectiveStock(bItemRecord);
         }).slice(0, 5);
 
         const comprehensiveDashboardData = {

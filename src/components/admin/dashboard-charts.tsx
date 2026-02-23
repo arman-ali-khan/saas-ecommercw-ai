@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -61,11 +60,11 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
 
   const paymentMethodAnalyticsData = useMemo(() => {
     const paymentMethodSalesTotals = allOrders
-      .filter(ord => ord.status !== 'canceled')
-      .reduce((accumulator, ord) => {
-        const methodKey = ord.payment_method;
-        accumulator[methodKey] = (accumulator[methodKey] || 0) + ord.total;
-        return accumulator;
+      .filter(orderItemRecord => orderItemRecord.status !== 'canceled')
+      .reduce((accumulatorMap, orderItemRecord) => {
+        const methodKey = orderItemRecord.payment_method;
+        accumulatorMap[methodKey] = (accumulatorMap[methodKey] || 0) + orderItemRecord.total;
+        return accumulatorMap;
       }, {} as Record<string, number>);
 
     return Object.entries(paymentMethodSalesTotals).map(([methodKey, totalSum]) => ({
@@ -78,12 +77,12 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
   const orderStatusAnalyticsData = useMemo(() => {
     const start = startOfMonth(selectedDisplayMonth);
     const end = endOfMonth(selectedDisplayMonth);
-    const monthFilteredOrders = allOrders.filter(ord => isWithinInterval(new Date(ord.created_at), { start, end }));
+    const monthFilteredOrders = allOrders.filter(orderItemRecord => isWithinInterval(new Date(orderItemRecord.created_at), { start, end }));
 
-    const statusFrequencyCounts = monthFilteredOrders.reduce((accumulator, ord) => {
-      const statusKey = ord.status.toLowerCase();
-      accumulator[statusKey] = (accumulator[statusKey] || 0) + 1;
-      return accumulator;
+    const statusFrequencyCounts = monthFilteredOrders.reduce((accumulatorMap, orderItemRecord) => {
+      const statusKey = orderItemRecord.status.toLowerCase();
+      accumulatorMap[statusKey] = (accumulatorMap[statusKey] || 0) + 1;
+      return accumulatorMap;
     }, {} as Record<string, number>);
 
     return Object.entries(statusFrequencyCounts)
@@ -92,12 +91,12 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
         value: frequency,
         fill: CHART_ORDER_STATUSES[statusKey as keyof typeof CHART_ORDER_STATUSES]?.color || '#8884d8',
       }))
-      .filter(item => item.name !== 'Canceled');
+      .filter(itemRecord => itemRecord.name !== 'Canceled');
   }, [allOrders, selectedDisplayMonth]);
 
   const availableMonthOptions = useMemo(() => [...Array(6)].map((_, i) => subMonths(new Date(), i)), []);
-  const monthlyTotalOrdersCount = orderStatusAnalyticsData.reduce((sum, item) => sum + item.value, 0);
-  const lifetimeTotalSalesSum = paymentMethodAnalyticsData.reduce((sum, item) => sum + item.value, 0);
+  const monthlyTotalOrdersCount = orderStatusAnalyticsData.reduce((sum, itemRecord) => sum + itemRecord.value, 0);
+  const lifetimeTotalSalesSum = paymentMethodAnalyticsData.reduce((sum, itemRecord) => sum + itemRecord.value, 0);
 
   return (
     <div className="space-y-6">

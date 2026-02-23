@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -78,7 +77,7 @@ export default function DashboardTables({
                             <span className="text-xs font-mono">{orderItemRecord.order_number}</span>
                             <span className="text-sm font-bold">BDT {orderItemRecord.total.toFixed(2)}</span>
                         </div>
-                        <Button variant="secondary" size="sm" asChild>
+                        <Button variant="secondary" size="sm" asChild className="h-9 px-4 rounded-lg">
                           <Link href={`/admin/orders/${orderItemRecord.id}`}>
                             <Eye className="mr-2 h-4 w-4" /> {t.view}
                           </Link>
@@ -112,7 +111,7 @@ export default function DashboardTables({
                       {lowStockProducts.map(lowStockItemRecord => {
                         const hasVariants = lowStockItemRecord.variants && Array.isArray(lowStockItemRecord.variants) && lowStockItemRecord.variants.length > 0;
                         const calculatedMinimumAmount = hasVariants 
-                            ? Math.min(...lowStockItemRecord.variants!.map((v: any) => v.stock ?? 0))
+                            ? Math.min(...lowStockItemRecord.variants!.map((vItem: any) => vItem.stock ?? 0))
                             : (lowStockItemRecord.stock ?? 0);
                         
                         return (
@@ -137,7 +136,7 @@ export default function DashboardTables({
                   {lowStockProducts.map(lowStockItemRecord => {
                     const hasVariants = lowStockItemRecord.variants && Array.isArray(lowStockItemRecord.variants) && lowStockItemRecord.variants.length > 0;
                     const calculatedMinimumAmount = hasVariants 
-                        ? Math.min(...lowStockItemRecord.variants!.map((v: any) => v.stock ?? 0))
+                        ? Math.min(...lowStockItemRecord.variants!.map((vItem: any) => vItem.stock ?? 0))
                         : (lowStockItemRecord.stock ?? 0);
                     
                     return (
@@ -150,7 +149,9 @@ export default function DashboardTables({
                                 <Badge variant={calculatedMinimumAmount === 0 ? "destructive" : "secondary"} className="text-[10px] h-5">
                                     {calculatedMinimumAmount === 0 ? "Out" : `${calculatedMinimumAmount} Low`}
                                 </Badge>
-                                <Button variant="secondary" size="icon" className="h-8 w-8" asChild><Link href={`/admin/products/${lowStockItemRecord.id}`}><Eye className="h-4 w-4" /></Link></Button>
+                                <Button variant="secondary" size="sm" asChild className="h-9 px-4 rounded-lg">
+                                    <Link href={`/admin/products/${lowStockItemRecord.id}`}><Eye className="mr-2 h-4 w-4" /> {t.view}</Link>
+                                </Button>
                             </div>
                         </div>
                     );
@@ -186,7 +187,7 @@ export default function DashboardTables({
                             ))}
                         </div>
                     </div>
-                    <Button variant="ghost" size="sm" asChild>
+                    <Button variant="secondary" size="sm" asChild className="h-9 px-4 rounded-lg">
                       <Link href={`/admin/reviews`}>
                         <Eye className="mr-2 h-4 w-4" /> {t.view}
                       </Link>
@@ -217,7 +218,7 @@ export default function DashboardTables({
                         <span className="text-xs font-bold">{qnaItemRecord.customer_name}</span>
                         <p className="text-[10px] text-muted-foreground truncate italic">"{qnaItemRecord.question}"</p>
                     </div>
-                    <Button variant="ghost" size="sm" asChild>
+                    <Button variant="secondary" size="sm" asChild className="h-9 px-4 rounded-lg">
                       <Link href={`/admin/qna`}>
                         <Eye className="mr-2 h-4 w-4" /> {t.view}
                       </Link>
