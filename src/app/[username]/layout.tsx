@@ -12,6 +12,7 @@ import LanguageProvider from '@/components/language-provider';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 import { cn } from '@/lib/utils';
+import ThemeInitializer from '@/components/theme-initializer';
 
 const translations = { en, bn };
 
@@ -29,16 +30,6 @@ export async function generateMetadata({
     {
       cookies: {
         get: (name: string) => cookieStore.get(name)?.value,
-        set: (name: string, value: string, options: CookieOptions) => {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {}
-        },
-        remove: (name: string, options: CookieOptions) => {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {}
-        },
       },
     }
   );
@@ -87,12 +78,6 @@ export default async function UsernameLayout({
     {
       cookies: {
         get: (name: string) => cookieStore.get(name)?.value,
-        set: (name: string, value: string, options: CookieOptions) => {
-          try { cookieStore.set({ name, value, ...options }); } catch (error) {}
-        },
-        remove: (name: string, options: CookieOptions) => {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
-        },
       },
     }
   );
@@ -136,7 +121,7 @@ export default async function UsernameLayout({
 
   const socialLinks = (socialData || []) as SocialLink[];
   const lang = settingsData?.language || 'bn';
-  const t = translations[lang as keyof typeof translations] || bn;
+  const translationsToUse = translations[lang as keyof typeof translations] || bn;
 
   let themeStyles = '';
   const isDarkMode = settingsData?.theme_mode === 'dark';
@@ -174,25 +159,20 @@ export default async function UsernameLayout({
   }
 
   return (
-    <html lang={lang} className={cn(isDarkMode && "dark")}>
-      <head>
-        {themeStyles && <style>{themeStyles}</style>}
-      </head>
-      <body>
-        <LanguageProvider translations={t}>
-          <div className="flex flex-col min-h-screen">
-            <Header siteInfo={siteInfo} navLinks={headerLinks} isLoading={false} />
-            <main className="flex-grow container mx-auto px-1 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
-              {children}
-            </main>
-            <Footer siteInfo={siteInfo} footerCategories={footerCategories} socialLinks={socialLinks} isLoading={false} />
-            <BottomNav />
-            <div className="hidden md:block">
-              <FixedCartButton />
-            </div>
-          </div>
-        </LanguageProvider>
-      </body>
-    </html>
+    <LanguageProvider translations={translationsToUse}>
+      <ThemeInitializer defaultMode={settingsData?.theme_mode || 'light'} />
+      {themeStyles && <style>{themeStyles}</style>}
+      <div className="flex flex-col min-h-screen">
+        <Header siteInfo={siteInfo} navLinks={headerLinks} isLoading={false} />
+        <main className="flex-grow container mx-auto px-1 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
+          {children}
+        </main>
+        <Footer siteInfo={siteInfo} footerCategories={footerCategories} socialLinks={socialLinks} isLoading={false} />
+        <BottomNav />
+        <div className="hidden md:block">
+          <FixedCartButton />
+        </div>
+      </div>
+    </LanguageProvider>
   );
 }

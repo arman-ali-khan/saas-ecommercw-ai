@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Menu, User, LogOut, LayoutDashboard, Bell, Sun, Moon, ArrowLeft } from 'lucide-react';
-import { usePathname, useRouter, useParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { Button } from './ui/button';
 import ShoppingCart from './shopping-cart';
@@ -71,7 +71,8 @@ function CustomerNotificationBell() {
             body: JSON.stringify({ customerId: customer.id, siteId: customer.site_id }),
         });
         if (response.ok) {
-            const { notifications: data } = await response.json();
+            const result = await response.json();
+            const data = result.notifications;
             if (data) {
                 setNotifications(data.slice(0, 5));
                 setUnreadCount(data.filter((n: Notification) => !n.is_read).length);
@@ -202,18 +203,23 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
   } = useCustomerAuth();
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    }
+    // Initial theme detection
+    const isDark = document.documentElement.classList.contains('dark');
+    setTheme(isDark ? 'dark' : 'light');
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
+    const isCurrentlyDark = document.documentElement.classList.contains('dark');
+    const newTheme = isCurrentlyDark ? 'light' : 'dark';
+    
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   };
 
   const currentUser = siteOwner
