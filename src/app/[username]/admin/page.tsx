@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import Link from 'next/link';
-import { format, subDays } from 'date-fns';
+import { format as formatDate, subDays } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Ban, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +17,8 @@ import DashboardStats from '@/components/admin/dashboard-stats';
 import DashboardCharts from '@/components/admin/dashboard-charts';
 import DashboardTables from '@/components/admin/dashboard-tables';
 
-const translations = { en, bn };
+const dashboardTranslations = { en, bn };
+const LOW_STOCK_THRESHOLD = 10;
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -28,7 +29,7 @@ export default function AdminDashboard() {
     return !useAdminStore.getState().dashboard;
   });
 
-  const fetchData = useCallback(async (force = false) => {
+  const fetchDashboardStats = useCallback(async (force = false) => {
     const siteId = user?.id;
     if (!siteId) return;
 
@@ -82,15 +83,13 @@ export default function AdminDashboard() {
 
         const dailyRevenue: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
-          const dateStr = format(subDays(new Date(), i), 'MMM d');
+          const dateStr = formatDate(subDays(new Date(), i), 'MMM d');
           dailyRevenue[dateStr] = 0;
         }
         fetchedOrders.filter((o: any) => new Date(o.created_at) >= sevenDaysAgo && o.status === 'delivered').forEach((o: any) => {
-          const dateStr = format(new Date(o.created_at), 'MMM d');
+          const dateStr = formatDate(new Date(o.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) dailyRevenue[dateStr] += o.total;
         });
-
-        const LOW_STOCK_THRESHOLD = 10;
 
         // Enhanced logic to identify and sort low stock products correctly
         const lowStockProducts = fetchedProducts
@@ -136,12 +135,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (user?.id) {
-        fetchData();
+        fetchDashboardStats();
     }
-  }, [user?.id, fetchData]);
+  }, [user?.id, fetchDashboardStats]);
 
   const lang = user?.language || 'bn';
-  const currentTranslations = translations[lang as keyof typeof translations]?.dashboard || translations.bn.dashboard;
+  const t = dashboardTranslations[lang as keyof typeof dashboardTranslations]?.dashboard || dashboardTranslations.bn.dashboard;
   const productLimit = user?.product_limit;
   
   const showSkeleton = isLoading && !dashboard;
@@ -165,14 +164,14 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">{currentTranslations.title}</h1>
+      <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
       
       {isLimitReached && (
         <Alert variant="destructive">
           <Ban className="h-4 w-4" />
-          <AlertTitle>{currentTranslations.limitReached}</AlertTitle>
+          <AlertTitle>{t.limitReached}</AlertTitle>
           <AlertDescription>
-            {currentTranslations.limitDesc} <Link href="/admin/settings" className="font-semibold underline">{currentTranslations.upgrade}</Link> {currentTranslations.limitDesc2}
+            {t.limitDesc} <Link href="/admin/settings" className="font-semibold underline">{t.upgrade}</Link> {t.limitDesc2}
           </AlertDescription>
         </Alert>
       )}
@@ -181,14 +180,14 @@ export default function AdminDashboard() {
         stats={stats} 
         limits={{ productLimit: user?.product_limit ?? null, customerLimit: user?.customer_limit ?? null, orderLimit: user?.order_limit ?? null }} 
         isLoading={showSkeleton} 
-        t={currentTranslations} 
+        t={t} 
       />
 
       <DashboardCharts 
         revenueChartData={stats.revenueChartData} 
         allOrders={stats.allOrders || []} 
         isLoading={showSkeleton} 
-        t={currentTranslations} 
+        t={t} 
       />
 
       <DashboardTables 
@@ -197,7 +196,7 @@ export default function AdminDashboard() {
         pendingReviews={stats.pendingReviews} 
         unansweredQuestions={stats.unansweredQuestions} 
         isLoading={showSkeleton} 
-        t={currentTranslations} 
+        t={t} 
       />
     </div>
   );
