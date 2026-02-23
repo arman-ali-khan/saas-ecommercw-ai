@@ -100,7 +100,7 @@ function SuccessPageContent() {
             <h3 className="font-semibold text-lg">{s.summary}</h3>
             {order.cart_items.map((item: any) => (
               <div key={item.id} className="flex items-center gap-4 text-sm">
-                <div className="relative h-14 w-14 rounded-md overflow-hidden border">
+                <div className="relative h-14 w-14 rounded overflow-hidden border">
                   <Image
                     src={item.imageUrl || 'https://placehold.co/100x100'}
                     alt={item.name}
@@ -108,12 +108,12 @@ function SuccessPageContent() {
                     height={56}
                     className="object-cover"
                   />
-                  <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                     {item.quantity}
                   </span>
                 </div>
                 <div className="flex-grow">
-                  <p className="font-medium">{item.name}</p>
+                  <p className="font-medium">{item.name}</p> {item.quantity}
                 </div>
                 <p>
                   {(item.price * item.quantity).toFixed(2)} BDT
