@@ -18,13 +18,14 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Send, Loader2, Image as ImageIcon, X, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Image as ImageIcon, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import ImageUploader from '@/components/image-uploader';
 import type { SupportTicket, SupportMessage } from '@/types';
+import { Badge } from '@/components/ui/badge';
 
 export default function TicketDetailPage() {
   const { ticketId } = useParams();

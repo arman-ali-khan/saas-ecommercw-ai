@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Send, Loader2, Image as ImageIcon, X, CheckCircle2, ShieldAlert, Store, User, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Image as ImageIcon, X, CheckCircle2, ShieldAlert, Store, User, Mail, ShieldCheck, ArrowRight } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ import ImageUploader from '@/components/image-uploader';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import type { SupportTicket, SupportMessage } from '@/types';
+import { Badge } from '@/components/ui/badge';
 
 export default function SaasTicketDetailPage() {
   const { ticketId } = useParams();
