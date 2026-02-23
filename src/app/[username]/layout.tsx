@@ -1,6 +1,6 @@
 
 import type { Metadata } from 'next';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { fontMap } from '@/lib/fonts';
 import Header from '@/components/header';
@@ -11,8 +11,8 @@ import type { HeaderLink, FooterLinkCategory, SocialLink } from '@/types';
 import LanguageProvider from '@/components/language-provider';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
-import { cn } from '@/lib/utils';
 import ThemeInitializer from '@/components/theme-initializer';
+import FloatingChatButton from '@/components/floating-chat-button';
 
 const translations = { en, bn };
 
@@ -126,8 +126,6 @@ export default async function UsernameLayout({
   const translationsToUse = translations[lang as keyof typeof translations] || bn;
 
   let themeStyles = '';
-  const isDarkModeDefault = settingsData?.theme_mode === 'dark';
-
   if (settingsData) {
     const primaryFontVar = settingsData.font_primary ? fontMap[settingsData.font_primary]?.variable : null;
     const secondaryFontVar = settingsData.font_secondary ? fontMap[settingsData.font_secondary]?.variable : null;
@@ -156,14 +154,15 @@ export default async function UsernameLayout({
     ].filter(Boolean).join(' ');
 
     if (styleVars) {
-      themeStyles = `:root { ${styleVars} }`;
+      // Use html:not(.dark) so custom styles only apply in light mode or by default
+      themeStyles = `html:not(.dark) { ${styleVars} }`;
     }
   }
 
   return (
     <LanguageProvider translations={translationsToUse}>
       <ThemeInitializer defaultMode={settingsData?.theme_mode || 'light'} />
-      {themeStyles && <style>{themeStyles}</style>}
+      {themeStyles && <style dangerouslySetInnerHTML={{ __html: themeStyles }} />}
       <div className="flex flex-col min-h-screen">
         <Header siteInfo={siteInfo} navLinks={headerLinks} isLoading={false} />
         <main className="flex-grow container mx-auto px-1 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
@@ -174,6 +173,7 @@ export default async function UsernameLayout({
         <div className="hidden md:block">
           <FixedCartButton />
         </div>
+        <FloatingChatButton />
       </div>
     </LanguageProvider>
   );

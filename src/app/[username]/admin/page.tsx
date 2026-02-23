@@ -88,7 +88,7 @@ export default function AdminDashboard() {
           dailyRevenueMap[dateLabelString] = 0;
         }
         
-        finalOrders.filter((orderRecord: any) => new Date(orderRecord.created_at) >= lastWeekDateTime && orderRecord.status === 'delivered').forEach((orderRecord: any) => {
+        finalOrders.filter((orderRecord: any) => orderRecord.status === 'delivered' && new Date(orderRecord.created_at) >= lastWeekDateTime).forEach((orderRecord: any) => {
           const dateLabelString = safeDateFormatter(new Date(orderRecord.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenueMap, dateLabelString)) {
             dailyRevenueMap[dateLabelString] += (orderRecord.total || 0);

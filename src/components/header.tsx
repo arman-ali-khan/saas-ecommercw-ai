@@ -189,7 +189,23 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
   const { isSearchOpen, setSearchOpen } = useSearchStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, []);
+
+  const toggleTheme = () => {
+    const newMode = !isDark;
+    setIsDark(newMode);
+    if (newMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   const {
     user: siteOwner,
@@ -201,26 +217,6 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
     customerLogout,
     _hasHydrated: customerHasHydrated,
   } = useCustomerAuth();
-
-  useEffect(() => {
-    // Initial theme detection
-    const isDark = document.documentElement.classList.contains('dark');
-    setTheme(isDark ? 'dark' : 'light');
-  }, []);
-
-  const toggleTheme = () => {
-    const isCurrentlyDark = document.documentElement.classList.contains('dark');
-    const newTheme = isCurrentlyDark ? 'light' : 'dark';
-    
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
 
   const currentUser = siteOwner
     ? {
@@ -415,7 +411,7 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
 
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full h-10 w-10">
-            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             <span className="sr-only">Toggle Theme</span>
           </Button>
           <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)} className="rounded-full h-10 w-10">
