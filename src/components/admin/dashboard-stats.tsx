@@ -77,7 +77,7 @@ const LimitStatCard = ({ title, value, limit, icon: Icon, isLoading, t }: { titl
 
 export default function DashboardStats({ stats, limits, isLoading, t }: DashboardStatsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
       <StatCard title={t.totalRevenue} value={`BDT ${stats.totalRevenue.toFixed(2)}`} icon={DollarSign} isLoading={isLoading} description={t.allTime} />
       <StatCard title={t.newUncompleted} value={stats.uncompletedOrders} icon={FileClock} isLoading={isLoading} description={`${stats.totalUncompletedOrders} ${t.totalAbandoned}`} />
       <StatCard title={t.activeFlashDeals} value={stats.activeFlashDeals} icon={Flame} isLoading={isLoading} />
