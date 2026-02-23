@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -52,7 +51,7 @@ export default function AdminMobileSidebar() {
   const { user, loading, logout: authLogout } = useAuth();
   const { sidebarCounts } = useAdminStore();
 
-  if (loading || !user) {
+  if (!user) {
     return (
         <div className="flex h-full max-h-screen flex-col gap-2 text-card-foreground bg-card">
             <div className="flex h-20 items-center border-b border-border px-6">

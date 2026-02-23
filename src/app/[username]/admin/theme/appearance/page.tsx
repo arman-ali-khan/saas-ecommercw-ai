@@ -97,8 +97,6 @@ const hslStringToHex = (hslStr: string) => {
         return '#000000'; // Fallback for invalid format
     }
 };
-// --- End conversion helpers ---
-
 
 const ColorInput = ({ field, label }: { field: any, label: string }) => {
     const hexColor = hslStringToHex(field.value || '0 0% 0%');
@@ -164,7 +162,6 @@ export default function AppearanceManagerPage() {
 
   const fetchAppearance = useCallback(async () => {
     if (!user) return;
-    setIsLoading(true);
     try {
         const response = await fetch('/api/appearance/get', {
             method: 'POST',
@@ -187,11 +184,11 @@ export default function AppearanceManagerPage() {
             });
         }
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Error fetching appearance', description: error.message });
+        console.error('Error fetching appearance:', error);
     } finally {
         setIsLoading(false);
     }
-  }, [user, form, toast]);
+  }, [user, form]);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -214,7 +211,7 @@ export default function AppearanceManagerPage() {
         });
 
         if (response.ok) {
-            toast({ title: 'Appearance settings saved!', description: "Changes will be visible after reloading the store page." });
+            toast({ title: 'Appearance settings saved!' });
         } else {
             const result = await response.json();
             throw new Error(result.error || 'Failed to save settings');
@@ -355,7 +352,7 @@ export default function AppearanceManagerPage() {
               <div className="flex justify-end pt-4">
                 <Button type="submit" size="lg" disabled={isSubmitting} className="min-w-[200px]">
                   {isSubmitting ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Changes...</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                   ) : (
                     'Save Appearance'
                   )}

@@ -33,7 +33,8 @@ export default function ShippingAdminPage() {
     const { user } = useAuth();
     const { shipping: zones, setShipping: setZones } = useAdminStore();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
+    
+    const [isLoading, setIsLoading] = useState(() => !useAdminStore.getState().shipping.length);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -49,9 +50,14 @@ export default function ShippingAdminPage() {
         
         const store = useAdminStore.getState();
         const isFresh = Date.now() - store.lastFetched.shipping < 300000;
-        if (!force && store.shipping.length > 0 && isFresh) return;
+        
+        if (!force && store.shipping.length > 0 && isFresh) {
+            setIsLoading(false);
+            return;
+        }
 
-        setIsLoading(true);
+        if (store.shipping.length === 0) setIsLoading(true);
+
         try {
             const response = await fetch('/api/shipping/list', {
                 method: 'POST',
@@ -65,11 +71,13 @@ export default function ShippingAdminPage() {
                 throw new Error(result.error || 'Failed to fetch shipping zones');
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error fetching shipping zones', description: error.message });
+            if (zones.length === 0) {
+                toast({ variant: 'destructive', title: 'Error fetching shipping zones', description: error.message });
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [user, setZones, toast]);
+    }, [user, setZones, toast, zones.length]);
 
     useEffect(() => {
         if(user) {
@@ -146,8 +154,7 @@ export default function ShippingAdminPage() {
                 toast({ title: 'Shipping Zone Deleted' });
                 await fetchZones(true);
             } else {
-                const result = await response.json();
-                throw new Error(result.error || 'Failed to delete zone');
+                throw new Error('Failed to delete zone');
             }
         } catch (error: any) {
             toast({ title: 'Error Deleting Zone', variant: 'destructive', description: error.message });
@@ -180,7 +187,7 @@ export default function ShippingAdminPage() {
 
             <Card>
                 <CardContent className="p-0">
-                    {zones.length === 0 && !isLoading ? (
+                    {zones.length === 0 ? (
                         <div className="text-center py-16">
                              <p className="text-muted-foreground">You have no shipping zones yet.</p>
                              <Button className="mt-4" onClick={() => openForm(null)}>

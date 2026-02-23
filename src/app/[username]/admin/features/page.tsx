@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
 import type { StoreFeature } from '@/types';
 import Image from 'next/image';
@@ -33,10 +34,11 @@ const featureSchema = z.object({
 type FeatureFormData = z.infer<typeof featureSchema>;
 
 export default function FeaturesAdminPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
+    const { features, setFeatures } = useAdminStore();
     const { toast } = useToast();
-    const [features, setFeatures] = useState<StoreFeature[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    
+    const [isLoading, setIsLoading] = useState(() => !useAdminStore.getState().features.length);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -47,9 +49,19 @@ export default function FeaturesAdminPage() {
         defaultValues: { title: '', description: '', icon: 'Sparkles', image_url: '' },
     });
 
-    const fetchFeatures = useCallback(async () => {
+    const fetchFeatures = useCallback(async (force = false) => {
         if (!user) return;
-        setIsLoading(true);
+        
+        const store = useAdminStore.getState();
+        const isFresh = Date.now() - store.lastFetched.features < 300000;
+        
+        if (!force && store.features.length > 0 && isFresh) {
+            setIsLoading(false);
+            return;
+        }
+
+        if (store.features.length === 0) setIsLoading(true);
+
         try {
             const response = await fetch('/api/store-features/list', {
                 method: 'POST',
@@ -63,19 +75,19 @@ export default function FeaturesAdminPage() {
                 throw new Error(result.error || 'Failed to fetch features');
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error fetching features', description: error.message });
+            if (features.length === 0) {
+                toast({ variant: 'destructive', title: 'Error fetching features', description: error.message });
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [user, toast]);
+    }, [user, setFeatures, toast, features.length]);
 
     useEffect(() => {
-        if (!authLoading && user) {
+        if (user) {
             fetchFeatures();
-        } else if (!authLoading && !user) {
-            setIsLoading(false);
         }
-    }, [user, authLoading, fetchFeatures]);
+    }, [user, fetchFeatures]);
 
     useEffect(() => {
         if (isFormOpen) {
@@ -111,7 +123,7 @@ export default function FeaturesAdminPage() {
 
             if (response.ok) {
                 toast({ title: `Feature ${selectedFeature ? 'Updated' : 'Created'}` });
-                await fetchFeatures();
+                await fetchFeatures(true);
                 setIsFormOpen(false);
                 setSelectedFeature(null);
             } else {
@@ -149,10 +161,9 @@ export default function FeaturesAdminPage() {
 
             if (response.ok) {
                 toast({ title: 'Feature Deleted' });
-                await fetchFeatures();
+                await fetchFeatures(true);
             } else {
-                const result = await response.json();
-                throw new Error(result.error || 'Failed to delete feature');
+                throw new Error('Failed to delete feature');
             }
         } catch (error: any) {
             toast({ title: 'Error Deleting Feature', variant: 'destructive', description: error.message });
@@ -171,27 +182,22 @@ export default function FeaturesAdminPage() {
         const [movedItem] = newFeatures.splice(index, 1);
         newFeatures.splice(newIndex, 0, movedItem);
 
-        // Include the entire feature object to satisfy DB constraints during upsert
         const updates = newFeatures.map((feature, idx) => ({
             ...feature,
             order: idx
         }));
         
-        setIsLoading(true);
         try {
             const response = await fetch('/api/store-features/reorder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ siteId: user.id, updates }),
             });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error);
+            if (!response.ok) throw new Error('Reorder failed');
             setFeatures(newFeatures);
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Failed to reorder features', description: error.message });
-            await fetchFeatures();
-        } finally {
-            setIsLoading(false);
+            toast({ variant: 'destructive', title: 'Failed to reorder features' });
+            await fetchFeatures(true);
         }
     };
     
@@ -204,7 +210,7 @@ export default function FeaturesAdminPage() {
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-bold">Store Features</h1>
-                    <p className="text-muted-foreground">Manage features for the "Why We Are Different" section. You can edit the section title in the <Link href="/admin/section-manager" className="text-primary underline">Section Manager</Link>.</p>
+                    <p className="text-muted-foreground">Manage features for the "Why We Are Different" section.</p>
                 </div>
                 <Button onClick={() => openForm(null)}><Plus className="mr-2 h-4 w-4" /> Add Feature</Button>
             </div>
@@ -289,43 +295,26 @@ export default function FeaturesAdminPage() {
                 </CardContent>
             </Card>
 
-            {/* Custom Raw Tailwind Dialog (Bottom Sheet on Mobile) */}
+            {/* Form Modal */}
             {isFormOpen && (
                 <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
-                    {/* Backdrop */}
-                    <div 
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-                        onClick={() => setIsFormOpen(false)}
-                    />
-                    
-                    {/* Dialog Content */}
-                    <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsFormOpen(false)} />
+                    <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
                         <div className="flex items-center justify-between p-6 border-b">
                             <h2 className="text-xl font-bold">{selectedFeature ? 'Edit Feature' : 'Add New Feature'}</h2>
                             <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
                                 <X className="h-5 w-5" />
                             </Button>
                         </div>
-                        
                         <div className="p-6 overflow-y-auto">
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                     <FormField control={form.control} name="title" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Title</FormLabel>
-                                            <FormControl><Input placeholder="e.g., সরাসরি কৃষক থেকে" {...field} className="h-11" /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
+                                        <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., সরাসরি কৃষক থেকে" {...field} className="h-11" /></FormControl><FormMessage /></FormItem>
                                     )} />
-                                    
                                     <FormField control={form.control} name="description" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Description</FormLabel>
-                                            <FormControl><Textarea placeholder="A short description of the feature." {...field} rows={3} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
+                                        <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short description." {...field} rows={3} /></FormControl><FormMessage /></FormItem>
                                     )} />
-                                    
                                     <FormField control={form.control} name="image_url" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Feature Image (Optional)</FormLabel>
@@ -341,35 +330,13 @@ export default function FeaturesAdminPage() {
                                             <FormMessage />
                                         </FormItem>
                                     )} />
-                                    
                                     <FormField control={form.control} name="icon" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Fallback Icon</FormLabel>
-                                            <FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl>
-                                            <FormDescription>This icon will be shown if no image is uploaded.</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
+                                        <FormItem><FormLabel>Fallback Icon</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
                                     )} />
-                                    
                                     <div className="pt-4 flex gap-3 pb-8 sm:pb-0">
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            className="flex-1 h-12 rounded-xl"
-                                            onClick={() => setIsFormOpen(false)}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button 
-                                            type="submit" 
-                                            disabled={isSubmitting} 
-                                            className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
-                                        >
-                                            {isSubmitting ? (
-                                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                                            ) : (
-                                                'Save Feature'
-                                            )}
+                                        <Button type="button" variant="outline" className="flex-1 h-12 rounded-xl" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+                                        <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20">
+                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Feature'}
                                         </Button>
                                     </div>
                                 </form>
@@ -383,12 +350,12 @@ export default function FeaturesAdminPage() {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete this feature. This action cannot be undone.</AlertDialogDescription>
+                        <AlertDialogDescription>This will permanently delete this feature.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className={cn(buttonVariants({ variant: "destructive" }))}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Delete'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

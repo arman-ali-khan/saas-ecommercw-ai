@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
 import type { CarouselSlide } from '@/types';
 
@@ -34,10 +35,11 @@ const slideSchema = z.object({
 type SlideFormData = z.infer<typeof slideSchema>;
 
 export default function CarouselAdminPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
+    const { carousel: slides, setCarousel: setSlides } = useAdminStore();
     const { toast } = useToast();
-    const [slides, setSlides] = useState<CarouselSlide[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    
+    const [isLoading, setIsLoading] = useState(() => !useAdminStore.getState().carousel.length);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -55,9 +57,19 @@ export default function CarouselAdminPage() {
         },
     });
 
-    const fetchSlides = useCallback(async () => {
+    const fetchSlides = useCallback(async (force = false) => {
         if (!user) return;
-        setIsLoading(true);
+        
+        const store = useAdminStore.getState();
+        const isFresh = Date.now() - store.lastFetched.carousel < 300000;
+        
+        if (!force && store.carousel.length > 0 && isFresh) {
+            setIsLoading(false);
+            return;
+        }
+
+        if (store.carousel.length === 0) setIsLoading(true);
+
         try {
             const response = await fetch('/api/carousel/list', {
                 method: 'POST',
@@ -71,19 +83,19 @@ export default function CarouselAdminPage() {
                 throw new Error(result.error || 'Failed to fetch slides');
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error fetching slides', description: error.message });
+            if (slides.length === 0) {
+                toast({ variant: 'destructive', title: 'Error fetching slides', description: error.message });
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [user, toast]);
+    }, [user, setSlides, toast, slides.length]);
 
     useEffect(() => {
-        if (!authLoading && user) {
+        if (user) {
             fetchSlides();
-        } else if (!authLoading && !user) {
-            setIsLoading(false);
         }
-    }, [user, authLoading, fetchSlides]);
+    }, [user, fetchSlides]);
 
     useEffect(() => {
         if (isFormOpen) {
@@ -121,7 +133,7 @@ export default function CarouselAdminPage() {
 
             if (response.ok) {
                 toast({ title: `Slide ${selectedSlide ? 'Updated' : 'Created'}` });
-                await fetchSlides();
+                await fetchSlides(true);
                 setIsFormOpen(false);
                 setSelectedSlide(null);
             } else {
@@ -157,13 +169,11 @@ export default function CarouselAdminPage() {
                 }),
             });
 
-            const result = await response.json();
-
             if (response.ok) {
                 toast({ title: 'Slide Deleted' });
-                await fetchSlides();
+                await fetchSlides(true);
             } else {
-                throw new Error(result.error || 'Failed to delete slide');
+                throw new Error('Failed to delete slide');
             }
         } catch (error: any) {
             toast({ title: 'Error Deleting Slide', variant: 'destructive', description: error.message });
@@ -182,27 +192,22 @@ export default function CarouselAdminPage() {
         const [movedItem] = newSlides.splice(index, 1);
         newSlides.splice(newIndex, 0, movedItem);
 
-        // Include the entire slide object to satisfy DB constraints during upsert
         const updates = newSlides.map((slide, idx) => ({
             ...slide,
             order: idx
         }));
         
-        setIsLoading(true);
         try {
             const response = await fetch('/api/carousel/reorder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ siteId: user.id, updates }),
             });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error);
+            if (!response.ok) throw new Error('Reorder failed');
             setSlides(newSlides);
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Failed to reorder slides', description: error.message });
-            await fetchSlides();
-        } finally {
-            setIsLoading(false);
+            toast({ variant: 'destructive', title: 'Failed to reorder slides' });
+            await fetchSlides(true);
         }
     };
     
@@ -290,24 +295,17 @@ export default function CarouselAdminPage() {
                 </CardContent>
             </Card>
 
-            {/* Custom Tailwind CSS Dialog (Bottom Sheet on Mobile) */}
+            {/* Form Modal */}
             {isFormOpen && (
                 <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
-                    {/* Backdrop */}
-                    <div 
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-                        onClick={() => setIsFormOpen(false)}
-                    />
-                    
-                    {/* Dialog Content */}
-                    <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsFormOpen(false)} />
+                    <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
                         <div className="flex items-center justify-between p-6 border-b">
                             <h2 className="text-xl font-bold">{selectedSlide ? 'Edit Slide' : 'Add New Slide'}</h2>
                             <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)}>
                                 <X className="h-5 w-5" />
                             </Button>
                         </div>
-                        
                         <div className="p-6 overflow-y-auto">
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -326,69 +324,30 @@ export default function CarouselAdminPage() {
                                             <FormMessage />
                                         </FormItem>
                                     )} />
-                                    
                                     <FormField control={form.control} name="title" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Title</FormLabel>
-                                            <FormControl><Input placeholder="e.g., প্রকৃতির আসল স্বাদ" {...field} className="h-11" /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
+                                        <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., প্রকৃতির আসল স্বাদ" {...field} className="h-11" /></FormControl><FormMessage /></FormItem>
                                     )} />
-                                    
                                     <FormField control={form.control} name="description" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Description</FormLabel>
-                                            <FormControl><Textarea placeholder="A short, catchy description for the slide." {...field} rows={3} className="resize-none" /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
+                                        <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="A short, catchy description." {...field} rows={3} /></FormControl><FormMessage /></FormItem>
                                     )} />
-                                    
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="link_text" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Button Text</FormLabel>
-                                                <FormControl><Input placeholder="e.g., Shop Now" {...field} className="h-11" /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
+                                            <FormItem><FormLabel>Button Text</FormLabel><FormControl><Input placeholder="e.g., Shop Now" {...field} className="h-11" /></FormControl></FormItem>
                                         )} />
                                         <FormField control={form.control} name="link" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Button Link</FormLabel>
-                                                <FormControl><Input placeholder="e.g., /products" {...field} className="h-11" /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
+                                            <FormItem><FormLabel>Button Link</FormLabel><FormControl><Input placeholder="e.g., /products" {...field} className="h-11" /></FormControl></FormItem>
                                         )} />
                                     </div>
-                                    
                                     <FormField control={form.control} name="is_enabled" render={({ field }) => (
                                         <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/30">
-                                            <div className="space-y-0.5">
-                                                <FormLabel className="text-base">Enable Slide</FormLabel>
-                                                <p className="text-xs text-muted-foreground">Visible on your homepage if enabled.</p>
-                                            </div>
+                                            <div className="space-y-0.5"><FormLabel className="text-base">Enable Slide</FormLabel></div>
                                             <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                                         </FormItem>
                                     )} />
-                                    
                                     <div className="pt-4 flex gap-3 pb-8 sm:pb-0">
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            className="flex-1 h-12 rounded-xl"
-                                            onClick={() => setIsFormOpen(false)}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button 
-                                            type="submit" 
-                                            disabled={isSubmitting} 
-                                            className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
-                                        >
-                                            {isSubmitting ? (
-                                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                                            ) : (
-                                                'Save Slide'
-                                            )}
+                                        <Button type="button" variant="outline" className="flex-1 h-12 rounded-xl" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+                                        <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20">
+                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Slide'}
                                         </Button>
                                     </div>
                                 </form>
@@ -402,13 +361,12 @@ export default function CarouselAdminPage() {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete this slide. This action cannot be undone.</AlertDialogDescription>
+                        <AlertDialogDescription>This will permanently delete this slide.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDelete} disabled={isSubmitting} className={cn(buttonVariants({ variant: "destructive" }))}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Delete
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Delete'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

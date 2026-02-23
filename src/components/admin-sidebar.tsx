@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -82,7 +81,7 @@ export default function AdminSidebar() {
     }
   };
   
-  if (loading || !user) {
+  if (!user) {
     return (
       <div className="hidden border-r border-border bg-card md:block sticky top-0 h-screen">
         <div className="flex h-full max-h-screen flex-col gap-2">
