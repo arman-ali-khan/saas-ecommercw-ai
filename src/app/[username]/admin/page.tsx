@@ -63,17 +63,17 @@ export default function AdminDashboard() {
           productsRes.json(), 
           uncompletedRes.json(), 
           customersRes.json(), 
-          flashDealsRes.json(), 
+          flashDealsResult.json(), 
           reviewsRes.json(), 
           qnaRes.json()
         ]);
 
         const fetchedOrders = ordersResult.orders || [];
         const fetchedProducts = productsResult.products || [];
-        const fetchedUncompleted = uncompletedResult.orders || [];
+        const fetchedUncompleted = uncompletedRes.orders || [];
         const fetchedDeals = flashDealsResult.deals || [];
-        const fetchedReviews = reviewsResult.reviews || [];
-        const fetchedQna = qnaResult.qna || [];
+        const fetchedReviews = reviewsRes.reviews || [];
+        const fetchedQna = qnaRes.qna || [];
 
         const totalRevenue = fetchedOrders.filter((o: any) => o.status === 'delivered').reduce((acc: number, o: any) => acc + o.total, 0);
         const monthlyOrdersCount = fetchedOrders.filter((o: any) => new Date(o.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && o.status !== 'canceled').length;
@@ -116,13 +116,13 @@ export default function AdminDashboard() {
         setDashboard(newDashboardData);
       } catch (error: any) {
         console.error("Dashboard Fetch Error:", error);
-        if (!dashboard) {
+        if (!useAdminStore.getState().dashboard) {
             toast({ variant: 'destructive', title: 'Error loading dashboard', description: error.message });
         }
       } finally {
         setIsLoading(false);
     }
-  }, [user?.id, setDashboard, toast, dashboard]);
+  }, [user?.id, setDashboard, toast]);
 
   useEffect(() => {
     if (user?.id) {

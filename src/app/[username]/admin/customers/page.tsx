@@ -74,7 +74,7 @@ export default function CustomersAdminPage() {
             throw new Error(result.error || 'Failed to fetch customers');
         }
     } catch (error: any) {
-      if (customers.length === 0) {
+      if (useAdminStore.getState().customers.length === 0) {
           toast({
             variant: 'destructive',
             title: 'Error fetching customer data',
@@ -84,7 +84,7 @@ export default function CustomersAdminPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [user, setCustomers, toast, customers.length]);
+  }, [user?.id, setCustomers, toast]);
 
   useEffect(() => {
     if (user) {

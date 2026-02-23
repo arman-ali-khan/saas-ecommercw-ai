@@ -77,13 +77,13 @@ export default function OrdersAdminPage() {
                 throw new Error(result.error || 'Failed to fetch orders');
             }
         } catch (error: any) {
-            if (orders.length === 0) {
+            if (useAdminStore.getState().orders.length === 0) {
                 console.error("Order fetch failed:", error);
             }
         } finally {
             setIsLoading(false);
         }
-    }, [user?.id, setOrders, orders.length]);
+    }, [user?.id, setOrders]);
 
     useEffect(() => {
         if (user?.id) {

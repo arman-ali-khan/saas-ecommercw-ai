@@ -86,7 +86,7 @@ export default function ProductsAdminPage() {
             throw new Error(result.error || 'Failed to fetch products');
         }
     } catch (error: any) {
-        if (products.length === 0) {
+        if (useAdminStore.getState().products.length === 0) {
             toast({
                 variant: 'destructive',
                 title: 'Error loading products',
@@ -96,7 +96,7 @@ export default function ProductsAdminPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [user?.id, setProducts, toast, products.length]);
+  }, [user?.id, setProducts, toast]);
 
   useEffect(() => {
     if (user?.id) {
