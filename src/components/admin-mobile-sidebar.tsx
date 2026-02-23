@@ -31,7 +31,6 @@ import { useAdminStore } from '@/stores/useAdminStore';
 import { SheetClose } from './ui/sheet';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
 import DynamicIcon from './dynamic-icon';
@@ -42,7 +41,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-
 
 export default function AdminMobileSidebar() {
   const pathname = usePathname();
@@ -123,7 +121,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: sidebarCounts.unviewedUncompleted },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
-    { href: `/admin/settings`, label: 'Store Settings', icon: Settings },
+    { href: `/admin/support`, label: 'Support Forum', icon: HelpCircle },
   ];
   
   const logoType = user.logo_type || 'icon';
@@ -147,6 +145,7 @@ export default function AdminMobileSidebar() {
     const isBasePage = href === `/` || href === `/admin`;
     const isActive = isBasePage ? pathname === href : pathname.startsWith(href);
     const showCount = count !== undefined && (countVariant === 'neutral' || count > 0);
+    
     return (
         <SheetClose asChild>
             <Link
@@ -157,7 +156,7 @@ export default function AdminMobileSidebar() {
                 )}
             >
                 <Icon className="h-4 w-4" />
-                {label}
+                <span className="flex-grow">{label}</span>
                 {showCount ? (
                   <Badge className={cn("ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full", countVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 'bg-accent text-accent-foreground')}>{count}</Badge>
                 ) : null}
@@ -243,21 +242,43 @@ export default function AdminMobileSidebar() {
               </CollapsibleContent>
             </Collapsible>
 
-            <NavLink href="/admin/settings" label="Store Settings" icon={Settings} />
+            <Collapsible>
+              <CollapsibleTrigger className={cn(
+                'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
+                pathname.startsWith('/admin/settings') && 'bg-primary text-primary-foreground'
+              )}>
+                <div className="flex items-center gap-3">
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </div>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-7 space-y-1 py-1">
+                <SheetClose asChild>
+                  <Link href="/admin/settings" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings' && 'text-accent-foreground')}>Store Settings</Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link href="/admin/settings/custom-domain" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings/custom-domain' && 'text-accent-foreground')}>Custom Domain</Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link href="/admin/settings/ai" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings/ai' && 'text-accent-foreground')}>AI Config</Link>
+                </SheetClose>
+              </CollapsibleContent>
+            </Collapsible>
 
           </nav>
         </div>
         <div className="mt-auto p-4 border-t border-border space-y-2">
-           <Button onClick={handleLanguageToggle} variant="ghost" className="w-full justify-start text-foreground/70 hover:bg-accent hover:text-accent-foreground">
+           <Button onClick={handleLanguageToggle} variant="ghost" className="w-full justify-start text-foreground/70 hover:bg-accent hover:text-accent-foreground h-9 text-xs">
              <Globe className="mr-2 h-4 w-4" />
              Switch to {language === 'bn' ? 'English' : 'Bengali'}
           </Button>
-          <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-foreground/70 hover:bg-accent hover:text-accent-foreground">
+          <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-foreground/70 hover:bg-accent hover:text-accent-foreground h-9 text-xs">
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>
            <SheetClose asChild>
-            <Button variant="outline" className="w-full">Close Menu</Button>
+            <Button variant="outline" className="w-full mt-2">Close Menu</Button>
           </SheetClose>
         </div>
       </div>
