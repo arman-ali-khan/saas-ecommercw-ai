@@ -1,7 +1,6 @@
-
 'use client';
 
-import { Bell, Settings, LogOut, Wand2, HelpCircle } from 'lucide-react';
+import { Bell, Settings, LogOut, HelpCircle, Home, Loader2 } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -119,17 +118,22 @@ export default function AdminHeader() {
   };
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
-      <div className="w-full flex-1">
-      </div>
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" asChild className="hidden sm:flex gap-2">
-            <Link href="/admin/support">
-                <HelpCircle className="h-4 w-4" />
-                <span>সাপোর্ট ফোরাম</span>
+    <header className="flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-2 sm:px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
+      <div className="flex-1 flex items-center gap-2">
+        <Button variant="outline" size="sm" asChild className="h-9 px-3 gap-2">
+            <Link href="/">
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">স্টোর দেখুন</span>
             </Link>
         </Button>
-
+        <Button variant="ghost" size="sm" asChild className="h-9 px-3 gap-2">
+            <Link href="/admin/support">
+                <HelpCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">সাপোর্ট</span>
+            </Link>
+        </Button>
+      </div>
+      <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">

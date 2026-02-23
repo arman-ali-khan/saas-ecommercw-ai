@@ -11,7 +11,6 @@ import {
   Settings,
   Star,
   LayoutList,
-  Home,
   Tags,
   Users,
   LogOut,
@@ -120,7 +119,6 @@ export default function AdminSidebar() {
   const language = user.language || 'bn';
 
   const adminNavLinks = [
-    { href: `/`, label: 'View Store', icon: Home },
     { href: `/admin`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/admin/notifications`, label: 'Notifications', icon: Bell, count: sidebarCounts.unreadNotifications },
     { href: `/admin/categories`, label: 'Categories', icon: Tags },
@@ -136,6 +134,7 @@ export default function AdminSidebar() {
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: sidebarCounts.unviewedUncompleted },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
+    { href: `/admin/support`, label: 'Support Forum', icon: HelpCircle },
   ];
 
   const NavLink = ({
@@ -151,8 +150,7 @@ export default function AdminSidebar() {
     count?: number;
     countVariant?: 'destructive' | 'neutral';
   }) => {
-    const isBasePage = href === `/` || href === `/admin`;
-    const isActive = isBasePage ? pathname === href : pathname.startsWith(href);
+    const isActive = href === `/admin` ? pathname === href : pathname.startsWith(href);
     const showCount = count !== undefined && (countVariant === 'neutral' || count > 0);
 
     return (
@@ -192,7 +190,7 @@ export default function AdminSidebar() {
         <div className="flex-1 overflow-auto py-2">
           <nav className="grid items-start px-4 text-sm font-medium gap-1">
           
-            {adminNavLinks.slice(0, 4).map((link) => (
+            {adminNavLinks.slice(0, 3).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 
@@ -214,7 +212,7 @@ export default function AdminSidebar() {
               </CollapsibleContent>
             </Collapsible>
             
-            {adminNavLinks.slice(4, 17).map((link) => (
+            {adminNavLinks.slice(3).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 

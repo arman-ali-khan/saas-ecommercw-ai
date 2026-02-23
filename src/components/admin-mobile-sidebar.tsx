@@ -11,7 +11,6 @@ import {
   Settings,
   Star,
   LayoutList,
-  Home,
   Tags,
   Users,
   LogOut,
@@ -105,7 +104,6 @@ export default function AdminMobileSidebar() {
   };
   
   const adminNavLinks = [
-    { href: `/`, label: 'View Store', icon: Home },
     { href: `/admin`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/admin/notifications`, label: 'Notifications', icon: Bell, count: sidebarCounts.unreadNotifications },
     { href: `/admin/categories`, label: 'Categories', icon: Tags },
@@ -142,8 +140,7 @@ export default function AdminMobileSidebar() {
     count?: number;
     countVariant?: 'destructive' | 'neutral';
   }) => {
-    const isBasePage = href === `/` || href === `/admin`;
-    const isActive = isBasePage ? pathname === href : pathname.startsWith(href);
+    const isActive = href === `/admin` ? pathname === href : pathname.startsWith(href);
     const showCount = count !== undefined && (countVariant === 'neutral' || count > 0);
     
     return (
@@ -186,7 +183,7 @@ export default function AdminMobileSidebar() {
         <div className="flex-1 overflow-auto py-2">
           <nav className="grid items-start px-4 text-sm font-medium gap-1">
 
-            {adminNavLinks.slice(0, 4).map((link) => (
+            {adminNavLinks.slice(0, 3).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 
@@ -214,7 +211,7 @@ export default function AdminMobileSidebar() {
               </CollapsibleContent>
             </Collapsible>
             
-            {adminNavLinks.slice(4, 17).map((link) => (
+            {adminNavLinks.slice(3).map((link) => (
               <NavLink key={link.href} {...link} />
             ))}
 
