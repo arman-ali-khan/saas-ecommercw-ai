@@ -91,6 +91,30 @@ export default function AdminDashboard() {
 
         const LOW_STOCK_THRESHOLD = 10;
 
+        // Process low stock products with sorting (critical first)
+        const lowStockProducts = fetchedProducts
+          .filter((p: any) => {
+            const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+            if (!hasVariants) {
+              const stock = p.stock === null || p.stock === undefined ? 0 : Number(p.stock);
+              return stock < LOW_STOCK_THRESHOLD;
+            }
+            return p.variants.some((v: any) => {
+              const vStock = v.stock === null || v.stock === undefined ? 0 : Number(v.stock);
+              return vStock < LOW_STOCK_THRESHOLD;
+            });
+          })
+          .sort((a: any, b: any) => {
+            const getMinStock = (prod: any) => {
+              if (Array.isArray(prod.variants) && prod.variants.length > 0) {
+                return Math.min(...prod.variants.map((v: any) => v.stock ?? 0));
+              }
+              return prod.stock ?? 0;
+            };
+            return getMinStock(a) - getMinStock(b);
+          })
+          .slice(0, 5);
+
         const newDashboardData = {
           totalRevenue,
           totalProducts: fetchedProducts.length,
@@ -102,17 +126,7 @@ export default function AdminDashboard() {
           allOrders: fetchedOrders,
           revenueChartData: Object.keys(dailyRevenue).map(dateKey => ({ date: dateKey, Revenue: dailyRevenue[dateKey] })),
           pendingOrders: fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5),
-          lowStockProducts: fetchedProducts.filter((p: any) => {
-            const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
-            if (!hasVariants) {
-              const stock = p.stock === null || p.stock === undefined ? 0 : Number(p.stock);
-              return stock < LOW_STOCK_THRESHOLD;
-            }
-            return p.variants.some((v: any) => {
-              const vStock = v.stock === null || v.stock === undefined ? 0 : Number(v.stock);
-              return vStock < LOW_STOCK_THRESHOLD;
-            });
-          }).slice(0, 5),
+          lowStockProducts,
           pendingReviews: fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5),
           unansweredQuestions: fetchedQna.filter((q: any) => !q.is_approved).slice(0, 5),
         };
