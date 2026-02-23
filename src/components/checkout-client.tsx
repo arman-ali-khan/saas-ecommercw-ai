@@ -63,7 +63,7 @@ export default function CheckoutClient({ siteId, username, shippingZones, paymen
   const router = useRouter();
   const { toast } = useToast();
   const t = useTranslation();
-  const { checkout: t_checkout } = t;
+  const { checkout: t_checkout, profile: t_profile } = t;
 
   const { customer, _hasHydrated: customerHasHydrated } = useCustomerAuth();
   const [uncompletedOrderId, setUncompletedOrderId] = useState<string | null>(null);

@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import CheckoutClient from '@/components/checkout-client';
 import type { ShippingZone, SaasSettings } from '@/types';
 
+
 type Props = {
   params: Promise<{ username: string }>;
 };
