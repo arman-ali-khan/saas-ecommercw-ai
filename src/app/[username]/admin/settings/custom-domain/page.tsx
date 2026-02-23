@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -22,7 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Label } from '@radix-ui/react-label';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const domainSchema = z.object({
   domain: z.string().min(3, "Domain name is too short").regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "Please enter a valid domain (e.g., example.com)"),
@@ -96,7 +98,25 @@ export default function CustomDomainAdminPage() {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center p-20"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>;
+    return (
+        <div className="max-w-4xl mx-auto space-y-6">
+            <div className="space-y-2">
+                <Skeleton className="h-10 w-64" />
+                <Skeleton className="h-4 w-96" />
+            </div>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-8 w-48 mb-2" />
+                    <Skeleton className="h-4 w-80" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                    <Skeleton className="h-10 w-40" />
+                </CardContent>
+            </Card>
+        </div>
+    );
   }
 
   return (

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -30,7 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2 } from 'lucide-react';
+import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -435,17 +436,33 @@ export default function SettingsAdminPage() {
 
   if (isLoading) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>সাইট সেটিংস</CardTitle>
-                <CardDescription>আপনার সাইটের সাধারণ তথ্য এবং এসইও (SEO) বিবরণ পরিচালনা করুন।</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex justify-center items-center py-16">
-                    <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-                </div>
-            </CardContent>
-        </Card>
+        <div className="space-y-6">
+            <div className="space-y-2">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-4 w-80" />
+            </div>
+            <Card>
+                <CardHeader className="border-b">
+                    <div className="flex gap-4">
+                        <Skeleton className="h-9 w-24 rounded-md" />
+                        <Skeleton className="h-9 w-24 rounded-md" />
+                        <Skeleton className="h-9 w-24 rounded-md" />
+                        <Skeleton className="h-9 w-24 rounded-md" />
+                    </div>
+                </CardHeader>
+                <CardContent className="p-6 space-y-8">
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-24 w-full" />
+                    </div>
+                    <Skeleton className="h-10 w-40 rounded-md" />
+                </CardContent>
+            </Card>
+        </div>
     );
   }
 
