@@ -58,14 +58,14 @@ export default function ProductsAdminPage() {
   const commonTranslations = translations[lang as keyof typeof translations]?.common || translations.bn.common;
 
   const fetchProducts = useCallback(async (force = false) => {
-    const siteId = user?.id;
-    if (!siteId) return;
+    const siteIdValue = user?.id;
+    if (!siteIdValue) return;
 
     const currentStore = useAdminStore.getState();
-    const now = Date.now();
-    const isFresh = now - currentStore.lastFetched.products < 300000;
+    const nowTimestamp = Date.now();
+    const isCacheFresh = nowTimestamp - currentStore.lastFetched.products < 300000;
     
-    if (!force && currentStore.products.length > 0 && isFresh) {
+    if (!force && currentStore.products.length > 0 && isCacheFresh) {
         setIsLoading(false);
         return;
     }
@@ -78,7 +78,7 @@ export default function ProductsAdminPage() {
         const response = await fetch('/api/products/list', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId }),
+            body: JSON.stringify({ siteId: siteIdValue }),
         });
         const result = await response.json();
         if (response.ok) {
@@ -140,28 +140,28 @@ export default function ProductsAdminPage() {
     }
   };
 
-  const totalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
-  const paginatedProducts = useMemo(() => {
+  const totalPagesCount = Math.ceil(products.length / ITEMS_PER_PAGE);
+  const paginatedProductsList = useMemo(() => {
     return products.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   }, [products, currentPage]);
 
-  const getPriceDisplay = (product: Product) => {
-    if (product.variants && product.variants.length > 0) {
-      const prices = product.variants.map(v => v.price);
-      const min = Math.min(...prices);
-      const max = Math.max(...prices);
+  const getPriceDisplay = (productItem: Product) => {
+    if (productItem.variants && productItem.variants.length > 0) {
+      const prices = productItem.variants.map(v => v.price);
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
       
-      if (min === max) {
-        return `${min.toFixed(2)} ${product.currency}`;
+      if (minPrice === maxPrice) {
+        return `${minPrice.toFixed(2)} ${productItem.currency}`;
       }
       return (
         <div className="flex flex-col">
           <span className="text-xs text-muted-foreground font-normal uppercase tracking-tighter">Range</span>
-          <span className="font-bold text-primary">{min.toFixed(2)} - {max.toFixed(2)} {product.currency}</span>
+          <span className="font-bold text-primary">{minPrice.toFixed(2)} - {maxPrice.toFixed(2)} {productItem.currency}</span>
         </div>
       );
     }
-    return `${product.price.toFixed(2)} ${product.currency}`;
+    return `${productItem.price.toFixed(2)} ${productItem.currency}`;
   };
 
   if (isLoading && products.length === 0) {
@@ -250,7 +250,7 @@ export default function ProductsAdminPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedProducts.map((productItem) => (
+                  {paginatedProductsList.map((productItem) => (
                     <TableRow key={productItem.id}>
                       <TableCell>
                         <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
@@ -289,13 +289,13 @@ export default function ProductsAdminPage() {
                 </TableBody>
               </Table>
             </CardContent>
-            {totalPages > 1 && (
+            {totalPagesCount > 1 && (
                 <CardFooter className="flex justify-center gap-4 py-4 border-t">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPageVal => Math.max(1, prevPageVal - 1))} disabled={currentPage === 1}>
                         আগেরটি
                     </Button>
-                    <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))} disabled={currentPage === totalPages}>
+                    <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPagesCount}</div>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPageVal => Math.min(totalPagesCount, prevPageVal + 1))} disabled={currentPage === totalPagesCount}>
                         পরবর্তী
                     </Button>
                 </CardFooter>
@@ -303,7 +303,7 @@ export default function ProductsAdminPage() {
           </Card>
 
           <div className="grid gap-4 md:hidden">
-            {paginatedProducts.map((productItem) => (
+            {paginatedProductsList.map((productItem) => (
               <Card key={productItem.id}>
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-start gap-4">
@@ -327,19 +327,19 @@ export default function ProductsAdminPage() {
                 </CardHeader>
                 <CardFooter className="p-4 pt-0">
                    <div className="flex flex-wrap gap-1">
-                      {productItem.categories?.slice(0, 2).map((cat) => <Badge key={cat} variant="secondary" className="text-[10px]">{cat}</Badge>)}
+                      {productItem.categories?.slice(0, 2).map((catName) => <Badge key={catName} variant="secondary" className="text-[10px]">{catName}</Badge>)}
                       {productItem.variants && productItem.variants.length > 0 && <Badge variant="outline" className="text-[10px]">{productItem.variants.length} Variants</Badge>}
                    </div>
                 </CardFooter>
               </Card>
             ))}
-            {totalPages > 1 && (
+            {totalPagesCount > 1 && (
                 <div className="flex justify-center items-center gap-4 py-4">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPageVal => Math.max(1, prevPageVal - 1))} disabled={currentPage === 1}>
                         আগেরটি
                     </Button>
-                    <span className="text-xs font-medium">{currentPage} / {totalPages}</span>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))} disabled={currentPage === totalPages}>
+                    <span className="text-xs font-medium">{currentPage} / {totalPagesCount}</span>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPageVal => Math.min(totalPagesCount, prevPageVal + 1))} disabled={currentPage === totalPagesCount}>
                         পরবর্তী
                     </Button>
                 </div>
