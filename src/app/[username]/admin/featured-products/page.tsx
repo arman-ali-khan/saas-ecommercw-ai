@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -27,6 +26,7 @@ import {
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -184,8 +184,40 @@ export default function FeaturedProductsPage() {
 
   if (isLoading && allProducts.length === 0) {
     return (
-      <div className="flex items-center justify-center p-16">
-        <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-1">
+            <div className="space-y-2">
+                <Skeleton className="h-8 w-64" />
+                <Skeleton className="h-4 w-96" />
+            </div>
+            <Skeleton className="h-10 w-32 rounded-md" />
+        </div>
+        <div className="grid md:grid-cols-4 gap-8">
+            <div className="md:col-span-1">
+                <Card>
+                    <CardHeader><Skeleton className="h-5 w-20" /></CardHeader>
+                    <CardContent className="space-y-6">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-40 w-full" />
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="md:col-span-3">
+                <Card>
+                    <CardContent className="p-0">
+                        {[...Array(6)].map((_, i) => (
+                            <div key={i} className="p-4 flex items-center gap-4 border-b last:border-0">
+                                <Skeleton className="h-5 w-5 rounded" />
+                                <div className="flex-grow space-y-2">
+                                    <Skeleton className="h-5 w-1/2" />
+                                    <Skeleton className="h-3 w-1/4" />
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
       </div>
     );
   }

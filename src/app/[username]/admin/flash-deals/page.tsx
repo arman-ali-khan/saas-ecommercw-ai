@@ -15,6 +15,7 @@ import { Plus, Edit, Trash2, Loader2, Flame, MoreHorizontal, X, AlertTriangle } 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function FlashDealsAdminPage() {
     const { user } = useAuth();
@@ -100,8 +101,35 @@ export default function FlashDealsAdminPage() {
     
     if (isLoading && deals.length === 0) {
         return (
-            <div className="flex items-center justify-center p-16">
-                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+            <div className="space-y-6">
+                <div className="flex items-center justify-between px-1">
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-4 w-80" />
+                    </div>
+                    <Skeleton className="h-10 w-28 rounded-md" />
+                </div>
+                <Card>
+                    <CardHeader className="p-0 border-b">
+                        <div className="p-4 grid grid-cols-5 gap-4">
+                            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="p-4 grid grid-cols-5 gap-4 items-center border-b last:border-0">
+                                <div className="flex items-center gap-3">
+                                    <Skeleton className="h-10 w-10 rounded-sm" />
+                                    <Skeleton className="h-4 w-24" />
+                                </div>
+                                <Skeleton className="h-4 w-20" />
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-6 w-16 rounded-full" />
+                                <Skeleton className="h-8 w-8 rounded-md ml-auto" />
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
             </div>
         );
     }
