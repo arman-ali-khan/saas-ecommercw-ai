@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Loader2, MessageSquare, Clock, CheckCircle2, AlertCircle, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Loader2, MessageSquare, Clock, CheckCircle2, AlertCircle, X, Image as ImageIcon, ChevronRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -132,6 +132,16 @@ export default function SupportForumPage() {
     }
   };
 
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return <Badge variant="destructive" className="animate-pulse">Urgent</Badge>;
+      case 'high': return <Badge variant="destructive">High</Badge>;
+      case 'normal': return <Badge variant="secondary">Normal</Badge>;
+      case 'low': return <Badge variant="outline">Low</Badge>;
+      default: return <Badge variant="outline">{priority}</Badge>;
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -148,46 +158,76 @@ export default function SupportForumPage() {
         {isLoading && tickets.length === 0 ? (
           <div className="flex justify-center p-20"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>
         ) : tickets.length > 0 ? (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>বিষয়</TableHead>
-                    <TableHead>স্ট্যাটাস</TableHead>
-                    <TableHead>অগ্রাধিকার</TableHead>
-                    <TableHead>তৈরি হয়েছে</TableHead>
-                    <TableHead className="text-right">অ্যাকশন</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tickets.map((ticket) => (
-                    <TableRow key={ticket.id} className="group">
-                      <TableCell className="font-medium">
-                        <Link href={`/admin/support/${ticket.id}`} className="hover:text-primary transition-colors block py-1">
-                          {ticket.title}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(ticket.status)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize text-[10px]">{ticket.priority}</Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {format(new Date(ticket.created_at), 'PPP', { locale: bn })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/admin/support/${ticket.id}`}>
-                            <MessageSquare className="mr-2 h-4 w-4" /> চ্যাট দেখুন
-                          </Link>
-                        </Button>
-                      </TableCell>
+          <>
+            {/* Desktop Table View */}
+            <Card className="hidden md:block">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>বিষয়</TableHead>
+                      <TableHead>স্ট্যাটাস</TableHead>
+                      <TableHead>অগ্রাধিকার</TableHead>
+                      <TableHead>তৈরি হয়েছে</TableHead>
+                      <TableHead className="text-right">অ্যাকশন</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {tickets.map((ticket) => (
+                      <TableRow key={ticket.id} className="group">
+                        <TableCell className="font-medium">
+                          <Link href={`/admin/support/${ticket.id}`} className="hover:text-primary transition-colors block py-1">
+                            {ticket.title}
+                          </Link>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(ticket.status)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize text-[10px]">{ticket.priority}</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {format(new Date(ticket.created_at), 'PPP', { locale: bn })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/admin/support/${ticket.id}`}>
+                              <MessageSquare className="mr-2 h-4 w-4" /> চ্যাট দেখুন
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Mobile Card View */}
+            <div className="grid gap-4 md:hidden">
+              {tickets.map((ticket) => (
+                <Link key={ticket.id} href={`/admin/support/${ticket.id}`}>
+                  <Card className="hover:border-primary/20 transition-colors border-2 active:scale-[0.98]">
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex justify-between items-start mb-2">
+                        {getStatusBadge(ticket.status)}
+                        {getPriorityBadge(ticket.priority)}
+                      </div>
+                      <CardTitle className="text-lg line-clamp-1">{ticket.title}</CardTitle>
+                      <CardDescription className="text-[10px] flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {format(new Date(ticket.created_at), 'PPP', { locale: bn })}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-0 justify-between items-center text-xs">
+                      <span className="text-primary font-bold flex items-center">
+                        চ্যাট দেখুন <ChevronRight className="ml-1 h-3 w-3" />
+                      </span>
+                      {ticket.image_url && <ImageIcon className="h-4 w-4 text-muted-foreground" />}
+                    </CardFooter>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </>
         ) : (
           <div className="text-center py-24 bg-muted/20 border-2 border-dashed rounded-[2rem]">
             <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">

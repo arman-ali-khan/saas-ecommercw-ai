@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -30,7 +29,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, X, MessageSquare, Filter, ArrowRight, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, Search, X, MessageSquare, Filter, ArrowRight, Clock, CheckCircle2, AlertTriangle, ChevronRight, Store, User } from 'lucide-react';
 import Link from 'next/link';
 import type { SupportTicket } from '@/types';
 
@@ -96,11 +95,11 @@ export default function SaasSupportTicketsPage() {
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
-      case 'urgent': return <Badge variant="destructive" className="animate-pulse">Urgent</Badge>;
-      case 'high': return <Badge variant="destructive">High</Badge>;
-      case 'normal': return <Badge variant="secondary">Normal</Badge>;
-      case 'low': return <Badge variant="outline">Low</Badge>;
-      default: return <Badge variant="outline">{priority}</Badge>;
+      case 'urgent': return <Badge variant="destructive" className="animate-pulse h-5 text-[10px]">Urgent</Badge>;
+      case 'high': return <Badge variant="destructive" className="h-5 text-[10px]">High</Badge>;
+      case 'normal': return <Badge variant="secondary" className="h-5 text-[10px]">Normal</Badge>;
+      case 'low': return <Badge variant="outline" className="h-5 text-[10px]">Low</Badge>;
+      default: return <Badge variant="outline" className="h-5 text-[10px]">{priority}</Badge>;
     }
   }
 
@@ -148,46 +147,90 @@ export default function SaasSupportTicketsPage() {
             </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Issue & Site</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedTickets.map(ticket => (
-                <TableRow key={ticket.id} className="group">
-                  <TableCell>
-                    <div className="space-y-1">
-                        <Link href={`/dashboard/support/${ticket.id}`} className="font-bold hover:text-primary transition-colors line-clamp-1">{ticket.title}</Link>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <Badge variant="outline" className="px-1.5 py-0 rounded text-[10px] font-normal">{ticket.profiles?.site_name}</Badge>
-                            <span>•</span>
-                            <span>{ticket.profiles?.full_name}</span>
-                        </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(ticket.status)}</TableCell>
-                  <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {format(new Date(ticket.updated_at), 'PPp')}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/dashboard/support/${ticket.id}`}>Review <ArrowRight className="ml-2 h-3 w-3" /></Link>
-                    </Button>
-                  </TableCell>
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Issue & Site</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Last Updated</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-              {filteredTickets.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">No tickets found.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {paginatedTickets.map(ticket => (
+                  <TableRow key={ticket.id} className="group">
+                    <TableCell>
+                      <div className="space-y-1">
+                          <Link href={`/dashboard/support/${ticket.id}`} className="font-bold hover:text-primary transition-colors line-clamp-1">{ticket.title}</Link>
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <Badge variant="outline" className="px-1.5 py-0 rounded text-[10px] font-normal">{ticket.profiles?.site_name}</Badge>
+                              <span>•</span>
+                              <span>{ticket.profiles?.full_name}</span>
+                          </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(ticket.status)}</TableCell>
+                    <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {format(new Date(ticket.updated_at), 'PPp')}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/dashboard/support/${ticket.id}`}>Review <ArrowRight className="ml-2 h-3 w-3" /></Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="grid gap-4 md:hidden p-4">
+            {paginatedTickets.map((ticket) => (
+              <Link key={ticket.id} href={`/dashboard/support/${ticket.id}`}>
+                <Card className="hover:border-primary/20 transition-colors border-2 active:scale-[0.98]">
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Store className="h-3 w-3 text-primary" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">{ticket.profiles?.site_name}</span>
+                        </div>
+                        <CardTitle className="text-base line-clamp-1 mt-1">{ticket.title}</CardTitle>
+                      </div>
+                      {getPriorityBadge(ticket.priority)}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      {getStatusBadge(ticket.status)}
+                      <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {format(new Date(ticket.updated_at), 'MMM d, p')}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-2 border-t mt-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <User className="h-3 w-3" />
+                      <span>{ticket.profiles?.full_name}</span>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-4 pt-0 justify-end">
+                    <span className="text-primary text-xs font-bold flex items-center">
+                      Review Ticket <ChevronRight className="ml-1 h-3 w-3" />
+                    </span>
+                  </CardFooter>
+                </Card>
+              </Link>
+            ))}
+          </div>
+
+          {filteredTickets.length === 0 && (
+            <div className="h-32 flex items-center justify-center text-muted-foreground italic">No tickets found.</div>
+          )}
         </CardContent>
         {totalPages > 1 && (
             <CardFooter className="justify-center border-t py-4">
