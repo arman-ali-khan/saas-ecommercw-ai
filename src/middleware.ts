@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
-
+ 
   // 1. SKIP REWRITES FOR SYSTEM PATHS AND ALL API ROUTES
   if (
     url.pathname.startsWith('/api') || 
