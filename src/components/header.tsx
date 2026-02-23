@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, User, LogOut, LayoutDashboard, Bell, Search, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Bell, Sun, Moon, ArrowLeft } from 'lucide-react';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 
 import { Button } from './ui/button';
@@ -201,8 +201,6 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
     _hasHydrated: customerHasHydrated,
   } = useCustomerAuth();
 
-  const domain = params.username as string;
-
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
     if (savedTheme) {
@@ -324,13 +322,12 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
             </Button>
             <form onSubmit={handleSearchSubmit} className="flex-grow">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                         placeholder="Search for products..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         autoFocus
-                        className="w-full h-10 pl-10"
+                        className="w-full h-10 pl-4"
                     />
                 </div>
             </form>
@@ -411,8 +408,8 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleTheme}>
-            {theme === 'light' ? <Moon className="h-6 w-6" /> : <Sun className="h-6 w-6" />}
+          <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full h-10 w-10">
+            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
             <span className="sr-only">Toggle Theme</span>
           </Button>
           <div className="hidden md:flex">
@@ -484,25 +481,12 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
             </DropdownMenu>
           ) : (
             <div className="hidden md:flex items-center gap-2">
-              {domain ? (
-                <>
-                  <Button variant="ghost" asChild>
-                    <Link href={`/login`}>লগ ইন</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link href={`/register`}>সাইন আপ করুন</Link>
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="ghost" asChild>
-                    <Link href="/login">লগ ইন</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link href="/get-started">শুরু করুন</Link>
-                  </Button>
-                </>
-              )}
+              <Button variant="ghost" asChild>
+                <Link href={`/login`}>লগ ইন</Link>
+              </Button>
+              <Button asChild>
+                <Link href={`/register`}>সাইন আপ করুন</Link>
+              </Button>
             </div>
           )}
         </div>

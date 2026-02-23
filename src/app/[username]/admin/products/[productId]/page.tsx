@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Wand2, Sparkles, Plus, Ruler, Scale, X, Info, Star, CheckCircle2, AlertTriangle, Hash, Tags as TagsIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Wand2, Plus, Ruler, Scale, X, Info, Star, CheckCircle2, Tags as TagsIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -51,7 +51,6 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const FALLBACK_UNITS = ['KG', 'Litter', 'GM', 'ML', 'Pcs', 'Pkt', 'Box', 'Dozen'];
 const FALLBACK_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
@@ -326,16 +325,16 @@ export default function ManageProductPage() {
   };
 
   const handleAddTag = (tagVal: string) => {
-    const currentTags = form.getValues('tags');
-    if (tagVal && !currentTags.includes(tagVal)) {
-        form.setValue('tags', [...currentTags, tagVal], { shouldDirty: true });
+    const currentTagsList = form.getValues('tags');
+    if (tagVal && !currentTagsList.includes(tagVal)) {
+        form.setValue('tags', [...currentTagsList, tagVal], { shouldDirty: true });
     }
     setTagInput('');
   };
 
   const handleRemoveTag = (tagVal: string) => {
-    const currentTags = form.getValues('tags');
-    form.setValue('tags', currentTags.filter(tItem => tItem !== tagVal), { shouldDirty: true });
+    const currentTagsList = form.getValues('tags');
+    form.setValue('tags', currentTagsList.filter(tItem => tItem !== tagVal), { shouldDirty: true });
   };
 
   if (isLoading || (authLoading && !user)) {
@@ -401,7 +400,7 @@ export default function ManageProductPage() {
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30 flex flex-row items-center justify-between space-y-0">
                             <div><CardTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary" /> সাধারণ তথ্য</CardTitle><CardDescription>পণ্যের নাম এবং বর্ণনা প্রদান করুন।</CardDescription></div>
-                            <Button type="button" variant="secondary" size="sm" onClick={handleBeautify} disabled={isBeautifying}>{isBeautifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />} Beautify Details</Button>
+                            <Button type="button" variant="secondary" size="sm" onClick={handleBeautify} disabled={isBeautifying}>{isBeautifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />} Beautify Details</Button>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel className="font-bold">পণ্যের নাম</FormLabel><FormControl><Input {...field} placeholder="যেমন: হিমসাগর আম (৫ কেজি)" className="h-12 text-lg font-medium" /></FormControl><FormMessage /></FormItem>)} />
@@ -426,17 +425,17 @@ export default function ManageProductPage() {
                         <CardHeader className="bg-muted/30"><CardTitle className="flex items-center gap-2"><Star className="h-5 w-5 text-primary" /> পণ্যের ছবিসমূহ</CardTitle></CardHeader>
                         <CardContent className="pt-6">
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                {imageFields.map((imageItem, imageIndex) => (
-                                    <div key={imageItem.id} className={cn("relative aspect-square rounded-xl overflow-hidden border-2 group", imageIndex === 0 ? "border-primary ring-4 ring-primary/10" : "border-border")}>
-                                        <Image src={imageItem.imageUrl} alt={`Product ${imageIndex + 1}`} fill className="object-cover" />
+                                {imageFields.map((imageItemRecord, imageIndexOffset) => (
+                                    <div key={imageItemRecord.id} className={cn("relative aspect-square rounded-xl overflow-hidden border-2 group", imageIndexOffset === 0 ? "border-primary ring-4 ring-primary/10" : "border-border")}>
+                                        <Image src={imageItemRecord.imageUrl} alt={`Product ${imageIndexOffset + 1}`} fill className="object-cover" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                            {imageIndex !== 0 && <Button type="button" variant="secondary" size="sm" className="h-8 text-[10px] rounded-full" onClick={() => moveImage(imageIndex, 0)}><Star className="h-3 w-3 mr-1" /> থাম্বনেইল করুন</Button>}
-                                            <Button type="button" variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => removeImage(imageIndex)}><Trash2 className="h-4 w-4" /></Button>
+                                            {imageIndexOffset !== 0 && <Button type="button" variant="secondary" size="sm" className="h-8 text-[10px] rounded-full" onClick={() => moveImage(imageIndexOffset, 0)}><Star className="h-3 w-3 mr-1" /> থাম্বনেইল করুন</Button>}
+                                            <Button type="button" variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => removeImage(imageIndexOffset)}><Trash2 className="h-4 w-4" /></Button>
                                         </div>
-                                        {imageIndex === 0 && <Badge className="absolute top-2 left-2">থাম্বনেইল</Badge>}
+                                        {imageIndexOffset === 0 && <Badge className="absolute top-2 left-2">থাম্বনেইল</Badge>}
                                     </div>
                                 ))}
-                                <div className="aspect-square flex flex-col items-center justify-center border-2 border-dashed rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"><ImageUploader multiple onUpload={(res) => appendImage({ imageUrl: res.info.secure_url, imageHint: '' })} label="ছবি যোগ করুন" /></div>
+                                <div className="aspect-square flex flex-col items-center justify-center border-2 border-dashed rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"><ImageUploader multiple onUpload={(uploadRes) => appendImage({ imageUrl: uploadRes.info.secure_url, imageHint: '' })} label="ছবি যোগ করুন" /></div>
                             </div>
                             <FormMessage className="mt-4">{form.formState.errors.images?.message}</FormMessage>
                         </CardContent>
@@ -616,20 +615,20 @@ export default function ManageProductPage() {
 
                             <FormField control={form.control} name="origin" render={({ field }) => (<FormItem><FormLabel>উৎপত্তি স্থল (Origin)</FormLabel><FormControl><Input {...field} placeholder="যেমন: রাজশাহী, খুলনা" className="h-11" /></FormControl></FormItem>)} />
                             <div className="space-y-4">
-                                {(['brand', 'color'] as const).map((attrName) => (
-                                    <FormField key={attrName} control={form.control} name={attrName as any} render={({ field }) => (
+                                {(['brand', 'color'] as const).map((attrNameString) => (
+                                    <FormField key={attrNameString} control={form.control} name={attrNameString as any} render={({ field: attrFormField }) => (
                                         <FormItem>
-                                            <FormLabel className="capitalize">{attrName}</FormLabel>
+                                            <FormLabel className="capitalize">{attrNameString}</FormLabel>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="outline" className="w-full h-11 justify-between font-normal">
-                                                        <span className="truncate">{field.value?.length ? field.value.join(', ') : `সিলেক্ট ${attrName}`}</span>
+                                                        <span className="truncate">{attrFormField.value?.length ? attrFormField.value.join(', ') : `সিলেক্ট ${attrNameString}`}</span>
                                                         <ChevronDown className="h-4 w-4 opacity-50" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                                    {(groupedAttributes[attrName] || []).map((optVal) => (
-                                                        <DropdownMenuCheckboxItem key={optVal} checked={field.value?.includes(optVal)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), optVal] : field.value.filter((vItem) => vItem !== optVal))}>
+                                                    {(groupedAttributes[attrNameString] || []).map((optVal) => (
+                                                        <DropdownMenuCheckboxItem key={optVal} checked={attrFormField.value?.includes(optVal)} onCheckedChange={(checked) => attrFormField.onChange(checked ? [...(attrFormField.value || []), optVal] : attrFormField.value.filter((vItem: string) => vItem !== optVal))}>
                                                             {optVal}
                                                         </DropdownMenuCheckboxItem>
                                                     ))}

@@ -4,9 +4,9 @@ import { createClient } from '@supabase/supabase-js';
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const siteId = body.siteId;
+    const siteIdValue = body.siteId;
 
-    if (!siteId) {
+    if (!siteIdValue) {
       return NextResponse.json({ error: 'Site ID is required' }, { status: 400 });
     }
 
@@ -15,21 +15,23 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Using select('*') to avoid crashes if new columns don't exist yet
-    const { data, error } = await supabaseAdmin
+    // Using select('*') to be resilient against non-existent columns if SQL wasn't run
+    const { data: settingsRecord, error: queryError } = await supabaseAdmin
       .from('store_settings')
       .select('*')
-      .eq('site_id', siteId)
+      .eq('site_id', siteIdValue)
       .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Database query error in get appearance:', error);
-      throw error;
+    if (queryError) {
+      console.error('Database query error in get appearance:', queryError);
+      // Return 200 with empty obj to prevent 500 crashes
+      return NextResponse.json({ appearance: {} }, { status: 200 });
     }
 
-    return NextResponse.json({ appearance: data || {} }, { status: 200 });
+    return NextResponse.json({ appearance: settingsRecord || {} }, { status: 200 });
   } catch (err: any) {
     console.error('Get Appearance API Error:', err);
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    // Even on catch, return empty appearance to allow page load
+    return NextResponse.json({ appearance: {}, error: err.message }, { status: 200 });
   }
 }

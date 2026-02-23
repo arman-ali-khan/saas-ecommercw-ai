@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -43,7 +42,6 @@ export default function DashboardTables({
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Pending Orders Table */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -91,7 +89,6 @@ export default function DashboardTables({
           </CardContent>
         </Card>
 
-        {/* Low Stock Table */}
         <Card className="border-destructive/20">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
