@@ -67,7 +67,7 @@ function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Sectio
 function CategoriesSection({ categories, section, t }: { categories: Category[], section: Section, t: any }) {
     if (categories.length === 0) return null;
 
-    const isCarousel = section.isCarousel !== false; // Default to true if undefined
+    const isCarousel = section.isCarousel !== false;
 
     return (
         <section>
@@ -196,7 +196,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     }
   );
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('domain', username).single();
+  const { data: profile } = await supabase.from('profiles').select('*').eq('domain', username).maybeSingle();
   if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-20 min-h-[60vh]">
@@ -218,11 +218,11 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     storeFeaturesResult,
     reviewsResult
   ] = await Promise.all([
-      supabase.from('store_settings').select('homepage_sections').eq('site_id', siteId).single(),
+      supabase.from('store_settings').select('homepage_sections').eq('site_id', siteId).maybeSingle(),
       supabase.from('carousel_slides').select('*').eq('site_id', siteId).eq('is_enabled', true).order('order', { ascending: true }),
       supabase.from('categories').select('*').eq('site_id', siteId).order('name', { ascending: true }),
       supabase.from('flash_deals').select('*, products!inner(*)').eq('site_id', siteId).eq('is_active', true).gt('end_date', new Date().toISOString()),
-      supabase.from('products').select('*').eq('site_id', siteId).eq('is_featured', true).limit(10), // Initial default limit
+      supabase.from('products').select('*').eq('site_id', siteId).eq('is_featured', true).limit(10),
       supabase.from('store_features').select('*').eq('site_id', siteId).order('order', { ascending: true }),
       supabase.from('product_reviews').select('*').eq('site_id', siteId).eq('is_approved', true).limit(10).order('created_at', { ascending: false })
   ]);
@@ -268,7 +268,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       case 'flash_deals':
         return <FlashDeals key={section.id} deals={(flashDealsResult.data as FlashDeal[]) || []} section={section} t={t} />;
       case 'featured':
-        // Refetch featured with the correct section limit
         const initialFeatured = (featuredProductsResult.data as Product[]) || [];
         const limitedFeatured = initialFeatured.slice(0, section.productLimit || 10);
         return <FeaturedProducts key={section.id} products={limitedFeatured} section={section} siteId={siteId} t={t} />;

@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -15,7 +16,6 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Using select('*') to be resilient against non-existent columns if SQL wasn't run
     const { data: settingsRecord, error: queryError } = await supabaseAdmin
       .from('store_settings')
       .select('*')
@@ -24,14 +24,12 @@ export async function POST(request: Request) {
 
     if (queryError) {
       console.error('Database query error in get appearance:', queryError);
-      // Return 200 with empty obj to prevent 500 crashes
       return NextResponse.json({ appearance: {} }, { status: 200 });
     }
 
     return NextResponse.json({ appearance: settingsRecord || {} }, { status: 200 });
   } catch (err: any) {
     console.error('Get Appearance API Error:', err);
-    // Even on catch, return empty appearance to allow page load
     return NextResponse.json({ appearance: {}, error: err.message }, { status: 200 });
   }
 }

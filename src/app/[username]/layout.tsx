@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -10,6 +11,7 @@ import type { HeaderLink, FooterLinkCategory, SocialLink } from '@/types';
 import LanguageProvider from '@/components/language-provider';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
+import { cn } from '@/lib/utils';
 
 const translations = { en, bn };
 
@@ -45,38 +47,27 @@ export async function generateMetadata({
     .from('profiles')
     .select('id, site_name, site_description, store_settings(seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url)')
     .eq('domain', username)
-    .single();
+    .maybeSingle();
 
   if (!profile) {
-    return {
-      title: 'Store Not Found',
-    };
+    return { title: 'Store Not Found' };
   }
 
   const settings = (Array.isArray(profile.store_settings) ? profile.store_settings[0] : profile.store_settings) || {};
   const title = settings.seo_title || profile.site_name || 'Store';
   const description = settings.seo_description || profile.site_description || 'An e-commerce store.';
-  const keywords = settings.seo_keywords || '';
   const faviconUrl = settings.favicon_url;
   const socialShareImageUrl = settings.social_share_image_url;
 
   return {
     title,
     description,
-    keywords,
-    manifest: '/manifest.json',
+    keywords: settings.seo_keywords || '',
     icons: faviconUrl ? [{ rel: 'icon', url: faviconUrl }] : null,
     openGraph: {
         title: title,
         description: description,
-        images: socialShareImageUrl ? [
-            {
-                url: socialShareImageUrl,
-                width: 1200,
-                height: 630,
-                alt: title,
-            }
-        ] : undefined,
+        images: socialShareImageUrl ? [{ url: socialShareImageUrl, width: 1200, height: 630, alt: title }] : undefined,
     }
   };
 }
@@ -106,10 +97,10 @@ export default async function UsernameLayout({
     }
   );
 
-  const { data: profile } = await supabase.from('profiles').select('id, site_name, site_description').eq('domain', username).single();
+  const { data: profile } = await supabase.from('profiles').select('id, site_name, site_description').eq('domain', username).maybeSingle();
   const siteId = profile?.id;
 
-  const settingsPromise = siteId ? supabase.from('store_settings').select('*').eq('site_id', siteId).single() : Promise.resolve({ data: null });
+  const settingsPromise = siteId ? supabase.from('store_settings').select('*').eq('site_id', siteId).maybeSingle() : Promise.resolve({ data: null });
   const headerLinksPromise = siteId ? supabase.from('header_links').select('*').eq('site_id', siteId).order('order') : Promise.resolve({ data: [] });
   const footerCatPromise = siteId ? supabase.from('footer_link_categories').select('*, footer_links(*)').eq('site_id', siteId).order('order') : Promise.resolve({ data: [] });
   const socialLinksPromise = siteId ? supabase.from('social_links').select('*').eq('site_id', siteId) : Promise.resolve({ data: [] });
@@ -125,7 +116,7 @@ export default async function UsernameLayout({
     id: profile.id,
     name: profile.site_name || username,
     description: profile.site_description,
-    logoType: settingsData?.logo_type || 'icon',
+    logoType: (settingsData?.logo_type as 'icon' | 'image') || 'icon',
     logoIcon: settingsData?.logo_icon || 'Leaf',
     logoImageUrl: settingsData?.logo_image_url || null,
   } : null;

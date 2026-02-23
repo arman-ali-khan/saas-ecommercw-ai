@@ -5,11 +5,12 @@ import ProductClientPage from './product-client-page';
 import { notFound } from 'next/navigation';
 
 type Props = {
-  params: { id: string, username: string };
+  params: Promise<{ id: string, username: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const product = await getProductById(params.id, params.username);
+  const { id, username } = await params;
+  const product = await getProductById(id, username);
 
   if (!product) {
     return {
@@ -37,7 +38,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const product = await getProductById(params.id, params.username);
+  const { id, username } = await params;
+  const product = await getProductById(id, username);
 
   if (!product) {
     notFound();
