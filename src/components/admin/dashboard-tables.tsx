@@ -78,7 +78,11 @@ export default function DashboardTables({
                             <span className="text-xs font-mono">{orderItemRecord.order_number}</span>
                             <span className="text-sm font-bold">BDT {orderItemRecord.total.toFixed(2)}</span>
                         </div>
-                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/orders/${orderItemRecord.id}`}>{t.view}</Link></Button>
+                        <Button variant="secondary" size="sm" asChild>
+                          <Link href={`/admin/orders/${orderItemRecord.id}`}>
+                            <Eye className="mr-2 h-4 w-4" /> {t.view}
+                          </Link>
+                        </Button>
                     </div>
                   ))}
                 </div>
@@ -182,7 +186,11 @@ export default function DashboardTables({
                             ))}
                         </div>
                     </div>
-                    <Button variant="ghost" size="sm" asChild><Link href={`/admin/reviews`}>{t.view}</Link></Button>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/admin/reviews`}>
+                        <Eye className="mr-2 h-4 w-4" /> {t.view}
+                      </Link>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -209,7 +217,11 @@ export default function DashboardTables({
                         <span className="text-xs font-bold">{qnaItemRecord.customer_name}</span>
                         <p className="text-[10px] text-muted-foreground truncate italic">"{qnaItemRecord.question}"</p>
                     </div>
-                    <Button variant="ghost" size="sm" asChild><Link href={`/admin/qna`}>{t.view}</Link></Button>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/admin/qna`}>
+                        <Eye className="mr-2 h-4 w-4" /> {t.view}
+                      </Link>
+                    </Button>
                   </div>
                 ))}
               </div>
