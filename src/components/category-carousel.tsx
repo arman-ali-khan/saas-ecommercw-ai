@@ -35,7 +35,7 @@ export default function CategoryCarousel({ categories }: { categories: Category[
                   )}
                 </div>
                 <CardFooter className="p-3">
-                  <h3 className="font-bold w-full font-primary text-center text-sm truncate">{cat.name}</h3>
+                  <h3 className="font-bold w-full text-primary-foreground text-center text-sm truncate">{cat.name}</h3>
                 </CardFooter>
               </Card>
             </Link>
