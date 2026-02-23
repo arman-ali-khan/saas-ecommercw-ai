@@ -113,7 +113,7 @@ function SuccessPageContent() {
                   </span>
                 </div>
                 <div className="flex-grow">
-                  <p className="font-medium">{item.name}</p> {item.quantity}
+                  <p className="font-medium flex items-center gap-2">{item.name} ⨯ {item.quantity}</p> 
                 </div>
                 <p>
                   {(item.price * item.quantity).toFixed(2)} BDT
