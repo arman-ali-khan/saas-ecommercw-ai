@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -20,7 +21,6 @@ import DashboardTables from '@/components/admin/dashboard-tables';
 const MINIMUM_QUANTITY_THRESHOLD = 10;
 
 export default function AdminDashboard() {
-  const adminDashboardParams = useParams();
   const activeAdminUser = useAuth((state) => state.user);
   const globalAdminStore = useAdminStore();
   const { toast } = useToast();

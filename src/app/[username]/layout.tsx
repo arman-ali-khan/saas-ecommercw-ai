@@ -77,7 +77,9 @@ export default async function UsernameLayout({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
       },
     }
   );
@@ -124,7 +126,7 @@ export default async function UsernameLayout({
   const translationsToUse = translations[lang as keyof typeof translations] || bn;
 
   let themeStyles = '';
-  const isDarkMode = settingsData?.theme_mode === 'dark';
+  const isDarkModeDefault = settingsData?.theme_mode === 'dark';
 
   if (settingsData) {
     const primaryFontVar = settingsData.font_primary ? fontMap[settingsData.font_primary]?.variable : null;

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -628,7 +629,7 @@ export default function ManageProductPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
                                                     {(groupedAttributes[attrNameString] || []).map((optVal) => (
-                                                        <DropdownMenuCheckboxItem key={optVal} checked={attrFormField.value?.includes(optVal)} onCheckedChange={(checked) => attrFormField.onChange(checked ? [...(attrFormField.value || []), optVal] : attrFormField.value.filter((vItem: string) => vItem !== optVal))}>
+                                                        <DropdownMenuCheckboxItem key={optVal} checked={attrFormField.value?.includes(optVal)} onCheckedChange={(checked) => attrFormField.onChange(checked ? [...(attrFormField.value || []), optVal] : attrFormField.value.filter((vItem) => vItem !== optVal))}>
                                                             {optVal}
                                                         </DropdownMenuCheckboxItem>
                                                     ))}
