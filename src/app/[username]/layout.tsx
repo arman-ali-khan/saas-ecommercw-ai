@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -157,14 +156,20 @@ export default async function UsernameLayout({
       settingsData.theme_background && `--background: ${settingsData.theme_background};`,
       settingsData.theme_foreground && `--foreground: ${settingsData.theme_foreground};`,
       settingsData.theme_primary && `--primary: ${settingsData.theme_primary};`,
+      settingsData.theme_primary_foreground && `--primary-foreground: ${settingsData.theme_primary_foreground};`,
       settingsData.theme_secondary && `--secondary: ${settingsData.theme_secondary};`,
+      settingsData.theme_secondary_foreground && `--secondary-foreground: ${settingsData.theme_secondary_foreground};`,
       settingsData.theme_accent && `--accent: ${settingsData.theme_accent};`,
+      settingsData.theme_accent_foreground && `--accent-foreground: ${settingsData.theme_accent_foreground};`,
       settingsData.theme_card && `--card: ${settingsData.theme_card};`,
-      settingsData.theme_foreground && `--card-foreground: ${settingsData.theme_foreground};`,
+      settingsData.theme_card_foreground && `--card-foreground: ${settingsData.theme_card_foreground};`,
       settingsData.theme_card && `--popover: ${settingsData.theme_card};`,
-      settingsData.theme_foreground && `--popover-foreground: ${settingsData.theme_foreground};`,
-      settingsData.theme_secondary && `--muted: ${settingsData.theme_secondary};`,
-      settingsData.theme_foreground && `--muted-foreground: ${settingsData.theme_foreground};`,
+      settingsData.theme_card_foreground && `--popover-foreground: ${settingsData.theme_card_foreground};`,
+      settingsData.theme_muted && `--muted: ${settingsData.theme_muted};`,
+      settingsData.theme_muted_foreground && `--muted-foreground: ${settingsData.theme_muted_foreground};`,
+      settingsData.theme_border && `--border: ${settingsData.theme_border};`,
+      settingsData.theme_input && `--input: ${settingsData.theme_input};`,
+      settingsData.theme_destructive && `--destructive: ${settingsData.theme_destructive};`,
       settingsData.theme_primary && `--ring: ${settingsData.theme_primary};`,
       primaryFontVar && `--font-body: var(${primaryFontVar});`,
       secondaryFontVar && `--font-headline: var(${secondaryFontVar});`,

@@ -18,7 +18,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { format as safeDateFormatter, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
+import { format as dateFnsFormat, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 
 const CHART_ORDER_STATUSES = {
   pending: { label: 'Pending', color: 'hsl(var(--chart-1))' },
@@ -198,14 +198,14 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
               <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" /> {t.orderStatus}</CardTitle>
               <CardDescription>{t.orderStatusDesc}</CardDescription>
             </div>
-            <Select onValueChange={(val) => setSelectedDisplayMonth(new Date(val))} defaultValue={safeDateFormatter(selectedDisplayMonth, 'yyyy-MM-dd')}>
+            <Select onValueChange={(val) => setSelectedDisplayMonth(new Date(val))} defaultValue={dateFnsFormat(selectedDisplayMonth, 'yyyy-MM-dd')}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder={t.selectMonth} />
               </SelectTrigger>
               <SelectContent>
                 {availableMonthOptions.map(m => (
                   <SelectItem key={m.toISOString()} value={m.toISOString()}>
-                    {safeDateFormatter(m, 'MMMM yyyy')}
+                    {dateFnsFormat(m, 'MMMM yyyy')}
                   </SelectItem>
                 ))}
               </SelectContent>

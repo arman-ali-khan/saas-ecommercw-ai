@@ -30,7 +30,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Palette } from 'lucide-react';
+import { Loader2, Palette, Info } from 'lucide-react';
 import { fontMap } from '@/lib/fonts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -40,11 +40,20 @@ const hslColorRegex = /^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/;
 
 const appearanceSchema = z.object({
   theme_primary: z.string().regex(hslColorRegex, 'Invalid HSL color format (e.g., 207 90% 61%)'),
+  theme_primary_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
   theme_secondary: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
+  theme_secondary_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
   theme_accent: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
+  theme_accent_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
   theme_background: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
   theme_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
   theme_card: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
+  theme_card_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
+  theme_muted: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
+  theme_muted_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
+  theme_border: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
+  theme_input: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
+  theme_destructive: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
   font_primary: z.string().min(1, 'Primary font is required'),
   font_secondary: z.string().min(1, 'Secondary font is required'),
 });
@@ -94,7 +103,7 @@ const hslStringToHex = (hslStr: string) => {
         const toHex = (c: number) => ('0' + c.toString(16)).slice(-2);
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     } catch (e) {
-        return '#000000'; // Fallback for invalid format
+        return '#000000';
     }
 };
 
@@ -103,16 +112,16 @@ const ColorInput = ({ field, label }: { field: any, label: string }) => {
 
     return (
         <FormItem>
-            <FormLabel>{label}</FormLabel>
+            <FormLabel className="text-xs font-bold uppercase tracking-wider">{label}</FormLabel>
             <div className="flex items-center gap-2">
                  <Input
                     type="color"
                     value={hexColor}
                     onChange={(e) => field.onChange(hexToHslString(e.target.value))}
-                    className="w-12 h-10 p-1 cursor-pointer"
+                    className="w-12 h-10 p-1 cursor-pointer shrink-0"
                     />
                 <FormControl>
-                    <Input {...field} placeholder="e.g. 224 71% 4%" />
+                    <Input {...field} placeholder="e.g. 224 71% 4%" className="font-mono text-xs" />
                 </FormControl>
             </div>
             <FormMessage />
@@ -121,20 +130,20 @@ const ColorInput = ({ field, label }: { field: any, label: string }) => {
 };
 
 const palettes = [
-    { name: 'Default (Bangla Naturals)', colors: { theme_primary: '207 90% 61%', theme_secondary: '217 33% 17%', theme_accent: '207 92% 77%', theme_background: '224 71% 4%', theme_foreground: '210 40% 98%', theme_card: '224 71% 6%' } },
-    { name: 'Amazon', colors: { theme_primary: '36 100% 50%', theme_secondary: '215 28% 19%', theme_accent: '215 28% 25%', theme_background: '0 0% 100%', theme_foreground: '215 28% 10%', theme_card: '0 0% 98%' } },
-    { name: 'Daraz', colors: { theme_primary: '22 89% 54%', theme_secondary: '210 100% 27%', theme_accent: '210 100% 35%', theme_background: '0 0% 100%', theme_foreground: '210 100% 10%', theme_card: '0 0% 98%' } },
-    { name: 'AliExpress', colors: { theme_primary: '0 100% 64%', theme_secondary: '0 0% 13%', theme_accent: '0 0% 20%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 98%' } },
-    { name: 'eBay', colors: { theme_primary: '358 78% 55%', theme_secondary: '211 100% 41%', theme_accent: '211 100% 50%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%' } },
-    { name: 'Walmart', colors: { theme_primary: '207 100% 40%', theme_secondary: '44 100% 56%', theme_accent: '44 100% 65%', theme_background: '0 0% 100%', theme_foreground: '207 100% 10%', theme_card: '0 0% 98%' } },
-    { name: 'Etsy', colors: { theme_primary: '19 87% 53%', theme_secondary: '0 0% 13%', theme_accent: '0 0% 20%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%' } },
-    { name: 'Shein', colors: { theme_primary: '0 0% 0%', theme_secondary: '0 0% 100%', theme_accent: '0 0% 20%', theme_background: '0 0% 100%', theme_foreground: '0 0% 0%', theme_card: '0 0% 98%' } },
-    { name: 'IKEA', colors: { theme_primary: '208 100% 32%', theme_secondary: '48 100% 50%', theme_accent: '48 100% 60%', theme_background: '0 0% 100%', theme_foreground: '208 100% 10%', theme_card: '0 0% 100%' } },
-    { name: 'Chaldal', colors: { theme_primary: '149 100% 31%', theme_secondary: '48 100% 50%', theme_accent: '48 100% 60%', theme_background: '0 0% 100%', theme_foreground: '149 100% 10%', theme_card: '0 0% 98%' } },
-    { name: 'Pickaboo', colors: { theme_primary: '195 100% 44%', theme_secondary: '0 0% 13%', theme_accent: '0 0% 20%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%' } },
-    { name: 'Shajgoj', colors: { theme_primary: '340 82% 52%', theme_secondary: '340 82% 95%', theme_accent: '340 82% 80%', theme_background: '0 0% 100%', theme_foreground: '340 82% 10%', theme_card: '0 0% 100%' } },
-    { name: 'Ozon', colors: { theme_primary: '219 100% 50%', theme_secondary: '330 100% 48%', theme_accent: '330 100% 60%', theme_background: '0 0% 100%', theme_foreground: '219 100% 10%', theme_card: '0 0% 100%' } },
-    { name: 'Xbox', colors: { theme_primary: '120 77% 28%', theme_secondary: '0 0% 0%', theme_accent: '0 0% 10%', theme_background: '0 0% 0%', theme_foreground: '0 0% 98%', theme_card: '0 0% 5%' } },
+    { name: 'Default (Bangla Naturals)', colors: { theme_primary: '207 90% 61%', theme_primary_foreground: '224 71% 4%', theme_secondary: '217 33% 17%', theme_secondary_foreground: '210 40% 98%', theme_accent: '207 92% 77%', theme_accent_foreground: '224 71% 4%', theme_background: '224 71% 4%', theme_foreground: '210 40% 98%', theme_card: '224 71% 6%', theme_card_foreground: '210 40% 98%', theme_muted: '217 33% 17%', theme_muted_foreground: '215 20% 65%', theme_border: '217 33% 27%', theme_input: '217 33% 27%', theme_destructive: '0 63% 31%' } },
+    { name: 'Amazon', colors: { theme_primary: '36 100% 50%', theme_primary_foreground: '0 0% 100%', theme_secondary: '215 28% 19%', theme_secondary_foreground: '0 0% 100%', theme_accent: '36 100% 60%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '215 28% 10%', theme_card: '0 0% 98%', theme_card_foreground: '215 28% 10%', theme_muted: '215 28% 95%', theme_muted_foreground: '215 28% 40%', theme_border: '215 28% 90%', theme_input: '215 28% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'Daraz', colors: { theme_primary: '22 89% 54%', theme_primary_foreground: '0 0% 100%', theme_secondary: '210 100% 27%', theme_secondary_foreground: '0 0% 100%', theme_accent: '210 100% 35%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '210 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '210 100% 10%', theme_muted: '210 100% 95%', theme_muted_foreground: '210 100% 40%', theme_border: '210 100% 90%', theme_input: '210 100% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'AliExpress', colors: { theme_primary: '0 100% 64%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 13%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 98%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'eBay', colors: { theme_primary: '358 78% 55%', theme_primary_foreground: '0 0% 100%', theme_secondary: '211 100% 41%', theme_secondary_foreground: '0 0% 100%', theme_accent: '211 100% 50%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'Walmart', colors: { theme_primary: '207 100% 40%', theme_primary_foreground: '0 0% 100%', theme_secondary: '44 100% 56%', theme_secondary_foreground: '207 100% 10%', theme_accent: '44 100% 65%', theme_accent_foreground: '207 100% 10%', theme_background: '0 0% 100%', theme_foreground: '207 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '207 100% 10%', theme_muted: '207 100% 95%', theme_muted_foreground: '207 100% 40%', theme_border: '207 100% 90%', theme_input: '207 100% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'Etsy', colors: { theme_primary: '19 87% 53%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 13%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'Shein', colors: { theme_primary: '0 0% 0%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 100%', theme_secondary_foreground: '0 0% 0%', theme_accent: '0 0% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 0%', theme_card: '0 0% 98%', theme_card_foreground: '0 0% 0%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'IKEA', colors: { theme_primary: '208 100% 32%', theme_primary_foreground: '0 0% 100%', theme_secondary: '48 100% 50%', theme_secondary_foreground: '208 100% 10%', theme_accent: '48 100% 60%', theme_accent_foreground: '208 100% 10%', theme_background: '0 0% 100%', theme_foreground: '208 100% 10%', theme_card: '0 0% 100%', theme_card_foreground: '208 100% 10%', theme_muted: '208 100% 95%', theme_muted_foreground: '208 100% 40%', theme_border: '208 100% 90%', theme_input: '208 100% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'Chaldal', colors: { theme_primary: '149 100% 31%', theme_primary_foreground: '0 0% 100%', theme_secondary: '48 100% 50%', theme_secondary_foreground: '149 100% 10%', theme_accent: '48 100% 60%', theme_accent_foreground: '149 100% 10%', theme_background: '0 0% 100%', theme_foreground: '149 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '149 100% 10%', theme_muted: '149 100% 95%', theme_muted_foreground: '149 100% 40%', theme_border: '149 100% 90%', theme_input: '149 100% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'Pickaboo', colors: { theme_primary: '195 100% 44%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 13%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'Shajgoj', colors: { theme_primary: '340 82% 52%', theme_primary_foreground: '0 0% 100%', theme_secondary: '340 82% 95%', theme_secondary_foreground: '340 82% 10%', theme_accent: '340 82% 80%', theme_accent_foreground: '340 82% 10%', theme_background: '0 0% 100%', theme_foreground: '340 82% 10%', theme_card: '0 0% 100%', theme_card_foreground: '340 82% 10%', theme_muted: '340 82% 98%', theme_muted_foreground: '340 82% 40%', theme_border: '340 82% 90%', theme_input: '340 82% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'Ozon', colors: { theme_primary: '219 100% 50%', theme_primary_foreground: '0 0% 100%', theme_secondary: '330 100% 48%', theme_secondary_foreground: '0 0% 100%', theme_accent: '330 100% 60%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '219 100% 10%', theme_card: '0 0% 100%', theme_card_foreground: '219 100% 10%', theme_muted: '219 100% 95%', theme_muted_foreground: '219 100% 40%', theme_border: '219 100% 90%', theme_input: '219 100% 90%', theme_destructive: '0 100% 40%' } },
+    { name: 'Xbox', colors: { theme_primary: '120 77% 28%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 0%', theme_secondary_foreground: '0 0% 98%', theme_accent: '0 0% 10%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 0%', theme_foreground: '0 0% 98%', theme_card: '0 0% 5%', theme_card_foreground: '0 0% 98%', theme_muted: '0 0% 10%', theme_muted_foreground: '0 0% 60%', theme_border: '0 0% 15%', theme_input: '0 0% 15%', theme_destructive: '0 100% 40%' } },
 ];
 
 
@@ -147,16 +156,7 @@ export default function AppearanceManagerPage() {
 
   const form = useForm<AppearanceFormData>({
     resolver: zodResolver(appearanceSchema),
-    defaultValues: {
-        theme_primary: '207 90% 61%',
-        theme_secondary: '217 33% 17%',
-        theme_accent: '207 92% 77%',
-        theme_background: '224 71% 4%',
-        theme_foreground: '210 40% 98%',
-        theme_card: '224 71% 6%',
-        font_primary: 'Poppins',
-        font_secondary: 'Poppins',
-    },
+    defaultValues: palettes[0].colors as any,
   });
 
   const fetchAppearance = useCallback(async () => {
@@ -172,12 +172,8 @@ export default function AppearanceManagerPage() {
         if (response.ok && result.appearance) {
             const data = result.appearance;
             form.reset({
-                theme_primary: data.theme_primary || '207 90% 61%',
-                theme_secondary: data.theme_secondary || '217 33% 17%',
-                theme_accent: data.theme_accent || '207 92% 77%',
-                theme_background: data.theme_background || '224 71% 4%',
-                theme_foreground: data.theme_foreground || '210 40% 98%',
-                theme_card: data.theme_card || '224 71% 6%',
+                ...palettes[0].colors,
+                ...data,
                 font_primary: data.font_primary || 'Poppins',
                 font_secondary: data.font_secondary || 'Poppins',
             });
@@ -232,122 +228,101 @@ export default function AppearanceManagerPage() {
   if (isLoading) {
     return (
         <div className="space-y-6">
-            <div className="space-y-2">
-                <Skeleton className="h-9 w-64" />
-                <Skeleton className="h-5 w-96" />
-            </div>
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-8 w-64 mb-2" />
-                    <Skeleton className="h-4 w-96" />
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        {[...Array(10)].map((_, i) => (
-                            <Skeleton key={i} className="h-20 w-full rounded-xl" />
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-8 w-64 mb-2" />
-                    <Skeleton className="h-4 w-96" />
-                </CardHeader>
-                <CardContent className="space-y-10">
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                    </div>
-                    <Separator />
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                    </div>
-                    <div className="flex justify-end pt-4">
-                        <Skeleton className="h-12 w-48 rounded-md" />
-                    </div>
-                </CardContent>
-            </Card>
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-96 w-full" />
         </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight">Appearance Manager</h1>
         <p className="text-muted-foreground">Customize the look and feel of your store with custom colors and fonts.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5"/> E-commerce Brand Palettes</CardTitle>
-          <CardDescription>Apply the iconic look of popular e-commerce platforms to your store.</CardDescription>
+      <Card className="border-2 shadow-sm">
+        <CardHeader className="bg-muted/30">
+          <CardTitle className="flex items-center gap-2 text-xl"><Palette className="h-5 w-5 text-primary"/> E-commerce Brand Palettes</CardTitle>
+          <CardDescription>Apply the signature look of popular e-commerce platforms to your store instantly.</CardDescription>
         </CardHeader>
-        <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <CardContent className="pt-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {palettes.map((palette) => (
                     <button
                         key={palette.name}
                         type="button"
                         onClick={() => handlePaletteSelect(palette)}
-                        className="p-3 border rounded-xl hover:ring-2 hover:ring-primary focus:outline-none focus:ring-2 focus:ring-ring transition-all group bg-card/50"
+                        className="p-3 border-2 rounded-xl hover:ring-4 hover:ring-primary/10 hover:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all group bg-card/50 text-left"
                     >
-                        <div className="flex gap-1 h-12 w-full mb-3 rounded-lg overflow-hidden shadow-inner">
-                            {Object.values(palette.colors).map((color, i) => (
+                        <div className="flex gap-0.5 h-10 w-full mb-3 rounded-lg overflow-hidden shadow-inner border border-border/50">
+                            {Object.values(palette.colors).slice(0, 5).map((color, i) => (
                                 <div key={i} className="flex-1" style={{ backgroundColor: `hsl(${color})` }} />
                             ))}
                         </div>
-                        <p className="text-xs font-semibold truncate group-hover:text-primary">{palette.name}</p>
+                        <p className="text-[10px] font-black uppercase tracking-wider truncate group-hover:text-primary">{palette.name}</p>
                     </button>
                 ))}
             </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Custom Styling</CardTitle>
-          <CardDescription>Manually adjust specific colors and typography.</CardDescription>
+      <Card className="border-2 shadow-sm">
+        <CardHeader className="bg-muted/30">
+          <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5 text-primary"/> Custom Styling</CardTitle>
+          <CardDescription>Manually adjust colors and typography for your brand.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
               
               <div className="space-y-6">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Brand Colors</h3>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      <FormField control={form.control} name="theme_primary" render={({ field }) => <ColorInput field={field} label="Primary Color" />} />
-                      <FormField control={form.control} name="theme_secondary" render={({ field }) => <ColorInput field={field} label="Secondary Color" />} />
-                      <FormField control={form.control} name="theme_accent" render={({ field }) => <ColorInput field={field} label="Accent Color" />} />
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                      <div className="h-1 w-8 bg-primary rounded-full" /> Brand Colors
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <FormField control={form.control} name="theme_primary" render={({ field }) => <ColorInput field={field} label="Primary (Brand)" />} />
+                      <FormField control={form.control} name="theme_primary_foreground" render={({ field }) => <ColorInput field={field} label="Primary Text" />} />
+                      <FormField control={form.control} name="theme_secondary" render={({ field }) => <ColorInput field={field} label="Secondary" />} />
+                      <FormField control={form.control} name="theme_secondary_foreground" render={({ field }) => <ColorInput field={field} label="Secondary Text" />} />
+                      <FormField control={form.control} name="theme_accent" render={({ field }) => <ColorInput field={field} label="Accent" />} />
+                      <FormField control={form.control} name="theme_accent_foreground" render={({ field }) => <ColorInput field={field} label="Accent Text" />} />
                   </div>
               </div>
 
               <Separator />
 
               <div className="space-y-6">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Interface Colors</h3>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                      <div className="h-1 w-8 bg-primary rounded-full" /> Layout & UI
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       <FormField control={form.control} name="theme_background" render={({ field }) => <ColorInput field={field} label="Background" />} />
-                      <FormField control={form.control} name="theme_foreground" render={({ field }) => <ColorInput field={field} label="Text / Foreground" />} />
-                      <FormField control={form.control} name="theme_card" render={({ field }) => <ColorInput field={field} label="Card / Surfaces" />} />
+                      <FormField control={form.control} name="theme_foreground" render={({ field }) => <ColorInput field={field} label="Foreground Text" />} />
+                      <FormField control={form.control} name="theme_card" render={({ field }) => <ColorInput field={field} label="Cards & Surfaces" />} />
+                      <FormField control={form.control} name="theme_card_foreground" render={({ field }) => <ColorInput field={field} label="Card Text" />} />
+                      <FormField control={form.control} name="theme_muted" render={({ field }) => <ColorInput field={field} label="Muted BG" />} />
+                      <FormField control={form.control} name="theme_muted_foreground" render={({ field }) => <ColorInput field={field} label="Muted Text" />} />
+                      <FormField control={form.control} name="theme_border" render={({ field }) => <ColorInput field={field} label="Borders" />} />
+                      <FormField control={form.control} name="theme_input" render={({ field }) => <ColorInput field={field} label="Inputs" />} />
+                      <FormField control={form.control} name="theme_destructive" render={({ field }) => <ColorInput field={field} label="Danger (Destructive)" />} />
                   </div>
               </div>
 
               <Separator />
 
               <div className="space-y-6">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Typography</h3>
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                      <div className="h-1 w-8 bg-primary rounded-full" /> Typography
+                  </h3>
                   <div className="grid md:grid-cols-2 gap-6">
                       <FormField control={form.control} name="font_primary" render={({ field }) => (
                           <FormItem>
-                              <FormLabel>Primary Font (Body)</FormLabel>
+                              <FormLabel className="text-xs font-bold uppercase">Body Font</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                   <FormControl>
-                                      <SelectTrigger>
+                                      <SelectTrigger className="h-11">
                                           <SelectValue placeholder="Select body font" />
                                       </SelectTrigger>
                                   </FormControl>
@@ -360,10 +335,10 @@ export default function AppearanceManagerPage() {
                       )}/>
                       <FormField control={form.control} name="font_secondary" render={({ field }) => (
                           <FormItem>
-                              <FormLabel>Secondary Font (Headlines)</FormLabel>
+                              <FormLabel className="text-xs font-bold uppercase">Headlines Font</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                   <FormControl>
-                                      <SelectTrigger>
+                                      <SelectTrigger className="h-11">
                                           <SelectValue placeholder="Select headline font" />
                                       </SelectTrigger>
                                   </FormControl>
@@ -378,7 +353,7 @@ export default function AppearanceManagerPage() {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button type="submit" size="lg" disabled={isSubmitting} className="min-w-[200px]">
+                <Button type="submit" size="lg" disabled={isSubmitting} className="min-w-[200px] h-12 rounded-xl shadow-lg shadow-primary/20 font-bold">
                   {isSubmitting ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                   ) : (

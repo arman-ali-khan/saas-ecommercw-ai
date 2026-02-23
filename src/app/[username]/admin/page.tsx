@@ -5,7 +5,7 @@ import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { subDays, format as safeDateFormatter } from 'date-fns';
+import { subDays, format as dateFnsFormat } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Ban, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -84,12 +84,12 @@ export default function AdminDashboard() {
         const dailyRevenueMap: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
           const day = subDays(new Date(), i);
-          const dateString = safeDateFormatter(day, 'MMM d');
+          const dateString = dateFnsFormat(day, 'MMM d');
           dailyRevenueMap[dateString] = 0;
         }
         
         finalOrders.filter((ord: any) => new Date(ord.created_at) >= lastWeekDateTime && ord.status === 'delivered').forEach((ord: any) => {
-          const dateString = safeDateFormatter(new Date(ord.created_at), 'MMM d');
+          const dateString = dateFnsFormat(new Date(ord.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenueMap, dateString)) {
             dailyRevenueMap[dateString] += (ord.total || 0);
           }
@@ -100,10 +100,8 @@ export default function AdminDashboard() {
             const hasVariants = individualItemRecord.variants && Array.isArray(individualItemRecord.variants) && individualItemRecord.variants.length > 0;
             
             if (hasVariants) {
-                // If it has variants, only check variant stocks
                 return individualItemRecord.variants.some((vItem: any) => (vItem.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
             }
-            // If no variants, check base stock
             return (individualItemRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
         }).sort((aItemRecord: any, bItemRecord: any) => {
             const getEffectiveStock = (productItemForStock: any) => {
