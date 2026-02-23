@@ -32,7 +32,7 @@ async function callOpenRouter(apiKey: string, prompt: string) {
                 "Authorization": `Bearer ${apiKey}`,
                 "Content-Type": "application/json",
                 "HTTP-Referer": "https://banglanaturals.site",
-                "X-Title": "Bangla Naturals SaaS"
+                "X-Title": "eHut SaaS"
             },
             body: JSON.stringify({
                 model: "arcee-ai/trinity-large-preview:free",
@@ -70,7 +70,7 @@ export async function generateProductDescription(input: any) {
 
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
-        const prompt = `You are a premium e-commerce copywriter for "Bangla Naturals".
+        const prompt = `You are a premium e-commerce copywriter for "eHut".
         
         Task: Generate a beautiful, persuasive, and detailed description for: "${name}".
         Context: ${description || ''}

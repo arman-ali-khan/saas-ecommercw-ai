@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.saas_showcase (
 -- যদি টেবিল না থাকে তবে তৈরি করুন, নতুবা কলাম যোগ করুন
 CREATE TABLE IF NOT EXISTS public.saas_settings (
     id INTEGER PRIMARY KEY DEFAULT 1,
-    platform_name TEXT DEFAULT 'Bangla Naturals',
+    platform_name TEXT DEFAULT 'eHut',
     platform_description TEXT,
     homepage_sections JSONB, -- এটি ল্যান্ডিং পেজের সেকশন অর্ডার ও স্ট্যাটাস জমা রাখবে
     updated_at TIMESTAMPTZ DEFAULT now()
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.saas_settings (
 
 -- ৩. ডিফল্ট সেকশন কনফিগারেশন ইনসার্ট বা আপডেট করা (ID 1 এর জন্য)
 INSERT INTO public.saas_settings (id, platform_name, homepage_sections)
-VALUES (1, 'Bangla Naturals', '[
+VALUES (1, 'eHut', '[
   {"id": "hero", "title": "Hero Section", "enabled": true},
   {"id": "features", "title": "Features Grid", "enabled": true},
   {"id": "showcase", "title": "Platform Showcase", "enabled": true},

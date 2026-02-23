@@ -1,5 +1,5 @@
 
-# Firebase Studio - Bangla Naturals E-commerce Platform
+# Firebase Studio - eHut E-commerce Platform
 
 এটি একটি আধুনিক মাল্টি-টিন্যান্ট ই-কমার্স প্ল্যাটফর্ম।
 

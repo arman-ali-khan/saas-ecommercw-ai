@@ -2,7 +2,7 @@
 -- 1. SaaS Settings Table (For Section Manager and Global Config)
 CREATE TABLE IF NOT EXISTS saas_settings (
     id BIGINT PRIMARY KEY DEFAULT 1,
-    platform_name TEXT DEFAULT 'Bangla Naturals',
+    platform_name TEXT DEFAULT 'ehut.bd',
     platform_description TEXT,
     logo_url TEXT,
     favicon_url TEXT,

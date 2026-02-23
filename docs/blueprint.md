@@ -1,4 +1,4 @@
-# **App Name**: Bangla Naturals
+# **App Name**: eHut
 
 ## Core Features:
 
