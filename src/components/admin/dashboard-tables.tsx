@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -7,13 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowRight, Eye, Star } from 'lucide-react';
+import { ArrowRight, Eye, Star, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Order, ProductReview, ProductQna } from '@/types';
+import type { Order, ProductReview, ProductQna, Product } from '@/types';
 
 interface DashboardTablesProps {
   pendingOrders: Order[];
+  lowStockProducts: Product[];
   pendingReviews: ProductReview[];
   unansweredQuestions: ProductQna[];
   isLoading: boolean;
@@ -23,9 +24,9 @@ interface DashboardTablesProps {
 const TableSkeleton = () => (
     <div className="space-y-3">
         {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center gap-4">
-                <Skeleton className="h-10 flex-grow" />
-                <Skeleton className="h-10 w-20" />
+            <div key={i} className="flex items-center gap-4 p-2 border rounded-md">
+                <Skeleton className="h-8 flex-grow" />
+                <Skeleton className="h-8 w-20" />
             </div>
         ))}
     </div>
@@ -33,6 +34,7 @@ const TableSkeleton = () => (
 
 export default function DashboardTables({ 
   pendingOrders, 
+  lowStockProducts,
   pendingReviews, 
   unansweredQuestions, 
   isLoading, 
@@ -40,7 +42,8 @@ export default function DashboardTables({
 }: DashboardTablesProps) {
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-1">
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Pending Orders Table */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -56,13 +59,12 @@ export default function DashboardTables({
               <>
                 <div className="hidden md:block">
                   <Table>
-                    <TableHeader><TableRow><TableHead>Order #</TableHead><TableHead>Customer</TableHead><TableHead>Total</TableHead><TableHead className="text-right">View</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Order #</TableHead><TableHead>Total</TableHead><TableHead className="text-right">View</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {pendingOrders.map(order => (
                         <TableRow key={order.id}>
                           <TableCell className="font-mono text-xs">{order.order_number}</TableCell>
-                          <TableCell>{(order as any).shipping_info?.name || 'N/A'}</TableCell>
-                          <TableCell>BDT {order.total.toFixed(2)}</TableCell>
+                          <TableCell className="text-xs font-bold">BDT {order.total.toFixed(2)}</TableCell>
                           <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/orders/${order.id}`}><Eye className="mr-2 h-4 w-4" />{t.details}</Link></Button></TableCell>
                         </TableRow>
                       ))}
@@ -71,11 +73,73 @@ export default function DashboardTables({
                 </div>
                 <div className="grid gap-4 md:hidden">
                   {pendingOrders.map(order => (
-                    <Card key={order.id}>
-                      <CardHeader><CardTitle className="text-sm">{order.order_number}</CardTitle><CardDescription>{(order as any).shipping_info?.name || 'N/A'}</CardDescription></CardHeader>
-                      <CardContent className="flex justify-between items-center"><p className="font-bold">BDT {order.total.toFixed(2)}</p><Button variant="secondary" size="sm" asChild><Link href={`/admin/orders/${order.id}`}>{t.viewOrder}</Link></Button></CardContent>
-                    </Card>
+                    <div key={order.id} className="flex justify-between items-center p-3 border rounded-xl">
+                        <div className="flex flex-col">
+                            <span className="text-xs font-mono">{order.order_number}</span>
+                            <span className="text-sm font-bold">BDT {order.total.toFixed(2)}</span>
+                        </div>
+                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/orders/${order.id}`}>{t.view}</Link></Button>
+                    </div>
                   ))}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Low Stock Table */}
+        <Card className="border-destructive/20">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> {t.lowStock}</CardTitle>
+              <CardDescription>{t.lowStockDesc}</CardDescription>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/products`}>{t.viewAll}</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? <TableSkeleton /> : lowStockProducts.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.sufficientStock}</p> : (
+              <>
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Stock</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {lowStockProducts.map(prod => {
+                        const minStock = Math.min(prod.stock ?? 0, ...(prod.variants?.map((v: any) => v.stock ?? 0) || []));
+                        return (
+                          <TableRow key={prod.id}>
+                            <TableCell className="text-xs font-medium max-w-[150px] truncate">{prod.name}</TableCell>
+                            <TableCell>
+                                <Badge variant={minStock === 0 ? "destructive" : "secondary"} className="text-[10px] uppercase font-black px-1.5 h-5">
+                                    {minStock === 0 ? "Out" : `${minStock} Low`}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/products/${prod.id}`}><Eye className="mr-2 h-4 w-4" /></Link></Button></TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="grid gap-4 md:hidden">
+                  {lowStockProducts.map(prod => {
+                    const minStock = Math.min(prod.stock ?? 0, ...(prod.variants?.map((v: any) => v.stock ?? 0) || []));
+                    return (
+                        <div key={prod.id} className="flex justify-between items-center p-3 border rounded-xl">
+                            <div className="flex flex-col max-w-[150px]">
+                                <span className="text-xs font-bold truncate">{prod.name}</span>
+                                <span className="text-[10px] text-muted-foreground">{prod.categories?.[0]}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Badge variant={minStock === 0 ? "destructive" : "secondary"} className="text-[10px] h-5">
+                                    {minStock === 0 ? "Out" : `${minStock} Low`}
+                                </Badge>
+                                <Button variant="secondary" size="icon" className="h-8 w-8" asChild><Link href={`/admin/products/${prod.id}`}><Eye className="h-4 w-4" /></Link></Button>
+                            </div>
+                        </div>
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -91,50 +155,26 @@ export default function DashboardTables({
               <CardDescription>{t.reviewDesc}</CardDescription>
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link href={`/admin/reviews`}>{t.viewAll} <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link href={`/admin/reviews`}>{t.viewAll}</Link>
             </Button>
           </CardHeader>
           <CardContent>
             {isLoading ? <TableSkeleton /> : pendingReviews.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingReviews}</p> : (
-              <>
-                <div className="hidden md:block">
-                  <Table>
-                    <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Rating</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {pendingReviews.map(review => (
-                        <TableRow key={review.id}>
-                          <TableCell className="font-medium">{review.customer_name}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, i) => (
+              <div className="space-y-3">
+                {pendingReviews.map(review => (
+                  <div key={review.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-muted/30 transition-colors">
+                    <div className="flex flex-col">
+                        <span className="text-xs font-bold">{review.customer_name}</span>
+                        <div className="flex items-center mt-0.5">
+                            {[...Array(5)].map((_, i) => (
                                 <Star key={i} className={cn("h-3 w-3", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/reviews`}><Eye className="mr-2 h-4 w-4" /></Link></Button></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                <div className="grid gap-4 md:hidden">
-                  {pendingReviews.map(review => (
-                    <Card key={review.id}>
-                      <CardHeader className="p-4 flex flex-row items-center justify-between">
-                        <CardTitle className="text-sm">{review.customer_name}</CardTitle>
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={cn("h-3 w-3", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
-                          ))}
+                            ))}
                         </div>
-                      </CardHeader>
-                      <CardFooter className="p-4 pt-0 justify-end">
-                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/reviews`}>View</Link></Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              </>
+                    </div>
+                    <Button variant="ghost" size="sm" asChild><Link href={`/admin/reviews`}>{t.view}</Link></Button>
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -146,40 +186,22 @@ export default function DashboardTables({
               <CardDescription>{t.qnaDesc}</CardDescription>
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link href={`/admin/qna`}>{t.viewAll} <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link href={`/admin/qna`}>{t.viewAll}</Link>
             </Button>
           </CardHeader>
           <CardContent>
             {isLoading ? <TableSkeleton /> : unansweredQuestions.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noUnansweredQna}</p> : (
-              <>
-                <div className="hidden md:block">
-                  <Table>
-                    <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Question</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {unansweredQuestions.map(q => (
-                        <TableRow key={q.id}>
-                          <TableCell className="font-medium text-xs">{q.customer_name}</TableCell>
-                          <TableCell className="max-w-[200px] truncate text-xs">"{q.question}"</TableCell>
-                          <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/qna`}><Eye className="mr-2 h-4 w-4" />{t.view}</Link></Button></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                <div className="grid gap-4 md:hidden">
-                  {unansweredQuestions.map(q => (
-                    <Card key={q.id}>
-                      <CardHeader className="p-4 pb-2"><CardTitle className="text-sm">{q.customer_name}</CardTitle></CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <p className="text-xs text-muted-foreground truncate">"{q.question}"</p>
-                      </CardContent>
-                      <CardFooter className="p-4 pt-0 justify-end">
-                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/qna`}>{t.view} View</Link></Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              </>
+              <div className="space-y-3">
+                {unansweredQuestions.map(q => (
+                  <div key={q.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-muted/30 transition-colors">
+                    <div className="flex flex-col min-w-0 flex-1 pr-4">
+                        <span className="text-xs font-bold">{q.customer_name}</span>
+                        <p className="text-[10px] text-muted-foreground truncate italic">"{q.question}"</p>
+                    </div>
+                    <Button variant="ghost" size="sm" asChild><Link href={`/admin/qna`}>{t.view}</Link></Button>
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
