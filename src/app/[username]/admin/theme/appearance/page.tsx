@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -31,15 +31,17 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Palette } from 'lucide-react';
+import { Loader2, Palette, Sun, Moon } from 'lucide-react';
 import { fontMap } from '@/lib/fonts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 
 const hslColorRegex = /^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/;
 
 const appearanceSchema = z.object({
+  theme_mode: z.enum(['light', 'dark']).default('light'),
   theme_primary: z.string().regex(hslColorRegex, 'Invalid HSL color format (e.g., 207 90% 61%)'),
   theme_primary_foreground: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
   theme_secondary: z.string().regex(hslColorRegex, 'Invalid HSL color format'),
@@ -130,32 +132,17 @@ const ColorInput = ({ field, label }: { field: any, label: string }) => {
     );
 };
 
-// All popular e-commerce palettes with Light and Dark variants
 const palettes = [
     { name: 'eHut (Dark)', colors: { theme_primary: '207 90% 61%', theme_primary_foreground: '224 71% 4%', theme_secondary: '217 33% 17%', theme_secondary_foreground: '210 40% 98%', theme_accent: '207 92% 77%', theme_accent_foreground: '224 71% 4%', theme_background: '224 71% 4%', theme_foreground: '210 40% 98%', theme_card: '224 71% 6%', theme_card_foreground: '210 40% 98%', theme_muted: '217 33% 17%', theme_muted_foreground: '215 20% 65%', theme_border: '217 33% 27%', theme_input: '217 33% 27%', theme_destructive: '0 63% 31%' } },
     { name: 'eHut (Light)', colors: { theme_primary: '207 90% 61%', theme_primary_foreground: '0 0% 100%', theme_secondary: '210 40% 96%', theme_secondary_foreground: '224 71% 4%', theme_accent: '207 92% 77%', theme_accent_foreground: '224 71% 4%', theme_background: '0 0% 100%', theme_foreground: '224 71% 4%', theme_card: '0 0% 100%', theme_card_foreground: '224 71% 4%', theme_muted: '210 40% 96%', theme_muted_foreground: '215 20% 45%', theme_border: '214 32% 91%', theme_input: '214 32% 91%', theme_destructive: '0 84% 60%' } },
-    
     { name: 'Amazon (Light)', colors: { theme_primary: '36 100% 50%', theme_primary_foreground: '0 0% 100%', theme_secondary: '215 28% 19%', theme_secondary_foreground: '0 0% 100%', theme_accent: '36 100% 60%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '215 28% 10%', theme_card: '0 0% 98%', theme_card_foreground: '215 28% 10%', theme_muted: '215 28% 95%', theme_muted_foreground: '215 28% 40%', theme_border: '215 28% 90%', theme_input: '215 28% 90%', theme_destructive: '0 100% 40%' } },
     { name: 'Amazon (Dark)', colors: { theme_primary: '36 100% 50%', theme_primary_foreground: '0 0% 100%', theme_secondary: '215 28% 10%', theme_secondary_foreground: '0 0% 100%', theme_accent: '36 100% 40%', theme_accent_foreground: '0 0% 100%', theme_background: '215 28% 5%', theme_foreground: '0 0% 100%', theme_card: '215 28% 8%', theme_card_foreground: '0 0% 100%', theme_muted: '215 28% 12%', theme_muted_foreground: '215 28% 70%', theme_border: '215 28% 15%', theme_input: '215 28% 15%', theme_destructive: '0 100% 40%' } },
-    
     { name: 'Daraz (Light)', colors: { theme_primary: '22 89% 54%', theme_primary_foreground: '0 0% 100%', theme_secondary: '210 100% 27%', theme_secondary_foreground: '0 0% 100%', theme_accent: '210 100% 35%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '210 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '210 100% 10%', theme_muted: '210 100% 95%', theme_muted_foreground: '210 100% 40%', theme_border: '210 100% 90%', theme_input: '210 100% 90%', theme_destructive: '0 100% 40%' } },
     { name: 'Daraz (Dark)', colors: { theme_primary: '22 89% 54%', theme_primary_foreground: '0 0% 100%', theme_secondary: '210 100% 10%', theme_secondary_foreground: '0 0% 100%', theme_accent: '210 100% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '210 100% 5%', theme_foreground: '0 0% 100%', theme_card: '210 100% 8%', theme_card_foreground: '0 0% 100%', theme_muted: '210 100% 12%', theme_muted_foreground: '210 100% 70%', theme_border: '210 100% 15%', theme_input: '210 100% 15%', theme_destructive: '0 100% 40%' } },
-    
     { name: 'AliExpress (Light)', colors: { theme_primary: '0 100% 64%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 13%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 98%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
     { name: 'AliExpress (Dark)', colors: { theme_primary: '0 100% 64%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 5%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 10%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 2%', theme_foreground: '0 0% 100%', theme_card: '0 0% 5%', theme_card_foreground: '0 0% 100%', theme_muted: '0 0% 8%', theme_muted_foreground: '0 0% 70%', theme_border: '0 0% 12%', theme_input: '0 0% 12%', theme_destructive: '0 100% 40%' } },
-    
-    { name: 'eBay (Light)', colors: { theme_primary: '358 78% 55%', theme_primary_foreground: '0 0% 100%', theme_secondary: '211 100% 41%', theme_secondary_foreground: '0 0% 100%', theme_accent: '211 100% 50%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'eBay (Dark)', colors: { theme_primary: '358 78% 55%', theme_primary_foreground: '0 0% 100%', theme_secondary: '211 100% 20%', theme_secondary_foreground: '0 0% 100%', theme_accent: '211 100% 30%', theme_accent_foreground: '0 0% 100%', theme_background: '211 100% 5%', theme_foreground: '0 0% 100%', theme_card: '211 100% 8%', theme_card_foreground: '0 0% 100%', theme_muted: '211 100% 12%', theme_muted_foreground: '211 100% 70%', theme_border: '211 100% 15%', theme_input: '211 100% 15%', theme_destructive: '0 100% 40%' } },
-    
-    { name: 'Walmart (Light)', colors: { theme_primary: '207 100% 40%', theme_primary_foreground: '0 0% 100%', theme_secondary: '44 100% 56%', theme_secondary_foreground: '207 100% 10%', theme_accent: '44 100% 65%', theme_accent_foreground: '207 100% 10%', theme_background: '0 0% 100%', theme_foreground: '207 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '207 100% 10%', theme_muted: '207 100% 95%', theme_muted_foreground: '207 100% 40%', theme_border: '207 100% 90%', theme_input: '207 100% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'Walmart (Dark)', colors: { theme_primary: '207 100% 40%', theme_primary_foreground: '0 0% 100%', theme_secondary: '44 100% 30%', theme_secondary_foreground: '0 0% 100%', theme_accent: '44 100% 40%', theme_accent_foreground: '0 0% 100%', theme_background: '207 100% 5%', theme_foreground: '0 0% 100%', theme_card: '207 100% 8%', theme_card_foreground: '0 0% 100%', theme_muted: '207 100% 12%', theme_muted_foreground: '207 100% 70%', theme_border: '207 100% 15%', theme_input: '207 100% 15%', theme_destructive: '0 100% 40%' } },
-    
-    { name: 'Etsy (Light)', colors: { theme_primary: '19 87% 53%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 13%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 20%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'Etsy (Dark)', colors: { theme_primary: '19 87% 53%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 5%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 0% 10%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 2%', theme_foreground: '0 0% 100%', theme_card: '0 0% 5%', theme_card_foreground: '0 0% 100%', theme_muted: '0 0% 8%', theme_muted_foreground: '0 0% 70%', theme_border: '0 0% 12%', theme_input: '0 0% 12%', theme_destructive: '0 100% 40%' } },
-    
     { name: 'IKEA (Light)', colors: { theme_primary: '208 100% 32%', theme_primary_foreground: '0 0% 100%', theme_secondary: '48 100% 50%', theme_secondary_foreground: '208 100% 10%', theme_accent: '48 100% 60%', theme_accent_foreground: '208 100% 10%', theme_background: '0 0% 100%', theme_foreground: '208 100% 10%', theme_card: '0 0% 100%', theme_card_foreground: '208 100% 10%', theme_muted: '208 100% 95%', theme_muted_foreground: '208 100% 40%', theme_border: '208 100% 90%', theme_input: '208 100% 90%', theme_destructive: '0 100% 40%' } },
     { name: 'IKEA (Dark)', colors: { theme_primary: '208 100% 32%', theme_primary_foreground: '0 0% 100%', theme_secondary: '48 100% 30%', theme_secondary_foreground: '0 0% 100%', theme_accent: '48 100% 40%', theme_accent_foreground: '0 0% 100%', theme_background: '208 100% 5%', theme_foreground: '0 0% 100%', theme_card: '208 100% 8%', theme_card_foreground: '0 0% 100%', theme_muted: '208 100% 12%', theme_muted_foreground: '208 100% 70%', theme_border: '208 100% 15%', theme_input: '208 100% 15%', theme_destructive: '0 100% 40%' } },
-    
     { name: 'Xbox (Dark)', colors: { theme_primary: '120 77% 28%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 0%', theme_secondary_foreground: '0 0% 98%', theme_accent: '0 0% 10%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 0%', theme_foreground: '0 0% 98%', theme_card: '0 0% 5%', theme_card_foreground: '0 0% 98%', theme_muted: '0 0% 10%', theme_muted_foreground: '0 0% 60%', theme_border: '0 0% 15%', theme_input: '0 0% 15%', theme_destructive: '0 100% 40%' } },
     { name: 'Xbox (Light)', colors: { theme_primary: '120 77% 28%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 96%', theme_secondary_foreground: '0 0% 10%', theme_accent: '0 0% 90%', theme_accent_foreground: '0 0% 10%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 100%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 96%', theme_muted_foreground: '0 0% 45%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
 ];
@@ -170,7 +157,7 @@ export default function AppearanceManagerPage() {
 
   const form = useForm<AppearanceFormData>({
     resolver: zodResolver(appearanceSchema),
-    defaultValues: palettes[0].colors as any,
+    defaultValues: { ...palettes[0].colors, theme_mode: 'light' } as any,
   });
 
   const fetchAppearance = useCallback(async () => {
@@ -188,6 +175,7 @@ export default function AppearanceManagerPage() {
             form.reset({
                 ...palettes[0].colors,
                 ...data,
+                theme_mode: data.theme_mode || 'light',
                 font_primary: data.font_primary || 'Poppins',
                 font_secondary: data.font_secondary || 'Poppins',
             });
@@ -255,6 +243,36 @@ export default function AppearanceManagerPage() {
         <h1 className="text-3xl font-bold tracking-tight">Appearance Manager</h1>
         <p className="text-muted-foreground">Customize the look and feel of your store with custom colors and fonts.</p>
       </div>
+
+      <Card className="border-2 shadow-sm">
+        <CardHeader className="bg-muted/30">
+          <CardTitle className="flex items-center gap-2 text-xl"><Palette className="h-5 w-5 text-primary"/> Global Theme Mode</CardTitle>
+          <CardDescription>Set the default theme mode for your visitors.</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6">
+            <FormField
+                control={form.control}
+                name="theme_mode"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/30">
+                        <div className="space-y-0.5">
+                            <FormLabel className="text-base flex items-center gap-2">
+                                {field.value === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                                Default to Dark Mode
+                            </FormLabel>
+                            <FormDescription>Toggle between light and dark as the starting theme for your store.</FormDescription>
+                        </div>
+                        <FormControl>
+                            <Switch 
+                                checked={field.value === 'dark'} 
+                                onCheckedChange={(checked) => field.onChange(checked ? 'dark' : 'light')} 
+                            />
+                        </FormControl>
+                    </FormItem>
+                )}
+            />
+        </CardContent>
+      </Card>
 
       <Card className="border-2 shadow-sm">
         <CardHeader className="bg-muted/30">

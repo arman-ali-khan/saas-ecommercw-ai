@@ -148,6 +148,8 @@ export default async function UsernameLayout({
   const t = translations[lang as keyof typeof translations] || bn;
 
   let themeStyles = '';
+  const isDarkMode = settingsData?.theme_mode === 'dark';
+
   if (settingsData) {
     const primaryFontVar = settingsData.font_primary ? fontMap[settingsData.font_primary]?.variable : null;
     const secondaryFontVar = settingsData.font_secondary ? fontMap[settingsData.font_secondary]?.variable : null;
@@ -181,21 +183,25 @@ export default async function UsernameLayout({
   }
 
   return (
-    <>
-      {themeStyles && <style>{themeStyles}</style>}
-      <LanguageProvider translations={t}>
-        <div className="flex flex-col min-h-screen">
-          <Header siteInfo={siteInfo} navLinks={headerLinks} isLoading={false} />
-          <main className="flex-grow container mx-auto px-1 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
-            {children}
-          </main>
-          <Footer siteInfo={siteInfo} footerCategories={footerCategories} socialLinks={socialLinks} isLoading={false} />
-          <BottomNav />
-          <div className="hidden md:block">
-            <FixedCartButton />
+    <html lang={lang} className={cn(isDarkMode && "dark")}>
+      <head>
+        {themeStyles && <style>{themeStyles}</style>}
+      </head>
+      <body>
+        <LanguageProvider translations={t}>
+          <div className="flex flex-col min-h-screen">
+            <Header siteInfo={siteInfo} navLinks={headerLinks} isLoading={false} />
+            <main className="flex-grow container mx-auto px-1 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
+              {children}
+            </main>
+            <Footer siteInfo={siteInfo} footerCategories={footerCategories} socialLinks={socialLinks} isLoading={false} />
+            <BottomNav />
+            <div className="hidden md:block">
+              <FixedCartButton />
+            </div>
           </div>
-        </div>
-      </LanguageProvider>
-    </>
+        </LanguageProvider>
+      </body>
+    </html>
   );
 }

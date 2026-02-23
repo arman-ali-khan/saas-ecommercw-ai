@@ -1,9 +1,7 @@
-
-
 'use client';
 
 import Link from 'next/link';
-import { Menu, User, LogOut, LayoutDashboard, Bell, Search, ArrowLeft } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Bell, Search, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 
 import { Button } from './ui/button';
@@ -190,6 +188,7 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
   const { isSearchOpen, setSearchOpen } = useSearchStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   const {
     user: siteOwner,
@@ -203,6 +202,21 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
   } = useCustomerAuth();
 
   const domain = params.username as string;
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
 
   const currentUser = siteOwner
     ? {
@@ -397,9 +411,9 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)}>
-            <Search className="h-6 w-6" />
-            <span className="sr-only">Search</span>
+          <Button variant="ghost" size="icon" onClick={toggleTheme}>
+            {theme === 'light' ? <Moon className="h-6 w-6" /> : <Sun className="h-6 w-6" />}
+            <span className="sr-only">Toggle Theme</span>
           </Button>
           <div className="hidden md:flex">
             <ShoppingCart />
