@@ -1,8 +1,8 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
+import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
@@ -26,14 +26,29 @@ const ITEMS_PER_PAGE = 10;
 
 export default function AdminNotificationsPage() {
   const { user, loading: authLoading } = useAuth();
+  const { notifications, setNotifications, lastFetched } = useAdminStore();
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isLoading, setIsLoading] = useState(() => {
+    const store = useAdminStore.getState();
+    return store.notifications.length === 0;
+  });
   const [currentPage, setCurrentPage] = useState(1);
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (force = false) => {
     if (!user) return;
-    setIsLoading(true);
+    
+    const store = useAdminStore.getState();
+    const isFresh = Date.now() - store.lastFetched.notifications < 300000; // 5 mins cache
+    
+    if (!force && store.notifications.length > 0 && isFresh) {
+        setIsLoading(false);
+        return;
+    }
+
+    if (store.notifications.length === 0 || force) {
+        setIsLoading(true);
+    }
 
     try {
         const response = await fetch('/api/notifications/list', {
@@ -52,15 +67,17 @@ export default function AdminNotificationsPage() {
             throw new Error(result.error);
         }
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error fetching notifications',
-        description: error.message,
-      });
+      if (useAdminStore.getState().notifications.length === 0) {
+          toast({
+            variant: 'destructive',
+            title: 'Error fetching notifications',
+            description: error.message,
+          });
+      }
     } finally {
         setIsLoading(false);
     }
-  }, [user, toast]);
+  }, [user, setNotifications, toast]);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -70,9 +87,9 @@ export default function AdminNotificationsPage() {
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
-        setNotifications((prev) =>
-            prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
-        );
+        const updatedNotifications = notifications.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n));
+        setNotifications(updatedNotifications);
+        
         const response = await fetch('/api/notifications/mark-read', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -81,14 +98,14 @@ export default function AdminNotificationsPage() {
         if (!response.ok) throw new Error('Failed to update');
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
-        fetchNotifications();
+        fetchNotifications(true);
     }
   };
   
   const handleMarkAllAsRead = async () => {
     if(!user) return;
     try {
-        setNotifications(prev => prev.map(n => ({...n, is_read: true})));
+        setNotifications(notifications.map(n => ({...n, is_read: true})));
         const response = await fetch('/api/notifications/mark-read', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -98,13 +115,13 @@ export default function AdminNotificationsPage() {
         toast({ title: 'সকল নোটিফিকেশন Dismiss করা হয়েছে।' });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
-        fetchNotifications();
+        fetchNotifications(true);
     }
   }
 
   const getIcon = (message: string) => {
       if (message.includes('অর্ডার')) return <ShoppingCart className="h-5 w-5 text-primary" />;
-      if (message.includes('প্রশ্ন') || message.includes('রিভিউ')) return <MessageSquare className="h-5 w-5 text-primary" />;
+      if (message.includes('প্রশ্ন') || message.includes('রিভিউ') || message.includes('সাপোর্ট')) return <MessageSquare className="h-5 w-5 text-primary" />;
       return <Bell className="h-5 w-5 text-primary" />;
   }
 
@@ -113,7 +130,7 @@ export default function AdminNotificationsPage() {
     return notifications.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   }, [notifications, currentPage]);
 
-  if (isLoading) {
+  if (isLoading && notifications.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col gap-2">
@@ -194,7 +211,7 @@ export default function AdminNotificationsPage() {
                         </p>
                         <div className="flex items-center gap-2 mt-1.5">
                             <span className="text-[10px] sm:text-xs uppercase tracking-wider font-bold opacity-60 flex items-center">
-                                <Clock className="inline-block h-3 w-3 mr-1" />
+                                <ClockIcon className="inline-block h-3 w-3 mr-1" />
                                 {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: bn })}
                             </span>
                             {!notification.is_read && (
@@ -258,6 +275,6 @@ export default function AdminNotificationsPage() {
   );
 }
 
-const Clock = ({ className }: { className?: string }) => (
+const ClockIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
 );

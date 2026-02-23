@@ -12,7 +12,8 @@ import type {
     ProductAttribute, 
     Page,
     SupportTicket,
-    SupportMessage
+    SupportMessage,
+    Notification
 } from '@/types';
 
 interface DashboardStats {
@@ -56,6 +57,7 @@ interface AdminState {
     supportTickets: SupportTicket[];
     currentTicket: SupportTicket | null;
     currentMessages: SupportMessage[];
+    notifications: Notification[];
     sidebarCounts: SidebarCounts;
     
     // Fetch Status (Timestamps)
@@ -76,6 +78,7 @@ interface AdminState {
     setSupportTickets: (tickets: SupportTicket[]) => void;
     setCurrentTicket: (ticket: SupportTicket | null) => void;
     setCurrentMessages: (messages: SupportMessage[]) => void;
+    setNotifications: (notifications: Notification[]) => void;
     setSidebarCounts: (counts: SidebarCounts) => void;
     
     invalidateEntity: (entity: string) => void;
@@ -95,6 +98,7 @@ const INITIAL_LAST_FETCHED = {
     attributes: 0,
     pages: 0,
     supportTickets: 0,
+    notifications: 0,
     sidebarCounts: 0,
 };
 
@@ -122,6 +126,7 @@ export const useAdminStore = create<AdminState>()((set) => ({
     supportTickets: [],
     currentTicket: null,
     currentMessages: [],
+    notifications: [],
     sidebarCounts: INITIAL_SIDEBAR_COUNTS,
     
     lastFetched: INITIAL_LAST_FETCHED,
@@ -189,6 +194,11 @@ export const useAdminStore = create<AdminState>()((set) => ({
     setCurrentTicket: (currentTicket) => set({ currentTicket }),
     setCurrentMessages: (currentMessages) => set({ currentMessages }),
 
+    setNotifications: (notifications) => set((state) => ({
+        notifications,
+        lastFetched: { ...state.lastFetched, notifications: Date.now() }
+    })),
+
     setSidebarCounts: (sidebarCounts) => set((state) => ({
         sidebarCounts,
         lastFetched: { ...state.lastFetched, sidebarCounts: Date.now() }
@@ -213,6 +223,7 @@ export const useAdminStore = create<AdminState>()((set) => ({
         supportTickets: [],
         currentTicket: null,
         currentMessages: [],
+        notifications: [],
         sidebarCounts: INITIAL_SIDEBAR_COUNTS,
         lastFetched: INITIAL_LAST_FETCHED,
     })
