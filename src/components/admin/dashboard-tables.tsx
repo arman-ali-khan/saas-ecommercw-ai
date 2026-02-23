@@ -21,7 +21,7 @@ interface DashboardTablesProps {
   t: any;
 }
 
-const TableSkeleton = () => (
+const TablePlaceholderSkeleton = () => (
     <div className="space-y-3">
         {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-center gap-4 p-2 border rounded-md">
@@ -55,30 +55,30 @@ export default function DashboardTables({
             </Button>
           </CardHeader>
           <CardContent>
-            {isLoading ? <TableSkeleton /> : pendingOrders.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingOrders}</p> : (
+            {isLoading ? <TablePlaceholderSkeleton /> : pendingOrders.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingOrders}</p> : (
               <>
                 <div className="hidden md:block">
                   <Table>
                     <TableHeader><TableRow><TableHead>Order #</TableHead><TableHead>Total</TableHead><TableHead className="text-right">View</TableHead></TableRow></TableHeader>
                     <TableBody>
-                      {pendingOrders.map(order => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-mono text-xs">{order.order_number}</TableCell>
-                          <TableCell className="text-xs font-bold">BDT {order.total.toFixed(2)}</TableCell>
-                          <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/orders/${order.id}`}><Eye className="mr-2 h-4 w-4" />{t.details}</Link></Button></TableCell>
+                      {pendingOrders.map(orderItem => (
+                        <TableRow key={orderItem.id}>
+                          <TableCell className="font-mono text-xs">{orderItem.order_number}</TableCell>
+                          <TableCell className="text-xs font-bold">BDT {orderItem.total.toFixed(2)}</TableCell>
+                          <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/orders/${orderItem.id}`}><Eye className="mr-2 h-4 w-4" />{t.details}</Link></Button></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
                 <div className="grid gap-4 md:hidden">
-                  {pendingOrders.map(order => (
-                    <div key={order.id} className="flex justify-between items-center p-3 border rounded-xl">
+                  {pendingOrders.map(orderItem => (
+                    <div key={orderItem.id} className="flex justify-between items-center p-3 border rounded-xl">
                         <div className="flex flex-col">
-                            <span className="text-xs font-mono">{order.order_number}</span>
-                            <span className="text-sm font-bold">BDT {order.total.toFixed(2)}</span>
+                            <span className="text-xs font-mono">{orderItem.order_number}</span>
+                            <span className="text-sm font-bold">BDT {orderItem.total.toFixed(2)}</span>
                         </div>
-                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/orders/${order.id}`}>{t.view}</Link></Button>
+                        <Button variant="secondary" size="sm" asChild><Link href={`/admin/orders/${orderItem.id}`}>{t.view}</Link></Button>
                     </div>
                   ))}
                 </div>
@@ -99,23 +99,23 @@ export default function DashboardTables({
             </Button>
           </CardHeader>
           <CardContent>
-            {isLoading ? <TableSkeleton /> : lowStockProducts.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.sufficientStock}</p> : (
+            {isLoading ? <TablePlaceholderSkeleton /> : lowStockProducts.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.sufficientStock}</p> : (
               <>
                 <div className="hidden md:block">
                   <Table>
-                    <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Stock</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Stock Status</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
                     <TableBody>
-                      {lowStockProducts.map(prod => {
-                        const minStock = Math.min(prod.stock ?? 0, ...(prod.variants?.map((v: any) => v.stock ?? 0) || []));
+                      {lowStockProducts.map(stockItem => {
+                        const calculatedMin = Math.min(stockItem.stock ?? 0, ...(stockItem.variants?.map((v: any) => v.stock ?? 0) || []));
                         return (
-                          <TableRow key={prod.id}>
-                            <TableCell className="text-xs font-medium max-w-[150px] truncate">{prod.name}</TableCell>
+                          <TableRow key={stockItem.id}>
+                            <TableCell className="text-xs font-medium max-w-[150px] truncate">{stockItem.name}</TableCell>
                             <TableCell>
-                                <Badge variant={minStock === 0 ? "destructive" : "secondary"} className="text-[10px] uppercase font-black px-1.5 h-5">
-                                    {minStock === 0 ? "Out" : `${minStock} Low`}
+                                <Badge variant={calculatedMin === 0 ? "destructive" : "secondary"} className="text-[10px] uppercase font-black px-1.5 h-5">
+                                    {calculatedMin === 0 ? "Out" : `${calculatedMin} Low`}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/products/${prod.id}`}><Eye className="mr-2 h-4 w-4" /></Link></Button></TableCell>
+                            <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/products/${stockItem.id}`}><Eye className="mr-2 h-4 w-4" /></Link></Button></TableCell>
                           </TableRow>
                         );
                       })}
@@ -123,19 +123,19 @@ export default function DashboardTables({
                   </Table>
                 </div>
                 <div className="grid gap-4 md:hidden">
-                  {lowStockProducts.map(prod => {
-                    const minStock = Math.min(prod.stock ?? 0, ...(prod.variants?.map((v: any) => v.stock ?? 0) || []));
+                  {lowStockProducts.map(stockItem => {
+                    const calculatedMin = Math.min(stockItem.stock ?? 0, ...(stockItem.variants?.map((v: any) => v.stock ?? 0) || []));
                     return (
-                        <div key={prod.id} className="flex justify-between items-center p-3 border rounded-xl">
+                        <div key={stockItem.id} className="flex justify-between items-center p-3 border rounded-xl">
                             <div className="flex flex-col max-w-[150px]">
-                                <span className="text-xs font-bold truncate">{prod.name}</span>
-                                <span className="text-[10px] text-muted-foreground">{prod.categories?.[0]}</span>
+                                <span className="text-xs font-bold truncate">{stockItem.name}</span>
+                                <span className="text-[10px] text-muted-foreground">{stockItem.categories?.[0]}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Badge variant={minStock === 0 ? "destructive" : "secondary"} className="text-[10px] h-5">
-                                    {minStock === 0 ? "Out" : `${minStock} Low`}
+                                <Badge variant={calculatedMin === 0 ? "destructive" : "secondary"} className="text-[10px] h-5">
+                                    {calculatedMin === 0 ? "Out" : `${calculatedMin} Low`}
                                 </Badge>
-                                <Button variant="secondary" size="icon" className="h-8 w-8" asChild><Link href={`/admin/products/${prod.id}`}><Eye className="h-4 w-4" /></Link></Button>
+                                <Button variant="secondary" size="icon" className="h-8 w-8" asChild><Link href={`/admin/products/${stockItem.id}`}><Eye className="h-4 w-4" /></Link></Button>
                             </div>
                         </div>
                     );
@@ -159,15 +159,15 @@ export default function DashboardTables({
             </Button>
           </CardHeader>
           <CardContent>
-            {isLoading ? <TableSkeleton /> : pendingReviews.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingReviews}</p> : (
+            {isLoading ? <TablePlaceholderSkeleton /> : pendingReviews.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingReviews}</p> : (
               <div className="space-y-3">
-                {pendingReviews.map(review => (
-                  <div key={review.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-muted/30 transition-colors">
+                {pendingReviews.map(reviewItem => (
+                  <div key={reviewItem.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-muted/30 transition-colors">
                     <div className="flex flex-col">
-                        <span className="text-xs font-bold">{review.customer_name}</span>
+                        <span className="text-xs font-bold">{reviewItem.customer_name}</span>
                         <div className="flex items-center mt-0.5">
                             {[...Array(5)].map((_, i) => (
-                                <Star key={i} className={cn("h-3 w-3", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                                <Star key={i} className={cn("h-3 w-3", i < reviewItem.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
                             ))}
                         </div>
                     </div>
@@ -190,13 +190,13 @@ export default function DashboardTables({
             </Button>
           </CardHeader>
           <CardContent>
-            {isLoading ? <TableSkeleton /> : unansweredQuestions.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noUnansweredQna}</p> : (
+            {isLoading ? <TablePlaceholderSkeleton /> : unansweredQuestions.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noUnansweredQna}</p> : (
               <div className="space-y-3">
-                {unansweredQuestions.map(q => (
-                  <div key={q.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-muted/30 transition-colors">
+                {unansweredQuestions.map(qnaItem => (
+                  <div key={qnaItem.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-muted/30 transition-colors">
                     <div className="flex flex-col min-w-0 flex-1 pr-4">
-                        <span className="text-xs font-bold">{q.customer_name}</span>
-                        <p className="text-[10px] text-muted-foreground truncate italic">"{q.question}"</p>
+                        <span className="text-xs font-bold">{qnaItem.customer_name}</span>
+                        <p className="text-[10px] text-muted-foreground truncate italic">"{qnaItem.question}"</p>
                     </div>
                     <Button variant="ghost" size="sm" asChild><Link href={`/admin/qna`}>{t.view}</Link></Button>
                   </div>

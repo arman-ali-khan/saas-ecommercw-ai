@@ -17,35 +17,35 @@ import DashboardStats from '@/components/admin/dashboard-stats';
 import DashboardCharts from '@/components/admin/dashboard-charts';
 import DashboardTables from '@/components/admin/dashboard-tables';
 
-const LOW_STOCK_LIMIT = 10;
+const MINIMUM_STOCK_THRESHOLD = 10;
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
-  const { dashboard, setDashboard } = useAdminStore();
+  const { user: currentAdmin } = useAuth();
+  const { dashboard: cachedDashboard, setDashboard } = useAdminStore();
   const { toast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(() => {
+  const [isDataLoading, setIsDataLoading] = useState(() => {
     return !useAdminStore.getState().dashboard;
   });
 
-  const fetchDashboardStats = useCallback(async (force = false) => {
-    const activeSiteId = user?.id;
+  const fetchDashboardStats = useCallback(async (forceRefresh = false) => {
+    const activeSiteId = currentAdmin?.id;
     if (!activeSiteId) return;
 
-    const currentStore = useAdminStore.getState();
-    const isFresh = Date.now() - currentStore.lastFetched.dashboard < 300000;
+    const storeState = useAdminStore.getState();
+    const isCacheFresh = Date.now() - storeState.lastFetched.dashboard < 300000;
     
-    if (!force && currentStore.dashboard && isFresh) {
-        setIsLoading(false);
+    if (!forceRefresh && storeState.dashboard && isCacheFresh) {
+        setIsDataLoading(false);
         return;
     }
 
-    if (!currentStore.dashboard) {
-        setIsLoading(true);
+    if (!storeState.dashboard) {
+        setIsDataLoading(true);
     }
 
     try {
-        const sevenDaysAgo = subDays(new Date(), 7);
+        const lastWeekDate = subDays(new Date(), 7);
 
         const [ordersRes, productsRes, uncompletedRes, customersRes, flashDealsRes, reviewsRes, qnaRes] = await Promise.all([
           fetch('/api/orders/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteId }) }),
@@ -74,10 +74,10 @@ export default function AdminDashboard() {
         const fetchedReviews = reviewsResult.reviews || [];
         const fetchedQnaList = qnaResult.qna || [];
 
-        const totalRevenue = fetchedOrders.filter((o: any) => o.status === 'delivered').reduce((acc: number, o: any) => acc + o.total, 0);
-        const monthlyOrdersCount = fetchedOrders.filter((o: any) => new Date(o.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && o.status !== 'canceled').length;
-        const unviewedCount = fetchedUncompleted.filter((o: any) => !o.is_viewed).length;
-        const activeDealsCount = fetchedDeals.filter((d: any) => d.is_active && new Date(d.end_date) > new Date()).length;
+        const totalRevenue = fetchedOrders.filter((orderItem: any) => orderItem.status === 'delivered').reduce((acc: number, orderItem: any) => acc + orderItem.total, 0);
+        const monthlyOrdersCount = fetchedOrders.filter((orderItem: any) => new Date(orderItem.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && orderItem.status !== 'canceled').length;
+        const unviewedCount = fetchedUncompleted.filter((uncompletedItem: any) => !uncompletedItem.is_viewed).length;
+        const activeDealsCount = fetchedDeals.filter((dealItem: any) => dealItem.is_active && new Date(dealItem.end_date) > new Date()).length;
 
         // Daily Revenue Calculation
         const dailyRevenue: { [key: string]: number } = {};
@@ -87,25 +87,25 @@ export default function AdminDashboard() {
           dailyRevenue[dateStr] = 0;
         }
         
-        fetchedOrders.filter((o: any) => new Date(o.created_at) >= sevenDaysAgo && o.status === 'delivered').forEach((o: any) => {
-          const dateStr = safeFormat(new Date(o.created_at), 'MMM d');
+        fetchedOrders.filter((orderItem: any) => new Date(orderItem.created_at) >= lastWeekDate && orderItem.status === 'delivered').forEach((orderItem: any) => {
+          const dateStr = safeFormat(new Date(orderItem.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) {
-            dailyRevenue[dateStr] += o.total;
+            dailyRevenue[dateStr] += orderItem.total;
           }
         });
 
-        // Low Stock Detection
-        const lowStockProductsList = fetchedProductsList.filter((prod: any) => {
-            const hasLowStockVariant = prod.variants?.some((v: any) => (v.stock ?? 0) < LOW_STOCK_LIMIT);
-            const hasLowBaseStock = (prod.stock ?? 0) < LOW_STOCK_LIMIT;
+        // Detailed Low Stock Detection (checking variants)
+        const lowStockProductsList = fetchedProductsList.filter((productItem: any) => {
+            const hasLowStockVariant = productItem.variants?.some((variantItem: any) => (variantItem.stock ?? 0) < MINIMUM_STOCK_THRESHOLD);
+            const hasLowBaseStock = (productItem.stock ?? 0) < MINIMUM_STOCK_THRESHOLD;
             return hasLowBaseStock || hasLowStockVariant;
-        }).sort((a: any, b: any) => {
-            const aMin = Math.min(a.stock ?? 0, ...(a.variants?.map((v: any) => v.stock ?? 0) || []));
-            const bMin = Math.min(b.stock ?? 0, ...(b.variants?.map((v: any) => v.stock ?? 0) || []));
-            return aMin - bMin;
+        }).sort((firstProduct: any, secondProduct: any) => {
+            const minA = Math.min(firstProduct.stock ?? 0, ...(firstProduct.variants?.map((v: any) => v.stock ?? 0) || []));
+            const minB = Math.min(secondProduct.stock ?? 0, ...(secondProduct.variants?.map((v: any) => v.stock ?? 0) || []));
+            return minA - minB;
         }).slice(0, 5);
 
-        const newDashboardData = {
+        const updatedDashboardData = {
           totalRevenue,
           totalProducts: fetchedProductsList.length,
           uncompletedOrders: unviewedCount,
@@ -114,35 +114,35 @@ export default function AdminDashboard() {
           ordersThisMonth: monthlyOrdersCount,
           activeFlashDeals: activeDealsCount,
           allOrders: fetchedOrders,
-          revenueChartData: Object.keys(dailyRevenue).map(dateKey => ({ date: dateKey, Revenue: dailyRevenue[dateKey] })),
-          pendingOrders: fetchedOrders.filter((o: any) => o.status === 'pending').slice(0, 5),
+          revenueChartData: Object.keys(dailyRevenue).map(keyString => ({ date: keyString, Revenue: dailyRevenue[keyString] })),
+          pendingOrders: fetchedOrders.filter((orderItem: any) => orderItem.status === 'pending').slice(0, 5),
           lowStockProducts: lowStockProductsList,
-          pendingReviews: fetchedReviews.filter((r: any) => !r.is_approved).slice(0, 5),
-          unansweredQuestions: fetchedQnaList.filter((q: any) => !q.is_approved).slice(0, 5),
+          pendingReviews: fetchedReviews.filter((reviewItem: any) => !reviewItem.is_approved).slice(0, 5),
+          unansweredQuestions: fetchedQnaList.filter((qnaItem: any) => !qnaItem.is_approved).slice(0, 5),
         };
 
-        setDashboard(newDashboardData);
+        setDashboard(updatedDashboardData);
       } catch (error: any) {
         console.error("Dashboard Fetch Error:", error);
         if (!useAdminStore.getState().dashboard) {
             toast({ variant: 'destructive', title: 'Error loading dashboard', description: error.message });
         }
       } finally {
-        setIsLoading(false);
+        setIsDataLoading(false);
     }
-  }, [user?.id, setDashboard, toast]);
+  }, [currentAdmin?.id, setDashboard, toast]);
 
   useEffect(() => {
-    if (user?.id) {
+    if (currentAdmin?.id) {
         fetchDashboardStats();
     }
-  }, [user?.id, fetchDashboardStats]);
+  }, [currentAdmin?.id, fetchDashboardStats]);
 
-  const lang = user?.language || 'bn';
+  const userLanguage = currentAdmin?.language || 'bn';
   const translations = { en, bn };
-  const t = translations[lang as keyof typeof translations]?.dashboard || translations.bn.dashboard;
+  const t = translations[userLanguage as keyof typeof translations]?.dashboard || translations.bn.dashboard;
   
-  const dashboardStats = useMemo(() => dashboard || {
+  const dashboardStats = useMemo(() => cachedDashboard || {
     totalRevenue: 0,
     totalProducts: 0,
     uncompletedOrders: 0,
@@ -156,16 +156,16 @@ export default function AdminDashboard() {
     lowStockProducts: [],
     pendingReviews: [],
     unansweredQuestions: [],
-  }, [dashboard]);
+  }, [cachedDashboard]);
 
-  const showSkeleton = isLoading && !dashboard;
-  const isLimitReached = user?.product_limit !== null && dashboardStats.totalProducts >= (user?.product_limit || 0);
+  const displaySkeleton = isDataLoading && !cachedDashboard;
+  const productLimitReached = currentAdmin?.product_limit !== null && (dashboardStats.totalProducts || 0) >= (currentAdmin?.product_limit || 0);
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
       
-      {isLimitReached && (
+      {productLimitReached && (
         <Alert variant="destructive">
           <Ban className="h-4 w-4" />
           <AlertTitle>{t.limitReached}</AlertTitle>
@@ -177,15 +177,15 @@ export default function AdminDashboard() {
 
       <DashboardStats 
         stats={dashboardStats} 
-        limits={{ productLimit: user?.product_limit ?? null, customerLimit: user?.customer_limit ?? null, orderLimit: user?.order_limit ?? null }} 
-        isLoading={showSkeleton} 
+        limits={{ productLimit: currentAdmin?.product_limit ?? null, customerLimit: currentAdmin?.customer_limit ?? null, orderLimit: currentAdmin?.order_limit ?? null }} 
+        isLoading={displaySkeleton} 
         t={t} 
       />
 
       <DashboardCharts 
         revenueChartData={dashboardStats.revenueChartData} 
         allOrders={dashboardStats.allOrders || []} 
-        isLoading={showSkeleton} 
+        isLoading={displaySkeleton} 
         t={t} 
       />
 
@@ -194,7 +194,7 @@ export default function AdminDashboard() {
         lowStockProducts={dashboardStats.lowStockProducts}
         pendingReviews={dashboardStats.pendingReviews} 
         unansweredQuestions={dashboardStats.unansweredQuestions} 
-        isLoading={showSkeleton} 
+        isLoading={displaySkeleton} 
         t={t} 
       />
     </div>
