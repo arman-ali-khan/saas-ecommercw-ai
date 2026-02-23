@@ -26,6 +26,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -230,7 +231,7 @@ export default function FeaturedProductsPage() {
 
                 <Accordion type="single" collapsible defaultValue="categories" className="w-full">
                     <AccordionItem value="categories" className="border-none">
-                    <AccordionTrigger className="text-xs font-semibold py-2 hover:no-underline">
+                    <AccordionTrigger className="text-xs font-semibold py-2 hover:no-underline data-[state=open]:text-primary transition-colors">
                         Categories
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -165,9 +166,9 @@ export default function FooterManagerPage() {
                         <Accordion type="multiple" className="w-full">
                             {categories.map(cat => (
                                 <AccordionItem value={cat.id} key={cat.id}>
-                                    <AccordionTrigger className="hover:no-underline">
+                                    <AccordionTrigger className="hover:no-underline data-[state=open]:bg-primary/5 data-[state=open]:text-primary transition-all rounded-t-lg">
                                         <div className="flex items-center justify-between w-full pr-4 text-left">
-                                            <span>{cat.title}</span>
+                                            <span className="font-bold">{cat.title}</span>
                                             <div className="flex items-center gap-1">
                                                 <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDialog({ type: 'category', data: cat }); }}><Edit className="h-4 w-4"/></Button>
                                                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete('category', cat.id); }}><Trash2 className="h-4 w-4"/></Button>

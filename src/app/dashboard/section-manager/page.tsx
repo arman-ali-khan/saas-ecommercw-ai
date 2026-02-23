@@ -187,7 +187,7 @@ export default function SaasSectionManagerPage() {
                 key={section.id}
                 className="border rounded-lg overflow-hidden"
               >
-                <AccordionTrigger className="p-4 hover:no-underline data-[state=open]:bg-muted/50">
+                <AccordionTrigger className="p-4 hover:no-underline data-[state=open]:bg-primary/10 data-[state=open]:text-primary transition-all">
                   <div className="flex items-center justify-between w-full gap-4">
                       <div className="flex items-center gap-4">
                           <GripVertical className="h-5 w-5 text-muted-foreground" />
