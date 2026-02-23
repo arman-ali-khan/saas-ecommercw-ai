@@ -9,16 +9,29 @@
 
 ১. আপনার **Supabase Dashboard**-এ যান।
 ২. বাম পাশের মেনু থেকে **SQL Editor** সেকশনে যান।
-৩. এই প্রকল্পের রুট ডিরেক্টরিতে থাকা `supabase_security_fixes.sql` ফাইলটি ওপেন করুন।
-৪. ভেতরের কোডটুকু কপি করে সুপাবেস এডিটরে পেস্ট করুন এবং **Run** বাটনে ক্লিক করুন।
+৩. নিচের কোডটুকু কপি করে সুপাবেস এডিটরে পেস্ট করুন এবং **Run** বাটনে ক্লিক করুন।
 
-### এই স্ক্রিপ্টটি যা নিশ্চিত করে:
-- **Subscription Management**: প্ল্যান অনুযায়ী মেয়াদের (Months/Years) কলাম এবং প্রোফাইলে এক্সপায়ারি ডেট যোগ করে।
-- **Idempotent Execution**: আপনি যতবার খুশি রান করতে পারবেন, "Policy already exists" এর মতো এরর আসবে না।
-- **Performance Optimization**: আরএলএস (RLS) পলিসিতে সাবকুয়েরি ব্যবহারের ফলে কুয়েরি পারফরম্যান্স অনেক দ্রুত হবে।
-- **Function Security**: সকল ডাটাবেস ফাংশন এখন "Search Path Hijacking" আক্রমণ থেকে সুরক্ষিত।
-- **Type Safety**: UUID এবং TEXT টাইপের মধ্যে তুলনা করার সময় আসা এরর সমাধান করা হয়েছে।
-- **Secure Data Access**: অর্ডার, কাস্টমার অ্যাড্রেস এবং চ্যাট মেসেজগুলো এখন সঠিক মালিকানা অনুযায়ী নিয়ন্ত্রিত।
+### ১. সিকিউরিটি এবং সাবস্ক্রিপশন ফিক্স
+(আপনার প্রকল্পের রুট ডিরেক্টরিতে থাকা `supabase_security_fixes.sql` ফাইলটি ব্যবহার করুন)
+
+### ২. কাস্টম স্টাইলিং আপডেট (নতুন)
+অ্যাপিয়ারেন্স ম্যানেজারের নতুন কালার অপশনগুলো চালু করতে এই কোডটি রান করুন:
+```sql
+ALTER TABLE store_settings 
+ADD COLUMN IF NOT EXISTS theme_primary_foreground text,
+ADD COLUMN IF NOT EXISTS theme_secondary text,
+ADD COLUMN IF NOT EXISTS theme_secondary_foreground text,
+ADD COLUMN IF NOT EXISTS theme_accent text,
+ADD COLUMN IF NOT EXISTS theme_accent_foreground text,
+ADD COLUMN IF NOT EXISTS theme_foreground text,
+ADD COLUMN IF NOT EXISTS theme_card text,
+ADD COLUMN IF NOT EXISTS theme_card_foreground text,
+ADD COLUMN IF NOT EXISTS theme_muted text,
+ADD COLUMN IF NOT EXISTS theme_muted_foreground text,
+ADD COLUMN IF NOT EXISTS theme_border text,
+ADD COLUMN IF NOT EXISTS theme_input text,
+ADD COLUMN IF NOT EXISTS theme_destructive text;
+```
 
 ## শুরু করার নিয়ম
 
