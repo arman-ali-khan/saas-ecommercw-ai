@@ -5,9 +5,9 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import Link from 'next/link';
-import { subDays, format as safeFormat } from 'date-fns';
+import { subDays, format as safeDateFormatter } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Ban, Loader2 } from 'lucide-react';
+import { Ban, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
@@ -17,132 +17,132 @@ import DashboardStats from '@/components/admin/dashboard-stats';
 import DashboardCharts from '@/components/admin/dashboard-charts';
 import DashboardTables from '@/components/admin/dashboard-tables';
 
-const MINIMUM_STOCK_THRESHOLD = 10;
+const MINIMUM_QUANTITY_THRESHOLD = 10;
 
 export default function AdminDashboard() {
-  const { user: currentAdmin } = useAuth();
-  const { dashboard: cachedDashboard, setDashboard } = useAdminStore();
+  const { user: currentAdminUser } = useAuth();
+  const { dashboard: cachedDashboardData, setDashboard: setGlobalDashboardData } = useAdminStore();
   const { toast } = useToast();
 
   const [isDataLoading, setIsDataLoading] = useState(() => {
     return !useAdminStore.getState().dashboard;
   });
 
-  const fetchDashboardStats = useCallback(async (forceRefresh = false) => {
-    const activeSiteId = currentAdmin?.id;
-    if (!activeSiteId) return;
+  const fetchDashboardStats = useCallback(async (forceRefreshAction = false) => {
+    const activeSiteIdentifier = currentAdminUser?.id;
+    if (!activeSiteIdentifier) return;
 
-    const storeState = useAdminStore.getState();
-    const isCacheFresh = Date.now() - storeState.lastFetched.dashboard < 300000;
+    const storeCurrentState = useAdminStore.getState();
+    const isCacheDataFresh = Date.now() - storeCurrentState.lastFetched.dashboard < 300000;
     
-    if (!forceRefresh && storeState.dashboard && isCacheFresh) {
+    if (!forceRefreshAction && storeCurrentState.dashboard && isCacheDataFresh) {
         setIsDataLoading(false);
         return;
     }
 
-    if (!storeState.dashboard) {
+    if (!storeCurrentState.dashboard) {
         setIsDataLoading(true);
     }
 
     try {
-        const lastWeekDate = subDays(new Date(), 7);
+        const lastWeekDateTime = subDays(new Date(), 7);
 
-        const [ordersRes, productsRes, uncompletedRes, customersRes, flashDealsRes, reviewsRes, qnaRes] = await Promise.all([
-          fetch('/api/orders/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteId }) }),
-          fetch('/api/products/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteId }) }),
-          fetch('/api/uncompleted-orders/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteId }) }),
-          fetch('/api/customers/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteId }) }),
-          fetch('/api/flash-deals/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteId }) }),
-          fetch('/api/reviews/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteId }) }),
-          fetch('/api/qna/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteId }) }),
+        const [ordersResponse, productsResponse, uncompletedResponse, customersResponse, flashDealsResponse, reviewsResponse, qnaResponse] = await Promise.all([
+          fetch('/api/orders/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteIdentifier }) }),
+          fetch('/api/products/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteIdentifier }) }),
+          fetch('/api/uncompleted-orders/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteIdentifier }) }),
+          fetch('/api/customers/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteIdentifier }) }),
+          fetch('/api/flash-deals/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteIdentifier }) }),
+          fetch('/api/reviews/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteIdentifier }) }),
+          fetch('/api/qna/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteIdentifier }) }),
         ]);
 
-        const [ordersResult, productsResult, uncompletedResult, customersResult, flashDealsResult, reviewsResult, qnaResult] = await Promise.all([
-          ordersRes.json(), 
-          productsRes.json(), 
-          uncompletedRes.json(), 
-          customersRes.json(), 
-          flashDealsResult.json(), 
-          reviewsResult.json(), 
-          qnaResult.json()
+        const [ordersData, productsData, uncompletedData, customersData, flashDealsData, reviewsData, qnaData] = await Promise.all([
+          ordersResponse.json(), 
+          productsResponse.json(), 
+          uncompletedResponse.json(), 
+          customersResponse.json(), 
+          flashDealsResponse.json(), 
+          reviewsResponse.json(), 
+          qnaResponse.json()
         ]);
 
-        const fetchedOrders = ordersResult.orders || [];
-        const fetchedProductsList = productsResult.products || [];
-        const fetchedUncompleted = uncompletedResult.orders || [];
-        const fetchedDeals = flashDealsResult.deals || [];
-        const fetchedReviews = reviewsResult.reviews || [];
-        const fetchedQnaList = qnaResult.qna || [];
+        const finalOrders = Array.isArray(ordersData.orders) ? ordersData.orders : [];
+        const finalProducts = Array.isArray(productsData.products) ? productsData.products : [];
+        const finalUncompleted = Array.isArray(uncompletedData.orders) ? uncompletedData.orders : [];
+        const finalDeals = Array.isArray(flashDealsData.deals) ? flashDealsData.deals : [];
+        const finalReviews = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
+        const finalQna = Array.isArray(qnaData.qna) ? qnaData.qna : [];
 
-        const totalRevenue = fetchedOrders.filter((orderItem: any) => orderItem.status === 'delivered').reduce((acc: number, orderItem: any) => acc + orderItem.total, 0);
-        const monthlyOrdersCount = fetchedOrders.filter((orderItem: any) => new Date(orderItem.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && orderItem.status !== 'canceled').length;
-        const unviewedCount = fetchedUncompleted.filter((uncompletedItem: any) => !uncompletedItem.is_viewed).length;
-        const activeDealsCount = fetchedDeals.filter((dealItem: any) => dealItem.is_active && new Date(dealItem.end_date) > new Date()).length;
+        const totalRevenueCalculated = finalOrders.filter((ord: any) => ord.status === 'delivered').reduce((accumulator: number, ord: any) => accumulator + (ord.total || 0), 0);
+        const monthlyOrdersCounted = finalOrders.filter((ord: any) => new Date(ord.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && ord.status !== 'canceled').length;
+        const unviewedCartsCount = finalUncompleted.filter((uc: any) => !uc.is_viewed).length;
+        const activeFlashDealsCount = finalDeals.filter((deal: any) => deal.is_active && new Date(deal.end_date) > new Date()).length;
 
         // Daily Revenue Calculation
-        const dailyRevenue: { [key: string]: number } = {};
+        const dailyRevenueMap: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
-          const d = subDays(new Date(), i);
-          const dateStr = safeFormat(d, 'MMM d');
-          dailyRevenue[dateStr] = 0;
+          const day = subDays(new Date(), i);
+          const dateString = safeDateFormatter(day, 'MMM d');
+          dailyRevenueMap[dateString] = 0;
         }
         
-        fetchedOrders.filter((orderItem: any) => new Date(orderItem.created_at) >= lastWeekDate && orderItem.status === 'delivered').forEach((orderItem: any) => {
-          const dateStr = safeFormat(new Date(orderItem.created_at), 'MMM d');
-          if (Object.prototype.hasOwnProperty.call(dailyRevenue, dateStr)) {
-            dailyRevenue[dateStr] += orderItem.total;
+        finalOrders.filter((ord: any) => new Date(ord.created_at) >= lastWeekDateTime && ord.status === 'delivered').forEach((ord: any) => {
+          const dateString = safeDateFormatter(new Date(ord.created_at), 'MMM d');
+          if (Object.prototype.hasOwnProperty.call(dailyRevenueMap, dateString)) {
+            dailyRevenueMap[dateString] += (ord.total || 0);
           }
         });
 
-        // Detailed Low Stock Detection (checking variants)
-        const lowStockProductsList = fetchedProductsList.filter((productItem: any) => {
-            const hasLowStockVariant = productItem.variants?.some((variantItem: any) => (variantItem.stock ?? 0) < MINIMUM_STOCK_THRESHOLD);
-            const hasLowBaseStock = (productItem.stock ?? 0) < MINIMUM_STOCK_THRESHOLD;
-            return hasLowBaseStock || hasLowStockVariant;
-        }).sort((firstProduct: any, secondProduct: any) => {
-            const minA = Math.min(firstProduct.stock ?? 0, ...(firstProduct.variants?.map((v: any) => v.stock ?? 0) || []));
-            const minB = Math.min(secondProduct.stock ?? 0, ...(secondProduct.variants?.map((v: any) => v.stock ?? 0) || []));
-            return minA - minB;
+        // Detailed Low Stock Detection
+        const detectedLowStockItems = finalProducts.filter((productItem: any) => {
+            const hasVariantWithLowStock = productItem.variants?.some((variant: any) => (variant.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
+            const baseStockIsLow = (productItem.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
+            return baseStockIsLow || hasVariantWithLowStock;
+        }).sort((firstItem: any, secondItem: any) => {
+            const minStockA = Math.min(firstItem.stock ?? 0, ...(firstItem.variants?.map((v: any) => v.stock ?? 0) || []));
+            const minStockB = Math.min(secondItem.stock ?? 0, ...(secondItem.variants?.map((v: any) => v.stock ?? 0) || []));
+            return minStockA - minStockB;
         }).slice(0, 5);
 
-        const updatedDashboardData = {
-          totalRevenue,
-          totalProducts: fetchedProductsList.length,
-          uncompletedOrders: unviewedCount,
-          totalUncompletedOrders: fetchedUncompleted.length,
-          totalCustomers: (customersResult.customers || []).length,
-          ordersThisMonth: monthlyOrdersCount,
-          activeFlashDeals: activeDealsCount,
-          allOrders: fetchedOrders,
-          revenueChartData: Object.keys(dailyRevenue).map(keyString => ({ date: keyString, Revenue: dailyRevenue[keyString] })),
-          pendingOrders: fetchedOrders.filter((orderItem: any) => orderItem.status === 'pending').slice(0, 5),
-          lowStockProducts: lowStockProductsList,
-          pendingReviews: fetchedReviews.filter((reviewItem: any) => !reviewItem.is_approved).slice(0, 5),
-          unansweredQuestions: fetchedQnaList.filter((qnaItem: any) => !qnaItem.is_approved).slice(0, 5),
+        const comprehensiveDashboardData = {
+          totalRevenue: totalRevenueCalculated,
+          totalProducts: finalProducts.length,
+          uncompletedOrders: unviewedCartsCount,
+          totalUncompletedOrders: finalUncompleted.length,
+          totalCustomers: (customersData.customers || []).length,
+          ordersThisMonth: monthlyOrdersCounted,
+          activeFlashDeals: activeFlashDealsCount,
+          allOrders: finalOrders,
+          revenueChartData: Object.keys(dailyRevenueMap).map(dateKey => ({ date: dateKey, Revenue: dailyRevenueMap[dateKey] })),
+          pendingOrders: finalOrders.filter((ord: any) => ord.status === 'pending').slice(0, 5),
+          lowStockProducts: detectedLowStockItems,
+          pendingReviews: finalReviews.filter((rev: any) => !rev.is_approved).slice(0, 5),
+          unansweredQuestions: finalQna.filter((q: any) => !q.is_approved).slice(0, 5),
         };
 
-        setDashboard(updatedDashboardData);
-      } catch (error: any) {
-        console.error("Dashboard Fetch Error:", error);
+        setGlobalDashboardData(comprehensiveDashboardData);
+      } catch (dashboardFetchError: any) {
+        console.error("Dashboard Stats Processing Error:", dashboardFetchError);
         if (!useAdminStore.getState().dashboard) {
-            toast({ variant: 'destructive', title: 'Error loading dashboard', description: error.message });
+            toast({ variant: 'destructive', title: 'Error loading dashboard', description: dashboardFetchError.message });
         }
       } finally {
         setIsDataLoading(false);
     }
-  }, [currentAdmin?.id, setDashboard, toast]);
+  }, [currentAdminUser?.id, setGlobalDashboardData, toast]);
 
   useEffect(() => {
-    if (currentAdmin?.id) {
+    if (currentAdminUser?.id) {
         fetchDashboardStats();
     }
-  }, [currentAdmin?.id, fetchDashboardStats]);
+  }, [currentAdminUser?.id, fetchDashboardStats]);
 
-  const userLanguage = currentAdmin?.language || 'bn';
-  const translations = { en, bn };
-  const t = translations[userLanguage as keyof typeof translations]?.dashboard || translations.bn.dashboard;
+  const activeLanguage = currentAdminUser?.language || 'bn';
+  const dashboardTranslations = { en, bn };
+  const currentLang = dashboardTranslations[activeLanguage as keyof typeof dashboardTranslations]?.dashboard || dashboardTranslations.bn.dashboard;
   
-  const dashboardStats = useMemo(() => cachedDashboard || {
+  const dashboardDisplayStats = useMemo(() => cachedDashboardData || {
     totalRevenue: 0,
     totalProducts: 0,
     uncompletedOrders: 0,
@@ -156,46 +156,50 @@ export default function AdminDashboard() {
     lowStockProducts: [],
     pendingReviews: [],
     unansweredQuestions: [],
-  }, [cachedDashboard]);
+  }, [cachedDashboardData]);
 
-  const displaySkeleton = isDataLoading && !cachedDashboard;
-  const productLimitReached = currentAdmin?.product_limit !== null && (dashboardStats.totalProducts || 0) >= (currentAdmin?.product_limit || 0);
+  const shouldShowSkeleton = isDataLoading && !cachedDashboardData;
+  const isProductLimitHit = currentAdminUser?.product_limit !== null && (dashboardDisplayStats.totalProducts || 0) >= (currentAdminUser?.product_limit || 0);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
+      <h1 className="text-3xl font-bold tracking-tight">{currentLang.title}</h1>
       
-      {productLimitReached && (
+      {isProductLimitHit && (
         <Alert variant="destructive">
           <Ban className="h-4 w-4" />
-          <AlertTitle>{t.limitReached}</AlertTitle>
+          <AlertTitle>{currentLang.limitReached}</AlertTitle>
           <AlertDescription>
-            {t.limitDesc} <Link href="/admin/settings" className="font-semibold underline">{t.upgrade}</Link> {t.limitDesc2}
+            {currentLang.limitDesc} <Link href="/admin/settings" className="font-semibold underline">{currentLang.upgrade}</Link> {currentLang.limitDesc2}
           </AlertDescription>
         </Alert>
       )}
 
       <DashboardStats 
-        stats={dashboardStats} 
-        limits={{ productLimit: currentAdmin?.product_limit ?? null, customerLimit: currentAdmin?.customer_limit ?? null, orderLimit: currentAdmin?.order_limit ?? null }} 
-        isLoading={displaySkeleton} 
-        t={t} 
+        stats={dashboardDisplayStats} 
+        limits={{ 
+            productLimit: currentAdminUser?.product_limit ?? null, 
+            customerLimit: currentAdminUser?.customer_limit ?? null, 
+            orderLimit: currentAdminUser?.order_limit ?? null 
+        }} 
+        isLoading={shouldShowSkeleton} 
+        t={currentLang} 
       />
 
       <DashboardCharts 
-        revenueChartData={dashboardStats.revenueChartData} 
-        allOrders={dashboardStats.allOrders || []} 
-        isLoading={displaySkeleton} 
-        t={t} 
+        revenueChartData={dashboardDisplayStats.revenueChartData} 
+        allOrders={dashboardDisplayStats.allOrders || []} 
+        isLoading={shouldShowSkeleton} 
+        t={currentLang} 
       />
 
       <DashboardTables 
-        pendingOrders={dashboardStats.pendingOrders} 
-        lowStockProducts={dashboardStats.lowStockProducts}
-        pendingReviews={dashboardStats.pendingReviews} 
-        unansweredQuestions={dashboardStats.unansweredQuestions} 
-        isLoading={displaySkeleton} 
-        t={t} 
+        pendingOrders={dashboardDisplayStats.pendingOrders} 
+        lowStockProducts={dashboardDisplayStats.lowStockProducts}
+        pendingReviews={dashboardDisplayStats.pendingReviews} 
+        unansweredQuestions={dashboardDisplayStats.unansweredQuestions} 
+        isLoading={shouldShowSkeleton} 
+        t={currentLang} 
       />
     </div>
   );

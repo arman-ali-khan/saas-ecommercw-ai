@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -18,9 +19,9 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { format as safeFormat, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
+import { format as safeDateFormatter, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 
-const ORDER_STATUSES = {
+const CHART_ORDER_STATUSES = {
   pending: { label: 'Pending', color: 'hsl(var(--chart-1))' },
   approved: { label: 'Approved', color: 'hsl(var(--chart-2))' },
   processing: { label: 'Processing', color: 'hsl(var(--chart-3))' },
@@ -30,12 +31,12 @@ const ORDER_STATUSES = {
   canceled: { label: 'Canceled', color: 'hsl(var(--destructive))' },
 };
 
-const PAYMENT_METHOD_TYPES = {
+const CHART_PAYMENT_METHOD_TYPES = {
   cod: { label: 'Cash on Delivery', color: 'hsl(var(--chart-1))' },
   mobile_banking: { label: 'Direct Payment', color: 'hsl(var(--chart-2))' },
 };
 
-const tooltipStyle = {
+const chartTooltipStyle = {
   backgroundColor: 'hsl(var(--card))',
   borderColor: 'hsl(var(--border))',
   borderRadius: '8px',
@@ -43,7 +44,7 @@ const tooltipStyle = {
   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
 };
 
-const itemStyle = {
+const chartItemStyle = {
   color: 'hsl(var(--foreground))',
   fontSize: '12px',
 };
@@ -56,47 +57,47 @@ interface DashboardChartsProps {
 }
 
 export default function DashboardCharts({ revenueChartData, allOrders, isLoading, t }: DashboardChartsProps) {
-  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [selectedDisplayMonth, setSelectedDisplayMonth] = useState(new Date());
 
-  const paymentMethodData = useMemo(() => {
-    const paymentMethodSales = allOrders
-      .filter(o => o.status !== 'canceled')
-      .reduce((acc, order) => {
-        const method = order.payment_method;
-        acc[method] = (acc[method] || 0) + order.total;
-        return acc;
+  const paymentMethodAnalyticsData = useMemo(() => {
+    const paymentMethodSalesTotals = allOrders
+      .filter(ord => ord.status !== 'canceled')
+      .reduce((accumulator, ord) => {
+        const methodKey = ord.payment_method;
+        accumulator[methodKey] = (accumulator[methodKey] || 0) + ord.total;
+        return accumulator;
       }, {} as Record<string, number>);
 
-    return Object.entries(paymentMethodSales).map(([method, total]) => ({
-      name: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.label || method,
-      value: total,
-      fill: PAYMENT_METHOD_TYPES[method as keyof typeof PAYMENT_METHOD_TYPES]?.color || '#8884d8',
+    return Object.entries(paymentMethodSalesTotals).map(([methodKey, totalSum]) => ({
+      name: CHART_PAYMENT_METHOD_TYPES[methodKey as keyof typeof CHART_PAYMENT_METHOD_TYPES]?.label || methodKey,
+      value: totalSum,
+      fill: CHART_PAYMENT_METHOD_TYPES[methodKey as keyof typeof CHART_PAYMENT_METHOD_TYPES]?.color || '#8884d8',
     }));
   }, [allOrders]);
 
-  const orderStatusData = useMemo(() => {
-    const start = startOfMonth(selectedMonth);
-    const end = endOfMonth(selectedMonth);
-    const ordersForMonth = allOrders.filter(o => isWithinInterval(new Date(o.created_at), { start, end }));
+  const orderStatusAnalyticsData = useMemo(() => {
+    const start = startOfMonth(selectedDisplayMonth);
+    const end = endOfMonth(selectedDisplayMonth);
+    const monthFilteredOrders = allOrders.filter(ord => isWithinInterval(new Date(ord.created_at), { start, end }));
 
-    const statusCounts = ordersForMonth.reduce((acc, order) => {
-      const status = order.status.toLowerCase();
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
+    const statusFrequencyCounts = monthFilteredOrders.reduce((accumulator, ord) => {
+      const statusKey = ord.status.toLowerCase();
+      accumulator[statusKey] = (accumulator[statusKey] || 0) + 1;
+      return accumulator;
     }, {} as Record<string, number>);
 
-    return Object.entries(statusCounts)
-      .map(([status, count]) => ({
-        name: ORDER_STATUSES[status as keyof typeof ORDER_STATUSES]?.label || status,
-        value: count,
-        fill: ORDER_STATUSES[status as keyof typeof ORDER_STATUSES]?.color || '#8884d8',
+    return Object.entries(statusFrequencyCounts)
+      .map(([statusKey, frequency]) => ({
+        name: CHART_ORDER_STATUSES[statusKey as keyof typeof CHART_ORDER_STATUSES]?.label || statusKey,
+        value: frequency,
+        fill: CHART_ORDER_STATUSES[statusKey as keyof typeof CHART_ORDER_STATUSES]?.color || '#8884d8',
       }))
       .filter(item => item.name !== 'Canceled');
-  }, [allOrders, selectedMonth]);
+  }, [allOrders, selectedDisplayMonth]);
 
-  const monthOptions = useMemo(() => [...Array(6)].map((_, i) => subMonths(new Date(), i)), []);
-  const totalOrdersForMonth = orderStatusData.reduce((sum, item) => sum + item.value, 0);
-  const totalSales = paymentMethodData.reduce((sum, item) => sum + item.value, 0);
+  const availableMonthOptions = useMemo(() => [...Array(6)].map((_, i) => subMonths(new Date(), i)), []);
+  const monthlyTotalOrdersCount = orderStatusAnalyticsData.reduce((sum, item) => sum + item.value, 0);
+  const lifetimeTotalSalesSum = paymentMethodAnalyticsData.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <div className="space-y-6">
@@ -121,11 +122,11 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
                   fontSize={12} 
                   tickLine={false} 
                   axisLine={false} 
-                  tickFormatter={(value) => `৳${value}`}
+                  tickFormatter={(val) => `৳${val}`}
                 />
                 <Tooltip 
-                  contentStyle={tooltipStyle}
-                  itemStyle={itemStyle}
+                  contentStyle={chartTooltipStyle}
+                  itemStyle={chartItemStyle}
                   labelStyle={{ color: 'hsl(var(--muted-foreground))', fontWeight: 'bold', marginBottom: '4px' }}
                 />
                 <Legend />
@@ -150,7 +151,7 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
             <CardDescription>{t.salesByPaymentDesc}</CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : paymentMethodData.length === 0 ? (
+            {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : paymentMethodAnalyticsData.length === 0 ? (
               <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                 {t.noSales}
               </div>
@@ -158,12 +159,12 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Tooltip
-                    contentStyle={tooltipStyle}
-                    itemStyle={itemStyle}
-                    formatter={(value: number) => `৳ ${value.toFixed(2)}`}
+                    contentStyle={chartTooltipStyle}
+                    itemStyle={chartItemStyle}
+                    formatter={(val: number) => `৳ ${val.toFixed(2)}`}
                   />
                   <Pie
-                    data={paymentMethodData}
+                    data={paymentMethodAnalyticsData}
                     dataKey="value"
                     nameKey="name"
                     innerRadius="60%"
@@ -171,17 +172,17 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
                     paddingAngle={5}
                     strokeWidth={0}
                   >
-                    {paymentMethodData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    {paymentMethodAnalyticsData.map((dataRecord, idx) => (
+                      <Cell key={`cell-${idx}`} fill={dataRecord.fill} />
                     ))}
                   </Pie>
                   <Legend iconSize={10} layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: 20 }} />
-                  {totalSales > 0 && (
+                  {lifetimeTotalSalesSum > 0 && (
                     <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-2xl font-bold">
-                      {`৳${(totalSales / 1000).toFixed(0)}k`}
+                      {`৳${(lifetimeTotalSalesSum / 1000).toFixed(0)}k`}
                     </text>
                   )}
-                  {totalSales > 0 && (
+                  {lifetimeTotalSalesSum > 0 && (
                     <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" dy="20" className="fill-muted-foreground text-sm">
                       {t.totalSales}
                     </text>
@@ -198,21 +199,21 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
               <CardTitle className="flex items-center gap-2"><PieChartIcon className="h-5 w-5" /> {t.orderStatus}</CardTitle>
               <CardDescription>{t.orderStatusDesc}</CardDescription>
             </div>
-            <Select onValueChange={(value) => setSelectedMonth(new Date(value))} defaultValue={safeFormat(selectedMonth, 'yyyy-MM-dd')}>
+            <Select onValueChange={(val) => setSelectedDisplayMonth(new Date(val))} defaultValue={safeDateFormatter(selectedDisplayMonth, 'yyyy-MM-dd')}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder={t.selectMonth} />
               </SelectTrigger>
               <SelectContent>
-                {monthOptions.map(month => (
-                  <SelectItem key={month.toISOString()} value={month.toISOString()}>
-                    {safeFormat(month, 'MMMM yyyy')}
+                {availableMonthOptions.map(m => (
+                  <SelectItem key={m.toISOString()} value={m.toISOString()}>
+                    {safeDateFormatter(m, 'MMMM yyyy')}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </CardHeader>
           <CardContent className="h-80">
-            {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : orderStatusData.length === 0 ? (
+            {isLoading ? <Skeleton className="h-full w-full rounded-full" /> : orderStatusAnalyticsData.length === 0 ? (
               <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                 {t.noOrdersThisMonth}
               </div>
@@ -220,11 +221,11 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Tooltip 
-                    contentStyle={tooltipStyle}
-                    itemStyle={itemStyle}
+                    contentStyle={chartTooltipStyle}
+                    itemStyle={chartItemStyle}
                   />
                   <Pie
-                    data={orderStatusData}
+                    data={orderStatusAnalyticsData}
                     dataKey="value"
                     nameKey="name"
                     innerRadius="60%"
@@ -232,17 +233,17 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
                     paddingAngle={5}
                     strokeWidth={0}
                   >
-                    {orderStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    {orderStatusAnalyticsData.map((dataRecord, idx) => (
+                      <Cell key={`cell-${idx}`} fill={dataRecord.fill} />
                     ))}
                   </Pie>
                   <Legend iconSize={10} layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: 20 }} />
-                  {totalOrdersForMonth > 0 && (
+                  {monthlyTotalOrdersCount > 0 && (
                     <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-2xl font-bold">
-                      {totalOrdersForMonth}
+                      {monthlyTotalOrdersCount}
                     </text>
                   )}
-                  {totalOrdersForMonth > 0 && (
+                  {monthlyTotalOrdersCount > 0 && (
                     <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" dy="20" className="fill-muted-foreground text-sm">
                       {t.totalOrders}
                     </text>
