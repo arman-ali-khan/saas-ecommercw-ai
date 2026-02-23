@@ -1,4 +1,3 @@
-
 {
   "common": {
     "save": "Save",
@@ -141,7 +140,12 @@
     "sendMoney": "Send Money",
     "cashOut": "Cash Out",
     "payment": "Payment",
-    "numberType": "Number Type"
+    "numberType": "Number Type",
+    "paymentStep1": "Open your mobile banking app.",
+    "paymentStep2": "Select the option: ",
+    "paymentStep3": "Enter this number: ",
+    "paymentStep4": "Enter total amount: ",
+    "paymentStep5": "After successful payment, enter the Transaction ID below."
   },
   "success": {
     "title": "Your order has been placed!",

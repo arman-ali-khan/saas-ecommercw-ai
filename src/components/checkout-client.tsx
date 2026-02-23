@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCart } from '@/stores/cart';
@@ -15,7 +14,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
-import { Loader2, Truck, Wallet } from 'lucide-react';
+import { Loader2, Truck, Wallet, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ShippingZone, Address, SaasSettings } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
@@ -257,8 +256,8 @@ export default function CheckoutClient({ siteId, username, shippingZones, paymen
     }
   }
 
-  const getPaymentInstruction = () => {
-    if (!paymentSettings) return t_checkout.mobileBanking;
+  const getActionKeyword = () => {
+    if (!paymentSettings) return t_checkout.payment;
     const type = paymentSettings.mobile_banking_type || 'personal';
     if (type === 'personal') return t_checkout.sendMoney;
     if (type === 'agent') return t_checkout.cashOut;
@@ -372,15 +371,19 @@ export default function CheckoutClient({ siteId, username, shippingZones, paymen
                 )} />
                 
               {paymentMethod === 'mobile_banking' && (
-                <div className="space-y-4 p-4 border-2 border-primary/20 rounded-xl bg-primary/5">
+                <div className="space-y-4 p-6 border-2 border-primary/20 rounded-2xl bg-primary/5">
                     <h4 className="font-bold flex items-center gap-2 text-primary">
-                        <Wallet className="h-4 w-4" /> {getPaymentInstruction()}
+                        <Wallet className="h-5 w-5" /> 
+                        {t_checkout.mobileBanking} Instructions
                     </h4>
-                    <div className="text-sm space-y-1">
-                        <p>{t_checkout.merchantNumber}: <strong className="text-lg">{paymentSettings?.mobile_banking_number}</strong></p>
-                        <p>{t_profile.total}: <strong className="text-lg">{cartTotal.toFixed(2)} BDT</strong></p>
+                    <div className="text-sm space-y-3 bg-card p-4 rounded-xl border shadow-inner">
+                        <p className="font-bold flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> 1. {t_checkout.paymentStep1}</p>
+                        <p className="font-bold flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> 2. {t_checkout.paymentStep2} <span className="text-primary underline">{getActionKeyword()}</span></p>
+                        <p className="font-bold flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> 3. {t_checkout.paymentStep3} <span className="text-lg font-black font-mono tracking-tight">{paymentSettings?.mobile_banking_number}</span></p>
+                        <p className="font-bold flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /> 4. {t_checkout.paymentStep4} <span className="text-lg font-black">{cartTotal.toFixed(2)} BDT</span></p>
+                        <p className="text-muted-foreground italic text-[10px] mt-2 border-t pt-2">5. {t_checkout.paymentStep5}</p>
                     </div>
-                    <FormField control={form.control} name="transactionId" render={({ field }) => ( <FormItem><FormLabel>{t_checkout.transactionId}</FormLabel><FormControl><Input placeholder="8N7F6G..." {...field} className="bg-background border-2" /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="transactionId" render={({ field }) => ( <FormItem><FormLabel className="font-black text-xs uppercase tracking-widest">{t_checkout.transactionId}</FormLabel><FormControl><Input placeholder="8N7F6G..." {...field} className="bg-background border-2 h-12 text-lg font-mono font-bold" /></FormControl><FormMessage /></FormItem> )} />
                 </div>
               )}
             </div>
