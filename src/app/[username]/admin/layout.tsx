@@ -146,7 +146,7 @@ export default function AdminLayout({
         <AdminSidebar />
         <div className="flex flex-col h-full overflow-hidden">
           <AdminHeader />
-          <main className="flex-1 overflow-auto p-4 lg:p-6 pb-20 md:pb-6">
+          <main className="flex-1 overflow-auto p-2 sm:p-4 lg:p-6 pb-20 md:pb-6">
             {saasNotifications.map((notif) => (
               <Alert key={notif.id} className="mb-6 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500">
                 <Bell className="h-4 w-4 text-primary" />
