@@ -40,7 +40,6 @@ export default function AdminDashboard() {
         return;
     }
 
-    // Only show spinner if the store is empty
     if (!currentStore.dashboard) {
         setIsLoading(true);
     }
@@ -130,18 +129,12 @@ export default function AdminDashboard() {
     }
   }, [user?.id, fetchData]);
 
-  if (isLoading && !dashboard) {
-    return (
-        <div className="flex h-[60vh] items-center justify-center">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   const lang = user?.language || 'bn';
   const currentTranslations = translations[lang as keyof typeof translations]?.dashboard || translations.bn.dashboard;
   const productLimit = user?.product_limit;
   
+  // Use either the actual dashboard data or a default state for the skeletons
+  const showSkeleton = isLoading && !dashboard;
   const stats = dashboard || {
     totalRevenue: 0,
     totalProducts: 0,
@@ -177,14 +170,14 @@ export default function AdminDashboard() {
       <DashboardStats 
         stats={stats} 
         limits={{ productLimit: user?.product_limit ?? null, customerLimit: user?.customer_limit ?? null, orderLimit: user?.order_limit ?? null }} 
-        isLoading={isLoading && !dashboard} 
+        isLoading={showSkeleton} 
         t={currentTranslations} 
       />
 
       <DashboardCharts 
         revenueChartData={stats.revenueChartData} 
         allOrders={stats.allOrders || []} 
-        isLoading={isLoading && !dashboard} 
+        isLoading={showSkeleton} 
         t={currentTranslations} 
       />
 
@@ -193,7 +186,7 @@ export default function AdminDashboard() {
         lowStockProducts={stats.lowStockProducts} 
         pendingReviews={stats.pendingReviews} 
         unansweredQuestions={stats.unansweredQuestions} 
-        isLoading={isLoading && !dashboard} 
+        isLoading={showSkeleton} 
         t={currentTranslations} 
       />
     </div>

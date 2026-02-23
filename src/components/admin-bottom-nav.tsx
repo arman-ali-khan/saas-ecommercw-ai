@@ -82,7 +82,7 @@ export default function AdminBottomNav() {
               <div
                 className={cn(
                   'flex flex-col h-full items-center justify-center p-1 rounded-md text-card-foreground/70 hover:bg-accent hover:text-accent-foreground',
-                  isActive && 'text-primary bg-accent'
+                  isActive && 'text-primary'
                 )}
               >
                 <div className="relative">

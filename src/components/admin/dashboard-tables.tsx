@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -22,6 +21,17 @@ interface DashboardTablesProps {
   t: any;
 }
 
+const TableSkeleton = () => (
+    <div className="space-y-3">
+        {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+                <Skeleton className="h-10 flex-grow" />
+                <Skeleton className="h-10 w-20" />
+            </div>
+        ))}
+    </div>
+);
+
 export default function DashboardTables({ 
   pendingOrders, 
   lowStockProducts, 
@@ -44,7 +54,7 @@ export default function DashboardTables({
             </Button>
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-40 w-full" /> : pendingOrders.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingOrders}</p> : (
+            {isLoading ? <TableSkeleton /> : pendingOrders.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingOrders}</p> : (
               <>
                 <div className="hidden md:block">
                   <Table>
@@ -85,7 +95,7 @@ export default function DashboardTables({
             </Button>
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-40 w-full" /> : lowStockProducts.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.sufficientStock}</p> : (
+            {isLoading ? <TableSkeleton /> : lowStockProducts.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.sufficientStock}</p> : (
               <>
                 <div className="hidden md:block">
                   <Table>
@@ -156,7 +166,7 @@ export default function DashboardTables({
             </Button>
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-40 w-full" /> : pendingReviews.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingReviews}</p> : (
+            {isLoading ? <TableSkeleton /> : pendingReviews.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingReviews}</p> : (
               <>
                 <div className="hidden md:block">
                   <Table>
@@ -211,7 +221,7 @@ export default function DashboardTables({
             </Button>
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-40 w-full" /> : unansweredQuestions.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noUnansweredQna}</p> : (
+            {isLoading ? <TableSkeleton /> : unansweredQuestions.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noUnansweredQna}</p> : (
               <>
                 <div className="hidden md:block">
                   <Table>
