@@ -28,6 +28,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const translations = { en, bn };
 const ITEMS_PER_PAGE = 10;
@@ -117,15 +118,31 @@ export default function OrdersAdminPage() {
     
     if (isLoading && orders.length === 0) {
         return (
-            <Card>
-                <CardHeader>
-                    <CardTitle>{currentTranslations.title}</CardTitle>
-                    <CardDescription>{currentTranslations.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center justify-center py-16">
-                    <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-                </CardContent>
-            </Card>
+            <div className="space-y-6">
+                <div className="flex flex-col items-start px-1">
+                    <Skeleton className="h-8 w-48 mb-2" />
+                    <Skeleton className="h-4 w-80" />
+                </div>
+                <Card>
+                    <CardHeader className="p-0 border-b">
+                        <div className="p-4 grid grid-cols-6 gap-4">
+                            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="p-4 grid grid-cols-6 gap-4 items-center border-b last:border-0">
+                                <Skeleton className="h-5 w-20" />
+                                <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-32" /></div>
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-6 w-20 rounded-full" />
+                                <Skeleton className="h-5 w-24" />
+                                <Skeleton className="h-8 w-8 rounded-md ml-auto" />
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            </div>
         );
     }
 

@@ -19,6 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const shippingZoneSchema = z.object({
@@ -167,8 +168,34 @@ export default function ShippingAdminPage() {
     
     if (isLoading && zones.length === 0) {
         return (
-            <div className="flex items-center justify-center p-16">
-                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+            <div className="space-y-6">
+                <div className="flex items-center justify-between px-1">
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-4 w-80" />
+                    </div>
+                    <Skeleton className="h-10 w-28 rounded-md" />
+                </div>
+                <Card>
+                    <CardHeader className="p-0 border-b">
+                        <div className="p-4 grid grid-cols-4 gap-4">
+                            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="p-4 grid grid-cols-4 gap-4 items-center border-b last:border-0">
+                                <Skeleton className="h-5 w-32" />
+                                <Skeleton className="h-5 w-24" />
+                                <Skeleton className="h-6 w-20 rounded-full" />
+                                <div className="flex justify-end gap-2">
+                                    <Skeleton className="h-8 w-16 rounded-md" />
+                                    <Skeleton className="h-8 w-16 rounded-md" />
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
             </div>
         );
     }

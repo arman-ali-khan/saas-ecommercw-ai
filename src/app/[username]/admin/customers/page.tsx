@@ -26,6 +26,7 @@ import { Loader2, Mail, MoreHorizontal, Eye, ChevronLeft, ChevronRight } from 'l
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 
@@ -99,15 +100,38 @@ export default function CustomersAdminPage() {
 
   if (isLoading && customers.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.title}</CardTitle>
-          <CardDescription>{t.loadingDescription}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-16">
-          <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <div className="flex flex-col items-start px-1">
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-80" />
+        </div>
+        <Card>
+            <CardHeader className="p-0 border-b">
+                <div className="p-4 grid grid-cols-4 gap-4">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full ml-auto" />
+                </div>
+            </CardHeader>
+            <CardContent className="p-0">
+                {[...Array(5)].map((_, i) => (
+                    <div key={i} className="p-4 grid grid-cols-4 gap-4 items-center border-b last:border-0">
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="h-9 w-9 rounded-full" />
+                            <Skeleton className="h-4 w-24" />
+                        </div>
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-4 w-24" />
+                        <div className="flex justify-end gap-2">
+                            <Skeleton className="h-8 w-20 rounded-md" />
+                            <Skeleton className="h-8 w-20 rounded-md" />
+                        </div>
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+      </div>
     );
   }
 
