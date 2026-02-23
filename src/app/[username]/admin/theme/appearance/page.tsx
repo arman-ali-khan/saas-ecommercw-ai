@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -234,14 +233,43 @@ export default function AppearanceManagerPage() {
   if (isLoading) {
     return (
         <div className="space-y-6">
-            <Skeleton className="h-9 w-64" />
-            <Skeleton className="h-5 w-96" />
+            <div className="space-y-2">
+                <Skeleton className="h-9 w-64" />
+                <Skeleton className="h-5 w-96" />
+            </div>
             <Card>
-                <CardHeader><Skeleton className="h-8 w-64" /></CardHeader>
-                <CardContent className="space-y-8">
-                    <Skeleton className="h-40 w-full" />
-                    <Skeleton className="h-40 w-full" />
-                    <Skeleton className="h-10 w-32" />
+                <CardHeader>
+                    <Skeleton className="h-8 w-64 mb-2" />
+                    <Skeleton className="h-4 w-96" />
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        {[...Array(10)].map((_, i) => (
+                            <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-8 w-64 mb-2" />
+                    <Skeleton className="h-4 w-96" />
+                </CardHeader>
+                <CardContent className="space-y-10">
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                    </div>
+                    <Separator />
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                    </div>
+                    <div className="flex justify-end pt-4">
+                        <Skeleton className="h-12 w-48 rounded-md" />
+                    </div>
                 </CardContent>
             </Card>
         </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -18,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Edit, Trash2, Loader2, Wand2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const categorySchema = z.object({ title: z.string().min(1, 'Title is required') });
 const linkSchema = z.object({ label: z.string().min(1, 'Label is required'), href: z.string().min(1, 'URL is required') });
@@ -150,7 +150,25 @@ export default function FooterManagerPage() {
     ];
     
     if (isLoading && categories.length === 0) {
-        return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-muted-foreground" /></div>;
+        return (
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-8 w-48 mb-2" />
+                    <Skeleton className="h-4 w-80" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Skeleton className="h-10 w-32 mb-4" />
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="border rounded-lg overflow-hidden">
+                            <div className="p-4 flex justify-between items-center bg-muted/20">
+                                <Skeleton className="h-5 w-32" />
+                                <div className="flex gap-2"><Skeleton className="h-8 w-8" /><Skeleton className="h-8 w-8" /></div>
+                            </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+        );
     }
 
     return (
@@ -166,7 +184,7 @@ export default function FooterManagerPage() {
                         <Accordion type="multiple" className="w-full">
                             {categories.map(cat => (
                                 <AccordionItem value={cat.id} key={cat.id}>
-                                    <AccordionTrigger className="hover:no-underline data-[state=open]:bg-primary/5 data-[state=open]:text-primary transition-all rounded-t-lg">
+                                    <AccordionTrigger className="hover:no-underline data-[state=open]:bg-primary/5 data-[state=open]:text-primary transition-all rounded-t-lg px-4">
                                         <div className="flex items-center justify-between w-full pr-4 text-left">
                                             <span className="font-bold">{cat.title}</span>
                                             <div className="flex items-center gap-1">
@@ -175,11 +193,11 @@ export default function FooterManagerPage() {
                                             </div>
                                         </div>
                                     </AccordionTrigger>
-                                    <AccordionContent className="pl-4">
+                                    <AccordionContent className="px-4">
                                         <div className="space-y-2">
                                             {(cat.footer_links || []).length > 0 ? (
                                                 cat.footer_links?.map(link => (
-                                                    <div key={link.id} className="flex items-center justify-between py-2 border-b">
+                                                    <div key={link.id} className="flex items-center justify-between py-2 border-b last:border-0">
                                                         <div className="truncate pr-4">
                                                             <p className="font-medium">{link.label}</p>
                                                             <p className="text-xs text-muted-foreground font-mono truncate">{link.href}</p>

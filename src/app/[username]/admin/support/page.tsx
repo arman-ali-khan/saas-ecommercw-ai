@@ -35,6 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import ImageUploader from '@/components/image-uploader';
 import Image from 'next/image';
 import type { SupportTicket } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ticketSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
@@ -143,6 +144,60 @@ export default function SupportForumPage() {
     }
   }
 
+  if (isLoading && tickets.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 px-1">
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <Skeleton className="h-10 w-48 rounded-full" />
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead><Skeleton className="h-4 w-32" /></TableHead>
+                    <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                    <TableHead><Skeleton className="h-4 w-32" /></TableHead>
+                    <TableHead className="text-right"><Skeleton className="h-4 w-24 ml-auto" /></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto rounded-md" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="grid gap-4 md:hidden p-4">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="p-4 space-y-4">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </div>
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -156,9 +211,7 @@ export default function SupportForumPage() {
       </div>
 
       <div className="grid gap-6">
-        {isLoading && tickets.length === 0 ? (
-          <div className="flex justify-center p-20"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>
-        ) : tickets.length > 0 ? (
+        {tickets.length > 0 ? (
           <>
             {/* Desktop Table View */}
             <Card className="hidden md:block">

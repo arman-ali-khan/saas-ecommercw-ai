@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, Edit, Trash2, Loader2, ArrowUp, ArrowDown, Wand2, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const headerLinkSchema = z.object({
   label: z.string().min(1, 'Label is required'),
@@ -193,7 +194,53 @@ export default function HeaderManagerPage() {
         { label: 'About Us', href: '/about' },
     ];
 
-    if (isLoading && links.length === 0) return <div className="flex justify-center p-16"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>;
+    if (isLoading && links.length === 0) {
+        return (
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-80" />
+                </div>
+                <Card>
+                    <CardContent className="p-0">
+                        <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead><Skeleton className="h-4 w-24" /></TableHead>
+                                        <TableHead><Skeleton className="h-4 w-32" /></TableHead>
+                                        <TableHead className="text-right w-36"><Skeleton className="h-4 w-20 ml-auto" /></TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {[...Array(4)].map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                            <TableCell className="text-right flex justify-end gap-2">
+                                                <Skeleton className="h-8 w-8 rounded-md" />
+                                                <Skeleton className="h-8 w-8 rounded-md" />
+                                                <Skeleton className="h-8 w-8 rounded-md" />
+                                                <Skeleton className="h-8 w-8 rounded-md" />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <div className="grid gap-4 md:hidden p-4">
+                            {[...Array(3)].map((_, i) => (
+                                <Card key={i} className="p-4 flex justify-between items-center">
+                                    <div className="space-y-2"><Skeleton className="h-5 w-24" /><Skeleton className="h-3 w-32" /></div>
+                                    <div className="flex gap-1"><Skeleton className="h-8 w-8 rounded-md" /><Skeleton className="h-8 w-8 rounded-md" /></div>
+                                </Card>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
     
     return (
         <>
