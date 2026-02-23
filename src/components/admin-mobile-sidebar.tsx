@@ -148,7 +148,7 @@ export default function AdminMobileSidebar() {
             <Link
                 href={href}
                 className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground',
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground',
                 isActive && 'bg-primary text-primary-foreground'
                 )}
             >
@@ -158,6 +158,23 @@ export default function AdminMobileSidebar() {
                   <Badge className={cn("ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full", countVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 'bg-accent text-accent-foreground')}>{count}</Badge>
                 ) : null}
             </Link>
+      </SheetClose>
+    );
+  };
+
+  const SubNavLink = ({ href, label }: { href: string, label: string }) => {
+    const isActive = pathname === href;
+    return (
+      <SheetClose asChild>
+        <Link 
+          href={href} 
+          className={cn(
+            "block rounded-lg px-3 py-1.5 text-sm transition-all hover:text-primary", 
+            isActive ? "text-primary font-bold" : "text-muted-foreground"
+          )}
+        >
+          {label}
+        </Link>
       </SheetClose>
     );
   };
@@ -199,15 +216,9 @@ export default function AdminMobileSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
-                <SheetClose asChild>
-                  <Link href="/admin/products" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/products' && 'text-accent-foreground')}>All Products</Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link href="/admin/products/new" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/products/new' && 'text-accent-foreground')}>Create Product</Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link href="/admin/attributes" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/attributes' && 'text-accent-foreground')}>Attributes</Link>
-                </SheetClose>
+                <SubNavLink href="/admin/products" label="All Products" />
+                <SubNavLink href="/admin/products/new" label="Create Product" />
+                <SubNavLink href="/admin/attributes" label="Attributes" />
               </CollapsibleContent>
             </Collapsible>
             
@@ -227,15 +238,9 @@ export default function AdminMobileSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
-                <SheetClose asChild>
-                  <Link href="/admin/theme/header" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/header' && 'text-accent-foreground')}>Header</Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link href="/admin/theme/footer" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/footer' && 'text-accent-foreground')}>Footer</Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link href="/admin/theme/appearance" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/appearance' && 'text-accent-foreground')}>Appearance</Link>
-                </SheetClose>
+                <SubNavLink href="/admin/theme/header" label="Header" />
+                <SubNavLink href="/admin/theme/footer" label="Footer" />
+                <SubNavLink href="/admin/theme/appearance" label="Appearance" />
               </CollapsibleContent>
             </Collapsible>
 
@@ -251,15 +256,9 @@ export default function AdminMobileSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
-                <SheetClose asChild>
-                  <Link href="/admin/settings" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings' && 'text-accent-foreground')}>Store Settings</Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link href="/admin/settings/custom-domain" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings/custom-domain' && 'text-accent-foreground')}>Custom Domain</Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Link href="/admin/settings/ai" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings/ai' && 'text-accent-foreground')}>AI Config</Link>
-                </SheetClose>
+                <SubNavLink href="/admin/settings" label="Store Settings" />
+                <SubNavLink href="/admin/settings/custom-domain" label="Custom Domain" />
+                <SubNavLink href="/admin/settings/ai" label="AI Config" />
               </CollapsibleContent>
             </Collapsible>
 

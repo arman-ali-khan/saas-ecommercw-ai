@@ -170,6 +170,21 @@ export default function AdminSidebar() {
     );
   };
 
+  const SubNavLink = ({ href, label }: { href: string, label: string }) => {
+    const isActive = pathname === href;
+    return (
+      <Link 
+        href={href} 
+        className={cn(
+          "block rounded-lg px-3 py-1.5 text-sm transition-all hover:text-primary", 
+          isActive ? "text-primary font-bold" : "text-muted-foreground"
+        )}
+      >
+        {label}
+      </Link>
+    );
+  };
+
   return (
     <div className="hidden border-r border-border bg-card text-card-foreground md:block sticky top-0 h-screen">
       <div className="flex h-full max-h-screen flex-col gap-2">
@@ -206,9 +221,9 @@ export default function AdminSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
-                <Link href="/admin/products" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/products' && 'text-accent-foreground')}>All Products</Link>
-                <Link href="/admin/products/new" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/products/new' && 'text-accent-foreground')}>Create Product</Link>
-                <Link href="/admin/attributes" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/attributes' && 'text-accent-foreground')}>Attributes</Link>
+                <SubNavLink href="/admin/products" label="All Products" />
+                <SubNavLink href="/admin/products/new" label="Create Product" />
+                <SubNavLink href="/admin/attributes" label="Attributes" />
               </CollapsibleContent>
             </Collapsible>
             
@@ -228,9 +243,9 @@ export default function AdminSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
-                <Link href="/admin/theme/header" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/header' && 'text-accent-foreground')}>Header</Link>
-                <Link href="/admin/theme/footer" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/footer' && 'text-accent-foreground')}>Footer</Link>
-                <Link href="/admin/theme/appearance" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/theme/appearance' && 'text-accent-foreground')}>Appearance</Link>
+                <SubNavLink href="/admin/theme/header" label="Header" />
+                <SubNavLink href="/admin/theme/footer" label="Footer" />
+                <SubNavLink href="/admin/theme/appearance" label="Appearance" />
               </CollapsibleContent>
             </Collapsible>
 
@@ -246,9 +261,9 @@ export default function AdminSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
-                <Link href="/admin/settings" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings' && 'text-accent-foreground')}>Store Settings</Link>
-                <Link href="/admin/settings/custom-domain" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings/custom-domain' && 'text-accent-foreground')}>Custom Domain</Link>
-                <Link href="/admin/settings/ai" className={cn("block rounded-lg px-3 py-1.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground", pathname === '/admin/settings/ai' && 'text-accent-foreground')}>AI Config</Link>
+                <SubNavLink href="/admin/settings" label="Store Settings" />
+                <SubNavLink href="/admin/settings/custom-domain" label="Custom Domain" />
+                <SubNavLink href="/admin/settings/ai" label="AI Config" />
               </CollapsibleContent>
             </Collapsible>
            
