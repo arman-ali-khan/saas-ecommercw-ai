@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -6,7 +5,7 @@ import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { subDays, format as dateFnsFormat } from 'date-fns';
+import { subDays, format as safeDateFormatter } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Ban, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +20,7 @@ import DashboardTables from '@/components/admin/dashboard-tables';
 const MINIMUM_QUANTITY_THRESHOLD = 10;
 
 export default function AdminDashboard() {
-  const overviewRouteParams = useParams();
+  const adminDashboardParams = useParams();
   const activeAdminUser = useAuth((state) => state.user);
   const globalAdminStore = useAdminStore();
   const { toast } = useToast();
@@ -49,7 +48,7 @@ export default function AdminDashboard() {
     try {
         const lastWeekDateTime = subDays(new Date(), 7);
 
-        const [ordersResponse, productsResponse, uncompletedResponse, customersResponse, flashDealsResponse, reviewsResponse, qnaResponse] = await Promise.all([
+        const [ordersRes, productsRes, uncompletedRes, customersRes, flashDealsRes, reviewsRes, qnaRes] = await Promise.all([
           fetch('/api/orders/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteIdentifier }) }),
           fetch('/api/products/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteIdentifier }) }),
           fetch('/api/uncompleted-orders/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: activeSiteIdentifier }) }),
@@ -60,13 +59,13 @@ export default function AdminDashboard() {
         ]);
 
         const [ordersData, productsData, uncompletedData, customersData, flashDealsData, reviewsData, qnaData] = await Promise.all([
-          ordersResponse.json(), 
-          productsResponse.json(), 
-          uncompletedResponse.json(), 
-          customersResponse.json(), 
-          flashDealsResponse.json(), 
-          reviewsResponse.json(), 
-          qnaResponse.json()
+          ordersRes.json(), 
+          productsRes.json(), 
+          uncompletedRes.json(), 
+          customersRes.json(), 
+          flashDealsRes.json(), 
+          reviewsRes.json(), 
+          qnaRes.json()
         ]);
 
         const finalOrders = Array.isArray(ordersData.orders) ? ordersData.orders : [];
@@ -76,43 +75,40 @@ export default function AdminDashboard() {
         const finalReviews = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
         const finalQna = Array.isArray(qnaData.qna) ? qnaData.qna : [];
 
-        const totalRevenueCalculated = finalOrders.filter((ordRecord: any) => ordRecord.status === 'delivered').reduce((accumulator: number, ordRecord: any) => accumulator + (ordRecord.total || 0), 0);
-        const monthlyOrdersCounted = finalOrders.filter((ordRecord: any) => new Date(ordRecord.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && ordRecord.status !== 'canceled').length;
+        const totalRevenueCalculated = finalOrders.filter((orderRecord: any) => orderRecord.status === 'delivered').reduce((acc: number, orderRecord: any) => acc + (orderRecord.total || 0), 0);
+        const monthlyOrdersCounted = finalOrders.filter((orderRecord: any) => new Date(orderRecord.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && orderRecord.status !== 'canceled').length;
         const unviewedCartsCount = finalUncompleted.filter((ucRecord: any) => !ucRecord.is_viewed).length;
         const activeFlashDealsCount = finalDeals.filter((dealRecord: any) => dealRecord.is_active && new Date(dealRecord.end_date) > new Date()).length;
 
-        // Daily Revenue Calculation
+        // Daily Revenue Mapping
         const dailyRevenueMap: { [key: string]: number } = {};
-        for (let idx = 6; idx >= 0; idx--) {
-          const dayInstance = subDays(new Date(), idx);
-          const dateLabelString = dateFnsFormat(dayInstance, 'MMM d');
+        for (let i = 6; i >= 0; i--) {
+          const dayInstance = subDays(new Date(), i);
+          const dateLabelString = safeDateFormatter(dayInstance, 'MMM d');
           dailyRevenueMap[dateLabelString] = 0;
         }
         
-        finalOrders.filter((ordRecord: any) => new Date(ordRecord.created_at) >= lastWeekDateTime && ordRecord.status === 'delivered').forEach((ordRecord: any) => {
-          const dateLabelString = dateFnsFormat(new Date(ordRecord.created_at), 'MMM d');
+        finalOrders.filter((orderRecord: any) => new Date(orderRecord.created_at) >= lastWeekDateTime && orderRecord.status === 'delivered').forEach((orderRecord: any) => {
+          const dateLabelString = safeDateFormatter(new Date(orderRecord.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenueMap, dateLabelString)) {
-            dailyRevenueMap[dateLabelString] += (ordRecord.total || 0);
+            dailyRevenueMap[dateLabelString] += (orderRecord.total || 0);
           }
         });
 
         // Advanced Low Stock Detection
-        const detectedLowStockItems = finalProducts.filter((individualItemRecord: any) => {
-            const hasVariants = individualItemRecord.variants && Array.isArray(individualItemRecord.variants) && individualItemRecord.variants.length > 0;
-            
+        const detectedLowStockItems = finalProducts.filter((productItemRecord: any) => {
+            const hasVariants = productItemRecord.variants && Array.isArray(productItemRecord.variants) && productItemRecord.variants.length > 0;
             if (hasVariants) {
-                // If has variants, check if ANY variant is below threshold
-                return individualItemRecord.variants.some((vItemRecord: any) => (vItemRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
+                return productItemRecord.variants.some((vRecord: any) => (vRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
             }
-            // Standard product check
-            return (individualItemRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
-        }).sort((aItemRecord: any, bItemRecord: any) => {
-            const getEffectiveStock = (productItemForStock: any) => {
-                const hasV = productItemForStock.variants && Array.isArray(productItemForStock.variants) && productItemForStock.variants.length > 0;
-                if (hasV) return Math.min(...productItemForStock.variants.map((vInnerRecord: any) => vInnerRecord.stock ?? 0));
-                return productItemForStock.stock ?? 0;
+            return (productItemRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
+        }).sort((aRecord: any, bRecord: any) => {
+            const getEffStock = (pItem: any) => {
+                const hasV = pItem.variants && Array.isArray(pItem.variants) && pItem.variants.length > 0;
+                if (hasV) return Math.min(...pItem.variants.map((v: any) => v.stock ?? 0));
+                return pItem.stock ?? 0;
             };
-            return getEffectiveStock(aItemRecord) - getEffectiveStock(bItemRecord);
+            return getEffStock(aRecord) - getEffStock(bRecord);
         }).slice(0, 5);
 
         const comprehensiveDashboardData = {
@@ -125,15 +121,15 @@ export default function AdminDashboard() {
           activeFlashDeals: activeFlashDealsCount,
           allOrders: finalOrders,
           revenueChartData: Object.keys(dailyRevenueMap).map(dateKey => ({ date: dateKey, Revenue: dailyRevenueMap[dateKey] })),
-          pendingOrders: finalOrders.filter((ordRecord: any) => ordRecord.status === 'pending').slice(0, 5),
+          pendingOrders: finalOrders.filter((orderRecord: any) => orderRecord.status === 'pending').slice(0, 5),
           lowStockProducts: detectedLowStockItems,
-          pendingReviews: finalReviews.filter((revRecord: any) => !revRecord.is_approved).slice(0, 5),
+          pendingReviews: finalReviews.filter((reviewRecord: any) => !reviewRecord.is_approved).slice(0, 5),
           unansweredQuestions: finalQna.filter((qnaRecord: any) => !qnaRecord.is_approved).slice(0, 5),
         };
 
         globalAdminStore.setDashboard(comprehensiveDashboardData);
       } catch (dashboardFetchError: any) {
-        console.error("Dashboard Stats Processing Error:", dashboardFetchError);
+        console.error("Dashboard Fetch Error:", dashboardFetchError);
         if (!useAdminStore.getState().dashboard) {
             toast({ variant: 'destructive', title: 'Error loading dashboard', description: dashboardFetchError.message });
         }

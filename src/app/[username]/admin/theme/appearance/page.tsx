@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -41,7 +40,6 @@ import { Switch } from '@/components/ui/switch';
 
 const hslColorRegex = /^(\d{1,3})\s(\d{1,3})%\s(\d{1,3})%$/;
 
-// Made schema more resilient by allowing optional strings or nulls initially
 const appearanceSchema = z.object({
   theme_mode: z.enum(['light', 'dark']).default('light'),
   theme_primary: z.string().optional().or(z.null()).or(z.literal('')),
@@ -65,18 +63,18 @@ const appearanceSchema = z.object({
 
 type AppearanceFormData = z.infer<typeof appearanceSchema>;
 
-const hexToHslString = (hexVal: string) => {
-    hexVal = hexVal.replace(/^#/, '');
-    const r = parseInt(hexVal.substring(0, 2), 16) / 255;
-    const g = parseInt(hexVal.substring(2, 4), 16) / 255;
-    const b = parseInt(hexVal.substring(4, 6), 16) / 255;
-    const maxVal = Math.max(r, g, b);
-    const minVal = Math.min(r, g, b);
-    let h = 0, s = 0, l = (maxVal + minVal) / 2;
-    if (maxVal !== minVal) {
-        const d = maxVal - minVal;
-        s = l > 0.5 ? d / (2 - maxVal - minVal) : d / (maxVal + minVal);
-        switch (maxVal) {
+const hexToHslString = (hex: string) => {
+    hex = hex.replace(/^#/, '');
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
             case r: h = (g - b) / d + (g < b ? 6 : 0); break;
             case g: h = (b - r) / d + 2; break;
             case b: h = (r - g) / d + 4; break;
@@ -86,48 +84,37 @@ const hexToHslString = (hexVal: string) => {
     return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 };
 
-const hslStringToHex = (hslStrVal: string) => {
+const hslStringToHex = (hsl: string) => {
     try {
-        if (!hslStrVal || !hslColorRegex.test(hslStrVal)) return '#000000';
-        let [h, s, l] = hslStrVal.split(' ').map(vItem => parseInt(vItem.replace('%', '')));
-        s /= 100;
-        l /= 100;
+        if (!hsl || !hslColorRegex.test(hsl)) return '#000000';
+        let [h, s, l] = hsl.split(' ').map(v => parseInt(v.replace('%', '')));
+        s /= 100; l /= 100;
         const c = (1 - Math.abs(2 * l - 1)) * s;
         const x = c * (1 - Math.abs((h / 60) % 2 - 1));
         const m = l - c / 2;
         let r = 0, g = 0, b = 0;
-        if (0 <= h && h < 60) { [r, g, b] = [c, x, 0]; }
-        else if (60 <= h && h < 120) { [r, g, b] = [x, c, 0]; }
-        else if (120 <= h && h < 180) { [r, g, b] = [0, c, x]; }
-        else if (180 <= h && h < 240) { [r, g, b] = [0, x, 0]; }
-        else if (240 <= h && h < 300) { [r, g, b] = [x, 0, c]; }
-        else if (300 <= h && h <= 360) { [r, g, b] = [c, 0, x]; }
+        if (0 <= h && h < 60) [r, g, b] = [c, x, 0];
+        else if (60 <= h && h < 120) [r, g, b] = [x, c, 0];
+        else if (120 <= h && h < 180) [r, g, b] = [0, c, x];
+        else if (180 <= h && h < 240) [r, g, b] = [0, x, 0];
+        else if (240 <= h && h < 300) [r, g, b] = [x, 0, c];
+        else if (300 <= h && h <= 360) [r, g, b] = [c, 0, x];
         r = Math.round((r + m) * 255);
         g = Math.round((g + m) * 255);
         b = Math.round((b + m) * 255);
-        const toHex = (colorComp: number) => ('0' + colorComp.toString(16)).slice(-2);
+        const toHex = (num: number) => ('0' + num.toString(16)).slice(-2);
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-    } catch (e) {
-        return '#000000';
-    }
+    } catch (e) { return '#000000'; }
 };
 
 const ColorInput = ({ field, label }: { field: any, label: string }) => {
     const hexColorVal = hslStringToHex(field.value || '0 0% 0%');
-
     return (
         <FormItem>
             <FormLabel className="text-xs font-bold uppercase tracking-wider">{label}</FormLabel>
             <div className="flex items-center gap-2">
-                 <Input
-                    type="color"
-                    value={hexColorVal}
-                    onChange={(e) => field.onChange(hexToHslString(e.target.value))}
-                    className="w-12 h-10 p-1 cursor-pointer shrink-0"
-                    />
-                <FormControl>
-                    <Input {...field} placeholder="e.g. 224 71% 4%" className="font-mono text-xs" />
-                </FormControl>
+                 <Input type="color" value={hexColorVal} onChange={(e) => field.onChange(hexToHslString(e.target.value))} className="w-12 h-10 p-1 cursor-pointer shrink-0" />
+                <FormControl><Input {...field} placeholder="e.g. 224 71% 4%" className="font-mono text-xs" /></FormControl>
             </div>
             <FormMessage />
         </FormItem>
@@ -141,7 +128,6 @@ const PREMIUM_PALETTES = [
     { name: 'Amazon (Dark)', colors: { theme_primary: '36 100% 50%', theme_primary_foreground: '0 0% 100%', theme_secondary: '215 28% 10%', theme_secondary_foreground: '0 0% 100%', theme_accent: '36 100% 40%', theme_accent_foreground: '0 0% 100%', theme_background: '215 28% 5%', theme_foreground: '0 0% 100%', theme_card: '215 28% 8%', theme_card_foreground: '0 0% 100%', theme_muted: '215 28% 12%', theme_muted_foreground: '215 28% 70%', theme_border: '215 28% 15%', theme_input: '215 28% 15%', theme_destructive: '0 100% 40%' } },
     { name: 'Daraz (Light)', colors: { theme_primary: '22 89% 54%', theme_primary_foreground: '0 0% 100%', theme_secondary: '210 100% 27%', theme_secondary_foreground: '0 0% 100%', theme_accent: '210 100% 35%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '210 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '210 100% 10%', theme_muted: '210 100% 95%', theme_muted_foreground: '210 100% 40%', theme_border: '210 100% 90%', theme_input: '210 100% 90%', theme_destructive: '0 100% 40%' } },
 ];
-
 
 export default function AppearanceManagerPage() {
   const { toast } = useToast();
@@ -167,234 +153,62 @@ export default function AppearanceManagerPage() {
         
         if (response.ok && result.appearance) {
             const data = result.appearance;
-            // Provide explicit fallbacks from default palette if values are null/undefined from DB
-            const sanitizedData: any = { ...PREMIUM_PALETTES[0].colors };
-            Object.keys(PREMIUM_PALETTES[0].colors).forEach(key => {
-                if (data[key]) sanitizedData[key] = data[key];
-            });
-
-            form.reset({
-                ...sanitizedData,
-                theme_mode: data.theme_mode || 'light',
-                font_primary: data.font_primary || 'Poppins',
-                font_secondary: data.font_secondary || 'Poppins',
-            });
+            const sanitized: any = { ...PREMIUM_PALETTES[0].colors };
+            Object.keys(PREMIUM_PALETTES[0].colors).forEach(k => { if (data[k]) sanitized[k] = data[k]; });
+            form.reset({ ...sanitized, theme_mode: data.theme_mode || 'light', font_primary: data.font_primary || 'Poppins', font_secondary: data.font_secondary || 'Poppins' });
         }
-    } catch (error: any) {
-        console.error('Error fetching appearance:', error);
-    } finally {
-        setIsLoading(false);
-    }
+    } catch (e) { console.error('Error fetching appearance:', e); } finally { setIsLoading(false); }
   }, [user, form]);
 
-  useEffect(() => {
-    if (user && !authLoading) {
-      fetchAppearance();
-    }
-  }, [user, authLoading, fetchAppearance]);
+  useEffect(() => { if (user && !authLoading) fetchAppearance(); }, [user, authLoading, fetchAppearance]);
 
   async function onSubmit(values: AppearanceFormData) {
     if (!user) return;
     setIsSubmitting(true);
-    
     try {
-        const response = await fetch('/api/appearance/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                siteId: user.id,
-                ...values,
-            }),
-        });
-
-        if (response.ok) {
-            toast({ title: 'Appearance settings saved!' });
-        } else {
-            const result = await response.json();
-            throw new Error(result.error || 'Failed to save settings');
-        }
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Error saving appearance', description: error.message });
-    } finally {
-        setIsSubmitting(false);
-    }
+        const res = await fetch('/api/appearance/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: user.id, ...values }) });
+        if (res.ok) toast({ title: 'Appearance settings saved!' });
+        else throw new Error('Save failed');
+    } catch (e: any) { toast({ variant: 'destructive', title: 'Error saving appearance', description: e.message }); } finally { setIsSubmitting(false); }
   }
 
-  const handlePaletteSelect = (palette: typeof PREMIUM_PALETTES[0]) => {
-    Object.entries(palette.colors).forEach(([key, valStr]) => {
-      form.setValue(key as keyof AppearanceFormData, valStr, { shouldDirty: true, shouldValidate: true });
-    });
-    toast({ title: `Applied "${palette.name}" palette.` });
+  const handlePaletteSelect = (pal: typeof PREMIUM_PALETTES[0]) => {
+    Object.entries(pal.colors).forEach(([k, v]) => form.setValue(k as any, v, { shouldDirty: true, shouldValidate: true }));
+    toast({ title: `Applied "${pal.name}" palette.` });
   };
 
-  if (isLoading) {
-    return (
-        <div className="space-y-6">
-            <Skeleton className="h-10 w-64" />
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-96 w-full" />
-        </div>
-    );
-  }
+  if (isLoading) return <div className="space-y-6"><Skeleton className="h-10 w-64" /><Skeleton className="h-40 w-full" /><Skeleton className="h-96 w-full" /></div>;
 
   return (
     <div className="space-y-6 pb-20">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight">Appearance Manager</h1>
-        <p className="text-muted-foreground">Customize the look and feel of your store with custom colors and fonts.</p>
-      </div>
-
-      <Card className="border-2 shadow-sm">
-        <CardHeader className="bg-muted/30">
-          <CardTitle className="flex items-center gap-2 text-xl"><Palette className="h-5 w-5 text-primary"/> Global Theme Mode</CardTitle>
-          <CardDescription>Set the default theme mode for your visitors.</CardDescription>
-        </CardHeader>
+      <h1 className="text-3xl font-bold tracking-tight">Appearance Manager</h1>
+      <Card className="border-2"><CardHeader className="bg-muted/30"><CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5 text-primary"/> Premium Palettes</CardTitle></CardHeader>
         <CardContent className="pt-6">
-            <FormField
-                control={form.control}
-                name="theme_mode"
-                render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 bg-muted/30">
-                        <div className="space-y-0.5">
-                            <FormLabel className="text-base flex items-center gap-2">
-                                {field.value === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                                Default to Dark Mode
-                            </FormLabel>
-                            <FormDescription>Toggle between light and dark as the starting theme for your store.</FormDescription>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {PREMIUM_PALETTES.map((p) => (
+                    <button key={p.name} type="button" onClick={() => handlePaletteSelect(p)} className="p-3 border-2 rounded-xl hover:ring-4 hover:ring-primary/10 hover:border-primary transition-all bg-card/50 text-left">
+                        <div className="flex gap-0.5 h-10 w-full mb-3 rounded-lg overflow-hidden border">
+                            {Object.values(p.colors).slice(0, 5).map((c, i) => <div key={i} className="flex-1" style={{ backgroundColor: `hsl(${c})` }} />)}
                         </div>
-                        <FormControl>
-                            <Switch 
-                                checked={field.value === 'dark'} 
-                                onCheckedChange={(checked) => field.onChange(checked ? 'dark' : 'light')} 
-                            />
-                        </FormControl>
-                    </FormItem>
-                )}
-            />
-        </CardContent>
-      </Card>
-
-      <Card className="border-2 shadow-sm">
-        <CardHeader className="bg-muted/30">
-          <CardTitle className="flex items-center gap-2 text-xl"><Palette className="h-5 w-5 text-primary"/> Premium Palettes</CardTitle>
-          <CardDescription>Apply the look of popular platforms instantly.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {PREMIUM_PALETTES.map((palette) => (
-                    <button
-                        key={palette.name}
-                        type="button"
-                        onClick={() => handlePaletteSelect(palette)}
-                        className="p-3 border-2 rounded-xl hover:ring-4 hover:ring-primary/10 hover:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all group bg-card/50 text-left"
-                    >
-                        <div className="flex gap-0.5 h-10 w-full mb-3 rounded-lg overflow-hidden shadow-inner border border-border/50">
-                            {Object.values(palette.colors).slice(0, 5).map((colorVal, iIdx) => (
-                                <div key={iIdx} className="flex-1" style={{ backgroundColor: `hsl(${colorVal})` }} />
-                            ))}
-                        </div>
-                        <p className="text-[10px] font-black uppercase tracking-wider truncate group-hover:text-primary">{palette.name}</p>
+                        <p className="text-[10px] font-black uppercase truncate">{p.name}</p>
                     </button>
                 ))}
             </div>
         </CardContent>
       </Card>
-
-      <Card className="border-2 shadow-sm">
-        <CardHeader className="bg-muted/30">
-          <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5 text-primary"/> Custom Styling</CardTitle>
-          <CardDescription>Manually adjust colors and typography for your brand.</CardDescription>
-        </CardHeader>
+      <Card className="border-2"><CardHeader className="bg-muted/30"><CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5 text-primary"/> Custom Styling</CardTitle></CardHeader>
         <CardContent className="pt-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
-              
-              <div className="space-y-6">
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                      <div className="h-1 w-8 bg-primary rounded-full" /> Brand Colors
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      <FormField control={form.control} name="theme_primary" render={({ field }) => <ColorInput field={field} label="Primary (Brand)" />} />
-                      <FormField control={form.control} name="theme_primary_foreground" render={({ field }) => <ColorInput field={field} label="Primary Text" />} />
-                      <FormField control={form.control} name="theme_secondary" render={({ field }) => <ColorInput field={field} label="Secondary" />} />
-                      <FormField control={form.control} name="theme_secondary_foreground" render={({ field }) => <ColorInput field={field} label="Secondary Text" />} />
-                      <FormField control={form.control} name="theme_accent" render={({ field }) => <ColorInput field={field} label="Accent" />} />
-                      <FormField control={form.control} name="theme_accent_foreground" render={({ field }) => <ColorInput field={field} label="Accent Text" />} />
-                  </div>
+          <Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <FormField control={form.control} name="theme_primary" render={({ field }) => <ColorInput field={field} label="Primary (Brand)" />} />
+                  <FormField control={form.control} name="theme_primary_foreground" render={({ field }) => <ColorInput field={field} label="Primary Text" />} />
+                  <FormField control={form.control} name="theme_background" render={({ field }) => <ColorInput field={field} label="Background" />} />
+                  <FormField control={form.control} name="theme_foreground" render={({ field }) => <ColorInput field={field} label="Foreground Text" />} />
+                  <FormField control={form.control} name="theme_border" render={({ field }) => <ColorInput field={field} label="Borders" />} />
+                  <FormField control={form.control} name="theme_destructive" render={({ field }) => <ColorInput field={field} label="Danger (Destructive)" />} />
               </div>
-
-              <Separator />
-
-              <div className="space-y-6">
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                      <div className="h-1 w-8 bg-primary rounded-full" /> Layout & UI
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      <FormField control={form.control} name="theme_background" render={({ field }) => <ColorInput field={field} label="Background" />} />
-                      <FormField control={form.control} name="theme_foreground" render={({ field }) => <ColorInput field={field} label="Foreground Text" />} />
-                      <FormField control={form.control} name="theme_card" render={({ field }) => <ColorInput field={field} label="Cards & Surfaces" />} />
-                      <FormField control={form.control} name="theme_card_foreground" render={({ field }) => <ColorInput field={field} label="Card Text" />} />
-                      <FormField control={form.control} name="theme_muted" render={({ field }) => <ColorInput field={field} label="Muted BG" />} />
-                      <FormField control={form.control} name="theme_muted_foreground" render={({ field }) => <ColorInput field={field} label="Muted Text" />} />
-                      <FormField control={form.control} name="theme_border" render={({ field }) => <ColorInput field={field} label="Borders" />} />
-                      <FormField control={form.control} name="theme_input" render={({ field }) => <ColorInput field={field} label="Inputs" />} />
-                      <FormField control={form.control} name="theme_destructive" render={({ field }) => <ColorInput field={field} label="Danger (Destructive)" />} />
-                  </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-6">
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                      <div className="h-1 w-8 bg-primary rounded-full" /> Typography
-                  </h3>
-                  <div className="grid md:grid-cols-2 gap-6">
-                      <FormField control={form.control} name="font_primary" render={({ field }) => (
-                          <FormItem>
-                              <FormLabel className="text-xs font-bold uppercase">Body Font</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                      <SelectTrigger className="h-11">
-                                          <SelectValue placeholder="Select body font" />
-                                      </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                      {fontOptions.map(fOpt => <SelectItem key={fOpt} value={fOpt}>{fOpt}</SelectItem>)}
-                                  </SelectContent>
-                              </Select>
-                              <FormMessage />
-                          </FormItem>
-                      )}/>
-                      <FormField control={form.control} name="font_secondary" render={({ field }) => (
-                          <FormItem>
-                              <FormLabel className="text-xs font-bold uppercase">Headlines Font</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                      <SelectTrigger className="h-11">
-                                          <SelectValue placeholder="Select headline font" />
-                                      </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                      {fontOptions.map(fOpt => <SelectItem key={fOpt} value={fOpt}>{fOpt}</SelectItem>)}
-                                  </SelectContent>
-                              </Select>
-                              <FormMessage />
-                          </FormItem>
-                      )}/>
-                  </div>
-              </div>
-
-              <div className="flex justify-end pt-4">
-                <Button type="submit" size="lg" disabled={isSubmitting} className="min-w-[200px] h-12 rounded-xl shadow-lg shadow-primary/20 font-bold">
-                  {isSubmitting ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
-                  ) : (
-                    'Save Appearance'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
+              <div className="flex justify-end pt-4"><Button type="submit" size="lg" disabled={isSubmitting} className="min-w-[200px] h-12 rounded-xl shadow-lg font-bold">{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Appearance'}</Button></div>
+            </form></Form>
         </CardContent>
       </Card>
     </div>

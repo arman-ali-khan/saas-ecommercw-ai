@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -394,16 +393,6 @@ export default function ManageProductPage() {
       <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" asChild className="-ml-4"><Link href={`/admin/products`}><ArrowLeft className="mr-2 h-4 w-4" />পণ্য তালিকায় ফিরে যান</Link></Button>
       </div>
-
-      {isLimitReached && (
-          <Alert variant="destructive" className="mb-8">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Product Limit Reached</AlertTitle>
-              <AlertDescription>
-                  আপনার বর্তমান প্ল্যানে সর্বোচ্চ {productLimit} টি পণ্য যোগ করার অনুমতি রয়েছে। নতুন পণ্য যোগ করতে হলে দয়া করে আপনার <Link href="/admin/settings" className="font-bold underline">সাবস্ক্রিপশন আপগ্রেড করুন</Link>।
-              </AlertDescription>
-          </Alert>
-      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

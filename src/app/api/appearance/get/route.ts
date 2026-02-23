@@ -15,8 +15,7 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // We select * because the user might not have run the SQL to add new columns yet.
-    // Selecting specific columns that don't exist causes a 500 error in PostgREST.
+    // Using select('*') to avoid crashes if new columns don't exist yet
     const { data, error } = await supabaseAdmin
       .from('store_settings')
       .select('*')
