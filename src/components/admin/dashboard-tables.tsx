@@ -162,7 +162,7 @@ export default function DashboardTables({
               <CardDescription>{t.reviewDesc}</CardDescription>
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link href={`/admin/reviews`}>{t.viewAll} <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link href={`/admin/reviews`}>{t.viewAll} <ArrowRight className="ml-2 h-4 w-4" />View</Link>
             </Button>
           </CardHeader>
           <CardContent>
