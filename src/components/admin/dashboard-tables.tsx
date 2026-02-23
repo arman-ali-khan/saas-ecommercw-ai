@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -109,7 +110,7 @@ export default function DashboardTables({
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2">
                                 {product.name}
-                                {((product.variants && product.variants.some(v => (v.stock ?? 0) === 0)) || (!product.variants && (product.stock ?? 0) === 0)) && (
+                                {((product.variants && product.variants.some(v => Number(v.stock || 0) === 0)) || (!product.variants && Number(product.stock || 0) === 0)) && (
                                     <Badge variant="destructive" className="text-[8px] h-4 px-1 uppercase">Out of Stock</Badge>
                                 )}
                             </div>
@@ -117,16 +118,16 @@ export default function DashboardTables({
                           <TableCell>
                             {product.variants && product.variants.length > 0 ? (
                                 <div className="flex flex-wrap gap-1">
-                                    {product.variants.filter(v => (v.stock === null || v.stock === undefined ? 0 : Number(v.stock)) < 10).map((v, i) => (
-                                        <Badge key={i} variant="destructive" className="text-[10px] py-0 gap-1">
-                                            {v.stock === 0 ? 'Out:' : 'Low:'} {v.unit} ({v.stock ?? 0})
+                                    {product.variants.filter(v => Number(v.stock || 0) < 10).map((v, i) => (
+                                        <Badge key={i} variant="destructive" className="text-[10px] py-0 gap-1 bg-destructive/10 text-destructive border-destructive/20">
+                                            {Number(v.stock || 0) === 0 ? 'Out:' : 'Low:'} {v.unit} ({v.stock ?? 0})
                                         </Badge>
                                     ))}
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <Badge variant="destructive" className="font-bold">
-                                        {(product.stock === 0) ? 'Out' : `Low: ${product.stock ?? 0}`}
+                                        {Number(product.stock || 0) === 0 ? 'Out' : `Low: ${product.stock ?? 0}`}
                                     </Badge>
                                 </div>
                             )}
@@ -143,7 +144,7 @@ export default function DashboardTables({
                       <CardHeader className="p-4 pb-2">
                         <div className="flex justify-between items-start">
                             <CardTitle className="text-sm">{product.name}</CardTitle>
-                            {((product.variants && product.variants.some(v => (v.stock ?? 0) === 0)) || (!product.variants && (product.stock ?? 0) === 0)) && (
+                            {((product.variants && product.variants.some(v => Number(v.stock || 0) === 0)) || (!product.variants && Number(product.stock || 0) === 0)) && (
                                 <Badge variant="destructive" className="text-[8px] h-4">OUT</Badge>
                             )}
                         </div>
@@ -151,13 +152,13 @@ export default function DashboardTables({
                       <CardContent className="p-4 pt-0">
                         <div className="flex flex-wrap gap-1 mt-1">
                             {product.variants && product.variants.length > 0 ? (
-                                product.variants.filter(v => (v.stock === null || v.stock === undefined ? 0 : Number(v.stock)) < 10).map((v, i) => (
-                                    <Badge key={i} variant="destructive" className="text-[10px]">
-                                        {v.unit}: {v.stock ?? 0} {v.stock === 0 ? '(Out)' : ''}
+                                product.variants.filter(v => Number(v.stock || 0) < 10).map((v, i) => (
+                                    <Badge key={i} variant="destructive" className="text-[10px] bg-destructive/10 text-destructive">
+                                        {v.unit}: {v.stock ?? 0} {Number(v.stock || 0) === 0 ? '(Out)' : ''}
                                     </Badge>
                                 ))
                             ) : (
-                                <Badge variant="destructive">{product.stock === 0 ? 'Out of Stock' : `${t.stock}: ${product.stock ?? 0}`}</Badge>
+                                <Badge variant="destructive">{Number(product.stock || 0) === 0 ? 'Out of Stock' : `${t.stock}: ${product.stock ?? 0}`}</Badge>
                             )}
                         </div>
                       </CardContent>

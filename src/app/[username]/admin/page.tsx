@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -62,9 +63,9 @@ export default function AdminDashboard() {
           productsRes.json(), 
           uncompletedRes.json(), 
           customersRes.json(), 
-          flashDealsRes.json(), 
-          reviewsRes.json(), 
-          qnaRes.json()
+          flashDealsResult.json(), 
+          reviewsResult.json(), 
+          qnaResult.json()
         ]);
 
         const fetchedOrders = ordersResult.orders || [];
@@ -91,28 +92,19 @@ export default function AdminDashboard() {
 
         const LOW_STOCK_THRESHOLD = 10;
 
-        // Process low stock products with sorting (critical first)
+        // Enhanced logic to identify and sort low stock products correctly
         const lowStockProducts = fetchedProducts
-          .filter((p: any) => {
-            const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
-            if (!hasVariants) {
-              const stock = p.stock === null || p.stock === undefined ? 0 : Number(p.stock);
-              return stock < LOW_STOCK_THRESHOLD;
+          .map((p: any) => {
+            let minStock = 0;
+            if (Array.isArray(p.variants) && p.variants.length > 0) {
+              minStock = Math.min(...p.variants.map((v: any) => v.stock === null || v.stock === undefined ? 0 : Number(v.stock)));
+            } else {
+              minStock = p.stock === null || p.stock === undefined ? 0 : Number(p.stock);
             }
-            return p.variants.some((v: any) => {
-              const vStock = v.stock === null || v.stock === undefined ? 0 : Number(v.stock);
-              return vStock < LOW_STOCK_THRESHOLD;
-            });
+            return { ...p, calculatedMinStock: minStock };
           })
-          .sort((a: any, b: any) => {
-            const getMinStock = (prod: any) => {
-              if (Array.isArray(prod.variants) && prod.variants.length > 0) {
-                return Math.min(...prod.variants.map((v: any) => v.stock ?? 0));
-              }
-              return prod.stock ?? 0;
-            };
-            return getMinStock(a) - getMinStock(b);
-          })
+          .filter((p: any) => p.calculatedMinStock < LOW_STOCK_THRESHOLD)
+          .sort((a: any, b: any) => a.calculatedMinStock - b.calculatedMinStock)
           .slice(0, 5);
 
         const newDashboardData = {
@@ -152,7 +144,6 @@ export default function AdminDashboard() {
   const currentTranslations = translations[lang as keyof typeof translations]?.dashboard || translations.bn.dashboard;
   const productLimit = user?.product_limit;
   
-  // Use either the actual dashboard data or a default state for the skeletons
   const showSkeleton = isLoading && !dashboard;
   const stats = dashboard || {
     totalRevenue: 0,
