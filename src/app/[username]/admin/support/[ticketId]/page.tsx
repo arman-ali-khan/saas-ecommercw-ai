@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Send, Loader2, Image as ImageIcon, X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Image as ImageIcon, X, AlertCircle, CheckCircle2, Maximize2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ import Image from 'next/image';
 import ImageUploader from '@/components/image-uploader';
 import type { SupportTicket, SupportMessage } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTitle as VisuallyHiddenTitle } from '@/components/ui/dialog';
 
 export default function TicketDetailPage() {
   const { ticketId } = useParams();
@@ -41,13 +42,13 @@ export default function TicketDetailPage() {
   const [newMessage, setNewMessage] = useState('');
   const [image, setImage] = useState('');
   const [isSending, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const fetchTicketDetails = useCallback(async (isSilent = false) => {
     if (!ticketId || !user) return;
     
-    // Check if we already have this ticket's data to avoid flickering
     const store = useAdminStore.getState();
     const hasData = store.currentTicket?.id === ticketId && store.currentMessages.length > 0;
 
@@ -159,11 +160,17 @@ export default function TicketDetailPage() {
             <div className="flex justify-start gap-3">
               <Avatar className="h-8 w-8 shrink-0"><AvatarFallback>A</AvatarFallback></Avatar>
               <div className="space-y-3 max-w-[85%]">
-                <div className="bg-muted p-4 rounded-2xl rounded-tl-none shadow-sm">
+                <div className="bg-muted p-4 rounded-2xl rounded-tl-none shadow-sm border border-border/50">
                   <p className="text-sm leading-relaxed">{ticket.description}</p>
                   {ticket.image_url && (
-                    <div className="mt-4 relative aspect-video rounded-xl overflow-hidden border">
-                      <Image src={ticket.image_url} alt="Initial Screenshot" fill className="object-cover" />
+                    <div 
+                      className="mt-4 relative aspect-video max-w-sm rounded-xl overflow-hidden border bg-background/50 cursor-zoom-in group/img"
+                      onClick={() => setPreviewImage(ticket.image_url!)}
+                    >
+                      <Image src={ticket.image_url} alt="Initial Screenshot" fill className="object-cover transition-transform group-hover/img:scale-105" />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                        <Maximize2 className="text-white h-6 w-6" />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -175,13 +182,19 @@ export default function TicketDetailPage() {
                 {msg.sender_role === 'saas_admin' && <Avatar className="h-8 w-8 shrink-0"><AvatarFallback>S</AvatarFallback></Avatar>}
                 <div className={cn("space-y-1 max-w-[85%]", msg.sender_role === 'admin' ? "items-end" : "items-start")}>
                   <div className={cn(
-                    "p-4 rounded-2xl shadow-sm text-sm",
-                    msg.sender_role === 'admin' ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-muted rounded-tl-none"
+                    "p-4 rounded-2xl shadow-sm text-sm border",
+                    msg.sender_role === 'admin' ? "bg-primary text-primary-foreground border-primary/20 rounded-tr-none" : "bg-muted border-border/50 rounded-tl-none"
                   )}>
                     <p className="leading-relaxed">{msg.message}</p>
                     {msg.image_url && (
-                      <div className="mt-3 relative aspect-video rounded-xl overflow-hidden border bg-background/10">
-                        <Image src={msg.image_url} alt="Attachment" fill className="object-cover" />
+                      <div 
+                        className="mt-3 relative aspect-video w-64 max-w-full rounded-xl overflow-hidden border bg-background/10 cursor-zoom-in group/img"
+                        onClick={() => setPreviewImage(msg.image_url!)}
+                      >
+                        <Image src={msg.image_url} alt="Attachment" fill className="object-cover transition-transform group-hover/img:scale-105" />
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                          <Maximize2 className="text-white h-5 w-5" />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -226,6 +239,32 @@ export default function TicketDetailPage() {
           )}
         </div>
       </Card>
+
+      {/* Image Preview Modal */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden border-none bg-transparent shadow-none flex items-center justify-center">
+          <VisuallyHiddenTitle className="sr-only">Image Preview</VisuallyHiddenTitle>
+          <div className="relative w-full h-[90vh] flex items-center justify-center">
+            {previewImage && (
+              <Image 
+                src={previewImage} 
+                alt="Fullscreen Preview" 
+                width={1200} 
+                height={800} 
+                className="object-contain max-w-full max-h-full rounded-lg shadow-2xl"
+              />
+            )}
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className="absolute top-4 right-4 rounded-full bg-background/80 backdrop-blur-sm"
+              onClick={() => setPreviewImage(null)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
