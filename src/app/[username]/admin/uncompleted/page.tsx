@@ -256,6 +256,7 @@ export default function UncompletedOrdersPage() {
                         পরবর্তী
                     </Button>
                 </CardFooter>
-            </Card>
-    )
+            )}
+        </Card>
+    );
 }
