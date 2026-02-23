@@ -182,7 +182,7 @@ export default function DashboardTables({
                               ))}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/reviews`}><Eye className="mr-2 h-4 w-4" />View</Link></Button></TableCell>
+                          <TableCell className="text-right"><Button variant="ghost" size="sm" asChild><Link href={`/admin/reviews`}><Eye className="mr-2 h-4 w-4" /></Link></Button></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
