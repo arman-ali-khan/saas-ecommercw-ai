@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -15,9 +14,29 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Explicitly select ALL theme fields to ensure consistency
     const { data, error } = await supabaseAdmin
       .from('store_settings')
-      .select('theme_primary, theme_secondary, theme_accent, theme_background, theme_foreground, theme_card, font_primary, font_secondary')
+      .select(`
+        theme_mode,
+        theme_primary, 
+        theme_primary_foreground,
+        theme_secondary, 
+        theme_secondary_foreground,
+        theme_accent, 
+        theme_accent_foreground,
+        theme_background, 
+        theme_foreground, 
+        theme_card, 
+        theme_card_foreground,
+        theme_muted,
+        theme_muted_foreground,
+        theme_border,
+        theme_input,
+        theme_destructive,
+        font_primary, 
+        font_secondary
+      `)
       .eq('site_id', siteId)
       .single();
 

@@ -20,7 +20,7 @@ import DashboardTables from '@/components/admin/dashboard-tables';
 const MINIMUM_QUANTITY_THRESHOLD = 10;
 
 export default function AdminDashboard() {
-  const adminDashboardRouteParams = useParams();
+  const overviewRouteParams = useParams();
   const activeAdminUser = useAuth((state) => state.user);
   const globalAdminStore = useAdminStore();
   const { toast } = useToast();
