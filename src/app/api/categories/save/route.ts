@@ -16,6 +16,20 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // SUBSCRIPTION STATUS CHECK
+    const { data: profileStatus } = await supabaseAdmin
+        .from('profiles')
+        .select('subscription_status')
+        .eq('id', siteId)
+        .single();
+
+    const blockedStatuses = ['inactive', 'canceled', 'pending', 'pending_verification', 'failed'];
+    if (profileStatus && blockedStatuses.includes(profileStatus.subscription_status)) {
+        return NextResponse.json({ 
+            error: 'আপনার সাবস্ক্রিপশন সক্রিয় নয়। নতুন ক্যাটাগরি তৈরি বা আপডেট করতে দয়া করে পেমেন্ট নিশ্চিত করুন।' 
+        }, { status: 403 });
+    }
+
     const payload = {
       site_id: siteId,
       name,

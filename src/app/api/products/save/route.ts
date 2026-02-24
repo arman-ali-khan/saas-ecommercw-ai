@@ -16,16 +16,28 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // LIMIT CHECK for new products
+    // 1. SUBSCRIPTION STATUS CHECK
+    const { data: profileStatus } = await supabaseAdmin
+        .from('profiles')
+        .select('subscription_status')
+        .eq('id', siteId)
+        .single();
+
+    const blockedStatuses = ['inactive', 'canceled', 'pending', 'pending_verification', 'failed'];
+    if (profileStatus && blockedStatuses.includes(profileStatus.subscription_status)) {
+        return NextResponse.json({ 
+            error: 'আপনার সাবস্ক্রিপশন সক্রিয় নয়। দয়া করে সেটিংস থেকে সাবস্ক্রিপশন চেক করুন অথবা পেমেন্ট সম্পন্ন করুন।' 
+        }, { status: 403 });
+    }
+
+    // 2. LIMIT CHECK for new products
     if (isNew) {
-        // Fetch the limit and current count
         const [profileRes, productsCountRes] = await Promise.all([
             supabaseAdmin.from('profiles').select('subscription_plan, subscription_status').eq('id', siteId).single(),
             supabaseAdmin.from('products').select('*', { count: 'exact', head: true }).eq('site_id', siteId)
         ]);
 
         if (profileRes.data) {
-            // Get product limit from the associated plan
             const { data: planData } = await supabaseAdmin
                 .from('plans')
                 .select('product_limit')
