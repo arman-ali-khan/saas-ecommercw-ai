@@ -104,11 +104,15 @@ export async function POST(request: Request) {
       if (endDate) {
           notificationMessage += ` এটি ${new Date(endDate).toLocaleDateString()} তারিখ পর্যন্ত সক্রিয় থাকবে।`;
       }
-    } else if (newStatus === 'failed') {
+    } else if (newStatus === 'failed' || newStatus === 'canceled') {
       profileUpdate = {
-        subscription_status: 'failed' // Set to failed instead of inactive to allow retry
+        subscription_status: newStatus === 'failed' ? 'failed' : 'inactive'
       };
-      notificationMessage = `দুঃখিত, আপনার সাবস্ক্রিপশন পেমেন্ট যাচাই করা সম্ভব হয়নি। অনুগ্রহ করে আপনার ট্রানজেকশন আইডি পরীক্ষা করুন বা সাপোর্টে যোগাযোগ করুন।`;
+      notificationMessage = newStatus === 'failed'
+        ? `দুঃখিত, আপনার সাবস্ক্রিপশন পেমেন্ট যাচাই করা সম্ভব হয়নি। অনুগ্রহ করে আপনার ট্রানজেকশন আইডি পরীক্ষা করুন বা সাপোর্টে যোগাযোগ করুন।`
+        : `আপনার সাবস্ক্রিপশন পেমেন্ট অনুরোধটি বাতিল করা হয়েছে। বিস্তারিত জানতে অনুগ্রহ করে যোগাযোগ করুন।`;
+    } else {
+        notificationMessage = `আপনার সাবস্ক্রিপশন পেমেন্ট স্ট্যাটাস আপডেট করা হয়েছে: ${newStatus}`;
     }
 
     if (Object.keys(profileUpdate).length > 0) {
