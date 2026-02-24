@@ -25,10 +25,21 @@ export async function POST(request: Request) {
   let userId: string | undefined;
 
   try {
-    // Normalize Plan ID to lowercase to match DB constraint
+    // Step 1: Normalize Plan ID to lowercase to ensure it matches the foreign key constraint
     const finalPlanId = (planId && typeof planId === 'string') ? planId.toLowerCase().trim() : 'free';
 
-    // Step 1: Create the auth user.
+    // Verify if the plan exists in the database to prevent FK violation
+    const { data: planExists } = await supabaseAdmin
+      .from('plans')
+      .select('id')
+      .eq('id', finalPlanId)
+      .maybeSingle();
+
+    if (!planExists && finalPlanId !== 'free') {
+        throw new Error(`অবৈধ সাবস্ক্রিপশন প্ল্যান: ${finalPlanId}`);
+    }
+
+    // Step 2: Create the auth user.
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -46,7 +57,7 @@ export async function POST(request: Request) {
 
     userId = authData.user.id;
 
-    // Step 2: Update the profile row.
+    // Step 3: Update the profile row with encrypted sensitive data
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -67,7 +78,7 @@ export async function POST(request: Request) {
       throw new Error(`প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ${profileError.message}`);
     }
 
-    // Step 3: If the plan is not free, create the payment record.
+    // Step 4: If the plan is not free, create the payment record.
     if (finalPlanId !== 'free') {
       const { data: planData, error: planError } = await supabaseAdmin
         .from('plans')
