@@ -25,6 +25,10 @@ export async function POST(request: Request) {
   let userId: string | undefined;
 
   try {
+    // Normalize Plan ID to lowercase to match DB constraint
+    const finalPlanId = (planId && typeof planId === 'string') ? planId.toLowerCase().trim() : 'free';
+
+    // Step 1: Create the auth user.
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -42,6 +46,7 @@ export async function POST(request: Request) {
 
     userId = authData.user.id;
 
+    // Step 2: Update the profile row.
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -51,8 +56,8 @@ export async function POST(request: Request) {
         domain,
         site_name: siteName,
         site_description: siteDescription,
-        subscription_plan: planId,
-        subscription_status: planId === 'free' ? 'active' : 'pending_verification',
+        subscription_plan: finalPlanId,
+        subscription_status: finalPlanId === 'free' ? 'active' : 'pending_verification',
         role: 'admin',
         last_subscription_from: 'get-started'
       })
@@ -62,11 +67,12 @@ export async function POST(request: Request) {
       throw new Error(`প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ${profileError.message}`);
     }
 
-    if (planId !== 'free') {
+    // Step 3: If the plan is not free, create the payment record.
+    if (finalPlanId !== 'free') {
       const { data: planData, error: planError } = await supabaseAdmin
         .from('plans')
         .select('id, price')
-        .eq('id', planId)
+        .eq('id', finalPlanId)
         .single();
 
       if (planError || !planData) {

@@ -45,6 +45,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Normalize Plan ID
+    const finalPlanId = (planId && typeof planId === 'string') ? planId.toLowerCase().trim() : 'free';
+
     if (id) {
       // UPDATE EXISTING ADMIN
       const { error: updateError } = await supabaseAdmin
@@ -55,6 +58,7 @@ export async function POST(request: Request) {
           site_name: siteName,
           site_description: siteDescription,
           domain: domain,
+          subscription_plan: finalPlanId
         })
         .eq('id', id);
 
@@ -96,7 +100,7 @@ export async function POST(request: Request) {
           domain: domain,
           site_name: siteName,
           site_description: siteDescription || '',
-          subscription_plan: planId || 'free',
+          subscription_plan: finalPlanId,
           subscription_status: 'active',
           role: 'admin'
         })
