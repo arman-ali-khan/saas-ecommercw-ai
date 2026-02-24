@@ -69,6 +69,20 @@ export async function POST(request: Request) {
     };
 
     if (isNew) {
+      // SLUG UNIQUENESS CHECK WITHIN SITE
+      const { data: existingBySlug } = await supabaseAdmin
+        .from('products')
+        .select('id')
+        .eq('id', sanitizedProductData.id)
+        .eq('site_id', siteId)
+        .maybeSingle();
+      
+      if (existingBySlug) {
+          return NextResponse.json({ 
+            error: 'এই স্লাগটি (Slug) আপনার স্টোরে ইতিমধ্যে অন্য একটি পণ্যে ব্যবহার করা হয়েছে। দয়া করে অন্য নাম দিন।' 
+          }, { status: 409 });
+      }
+
       const { data, error } = await supabaseAdmin
         .from('products')
         .insert({ ...sanitizedProductData, site_id: siteId })
@@ -83,6 +97,22 @@ export async function POST(request: Request) {
       }
       resultProduct = data;
     } else {
+      // If updating, check if slug is being changed to something that already exists for this site
+      if (productData.id && productData.id !== productId) {
+          const { data: existingOther } = await supabaseAdmin
+            .from('products')
+            .select('id')
+            .eq('id', productData.id)
+            .eq('site_id', siteId)
+            .maybeSingle();
+          
+          if (existingOther) {
+              return NextResponse.json({ 
+                error: 'এই নতুন স্লাগটি ইতিমধ্যে অন্য একটি পণ্যে ব্যবহার করা হয়েছে।' 
+              }, { status: 409 });
+          }
+      }
+
       const { data, error } = await supabaseAdmin
         .from('products')
         .update(sanitizedProductData)
@@ -94,7 +124,7 @@ export async function POST(request: Request) {
       resultProduct = data;
     }
 
-    const targetProductId = isNew ? resultProduct.id : productId;
+    const targetProductId = isNew ? resultProduct.id : (productData.id || productId);
     
     const { data: existingDeal } = await supabaseAdmin
         .from('flash_deals')
