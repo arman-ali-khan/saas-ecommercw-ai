@@ -15,8 +15,11 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Also delete associated flash deals first (though FK might handle it, manual is safer)
-    await supabaseAdmin.from('flash_deals').delete().eq('product_id', productId).eq('site_id', siteId);
+    // Also delete associated flash deals first
+    await supabaseAdmin
+      .from('flash_deals')
+      .delete()
+      .match({ product_id: productId, site_id: siteId });
 
     const { error } = await supabaseAdmin
       .from('products')

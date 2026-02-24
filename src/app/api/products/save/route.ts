@@ -69,24 +69,30 @@ export async function POST(request: Request) {
     };
 
     if (isNew) {
-      // PRE-CHECK: Check if slug exists globally because DB might have a unique constraint on 'id'
+      // PRE-CHECK: Check if slug exists in THIS store first
+      const { data: internalCheck } = await supabaseAdmin
+        .from('products')
+        .select('id')
+        .match({ id: sanitizedProductData.id, site_id: siteId })
+        .maybeSingle();
+      
+      if (internalCheck) {
+          return NextResponse.json({ 
+              error: 'এই স্লাগটি আপনার স্টোরে ইতিমধ্যে ব্যবহৃত হয়েছে। দয়া করে ভিন্ন নাম দিন।' 
+          }, { status: 409 });
+      }
+
+      // GLOBAL CHECK (In case id is PK and globally unique)
       const { data: globalCheck } = await supabaseAdmin
         .from('products')
-        .select('id, site_id')
+        .select('id')
         .eq('id', sanitizedProductData.id)
         .maybeSingle();
       
       if (globalCheck) {
-          if (globalCheck.site_id === siteId) {
-            return NextResponse.json({ 
-                error: 'এই স্লাগটি (Slug) আপনার স্টোরে ইতিমধ্যে ব্যবহৃত হয়েছে।' 
-            }, { status: 409 });
-          } else {
-            // This is the case where it exists in ANOTHER store
-            return NextResponse.json({ 
-                error: 'দুঃখিত, এই স্লাগটি ইতিমধ্যে অন্য একজন ব্যবহারকারী নিয়েছেন। দয়া করে স্লাগের শেষে সামান্য পরিবর্তন করুন (যেমন: -নতুন বা ১)।' 
-            }, { status: 409 });
-          }
+          return NextResponse.json({ 
+              error: 'দুঃখিত, এই স্লাগটি অন্য একটি স্টোর ব্যবহার করছে। স্লাগের শেষে সংখ্যা বা শব্দ যোগ করে পরিবর্তন করুন (যেমন: -নতুন)।' 
+          }, { status: 409 });
       }
 
       const { data, error } = await supabaseAdmin

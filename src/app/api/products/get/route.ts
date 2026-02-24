@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     const decodedProductId = decodeURIComponent(productId);
 
-    // Fetch product and flash deal in parallel
+    // Fetch product and flash deal in parallel using both ID and Site ID for security
     const [productRes, flashDealRes] = await Promise.all([
       supabaseAdmin
         .from('products')
