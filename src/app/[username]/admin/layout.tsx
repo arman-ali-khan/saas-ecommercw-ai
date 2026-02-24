@@ -108,7 +108,9 @@ export default function AdminLayout({
   const isPending = (user?.subscription_status === 'pending' || isPendingFromRegistration || isFailed);
   const isBlocked = user?.subscription_status === 'inactive';
   
-  const isContentDisabled = isPending || isBlocked || subscriptionStats.isSubscriptionExpired;
+  // Restriction logic: Allow Settings page to remain interactive so users can fix subscription/payment issues
+  const isSettingsPage = pathname === `/admin/settings`;
+  const isContentDisabled = (isPending || isBlocked || subscriptionStats.isSubscriptionExpired) && !isSettingsPage;
 
   useEffect(() => {
     if (!loading && pathname !== `/admin/login`) {
@@ -174,7 +176,7 @@ export default function AdminLayout({
                   <Terminal className="h-4 w-4" />
                   <AlertTitle>Subscription Pending</AlertTitle>
                   <AlertDescription>
-                    Your subscription payment is currently being reviewed. Some features are disabled until your payment is approved.
+                    Your subscription payment is currently being reviewed. Some features are disabled until your payment is approved. {!isSettingsPage && <span>Please visit <Link href="/admin/settings" className="underline font-bold">Settings</Link> to check status.</span>}
                   </AlertDescription>
               </Alert>
             )}
@@ -183,7 +185,7 @@ export default function AdminLayout({
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Account Blocked</AlertTitle>
                   <AlertDescription>
-                    Your account has been blocked. Please contact support for assistance.
+                    Your account has been blocked. {isSettingsPage ? "Please review your plan below." : <span>Please visit <Link href="/admin/settings" className="underline font-bold">Settings</Link> to resolve this.</span>}
                   </AlertDescription>
               </Alert>
             )}
@@ -193,7 +195,7 @@ export default function AdminLayout({
                   <AlertTitle>Subscription Expired</AlertTitle>
                   <AlertDescription>
                     Your subscription ended on {user?.subscription_end_date ? safeFormat(new Date(user.subscription_end_date), 'PP') : 'N/A'}. 
-                    Please renew your plan to continue using all features.
+                    Please renew your plan in <Link href="/admin/settings" className="underline font-bold">Settings</Link> to continue using all features.
                   </AlertDescription>
               </Alert>
             )}
@@ -202,7 +204,7 @@ export default function AdminLayout({
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Subscription Expiring Soon</AlertTitle>
                   <AlertDescription>
-                    Your subscription will expire in {subscriptionStats.daysRemaining} day(s). Renew now to avoid any disruption.
+                    Your subscription will expire in {subscriptionStats.daysRemaining} day(s). Renew now in Settings to avoid any disruption.
                   </AlertDescription>
               </Alert>
             )}
