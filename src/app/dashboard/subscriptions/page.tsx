@@ -116,7 +116,7 @@ export default function SubscriptionPaymentsPage() {
     setCurrentPage(1);
   }, [searchQuery, statusFilter]);
 
-  const handleUpdateStatus = async (paymentId: string, newPaymentStatus: 'completed' | 'failed') => {
+  const handleUpdateStatus = async (paymentId: string, newPaymentStatus: 'completed' | 'canceled') => {
     setIsActionLoading(true);
     try {
         const response = await fetch('/api/saas/subscriptions/update-status', {
@@ -203,7 +203,7 @@ export default function SubscriptionPaymentsPage() {
                         <SelectItem value="all">All Statuses</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                         <SelectItem value="pending_verification">Pending</SelectItem>
-                        <SelectItem value="failed">Failed</SelectItem>
+                        <SelectItem value="canceled">Canceled</SelectItem>
                     </SelectContent>
                 </Select>
                 {(searchQuery || statusFilter !== 'all') && (
@@ -385,8 +385,8 @@ export default function SubscriptionPaymentsPage() {
                         </Button>
                         <Button 
                             variant="destructive" 
-                            onClick={() => handleUpdateStatus(selectedPayment.id.toString(), 'failed')} 
-                            disabled={isActionLoading || selectedPayment.status === 'failed'}
+                            onClick={() => handleUpdateStatus(selectedPayment.id.toString(), 'canceled')} 
+                            disabled={isActionLoading || selectedPayment.status === 'canceled'}
                             className="shadow-lg shadow-destructive/20"
                         >
                             {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
