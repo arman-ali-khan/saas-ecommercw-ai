@@ -2,6 +2,31 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * Helper function to find a truly unique slug by appending a counter if necessary.
+ */
+async function findUniqueSlug(supabase: any, baseSlug: string) {
+  let slug = baseSlug;
+  let counter = 1;
+  let isUnique = false;
+
+  while (!isUnique) {
+    const { data } = await supabase
+      .from('products')
+      .select('id')
+      .eq('id', slug)
+      .maybeSingle();
+
+    if (!data) {
+      isUnique = true;
+    } else {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
+  return slug;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -66,74 +91,41 @@ export async function POST(request: Request) {
         tags: Array.isArray(productData.tags) ? productData.tags : [],
     };
 
+    let finalSlug = sanitizedProductData.id;
     let resultProduct;
 
     if (isNew) {
-      // REQUIREMENT: Check if BOTH ID and Site ID match
-      const { data: existingInStore } = await supabaseAdmin
-        .from('products')
-        .select('id')
-        .match({ id: sanitizedProductData.id, site_id: siteId })
-        .maybeSingle();
+      // Automatic Unique Slug Generation
+      finalSlug = await findUniqueSlug(supabaseAdmin, sanitizedProductData.id);
       
-      if (existingInStore) {
-          return NextResponse.json({ 
-              error: 'এই স্লাগটি (ID) আপনার স্টোরে ইতিমধ্যে ব্যবহৃত হয়েছে। দয়া করে অন্য স্লাগ দিন।' 
-          }, { status: 409 });
-      }
-
-      // If not in this store, proceed to insert. 
-      // Uniqueness across the WHOLE table is handled by the database itself.
       const { data, error } = await supabaseAdmin
         .from('products')
-        .insert({ ...sanitizedProductData, site_id: siteId })
+        .insert({ ...sanitizedProductData, id: finalSlug, site_id: siteId })
         .select()
         .single();
 
-      if (error) {
-        if (error.code === '23505') {
-          return NextResponse.json({ 
-            error: 'দুঃখিত, এই স্লাগটি অন্য একটি স্টোর ব্যবহার করছে। স্লাগের শেষে সংখ্যা বা শব্দ যোগ করে পরিবর্তন করুন (যেমন: -নতুন)।' 
-          }, { status: 409 });
-        }
-        throw error;
-      }
+      if (error) throw error;
       resultProduct = data;
     } else {
-      // UPDATE CASE: If slug changed, check if it's taken in THIS store
-      if (productData.id && productData.id !== productId) {
-          const { data: existingInternal } = await supabaseAdmin
-            .from('products')
-            .select('id')
-            .match({ id: productData.id, site_id: siteId })
-            .maybeSingle();
-          
-          if (existingInternal) {
-              return NextResponse.json({ 
-                error: 'এই নতুন স্লাগটি ইতিমধ্যে আপনার অন্য একটি পণ্যে ব্যবহার করা হয়েছে।' 
-              }, { status: 409 });
-          }
+      // UPDATE CASE: If slug is being changed, ensure the new one is unique
+      if (sanitizedProductData.id && sanitizedProductData.id !== productId) {
+          finalSlug = await findUniqueSlug(supabaseAdmin, sanitizedProductData.id);
+      } else {
+          finalSlug = productId; // Keep existing
       }
 
       const { data, error } = await supabaseAdmin
         .from('products')
-        .update(sanitizedProductData)
+        .update({ ...sanitizedProductData, id: finalSlug })
         .match({ id: productId, site_id: siteId })
         .select()
         .single();
 
-      if (error) {
-          if (error.code === '23505') {
-              return NextResponse.json({ 
-                error: 'দুঃখিত, এই স্লাগটি অন্য একটি স্টোর ব্যবহার করছে। স্লাগের শেষে সংখ্যা বা শব্দ যোগ করে পরিবর্তন করুন।' 
-              }, { status: 409 });
-          }
-          throw error;
-      }
+      if (error) throw error;
       resultProduct = data;
     }
 
-    const targetProductId = isNew ? resultProduct.id : (productData.id || productId);
+    const targetProductId = finalSlug;
     
     // Manage Flash Deals
     const { data: existingDeal } = await supabaseAdmin
