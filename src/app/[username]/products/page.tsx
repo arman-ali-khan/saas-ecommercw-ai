@@ -1,8 +1,6 @@
-
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { getProductsByDomain } from '@/lib/products';
 import type { Product } from '@/types';
 import ProductCard from '@/components/product-card';
@@ -31,7 +29,8 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/hooks/use-translation';
 import { supabase } from '@/lib/supabase/client';
 
-const PRODUCTS_PER_PAGE = 10;
+const INITIAL_LOAD_COUNT = 12;
+const LOAD_MORE_COUNT = 8;
 
 export default function ProductsPage() {
   const params = useParams();
@@ -48,8 +47,10 @@ export default function ProductsPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedOrigins, setSelectedOrigins] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 0]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [displayCount, setDisplayCount] = useState(INITIAL_LOAD_COUNT);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (username) {
@@ -124,33 +125,33 @@ export default function ProductsPage() {
     setSelectedCategories((prev) =>
       checked ? [...prev, category] : prev.filter((c) => c !== category)
     );
-    setCurrentPage(1);
+    setDisplayCount(INITIAL_LOAD_COUNT);
   };
 
   const handleOriginChange = (origin: string, checked: boolean) => {
     setSelectedOrigins((prev) =>
       checked ? [...prev, origin] : prev.filter((o) => o !== origin)
     );
-    setCurrentPage(1);
+    setDisplayCount(INITIAL_LOAD_COUNT);
   };
 
   const handlePriceChange = (value: number[]) => {
     setPriceRange(value);
-    setCurrentPage(1);
+    setDisplayCount(INITIAL_LOAD_COUNT);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    setCurrentPage(1);
+    setDisplayCount(INITIAL_LOAD_COUNT);
   };
 
   const handleSortChange = (value: string) => {
     setSortOrder(value);
-    setCurrentPage(1);
+    setDisplayCount(INITIAL_LOAD_COUNT);
   };
 
   const filteredProducts = useMemo(() => {
-    let products = allProducts;
+    let products = [...allProducts];
 
     if (searchQuery) {
       products = products.filter((p) =>
@@ -199,11 +200,39 @@ export default function ProductsPage() {
     allProducts,
   ]);
 
-  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * PRODUCTS_PER_PAGE,
-    currentPage * PRODUCTS_PER_PAGE
-  );
+  const visibleProducts = useMemo(() => {
+    return filteredProducts.slice(0, displayCount);
+  }, [filteredProducts, displayCount]);
+
+  const hasMore = displayCount < filteredProducts.length;
+
+  const loadMore = useCallback(() => {
+    if (hasMore) {
+      setDisplayCount((prev) => prev + LOAD_MORE_COUNT);
+    }
+  }, [hasMore]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [loadMore, hasMore]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -211,7 +240,7 @@ export default function ProductsPage() {
     setSelectedCategories([]);
     setSelectedOrigins([]);
     setPriceRange([0, maxPrice]);
-    setCurrentPage(1);
+    setDisplayCount(INITIAL_LOAD_COUNT);
   };
 
   const Filters = () => (
@@ -228,7 +257,7 @@ export default function ProductsPage() {
                   handleCategoryChange(category, !!checked)
                 }
               />
-              <Label htmlFor={`filter-category-${category}`}>{category}</Label>
+              <Label htmlFor={`filter-category-${category}`} className="cursor-pointer font-normal">{category}</Label>
             </div>
           ))}
         </div>
@@ -245,7 +274,7 @@ export default function ProductsPage() {
                   handleOriginChange(origin, !!checked)
                 }
               />
-              <Label htmlFor={`filter-origin-${origin}`}>{origin}</Label>
+              <Label htmlFor={`filter-origin-${origin}`} className="cursor-pointer font-normal">{origin}</Label>
             </div>
           ))}
         </div>
@@ -263,10 +292,10 @@ export default function ProductsPage() {
         />
         <div className="flex justify-between mt-2 text-sm text-muted-foreground">
           <span>
-            {priceRange[0]} {paginatedProducts[0]?.currency}
+            {priceRange[0]} {allProducts[0]?.currency || 'BDT'}
           </span>
           <span>
-            {priceRange[1]} {paginatedProducts[0]?.currency}
+            {priceRange[1]} {allProducts[0]?.currency || 'BDT'}
           </span>
         </div>
       </div>
@@ -278,28 +307,6 @@ export default function ProductsPage() {
           <X className="mr-2 h-4 w-4" /> {t_products.clearFilters}
         </Button>
       )}
-    </div>
-  );
-
-  const Pagination = () => (
-    <div className="flex items-center justify-center space-x-2 mt-12">
-      <Button
-        variant="outline"
-        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-        disabled={currentPage === 1}
-      >
-        {t_products.previous}
-      </Button>
-      <span className="text-sm text-muted-foreground">
-        {t_products.page} {currentPage} {t_products.of} {totalPages}
-      </span>
-      <Button
-        variant="outline"
-        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-        disabled={currentPage === totalPages}
-      >
-        {t_products.next}
-      </Button>
     </div>
   );
 
@@ -319,13 +326,12 @@ export default function ProductsPage() {
             <Skeleton className="h-10 w-full sm:max-w-xs" />
             <Skeleton className="h-10 w-full sm:w-[180px]" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            {[...Array(6)].map((_, i) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
+            {[...Array(8)].map((_, i) => (
               <div key={i} className="space-y-2">
-                <Skeleton className="h-56 w-full" />
-                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="aspect-square w-full rounded-xl" />
+                <Skeleton className="h-5 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-10 w-full" />
               </div>
             ))}
           </div>
@@ -385,17 +391,29 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {paginatedProducts.length > 0 ? (
+        {visibleProducts.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
-              {paginatedProducts.map((product) => (
+              {visibleProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
                 />
               ))}
             </div>
-            {totalPages > 1 && <Pagination />}
+            
+            {/* Infinite Scroll Anchor */}
+            <div 
+                ref={observerTarget} 
+                className="h-20 flex items-center justify-center mt-8"
+            >
+                {hasMore && (
+                    <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-xs text-muted-foreground animate-pulse">লোড হচ্ছে...</p>
+                    </div>
+                )}
+            </div>
           </>
         ) : (
           <div className="text-center py-16">
