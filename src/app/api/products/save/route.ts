@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     };
 
     if (isNew) {
-      // PRE-CHECK: Check if slug exists in THIS store first
+      // Check if slug exists in THIS store only
       const { data: internalCheck } = await supabaseAdmin
         .from('products')
         .select('id')
@@ -82,19 +82,7 @@ export async function POST(request: Request) {
           }, { status: 409 });
       }
 
-      // GLOBAL CHECK (In case id is PK and globally unique)
-      const { data: globalCheck } = await supabaseAdmin
-        .from('products')
-        .select('id')
-        .eq('id', sanitizedProductData.id)
-        .maybeSingle();
-      
-      if (globalCheck) {
-          return NextResponse.json({ 
-              error: 'দুঃখিত, এই স্লাগটি অন্য একটি স্টোর ব্যবহার করছে। স্লাগের শেষে সংখ্যা বা শব্দ যোগ করে পরিবর্তন করুন (যেমন: -নতুন)।' 
-          }, { status: 409 });
-      }
-
+      // Proceed to insert. If this fails due to a global PK constraint, the database will return error 23505.
       const { data, error } = await supabaseAdmin
         .from('products')
         .insert({ ...sanitizedProductData, site_id: siteId })
@@ -104,26 +92,24 @@ export async function POST(request: Request) {
       if (error) {
         if (error.code === '23505') {
           return NextResponse.json({ 
-            error: 'এই স্লাগটি ইতিমধ্যে ব্যবহৃত হয়েছে। দয়া করে ভিন্ন স্লাগ ট্রাই করুন।' 
+            error: 'দুঃখিত, এই স্লাগটি অন্য একটি স্টোর ব্যবহার করছে। স্লাগের শেষে সংখ্যা বা শব্দ যোগ করে পরিবর্তন করুন (যেমন: -নতুন)।' 
           }, { status: 409 });
         }
         throw error;
       }
       resultProduct = data;
     } else {
-      // If updating, check if slug is being changed to something that already exists
+      // If updating and slug changed, check if new slug is taken in THIS store
       if (productData.id && productData.id !== productId) {
-          const { data: existingOther } = await supabaseAdmin
+          const { data: existingInternal } = await supabaseAdmin
             .from('products')
-            .select('id, site_id')
-            .eq('id', productData.id)
+            .select('id')
+            .match({ id: productData.id, site_id: siteId })
             .maybeSingle();
           
-          if (existingOther) {
+          if (existingInternal) {
               return NextResponse.json({ 
-                error: existingOther.site_id === siteId 
-                    ? 'এই নতুন স্লাগটি ইতিমধ্যে আপনার অন্য একটি পণ্যে ব্যবহার করা হয়েছে।' 
-                    : 'এই স্লাগটি অন্য একটি স্টোর ব্যবহার করছে। দয়া করে অন্য নাম দিন।' 
+                error: 'এই নতুন স্লাগটি ইতিমধ্যে আপনার অন্য একটি পণ্যে ব্যবহার করা হয়েছে।' 
               }, { status: 409 });
           }
       }
@@ -135,7 +121,14 @@ export async function POST(request: Request) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+          if (error.code === '23505') {
+              return NextResponse.json({ 
+                error: 'দুঃখিত, এই স্লাগটি অন্য একটি স্টোর ব্যবহার করছে। স্লাগের শেষে সংখ্যা বা শব্দ যোগ করে পরিবর্তন করুন।' 
+              }, { status: 409 });
+          }
+          throw error;
+      }
       resultProduct = data;
     }
 
