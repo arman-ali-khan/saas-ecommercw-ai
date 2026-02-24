@@ -69,18 +69,24 @@ export async function POST(request: Request) {
     };
 
     if (isNew) {
-      // SLUG UNIQUENESS CHECK WITHIN SITE
-      const { data: existingBySlug } = await supabaseAdmin
+      // PRE-CHECK: Check if slug exists globally because DB might have a unique constraint on 'id'
+      const { data: globalCheck } = await supabaseAdmin
         .from('products')
-        .select('id')
+        .select('id, site_id')
         .eq('id', sanitizedProductData.id)
-        .eq('site_id', siteId)
         .maybeSingle();
       
-      if (existingBySlug) {
-          return NextResponse.json({ 
-            error: 'এই স্লাগটি (Slug) আপনার স্টোরে ইতিমধ্যে অন্য একটি পণ্যে ব্যবহার করা হয়েছে। দয়া করে অন্য নাম দিন।' 
-          }, { status: 409 });
+      if (globalCheck) {
+          if (globalCheck.site_id === siteId) {
+            return NextResponse.json({ 
+                error: 'এই স্লাগটি (Slug) আপনার স্টোরে ইতিমধ্যে ব্যবহৃত হয়েছে।' 
+            }, { status: 409 });
+          } else {
+            // This is the case where it exists in ANOTHER store
+            return NextResponse.json({ 
+                error: 'দুঃখিত, এই স্লাগটি ইতিমধ্যে অন্য একজন ব্যবহারকারী নিয়েছেন। দয়া করে স্লাগের শেষে সামান্য পরিবর্তন করুন (যেমন: -নতুন বা ১)।' 
+            }, { status: 409 });
+          }
       }
 
       const { data, error } = await supabaseAdmin
@@ -91,24 +97,27 @@ export async function POST(request: Request) {
 
       if (error) {
         if (error.code === '23505') {
-          return NextResponse.json({ error: 'This Product ID/Slug is already taken. Please choose another.' }, { status: 409 });
+          return NextResponse.json({ 
+            error: 'এই স্লাগটি ইতিমধ্যে ব্যবহৃত হয়েছে। দয়া করে ভিন্ন স্লাগ ট্রাই করুন।' 
+          }, { status: 409 });
         }
         throw error;
       }
       resultProduct = data;
     } else {
-      // If updating, check if slug is being changed to something that already exists for this site
+      // If updating, check if slug is being changed to something that already exists
       if (productData.id && productData.id !== productId) {
           const { data: existingOther } = await supabaseAdmin
             .from('products')
-            .select('id')
+            .select('id, site_id')
             .eq('id', productData.id)
-            .eq('site_id', siteId)
             .maybeSingle();
           
           if (existingOther) {
               return NextResponse.json({ 
-                error: 'এই নতুন স্লাগটি ইতিমধ্যে অন্য একটি পণ্যে ব্যবহার করা হয়েছে।' 
+                error: existingOther.site_id === siteId 
+                    ? 'এই নতুন স্লাগটি ইতিমধ্যে আপনার অন্য একটি পণ্যে ব্যবহার করা হয়েছে।' 
+                    : 'এই স্লাগটি অন্য একটি স্টোর ব্যবহার করছে। দয়া করে অন্য নাম দিন।' 
               }, { status: 409 });
           }
       }
