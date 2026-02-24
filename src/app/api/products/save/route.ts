@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Helper function to find a truly unique slug by appending a counter if necessary.
+ * It checks the database globally to ensure no collision occurs.
  */
 async function findUniqueSlug(supabase: any, baseSlug: string) {
   let slug = baseSlug;
