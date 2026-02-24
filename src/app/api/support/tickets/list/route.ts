@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { decryptObject } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +24,10 @@ export async function POST(request: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json({ tickets: data }, { status: 200 });
+    // Decrypt sensitive user info in the joined profiles
+    const decryptedTickets = decryptObject(data);
+
+    return NextResponse.json({ tickets: decryptedTickets }, { status: 200 });
   } catch (err: any) {
     console.error('List Tickets API Error:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
