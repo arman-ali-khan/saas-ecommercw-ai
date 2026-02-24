@@ -55,8 +55,6 @@ export async function POST(request: Request) {
         }
     }
 
-    let resultProduct;
-
     // Sanitize and ensure data types match DB expectations
     const sanitizedProductData = {
         ...productData,
@@ -68,21 +66,24 @@ export async function POST(request: Request) {
         tags: Array.isArray(productData.tags) ? productData.tags : [],
     };
 
+    let resultProduct;
+
     if (isNew) {
-      // Check if slug exists in THIS store only
-      const { data: internalCheck } = await supabaseAdmin
+      // REQUIREMENT: Check if BOTH ID and Site ID match
+      const { data: existingInStore } = await supabaseAdmin
         .from('products')
         .select('id')
         .match({ id: sanitizedProductData.id, site_id: siteId })
         .maybeSingle();
       
-      if (internalCheck) {
+      if (existingInStore) {
           return NextResponse.json({ 
-              error: 'এই স্লাগটি আপনার স্টোরে ইতিমধ্যে ব্যবহৃত হয়েছে। দয়া করে ভিন্ন নাম দিন।' 
+              error: 'এই স্লাগটি (ID) আপনার স্টোরে ইতিমধ্যে ব্যবহৃত হয়েছে। দয়া করে অন্য স্লাগ দিন।' 
           }, { status: 409 });
       }
 
-      // Proceed to insert. If this fails due to a global PK constraint, the database will return error 23505.
+      // If not in this store, proceed to insert. 
+      // Uniqueness across the WHOLE table is handled by the database itself.
       const { data, error } = await supabaseAdmin
         .from('products')
         .insert({ ...sanitizedProductData, site_id: siteId })
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
       }
       resultProduct = data;
     } else {
-      // If updating and slug changed, check if new slug is taken in THIS store
+      // UPDATE CASE: If slug changed, check if it's taken in THIS store
       if (productData.id && productData.id !== productId) {
           const { data: existingInternal } = await supabaseAdmin
             .from('products')
@@ -134,6 +135,7 @@ export async function POST(request: Request) {
 
     const targetProductId = isNew ? resultProduct.id : (productData.id || productId);
     
+    // Manage Flash Deals
     const { data: existingDeal } = await supabaseAdmin
         .from('flash_deals')
         .select('id')
