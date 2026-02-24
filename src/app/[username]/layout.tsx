@@ -12,7 +12,6 @@ import LanguageProvider from '@/components/language-provider';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 import ThemeInitializer from '@/components/theme-initializer';
-import FloatingChatButton from '@/components/floating-chat-button';
 
 const translations = { en, bn };
 
@@ -154,9 +153,6 @@ export default async function UsernameLayout({
     ].filter(Boolean).join(' ');
 
     if (styleVars) {
-      // In User site, we want custom colors to be default, 
-      // but if HTML has .dark class, we might want standard dark mode colors
-      // EXCEPT for the brand colors (primary, accent) which should stay custom.
       themeStyles = `html:not(.dark) { ${styleVars} } html.dark { ${settingsData.theme_primary ? `--primary: ${settingsData.theme_primary};` : ''} ${settingsData.theme_accent ? `--accent: ${settingsData.theme_accent};` : ''} }`;
     }
   }
@@ -175,7 +171,6 @@ export default async function UsernameLayout({
         <div className="hidden md:block">
           <FixedCartButton />
         </div>
-        <FloatingChatButton />
       </div>
     </LanguageProvider>
   );

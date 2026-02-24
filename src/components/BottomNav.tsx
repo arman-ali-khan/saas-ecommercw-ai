@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, User, Menu, Search, ShoppingBag as ShoppingBagIcon, Trash2, Plus, Minus, List } from 'lucide-react';
+import { Home, User, ShoppingBag as ShoppingBagIcon, Store, Trash2, Plus, Minus, List } from 'lucide-react';
 import { usePathname, useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -18,11 +18,9 @@ import DynamicIcon from './dynamic-icon';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { Category } from '@/types';
-import { useSearchStore } from '@/stores/useSearchStore';
 import { useCart } from '@/stores/cart';
 import Image from 'next/image';
 import { ScrollArea } from './ui/scroll-area';
-import { Input } from './ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 
@@ -173,13 +171,12 @@ function CartDrawerContent() {
 export default function BottomNav() {
   const pathname = usePathname();
   const { customer } = useCustomerAuth();
-  const { setSearchOpen } = useSearchStore();
   const { cartItems } = useCart();
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
   const navLinks = [
     { id: 'menu', label: 'Menu', icon: List, isSheet: true, sheetContent: 'category' },
-    { id: 'search', label: 'Search', icon: Search, action: () => setSearchOpen(true) },
+    { id: 'shop', href: '/products', label: 'Shop', icon: Store },
     { id: 'home', href: '/', label: 'Home', icon: Home },
     { id: 'cart', label: 'Cart', icon: ShoppingBagIcon, isSheet: true, sheetContent: 'cart' },
     { id: 'profile', href: customer ? '/profile' : '/login', label: 'Profile', icon: User },
@@ -219,8 +216,6 @@ export default function BottomNav() {
                   </SheetContent>
               </Sheet>
             );
-          } else if (link.action) {
-            return <button type="button" aria-label={link.label} key={link.id} className="flex-1 p-2 focus:outline-none" onClick={link.action}>{content}</button>;
           } else {
             return <Link aria-label={link.label} key={link.id} href={link.href!} className="flex-1 p-2 focus:outline-none">{content}</Link>;
           }
