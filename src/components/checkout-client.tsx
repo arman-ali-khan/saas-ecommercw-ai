@@ -14,7 +14,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
-import { Loader2, Truck, Wallet, CheckCircle2 } from 'lucide-react';
+import { Loader2, Truck, Wallet, CheckCircle2, Plus, Minus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ShippingZone, Address, SaasSettings } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,7 +56,7 @@ interface CheckoutClientProps {
 }
 
 export default function CheckoutClient({ siteId, username, shippingZones, paymentSettings }: CheckoutClientProps) {
-  const { cartItems, clearCart } = useCart();
+  const { cartItems, clearCart, updateQuantity } = useCart();
   const cartSubtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   const router = useRouter();
@@ -270,28 +270,58 @@ export default function CheckoutClient({ siteId, username, shippingZones, paymen
         <Card>
           <CardHeader><CardTitle>{t_checkout.summary}</CardTitle></CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
             {cartItems.map((item, index) => (
-                <div key={`${item.id}-${item.selected_unit || index}`} className="flex items-center gap-4 text-sm">
-                <div className="relative h-16 w-16 rounded-md overflow-hidden border">
-                    <Image src={item.images[0].imageUrl} alt={item.name} fill className="object-cover" />
-                    <span className="absolute -top-0 -right-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{item.quantity}</span>
-                </div>
-                <div className="flex-grow font-medium">
-                    <p>{item.name}</p>
-                    {item.selected_unit && <p className="text-[10px] uppercase font-black text-muted-foreground">{item.selected_unit}</p>}
-                </div>
-                <p>{(item.price * item.quantity).toFixed(2)} {item.currency}</p>
+                <div key={`${item.id}-${item.selected_unit || index}`} className="flex items-center gap-4 text-sm group">
+                    {/* Quantity Controls on the left */}
+                    <div className="flex flex-col items-center gap-1 bg-muted/50 p-1 rounded-lg border shrink-0">
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 rounded-md hover:bg-background"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1, item.selected_unit)}
+                        >
+                            <Plus className="h-3 w-3" />
+                        </Button>
+                        <span className="text-[10px] font-black">{item.quantity}</span>
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 rounded-md hover:bg-background"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1, item.selected_unit)}
+                        >
+                            <Minus className="h-3 w-3" />
+                        </Button>
+                    </div>
+
+                    <div className="relative h-16 w-16 rounded-md overflow-hidden border shrink-0">
+                        <Image src={item.images[0].imageUrl} alt={item.name} fill className="object-cover" />
+                    </div>
+                    
+                    <div className="flex-grow font-medium min-w-0">
+                        <p className="truncate">{item.name}</p>
+                        {item.selected_unit && <p className="text-[10px] uppercase font-black text-muted-foreground">{item.selected_unit}</p>}
+                    </div>
+                    
+                    <div className="text-right shrink-0">
+                        <p className="font-bold">{(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase">{item.currency}</p>
+                    </div>
                 </div>
             ))}
             </div>
-            <Separator className="my-4" />
+            <Separator className="my-6" />
             <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>{t_checkout.subtotal}</span><span>{cartSubtotal.toFixed(2)} BDT</span></div>
-                <div className="flex justify-between"><span>{t_checkout.shipping}</span><span>{shippingCost.toFixed(2)} BDT</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>{t_checkout.subtotal}</span><span className="text-foreground font-medium">{cartSubtotal.toFixed(2)} BDT</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>{t_checkout.shipping}</span><span className="text-foreground font-medium">{shippingCost.toFixed(2)} BDT</span></div>
             </div>
             <Separator className="my-4" />
-            <div className="flex justify-between font-bold text-lg"><span>{t_checkout.total}</span><span>{cartTotal.toFixed(2)} BDT</span></div>
+            <div className="flex justify-between items-center">
+                <span className="font-bold text-lg">{t_checkout.total}</span>
+                <span className="text-2xl font-black text-primary">{cartTotal.toFixed(2)} BDT</span>
+            </div>
           </CardContent>
         </Card>
       </div>
