@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Trash2, ChevronDown, Wand2, Plus, Ruler, Scale, X, Info, Star, CheckCircle2, Tags as TagsIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, ChevronDown, Wand2, Plus, Ruler, Scale, X, Info, Star, CheckCircle2, Tags as TagsIcon, LayoutGrid } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
@@ -551,6 +551,21 @@ export default function ManageProductPage() {
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30"><CardTitle>ক্যাটাগরি এবং ফিল্টার</CardTitle></CardHeader>
                         <CardContent className="space-y-6 pt-6">
+                            <FormField control={form.control} name="is_featured" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-primary/20 p-4 bg-primary/5 shadow-sm">
+                                    <div className="space-y-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <LayoutGrid className="h-4 w-4 text-primary" />
+                                            <FormLabel className="text-base font-bold">ফিচারড প্রোডাক্ট (Featured)</FormLabel>
+                                        </div>
+                                        <FormDescription className="text-xs">এটি অন করলে পণ্যটি স্টোরফ্রন্টের ফিচারড সেকশনে দেখাবে।</FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                </FormItem>
+                            )} />
+
                             <FormField control={form.control} name="categories" render={({ field }) => (<FormItem><FormLabel>ক্যাটাগরি সিলেক্ট করুন</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full h-11 justify-between font-normal"><span className="truncate">{field.value?.length ? field.value.join(', ') : "সিলেক্ট করুন"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((catRecord) => (<DropdownMenuCheckboxItem key={catRecord.id} checked={field.value?.includes(catRecord.name)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), catRecord.name] : field.value.filter((vItem) => vItem !== catRecord.name))}>{catRecord.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu></FormItem>)} />
                             
                             <FormField control={form.control} name="tags" render={({ field }) => (
