@@ -14,16 +14,25 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // SUBSCRIPTION STATUS CHECK
-    const { data: profileStatus } = await supabaseAdmin
+    // 1. SUBSCRIPTION STATUS CHECK
+    const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('subscription_status')
+        .select('subscription_status, subscription_plan')
         .eq('id', siteId)
         .single();
 
+    if (!profile) {
+        return NextResponse.json({ error: 'প্রোফাইল খুঁজে পাওয়া যায়নি।' }, { status: 404 });
+    }
+
     const blockedStatuses = ['inactive', 'canceled', 'pending', 'pending_verification', 'failed'];
-    if (profileStatus && blockedStatuses.includes(profileStatus.subscription_status)) {
+    if (blockedStatuses.includes(profile.subscription_status)) {
         return NextResponse.json({ error: 'আপনার সাবস্ক্রিপশন স্ট্যাটাস সক্রিয় নয়।' }, { status: 403 });
+    }
+
+    // 2. PLAN RESTRICTION: Paid only
+    if (profile.subscription_plan === 'free') {
+        return NextResponse.json({ error: 'দুঃখিত, SMS সার্ভিসটি শুধুমাত্র পেইড ইউজারদের জন্য।' }, { status: 403 });
     }
 
     const { error } = await supabaseAdmin

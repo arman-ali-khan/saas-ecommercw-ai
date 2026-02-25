@@ -77,16 +77,19 @@ export async function POST(request: Request) {
         });
       }
 
-      // 5. External SMS API Integration
+      // 5. External SMS API Integration (Paid Users Only)
       try {
-        // Fetch SMS settings for the site
-        const { data: settings } = await supabaseAdmin
-          .from('store_settings')
-          .select('sms_notifications_enabled, admin_sms_number')
-          .eq('site_id', newOrder.site_id)
+        // Fetch Profile to check plan and SMS settings for the site
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('subscription_plan, store_settings(sms_notifications_enabled, admin_sms_number)')
+          .eq('id', newOrder.site_id)
           .single();
 
-        if (settings?.sms_notifications_enabled && settings?.admin_sms_number) {
+        const settings = Array.isArray(profile?.store_settings) ? profile?.store_settings[0] : profile?.store_settings;
+
+        // Verify if it's a paid user and SMS is enabled
+        if (profile?.subscription_plan !== 'free' && settings?.sms_notifications_enabled && settings?.admin_sms_number) {
           const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
           const siteUrl = `${domain}.${baseDomain}`;
 
