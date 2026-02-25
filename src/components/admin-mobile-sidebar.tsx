@@ -23,6 +23,7 @@ import {
   Sparkles,
   Palette,
   HelpCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -258,6 +259,7 @@ export default function AdminMobileSidebar() {
               <CollapsibleContent className="pl-7 space-y-1 py-1">
                 <SubNavLink href="/admin/settings" label="Store Settings" />
                 <SubNavLink href="/admin/settings/custom-domain" label="Custom Domain" />
+                <SubNavLink href="/admin/settings/sms" label="SMS Config" />
                 <SubNavLink href="/admin/settings/ai" label="AI Config" />
               </CollapsibleContent>
             </Collapsible>
