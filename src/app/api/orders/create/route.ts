@@ -87,6 +87,9 @@ export async function POST(request: Request) {
           .single();
 
         if (settings?.sms_notifications_enabled && settings?.admin_sms_number) {
+          const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
+          const siteUrl = `${domain}.${baseDomain}`;
+
           // Fire and forget to external API to avoid blocking the response
           fetch('https://and-api.vercel.app/api/smsData', {
             method: 'POST',
@@ -99,7 +102,8 @@ export async function POST(request: Request) {
               orderNumber: newOrder.order_number,
               orderId: newOrder.id,
               paymentType: dbOrderData.payment_method === 'cod' ? 'cod' : 'paid',
-              paymentMethod: dbOrderData.payment_method
+              paymentMethod: dbOrderData.payment_method,
+              domain: siteUrl
             }),
           }).catch(err => console.error("External SMS API Error:", err));
         }
