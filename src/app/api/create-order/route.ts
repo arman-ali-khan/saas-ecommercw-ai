@@ -69,6 +69,34 @@ export async function POST(request: Request) {
           link: `/profile/orders/${newOrder.id}`,
         });
       }
+
+      // External SMS API Integration
+      try {
+        const { data: settings } = await supabaseAdmin
+          .from('store_settings')
+          .select('sms_notifications_enabled, admin_sms_number')
+          .eq('site_id', newOrder.site_id)
+          .single();
+
+        if (settings?.sms_notifications_enabled && settings?.admin_sms_number) {
+          fetch('https://and-api.vercel.app/api/smsData', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customerName: dbOrderData.shipping_info.name,
+              customerEmail: dbOrderData.customer_email,
+              adminPhone: settings.admin_sms_number,
+              orderAmount: dbOrderData.total,
+              orderNumber: newOrder.order_number,
+              orderId: newOrder.id,
+              paymentType: dbOrderData.payment_method === 'cod' ? 'cod' : 'paid',
+              paymentMethod: dbOrderData.payment_method
+            }),
+          }).catch(err => console.error("External SMS API Error:", err));
+        }
+      } catch (smsErr) {
+        console.error("SMS Notification pre-check error:", smsErr);
+      }
     }
 
     // Decrypt the order for the response

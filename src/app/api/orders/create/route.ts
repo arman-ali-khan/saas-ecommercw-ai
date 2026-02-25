@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Encrypt sensitive order data
+    // Encrypt sensitive order data for database storage
     const encryptedOrderData = {
         ...dbOrderData,
         customer_email: encrypt(dbOrderData.customer_email),
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
         }
     };
 
-    // 1. Create the order
+    // 1. Create the order in Supabase
     const { data: newOrder, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({ ...encryptedOrderData, status: 'pending' })
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     if (newOrder) {
       // 3. Create notification for admin
-      const { error: adminNotifError } = await supabaseAdmin.from('notifications').insert({
+      await supabaseAdmin.from('notifications').insert({
         recipient_id: newOrder.site_id,
         recipient_type: 'admin',
         site_id: newOrder.site_id,
@@ -65,11 +65,9 @@ export async function POST(request: Request) {
         link: `/admin/orders/${newOrder.id}`,
       });
 
-      if (adminNotifError) console.error('Admin notification error:', adminNotifError);
-
       // 4. Create notification for customer (if logged in)
       if (newOrder.customer_id) {
-        const { error: custNotifError } = await supabaseAdmin.from('notifications').insert({
+        await supabaseAdmin.from('notifications').insert({
           recipient_id: newOrder.customer_id,
           recipient_type: 'customer',
           site_id: newOrder.site_id,
@@ -77,7 +75,36 @@ export async function POST(request: Request) {
           message: `আপনার অর্ডার #${newOrder.order_number} সফলভাবে গ্রহণ করা হয়েছে।`,
           link: `/profile/orders/${newOrder.id}`,
         });
-        if (custNotifError) console.error('Customer notification error:', custNotifError);
+      }
+
+      // 5. External SMS API Integration
+      try {
+        // Fetch SMS settings for the site
+        const { data: settings } = await supabaseAdmin
+          .from('store_settings')
+          .select('sms_notifications_enabled, admin_sms_number')
+          .eq('site_id', newOrder.site_id)
+          .single();
+
+        if (settings?.sms_notifications_enabled && settings?.admin_sms_number) {
+          // Fire and forget to external API to avoid blocking the response
+          fetch('https://and-api.vercel.app/api/smsData', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customerName: dbOrderData.shipping_info.name,
+              customerEmail: dbOrderData.customer_email,
+              adminPhone: settings.admin_sms_number,
+              orderAmount: dbOrderData.total,
+              orderNumber: newOrder.order_number,
+              orderId: newOrder.id,
+              paymentType: dbOrderData.payment_method === 'cod' ? 'cod' : 'paid',
+              paymentMethod: dbOrderData.payment_method
+            }),
+          }).catch(err => console.error("External SMS API Error:", err));
+        }
+      } catch (smsErr) {
+        console.error("SMS Notification pre-check error:", smsErr);
       }
     }
 
