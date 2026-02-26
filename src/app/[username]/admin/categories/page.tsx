@@ -564,7 +564,7 @@ export default function CategoriesAdminPage() {
                                                         className="relative h-32 w-full rounded-2xl border-2 border-dashed flex items-center justify-center bg-muted/30 overflow-hidden shrink-0 shadow-inner"
                                                         style={{ backgroundColor: form.watch('card_color') || 'transparent' }}
                                                     >
-                                                        {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <div className="text-center flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 text-muted-foreground/30" /><span className="text-[10px] text-muted-foreground font-black uppercase">Preview</span></div>}
+                                                        {field.value ? <Image src={field.value} alt="Preview" fill className="object-contain"/> : <div className="text-center flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 text-muted-foreground/30" /><span className="text-[10px] text-muted-foreground font-black uppercase">Preview</span></div>}
                                                     </div>
                                                     <div className="flex flex-col gap-2">
                                                         <Button type="button" variant="outline" className="w-full rounded-xl border-2 border-dashed h-11" onClick={() => setIsPickerOpen(true)}>
