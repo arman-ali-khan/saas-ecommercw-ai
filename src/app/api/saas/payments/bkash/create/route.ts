@@ -1,10 +1,10 @@
 
 import { NextResponse } from 'next/server';
-// Use dynamic import or handle CJS properly in ESM
 import Bkash from 'bkash-payment';
 
 /**
  * @fileOverview API to initialize bKash Payment for SaaS subscriptions.
+ * Fixed constructor interop for Next.js API environment.
  */
 
 export async function POST(request: Request) {
@@ -15,15 +15,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required checkout parameters.' }, { status: 400 });
     }
 
-    // Handle potential interop issues with CommonJS default exports
-    const BkashConstructor = (Bkash as any).default || Bkash;
+    // Robust constructor resolution for CommonJS module in ESM environment
+    const BkashConstructor: any = (Bkash as any).default || Bkash;
     
+    if (typeof BkashConstructor !== 'function') {
+        throw new Error('bKash module failed to load as a constructor. Check package installation.');
+    }
+
     const bkash = new BkashConstructor({
       bkash_app_key: process.env.BKASH_APP_KEY || 'your_sandbox_app_key',
       bkash_app_secret: process.env.BKASH_APP_SECRET || 'your_sandbox_app_secret',
       bkash_username: process.env.BKASH_USERNAME || 'your_sandbox_username',
       bkash_password: process.env.BKASH_PASSWORD || 'your_sandbox_password',
-      is_sandbox: true // Always sandbox based on user request
+      is_sandbox: true 
     });
 
     const paymentData = await bkash.createPayment({

@@ -6,13 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import Image from 'next/image';
 import type { FormData } from "@/components/get-started/GetStartedFlow";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { type Plan } from "@/types";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, ArrowLeft, CreditCard, Wallet, CheckCircle2 } from "lucide-react";
@@ -202,8 +201,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                                 )}
                                             >
                                                 <RadioGroupItem value="bkash" id="bkash" className="sr-only" />
-                                                <div className="bg-pink-500/10 p-2 rounded-xl">
-                                                    <Image src="https://res.cloudinary.com/dztv8gu8v/image/upload/v1741081544/bkash_pvmrkp.png" alt="bKash" width={40} height={40} className="object-contain" unoptimized />
+                                                <div className="bg-pink-500 rounded-xl px-3 py-2 text-white font-black text-sm italic shadow-sm">
+                                                    bKash
                                                 </div>
                                                 <div className="flex-grow">
                                                     <p className="text-lg font-bold">বিকাশ পেমেন্ট</p>

@@ -12,14 +12,16 @@ export async function GET(request: Request) {
   const status = searchParams.get('status');
   const planId = searchParams.get('planId') || 'pro';
 
-  const origin = request.headers.get('origin') || `${new URL(request.url).protocol}//${request.headers.get('host')}`;
+  const host = request.headers.get('host');
+  const protocol = host?.includes('localhost') ? 'http' : 'https';
+  const origin = `${protocol}://${host}`;
 
-  if (status !== 'success') {
+  if (status !== 'success' || !paymentID) {
     return NextResponse.redirect(`${origin}/get-started?step=payment&plan=${planId}&error=bkash_failed`);
   }
 
   try {
-    const BkashConstructor = (Bkash as any).default || Bkash;
+    const BkashConstructor: any = (Bkash as any).default || Bkash;
 
     const bkash = new BkashConstructor({
       bkash_app_key: process.env.BKASH_APP_KEY || 'your_sandbox_app_key',
