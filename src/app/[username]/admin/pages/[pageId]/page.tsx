@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useTransition } from 'react';
@@ -17,7 +18,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette, Columns, AlignLeft, AlignCenter, AlignRight, Plus, ShoppingBag, Clock, GalleryHorizontal, CalendarIcon, ChevronDown, Star, User, Search, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette, Columns, AlignLeft, AlignCenter, AlignRight, Plus, ShoppingBag, Clock, GalleryHorizontal, CalendarIcon, ChevronDown, Star, User, Search, ChevronLeft, ChevronRight, Check, X, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
@@ -787,7 +788,7 @@ export default function ManagePage() {
     }
   };
 
-  const onSubmit = async (values: PageFormData) => {
+  const onSubmit = async (values: PageFormData, exit: boolean = true) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication error' });
       return;
@@ -805,10 +806,19 @@ export default function ManagePage() {
 
         if (response.ok) {
             toast({ title: `Page ${isNew ? 'created' : 'updated'} successfully!` });
-            startTransition(() => {
-                router.push(`/admin/pages`);
-                router.refresh();
-            });
+            if (exit) {
+                startTransition(() => {
+                    router.push(`/admin/pages`);
+                    router.refresh();
+                });
+            } else {
+                setIsSubmitting(false);
+                if (isNew && result.page?.id) {
+                    router.replace(`/admin/pages/${result.page.id}`);
+                } else {
+                    fetchPageAndProducts();
+                }
+            }
         } else {
             if (response.status === 409) {
                 form.setError('slug', { type: 'manual', message: result.error });
@@ -836,13 +846,25 @@ export default function ManagePage() {
     <div>
       <Button variant="ghost" asChild className="mb-4 -ml-4"><Link href={`/admin/pages`}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Pages</Link></Button>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form>
           <div className="grid gap-8">
             <Card>
               <CardHeader><CardTitle>{isNew ? 'Create New Page' : 'Edit Page'}</CardTitle><CardDescription>Fill in the details for your custom page.</CardDescription></CardHeader>
               <CardContent className="grid gap-6">
                 <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} placeholder="e.g., About Our Farm" /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="slug" render={({ field }) => (<FormItem><FormLabel>URL Slug</FormLabel><FormControl><div className="relative"><Input {...field} placeholder="e.g., about-our-farm" className="pl-20" /><span className="absolute left-1 top-1/2 -translate-y-1/2 text-sm text-muted-foreground bg-muted h-8 px-2 flex items-center rounded-l-md border border-r-0 border-input">/pages/</span></div></FormControl><FormDescription>The unique URL path for this page.</FormDescription><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="slug" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>URL Slug</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input {...field} placeholder="e.g., about-our-farm" className="pl-20" />
+                        <span className="absolute left-1 top-1/2 -translate-y-1/2 text-sm text-muted-foreground bg-muted h-8 px-2 flex items-center rounded-l-md border border-r-0 border-input">/pages/</span>
+                      </div>
+                    </FormControl>
+                    <FormDescription>The unique URL path for this page.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </CardContent>
             </Card>
 
@@ -861,8 +883,24 @@ export default function ManagePage() {
                 <FormField control={form.control} name="is_published" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel className="text-base">Publish Page</FormLabel><FormDescription>Make this page accessible to the public.</FormDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
               </CardContent>
             </Card>
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting || isPending}>{(isSubmitting || isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{isNew ? 'Create Page' : 'Save Changes'}</Button>
+            <div className="flex justify-end gap-3">
+              <Button 
+                type="button" 
+                variant="outline"
+                disabled={isSubmitting || isPending}
+                onClick={form.handleSubmit(data => onSubmit(data, false))}
+              >
+                {(isSubmitting || isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Save className="mr-2 h-4 w-4" /> Save
+              </Button>
+              <Button 
+                type="button" 
+                disabled={isSubmitting || isPending}
+                onClick={form.handleSubmit(data => onSubmit(data, true))}
+              >
+                {(isSubmitting || isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isNew ? 'Create and exit' : 'Save and exit'}
+              </Button>
             </div>
           </div>
         </form>

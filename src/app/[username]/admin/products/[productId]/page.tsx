@@ -45,7 +45,8 @@ import {
     Search,
     ChevronLeft,
     ChevronRight,
-    Check
+    Check,
+    Save
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -318,7 +319,7 @@ export default function ManageProductPage() {
     } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsGenerating(false); }
   };
 
-  const onSubmit = async (values: ProductFormData) => {
+  const onSubmit = async (values: ProductFormData, exit: boolean = true) => {
     if (!user) return;
     if (isLimitReached) {
         toast({ variant: 'destructive', title: 'Limit Reached', description: 'আপনার প্রোডাক্ট লিমিট শেষ হয়ে গেছে। আরও পণ্য যোগ করতে আপনার সাবস্ক্রিপশন আপগ্রেড করুন।' });
@@ -357,7 +358,17 @@ export default function ManageProductPage() {
         invalidateEntity('products');
         invalidateEntity('dashboard');
         toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
-        router.push(`/admin/products`);
+        
+        if (exit) {
+            router.push(`/admin/products`);
+        } else {
+            setIsSubmitting(false);
+            if (isNew && res.product?.id) {
+                router.replace(`/admin/products/${res.product.id}`);
+            } else {
+                fetchProductData();
+            }
+        }
     } catch (error: any) { setIsSubmitting(false); toast({ variant: 'destructive', title: `Error`, description: error.message }); }
   };
 
@@ -478,7 +489,7 @@ export default function ManageProductPage() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form className="space-y-8">
             <div className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
                     <Card className="shadow-sm border-2">
@@ -756,11 +767,26 @@ export default function ManageProductPage() {
             <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t p-4 z-[100] md:left-[220px] lg:left-[280px] shadow-[0_-10px_20px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom duration-500">
                 <div className="container max-w-5xl mx-auto flex flex-row justify-end items-center gap-3">
                     <Button type="button" variant="outline" onClick={() => router.push('/admin/products')} className="flex-1 sm:flex-none sm:min-w-[120px] h-11 sm:h-12 rounded-xl text-sm sm:text-base whitespace-nowrap">বাতিল করুন</Button>
-                    <Button type="submit" disabled={isSubmitting || isLimitReached} className="flex-[2] sm:flex-none sm:min-w-[220px] h-11 sm:h-12 rounded-xl shadow-lg shadow-primary/20 font-bold text-sm sm:text-lg whitespace-nowrap">
+                    <Button 
+                        type="button" 
+                        variant="secondary"
+                        disabled={isSubmitting || isLimitReached} 
+                        onClick={form.handleSubmit(data => onSubmit(data, false))}
+                        className="flex-1 sm:flex-none sm:min-w-[120px] h-11 sm:h-12 rounded-xl font-bold text-sm sm:text-base whitespace-nowrap"
+                    >
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        সংরক্ষণ করুন
+                    </Button>
+                    <Button 
+                        type="button" 
+                        disabled={isSubmitting || isLimitReached} 
+                        onClick={form.handleSubmit(data => onSubmit(data, true))}
+                        className="flex-[2] sm:flex-none sm:min-w-[200px] h-11 sm:h-12 rounded-xl shadow-lg shadow-primary/20 font-bold text-sm sm:text-lg whitespace-nowrap"
+                    >
                         {isSubmitting ? (
                             <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> সেভ হচ্ছে...</>
                         ) : (
-                            <><CheckCircle2 className="mr-2 h-5 w-5" /> {isNew ? 'পণ্যটি তৈরি করুন' : 'পরিবর্তনগুলো সেভ করুন'}</>
+                            <><CheckCircle2 className="mr-2 h-5 w-5" /> {isNew ? 'তৈরি করে বের হোন' : 'সেভ করে বের হোন'}</>
                         )}
                     </Button>
                 </div>
@@ -876,4 +902,3 @@ export default function ManageProductPage() {
     </div>
   );
 }
-    
