@@ -14,7 +14,7 @@ import { type Plan } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, ArrowLeft, CreditCard, Wallet } from "lucide-react";
+import { Loader2, ArrowLeft, CreditCard, Wallet, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PaymentStepProps {
