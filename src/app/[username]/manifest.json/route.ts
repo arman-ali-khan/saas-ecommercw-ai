@@ -40,16 +40,21 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
 
   const { data: settings } = await supabase
     .from('store_settings')
-    .select('favicon_url, theme_primary')
+    .select('favicon_url, logo_image_url, logo_type, theme_primary')
     .eq('site_id', profile.id)
     .single();
     
   const faviconUrl = settings?.favicon_url;
+  const logoUrl = settings?.logo_image_url;
   const themeColor = settings?.theme_primary ? `hsl(${settings.theme_primary})` : '#ffffff';
   const siteInitial = (profile.site_name || 'S').charAt(0).toUpperCase();
 
-  // Ensure we have a proper icon URL. If it's a Cloudinary URL, it's already a high-res image.
-  const iconUrl = faviconUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`;
+  /**
+   * PWA icons must be high resolution (at least 192x192 and 512x512).
+   * Favicons are usually too small (32x32), which breaks PWA installability.
+   * We prioritize the site logo, as it's typically a larger image.
+   */
+  const pwaIconUrl = logoUrl || faviconUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`;
 
   const manifest = {
     name: profile.site_name || 'Store',
@@ -63,19 +68,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     orientation: 'portrait',
     icons: [
       {
-        src: iconUrl,
+        src: pwaIconUrl,
         sizes: '192x192',
         type: 'image/png',
         purpose: 'any'
       },
       {
-        src: iconUrl,
+        src: pwaIconUrl,
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any'
       },
        {
-        src: iconUrl,
+        src: pwaIconUrl,
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable'
