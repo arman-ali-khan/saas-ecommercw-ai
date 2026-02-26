@@ -36,7 +36,7 @@ export default function GetStartedFlow() {
     domain: '',
     siteName: '',
     siteDescription: '',
-    paymentMethod: 'mobile_banking',
+    paymentMethod: 'aamarpay',
     transactionId: '',
   });
 
@@ -61,11 +61,11 @@ export default function GetStartedFlow() {
     setFormData((prev) => ({ ...prev, ...data }));
   }, []);
 
-  // Sync plan and payment info from URL (essential after redirects from Stripe/bKash)
+  // Sync plan and payment info from URL (essential after redirects from Stripe/aamarPay)
   useEffect(() => {
     const planFromQuery = searchParams.get('plan');
     const stripeId = searchParams.get('stripe_session_id');
-    const bkashTrxId = searchParams.get('trx_id');
+    const aamarPayTrxId = searchParams.get('aamarpay_trx_id');
 
     if (planFromQuery && plans.length > 0) {
         if (plans.some(p => p.id === planFromQuery) && formData.plan !== planFromQuery) {
@@ -75,8 +75,8 @@ export default function GetStartedFlow() {
 
     if (stripeId && formData.transactionId !== stripeId) {
         updateFormData({ transactionId: stripeId, paymentMethod: 'credit_card' });
-    } else if (bkashTrxId && formData.transactionId !== bkashTrxId) {
-        updateFormData({ transactionId: bkashTrxId, paymentMethod: 'bkash' });
+    } else if (aamarPayTrxId && formData.transactionId !== aamarPayTrxId) {
+        updateFormData({ transactionId: aamarPayTrxId, paymentMethod: 'aamarpay' });
     }
   }, [searchParams, plans, formData.plan, formData.transactionId, updateFormData]);
 

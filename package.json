@@ -48,7 +48,6 @@
     "@tiptap/starter-kit": "^2.4.0",
     "@vercel/analytics": "^1.6.1",
     "bcryptjs": "^2.4.3",
-    "bkash-payment": "^1.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",

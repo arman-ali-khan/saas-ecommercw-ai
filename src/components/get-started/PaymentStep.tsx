@@ -14,7 +14,7 @@ import { type Plan } from "@/types";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, ArrowLeft, CreditCard, Wallet, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, CreditCard, Wallet, CheckCircle2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -54,7 +54,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
     const form = useForm<z.infer<typeof paymentSchema>>({
         resolver: zodResolver(paymentSchema),
         defaultValues: {
-            paymentMethod: formData.paymentMethod || 'bkash',
+            paymentMethod: formData.paymentMethod || 'aamarpay',
             transactionId: formData.transactionId || '',
         }
     });
@@ -109,13 +109,13 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
         }
     }
 
-    async function handleBkashCheckout() {
+    async function handleAamarPayCheckout() {
         if (!plan) return;
         setIsNavigating(true);
         
         try {
             const origin = typeof window !== 'undefined' ? window.location.origin : '';
-            const response = await fetch('/api/saas/payments/bkash/create', {
+            const response = await fetch('/api/saas/payments/aamarpay/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -126,13 +126,13 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
             });
 
             const result = await response.json();
-            if (response.ok && result.bkashURL) {
-                window.location.href = result.bkashURL;
+            if (response.ok && result.paymentURL) {
+                window.location.href = result.paymentURL;
             } else {
-                throw new Error(result.error || 'bKash initialization failed');
+                throw new Error(result.error || 'aamarPay initialization failed');
             }
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'bKash Error', description: e.message });
+            toast({ variant: 'destructive', title: 'aamarPay Error', description: e.message });
             setIsNavigating(false);
         }
     }
@@ -142,8 +142,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
             handleStripeCheckout();
             return;
         }
-        if (values.paymentMethod === 'bkash') {
-            handleBkashCheckout();
+        if (values.paymentMethod === 'aamarpay') {
+            handleAamarPayCheckout();
             return;
         }
 
@@ -194,39 +194,39 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                             className="grid grid-cols-1 gap-4"
                                         >
                                             <Label 
-                                                htmlFor="bkash" 
+                                                htmlFor="aamarpay" 
                                                 className={cn(
                                                     "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
-                                                    field.value === 'bkash' ? "border-pink-500 bg-pink-50 shadow-md ring-2 ring-pink-500/20" : "border-muted hover:border-pink-500/30"
+                                                    field.value === 'aamarpay' ? "border-orange-500 bg-orange-50 shadow-md ring-2 ring-orange-500/20" : "border-muted hover:border-orange-500/30"
                                                 )}
                                             >
-                                                <RadioGroupItem value="bkash" id="bkash" className="sr-only" />
-                                                <div className="bg-pink-500 rounded-xl px-3 py-2 text-white font-black text-sm italic shadow-sm">
-                                                    bKash
+                                                <RadioGroupItem value="aamarpay" id="aamarpay" className="sr-only" />
+                                                <div className="bg-orange-500 rounded-xl px-3 py-2 text-white font-black text-xs shadow-sm">
+                                                    aamarPay
                                                 </div>
                                                 <div className="flex-grow">
-                                                    <p className="text-lg font-bold">বিকাশ পেমেন্ট</p>
-                                                    <p className="text-xs text-muted-foreground">ইনস্ট্যান্ট পেমেন্ট ও অ্যাক্টিভেশন</p>
+                                                    <p className="text-lg font-bold">অনলাইন পেমেন্ট</p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Cards, Mobile Banking, Net Banking</p>
                                                 </div>
-                                                {field.value === 'bkash' && <CheckCircle2 className="h-5 w-5 text-pink-500" />}
+                                                {field.value === 'aamarpay' && <CheckCircle2 className="h-5 w-5 text-orange-500" />}
                                             </Label>
 
                                             <Label 
                                                 htmlFor="credit_card" 
                                                 className={cn(
                                                     "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
-                                                    field.value === 'credit_card' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/30"
+                                                    field.value === 'credit_card' ? "border-blue-600 bg-blue-50 shadow-md ring-2 ring-blue-600/20" : "border-muted hover:border-blue-600/30"
                                                 )}
                                             >
                                                 <RadioGroupItem value="credit_card" id="credit_card" className="sr-only" />
-                                                <div className="bg-primary/10 p-3 rounded-xl">
-                                                    <CreditCard className="h-6 w-6 text-primary" />
+                                                <div className="bg-blue-600/10 p-3 rounded-xl">
+                                                    <CreditCard className="h-6 w-6 text-blue-600" />
                                                 </div>
                                                 <div className="flex-grow">
-                                                    <p className="text-lg font-bold">ক্রেডিট বা ডেবিট কার্ড</p>
-                                                    <p className="text-xs text-muted-foreground">Visa, Mastercard, etc. (Stripe Secure)</p>
+                                                    <p className="text-lg font-bold">ইন্টারন্যাশনাল কার্ড</p>
+                                                    <p className="text-xs text-muted-foreground">Visa, Mastercard (Stripe Secure)</p>
                                                 </div>
-                                                {field.value === 'credit_card' && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                                                {field.value === 'credit_card' && <CheckCircle2 className="h-5 w-5 text-blue-600" />}
                                             </Label>
 
                                             <Label 
@@ -241,8 +241,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                                     <Wallet className="h-6 w-6 text-primary" />
                                                 </div>
                                                 <div className="flex-grow">
-                                                    <p className="text-lg font-bold">অন্যান্য মোবাইল ব্যাংকিং</p>
-                                                    <p className="text-xs text-muted-foreground">নগদ বা রকেটের মাধ্যমে (ম্যানুয়াল)</p>
+                                                    <p className="text-lg font-bold">অন্যান্য ম্যানুয়াল পেমেন্ট</p>
+                                                    <p className="text-xs text-muted-foreground">নগদ বা রকেটের মাধ্যমে (ম্যানুয়াল ভেরিফিকেশন)</p>
                                                 </div>
                                                 {field.value === 'mobile_banking' && <CheckCircle2 className="h-5 w-5 text-primary" />}
                                             </Label>
