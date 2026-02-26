@@ -231,6 +231,7 @@ export interface Section {
   enabled: boolean;
   isCategorySection: boolean;
   category?: string;
+  selectedCategories?: string[];
   tags?: string[];
   brand?: string;
   origin?: string;

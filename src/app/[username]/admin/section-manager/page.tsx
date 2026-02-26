@@ -30,11 +30,12 @@ import {
 } from '@/components/ui/accordion';
 import { useAuth } from '@/stores/auth';
 import type { Product, Section, Category, ProductAttribute } from '@/types';
-import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X, Smartphone, LayoutGrid, List, GalleryHorizontal, Layout } from 'lucide-react';
+import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X, Smartphone, LayoutGrid, List, GalleryHorizontal, Layout, CheckSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const CORE_SECTION_IDS = ['hero', 'categories', 'flash_deals', 'featured', 'why-us', 'customer-reviews'];
 
@@ -102,16 +103,17 @@ export default function SectionManagerPage() {
                 mobileView: s.mobileView || '2-col',
                 isCarousel: s.isCarousel ?? (s.id === 'categories' || s.id === 'flash_deals'),
                 productLimit: s.productLimit || (s.id === 'featured' ? 10 : (s.isCategorySection ? 8 : undefined)),
-                showSideCategories: s.showSideCategories || false
+                showSideCategories: s.showSideCategories || false,
+                selectedCategories: s.selectedCategories || []
             }));
             
             if (!currentSections.find(s => s.id === 'categories')) {
-                currentSections.splice(1, 0, { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true });
+                currentSections.splice(1, 0, { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true, selectedCategories: [] });
             }
         } else {
             currentSections = [
               { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col', showSideCategories: false },
-              { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true },
+              { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true, selectedCategories: [] },
               { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true },
               { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col', productLimit: 10 },
               { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false, mobileView: '2-col' },
@@ -170,6 +172,28 @@ export default function SectionManagerPage() {
     setSections((prev) =>
       prev.map((s) => (s.id === sectionId ? { ...s, showSideCategories: show } : s))
     );
+  };
+
+  const handleCategorySelection = (sectionId: string, categoryName: string, checked: boolean) => {
+    setSections(prev => prev.map(s => {
+        if (s.id === sectionId) {
+            const currentSelected = s.selectedCategories || [];
+            const newSelected = checked 
+                ? [...currentSelected, categoryName]
+                : currentSelected.filter(c => c !== categoryName);
+            return { ...s, selectedCategories: newSelected };
+        }
+        return s;
+    }));
+  };
+
+  const handleSelectAllCategories = (sectionId: string, selectAll: boolean) => {
+    setSections(prev => prev.map(s => {
+        if (s.id === sectionId) {
+            return { ...s, selectedCategories: selectAll ? categories.map(c => c.name) : [] };
+        }
+        return s;
+    }));
   };
 
   const handleRemoveSection = (id: string) => {
@@ -329,6 +353,9 @@ export default function SectionManagerPage() {
                                             <List className="h-2 w-2" /> Side Categories (Desktop)
                                         </Badge>
                                     )}
+                                    {section.id === 'categories' && (section.selectedCategories?.length || 0) > 0 && (
+                                        <Badge variant="secondary" className="text-[10px] py-0">{section.selectedCategories?.length} Categories Selected</Badge>
+                                    )}
                                     {section.productLimit !== undefined && (
                                         <Badge variant="secondary" className="text-[10px] py-0">Limit: {section.productLimit}</Badge>
                                     )}
@@ -411,7 +438,7 @@ export default function SectionManagerPage() {
 
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> Mobile Layout (Non-Carousel)</Label>
+                                    <Label className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> View Layout (Non-Carousel)</Label>
                                     <Select 
                                         value={section.mobileView || '2-col'} 
                                         onValueChange={(val: any) => handleMobileViewChange(section.id, val)}
@@ -428,14 +455,11 @@ export default function SectionManagerPage() {
                                             <SelectItem value="list">
                                                 <div className="flex items-center gap-2">
                                                     {section.id === 'categories' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
-                                                    {section.id === 'categories' ? '3 Columns (List style grid)' : 'List View (Stacked)'}
+                                                    {section.id === 'categories' ? 'List View (Image on Left)' : 'List View (Stacked)'}
                                                 </div>
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    {section.isCarousel && section.id !== 'categories' && (
-                                        <p className="text-[10px] text-muted-foreground mt-1">Carousel mode handles its own layout on mobile.</p>
-                                    )}
                                 </div>
 
                                 {(section.id === 'featured' || section.isCategorySection) && (
@@ -452,6 +476,56 @@ export default function SectionManagerPage() {
                                 )}
                             </div>
                         </div>
+
+                        {section.id === 'categories' && (
+                            <div className="space-y-4 animate-in fade-in duration-500">
+                                <div className="flex items-center justify-between">
+                                    <Label className="font-bold flex items-center gap-2"><CheckSquare className="h-4 w-4 text-primary" /> Select Categories to Display</Label>
+                                    <div className="flex gap-2">
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="h-7 text-[10px] uppercase font-black"
+                                            onClick={() => handleSelectAllCategories(section.id, true)}
+                                        >
+                                            Select All
+                                        </Button>
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="h-7 text-[10px] uppercase font-black"
+                                            onClick={() => handleSelectAllCategories(section.id, false)}
+                                        >
+                                            Clear All
+                                        </Button>
+                                    </div>
+                                </div>
+                                <Card className="border-2 bg-muted/10">
+                                    <ScrollArea className="h-48">
+                                        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                            {categories.map((cat) => (
+                                                <div key={cat.id} className="flex items-center space-x-2 p-2 rounded-lg border bg-background hover:bg-muted/30 transition-colors">
+                                                    <Checkbox 
+                                                        id={`cat-select-${section.id}-${cat.id}`} 
+                                                        checked={section.selectedCategories?.includes(cat.name)}
+                                                        onCheckedChange={(checked) => handleCategorySelection(section.id, cat.name, !!checked)}
+                                                    />
+                                                    <label 
+                                                        htmlFor={`cat-select-${section.id}-${cat.id}`} 
+                                                        className="text-xs font-medium leading-none cursor-pointer truncate"
+                                                    >
+                                                        {cat.name}
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                </Card>
+                                <p className="text-[10px] text-muted-foreground italic">If no categories are selected, all categories will be displayed.</p>
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                         <Label>Position</Label>

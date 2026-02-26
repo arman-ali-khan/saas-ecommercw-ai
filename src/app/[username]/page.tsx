@@ -66,17 +66,46 @@ function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Sectio
 }
 
 function CategoriesSection({ categories, section, t }: { categories: Category[], section: Section, t: any }) {
-    if (categories.length === 0) return null;
+    const selectedNames = section.selectedCategories || [];
+    const filteredCategories = selectedNames.length > 0 
+        ? categories.filter(c => selectedNames.includes(c.name))
+        : categories;
+
+    if (filteredCategories.length === 0) return null;
 
     const isCarousel = section.isCarousel !== false;
+    const isListView = section.mobileView === 'list';
 
     return (
         <section>
             <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
             {isCarousel ? (
-                <CategoryCarousel categories={categories} />
+                <CategoryCarousel categories={filteredCategories} />
+            ) : isListView ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredCategories.map(cat => (
+                        <Link key={cat.id} href={`/products?category=${encodeURIComponent(cat.name)}`}>
+                            <Card className="p-3 border-2 hover:border-primary/20 hover:shadow-md transition-all group flex items-center gap-4 overflow-hidden rounded-2xl">
+                                <div className="relative h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-muted border group-hover:scale-105 transition-transform duration-500">
+                                    {cat.image_url ? (
+                                        <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center">
+                                            <DynamicIcon name={cat.icon || 'Package'} className="h-8 w-8 text-muted-foreground" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-grow min-w-0">
+                                    <h3 className="font-bold text-base truncate group-hover:text-primary transition-colors">{cat.name}</h3>
+                                    {cat.description && <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{cat.description}</p>}
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                            </Card>
+                        </Link>
+                    ))}
+                </div>
             ) : (
-                <CategoriesGrid categories={categories} section={section} />
+                <CategoriesGrid categories={filteredCategories} section={section} />
             )}
         </section>
     );
