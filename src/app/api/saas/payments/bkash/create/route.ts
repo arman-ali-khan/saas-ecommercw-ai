@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
-const Bkash = require('bkash-payment');
+// Use dynamic import or handle CJS properly in ESM
+import Bkash from 'bkash-payment';
 
 /**
  * @fileOverview API to initialize bKash Payment for SaaS subscriptions.
@@ -14,7 +15,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required checkout parameters.' }, { status: 400 });
     }
 
-    const bkash = new Bkash({
+    // Handle potential interop issues with CommonJS default exports
+    const BkashConstructor = (Bkash as any).default || Bkash;
+    
+    const bkash = new BkashConstructor({
       bkash_app_key: process.env.BKASH_APP_KEY || 'your_sandbox_app_key',
       bkash_app_secret: process.env.BKASH_APP_SECRET || 'your_sandbox_app_secret',
       bkash_username: process.env.BKASH_USERNAME || 'your_sandbox_username',

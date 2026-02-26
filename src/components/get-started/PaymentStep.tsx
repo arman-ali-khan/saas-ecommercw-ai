@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, ArrowLeft, CreditCard, Wallet, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface PaymentStepProps {
     plan?: Plan;
@@ -46,6 +47,7 @@ type SaasSettings = {
 }
 
 export default function PaymentStep({ plan, formData, updateFormData, onNext, onBack }: PaymentStepProps) {
+    const { toast } = useToast();
     const [settings, setSettings] = useState<SaasSettings | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isNavigating, setIsNavigating] = useState(false);
@@ -61,9 +63,13 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
     useEffect(() => {
         const fetchSettings = async () => {
             setIsLoading(true);
-            const { data } = await supabase.from('saas_settings').select('mobile_banking_enabled, mobile_banking_number, accepted_banking_methods').eq('id', 1).single();
-            if (data) {
-                setSettings(data);
+            try {
+                const { data } = await supabase.from('saas_settings').select('mobile_banking_enabled, mobile_banking_number, accepted_banking_methods').eq('id', 1).single();
+                if (data) {
+                    setSettings(data);
+                }
+            } catch (err) {
+                console.error("Settings fetch error:", err);
             }
             setIsLoading(false);
         }
@@ -74,14 +80,6 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
     const priceText = plan?.price === 0 ? '0' : plan?.price.toFixed(2) || '0';
     const merchantNumber = settings?.mobile_banking_number || '...';
     
-    const acceptedMethods = useMemo(() => {
-        if (!settings?.accepted_banking_methods || settings.accepted_banking_methods.length === 0) {
-            return 'বিকাশ, নগদ, ইত্যাদি';
-        }
-        return settings.accepted_banking_methods.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ');
-    }, [settings]);
-
-
     async function handleStripeCheckout() {
         if (!plan) return;
         setIsNavigating(true);
@@ -100,14 +98,14 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                 }),
             });
 
-            const { url, error } = await response.json();
-            if (url) {
-                window.location.href = url;
+            const result = await response.json();
+            if (response.ok && result.url) {
+                window.location.href = result.url;
             } else {
-                throw new Error(error || 'Failed to start checkout');
+                throw new Error(result.error || 'Failed to start checkout');
             }
         } catch (e: any) {
-            console.error(e);
+            toast({ variant: 'destructive', title: 'Stripe Error', description: e.message });
             setIsNavigating(false);
         }
     }
@@ -129,13 +127,13 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
             });
 
             const result = await response.json();
-            if (result.bkashURL) {
+            if (response.ok && result.bkashURL) {
                 window.location.href = result.bkashURL;
             } else {
                 throw new Error(result.error || 'bKash initialization failed');
             }
         } catch (e: any) {
-            console.error(e);
+            toast({ variant: 'destructive', title: 'bKash Error', description: e.message });
             setIsNavigating(false);
         }
     }
@@ -205,7 +203,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                             >
                                                 <RadioGroupItem value="bkash" id="bkash" className="sr-only" />
                                                 <div className="bg-pink-500/10 p-2 rounded-xl">
-                                                    <Image src="https://res.cloudinary.com/dztv8gu8v/image/upload/v1741081544/bkash_pvmrkp.png" alt="bKash" width={40} height={40} className="object-contain" />
+                                                    <Image src="https://res.cloudinary.com/dztv8gu8v/image/upload/v1741081544/bkash_pvmrkp.png" alt="bKash" width={40} height={40} className="object-contain" unoptimized />
                                                 </div>
                                                 <div className="flex-grow">
                                                     <p className="text-lg font-bold">বিকাশ পেমেন্ট</p>
