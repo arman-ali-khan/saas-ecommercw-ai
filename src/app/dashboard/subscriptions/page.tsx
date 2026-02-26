@@ -246,7 +246,7 @@ export default function SubscriptionPaymentsPage() {
                         </TableCell>
                         <TableCell><Badge variant="secondary" className="text-[10px]">{paymentItem.plans?.name || 'N/A'}</Badge></TableCell>
                         <TableCell className="text-sm font-bold">৳{paymentItem.amount.toFixed(2)}</TableCell>
-                        <TableCell className="font-mono truncate text-xs">{paymentItem.transaction_id || 'N/A'}</TableCell>
+                        <TableCell className="font-mono truncate max-w-4 text-xs">{paymentItem.transaction_id || 'N/A'}</TableCell>
                         <TableCell className="text-[10px] text-muted-foreground">{format(new Date(paymentItem.created_at), 'PP')}</TableCell>
                         <TableCell><Badge variant={getStatusBadgeVariant(paymentItem.status)} className="text-[10px] h-5">{paymentItem.status}</Badge></TableCell>
                         <TableCell className="text-right">
