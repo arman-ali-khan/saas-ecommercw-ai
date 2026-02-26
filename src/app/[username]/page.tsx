@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/card';
 import DynamicIcon from '@/components/dynamic-icon';
 import CategoriesGrid from '@/components/categories-grid';
 import FeaturedProductsList from '@/components/featured-products-list';
+import FeaturedCarousel from '@/components/featured-carousel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const dynamic = 'force-dynamic';
@@ -120,7 +121,11 @@ function FeaturedProducts({ products, section, siteId, t }: { products: Product[
         <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
         <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
-      <FeaturedProductsList initialProducts={products} siteId={siteId} section={section} t={t} />
+      {section.isCarousel ? (
+          <FeaturedCarousel products={products} section={section} />
+      ) : (
+          <FeaturedProductsList initialProducts={products} siteId={siteId} section={section} t={t} />
+      )}
     </section>
   );
 }
@@ -183,15 +188,19 @@ async function TopSellingSection({ siteId, section, t }: { siteId: string, secti
         <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
         <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
-      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
-        {sortedProducts.map((product) => (
-            <ProductCard 
-                key={product.id} 
-                product={product} 
-                isList={section.mobileView === 'list'} 
-            />
-        ))}
-      </div>
+      {section.isCarousel ? (
+          <FeaturedCarousel products={sortedProducts} section={section} />
+      ) : (
+          <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
+            {sortedProducts.map((product) => (
+                <ProductCard 
+                    key={product.id} 
+                    product={product} 
+                    isList={section.mobileView === 'list'} 
+                />
+            ))}
+          </div>
+      )}
     </section>
   );
 }
@@ -270,15 +279,19 @@ async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, 
             </Link>
         </Button>
       </div>
-      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
-        {products.map((product) => (
-            <ProductCard 
-                key={product.id} 
-                product={product} 
-                isList={section.mobileView === 'list'} 
-            />
-        ))}
-      </div>
+      {section.isCarousel ? (
+          <FeaturedCarousel products={products} section={section} />
+      ) : (
+          <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
+            {products.map((product) => (
+                <ProductCard 
+                    key={product.id} 
+                    product={product} 
+                    isList={section.mobileView === 'list'} 
+                />
+            ))}
+          </div>
+      )}
     </section>
   );
 }
