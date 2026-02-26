@@ -20,12 +20,13 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Globe, BarChart, CreditCard, Loader2, Facebook, Twitter, Wand2 } from 'lucide-react';
+import { Globe, BarChart, CreditCard, Loader2, Facebook, Twitter, Wand2, Activity, Target, ShieldCheck, FileCode } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -49,6 +50,10 @@ const seoSettingsSchema = z.object({
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
   seoKeywords: z.string().optional(),
+  googleAnalyticsId: z.string().optional().or(z.literal('')),
+  facebookPixelId: z.string().optional().or(z.literal('')),
+  googleSearchConsoleTag: z.string().optional().or(z.literal('')),
+  robotsTxtContent: z.string().optional().or(z.literal('')),
 });
 
 const availableBankingMethods = [
@@ -98,6 +103,10 @@ export default function SaasSettingsPage() {
       seoTitle: '',
       seoDescription: '',
       seoKeywords: '',
+      googleAnalyticsId: '',
+      facebookPixelId: '',
+      googleSearchConsoleTag: '',
+      robotsTxtContent: '',
     },
   });
 
@@ -137,6 +146,10 @@ export default function SaasSettingsPage() {
                 seoTitle: data.seo_title || '',
                 seoDescription: data.seo_description || '',
                 seoKeywords: data.seo_keywords || '',
+                googleAnalyticsId: data.google_analytics_id || '',
+                facebookPixelId: data.facebook_pixel_id || '',
+                googleSearchConsoleTag: data.google_search_console_tag || '',
+                robotsTxtContent: data.robots_txt_content || '',
             });
             paymentForm.reset({
                 mobileBankingEnabled: data.mobile_banking_enabled || false,
@@ -202,6 +215,10 @@ export default function SaasSettingsPage() {
                 seo_title: values.seoTitle,
                 seo_description: values.seoDescription,
                 seo_keywords: values.seoKeywords,
+                google_analytics_id: values.googleAnalyticsId,
+                facebook_pixel_id: values.facebookPixelId,
+                google_search_console_tag: values.googleSearchConsoleTag,
+                robots_txt_content: values.robotsTxtContent,
             }),
         });
 
@@ -514,37 +531,49 @@ export default function SaasSettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="seo">
+        <TabsContent value="seo" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Search Engine Optimization (SEO)</CardTitle>
-              <CardDescription>Manage SEO settings for your main landing page.</CardDescription>
+              <CardDescription>Manage global SEO tags for your main landing page.</CardDescription>
             </CardHeader>
             <CardContent>
                <Form {...seoForm}>
                  <form onSubmit={seoForm.handleSubmit(onSeoSubmit)} className="space-y-8">
-                    <FormField
-                        control={seoForm.control}
-                        name="seoTitle"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>SEO Title</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Your Platform - The Best Solution For..." {...field} />
-                            </FormControl>
-                            <FormDescription>
-                                The title that appears in search engine results. If empty, the platform name will be used.
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <FormField
+                            control={seoForm.control}
+                            name="seoTitle"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Meta Title</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Your Platform - The Best Solution For..." {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={seoForm.control}
+                            name="seoKeywords"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Meta Keywords</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="keyword1, keyword2, keyword3" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
                     <FormField
                         control={seoForm.control}
                         name="seoDescription"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>SEO Description</FormLabel>
+                            <FormLabel>Meta Description</FormLabel>
                             <FormControl>
                                 <Textarea
                                     placeholder="A compelling description for search engines..."
@@ -552,32 +581,88 @@ export default function SaasSettingsPage() {
                                     {...field}
                                 />
                             </FormControl>
-                            <FormDescription>
-                                The description that appears in search engine results. If empty, the platform description will be used.
-                            </FormDescription>
                             <FormMessage />
                         </FormItem>
                         )}
                     />
-                    <FormField
-                        control={seoForm.control}
-                        name="seoKeywords"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>SEO Keywords</FormLabel>
-                            <FormControl>
-                                <Input placeholder="keyword1, keyword2, keyword3" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                                Comma-separated keywords related to your platform.
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <Button type="submit" disabled={isSeoSubmitting || isLoading}>
+
+                    <div className="grid md:grid-cols-2 gap-8 border-t pt-8">
+                        <div className="space-y-6">
+                            <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
+                                <Activity className="h-5 w-5" /> Analytics & Tracking
+                            </h3>
+                            <FormField
+                                control={seoForm.control}
+                                name="googleAnalyticsId"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Google Analytics ID (G-XXXXXXX)</FormLabel>
+                                    <FormControl><Input placeholder="G-XXXXXXXXXX" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={seoForm.control}
+                                name="facebookPixelId"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Facebook Pixel ID</FormLabel>
+                                    <FormControl><Input placeholder="1234567890" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+
+                        <div className="space-y-6">
+                            <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
+                                <ShieldCheck className="h-5 w-5" /> Webmaster Tools
+                            </h3>
+                            <FormField
+                                control={seoForm.control}
+                                name="googleSearchConsoleTag"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Google Search Console Tag</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder='<meta name="google-site-verification" content="..." />' {...field} />
+                                    </FormControl>
+                                    <FormDescription className="text-[10px]">Paste the full HTML meta tag provided by Google.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="border-t pt-8 space-y-4">
+                        <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
+                            <FileCode className="h-5 w-5" /> Robots.txt Configuration
+                        </h3>
+                        <FormField
+                            control={seoForm.control}
+                            name="robotsTxtContent"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                    <Textarea 
+                                        placeholder="User-agent: *&#10;Allow: /" 
+                                        rows={6} 
+                                        className="font-mono text-xs bg-muted/20" 
+                                        {...field} 
+                                    />
+                                </FormControl>
+                                <FormDescription>Custom rules for search engine crawlers.</FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    <Button type="submit" disabled={isSeoSubmitting || isLoading} className="w-full sm:w-auto px-8">
                         {isSeoSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save SEO Settings
+                        Save All SEO & Tracking Settings
                     </Button>
                 </form>
                </Form>

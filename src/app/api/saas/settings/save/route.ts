@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
     if (profile?.role !== 'saas_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    // Map incoming CamelCase or specific names to DB column names if necessary
+    // Map incoming data to DB column names
     const payload = {
         platform_name: data.platform_name || data.platformName,
         platform_description: data.platform_description || data.platformDescription,
@@ -56,6 +56,11 @@ export async function POST(request: Request) {
         cta_description: data.cta_description,
         cta_bg_color: data.cta_bg_color,
         global_ai_api_key: data.global_ai_api_key,
+        // Advanced SEO Fields
+        google_analytics_id: data.google_analytics_id || data.googleAnalyticsId,
+        facebook_pixel_id: data.facebook_pixel_id || data.facebookPixelId,
+        google_search_console_tag: data.google_search_console_tag || data.googleSearchConsoleTag,
+        robots_txt_content: data.robots_txt_content || data.robotsTxtContent,
     };
 
     // Remove undefined values

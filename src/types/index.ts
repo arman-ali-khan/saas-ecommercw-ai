@@ -410,6 +410,10 @@ export interface SaasSettings {
   cta_bg_color: string | null;
   homepage_sections: any[] | null;
   global_ai_api_key: string | null;
+  google_analytics_id: string | null;
+  facebook_pixel_id: string | null;
+  google_search_console_tag: string | null;
+  robots_txt_content: string | null;
 }
 
 export interface CustomDomainRequest {
