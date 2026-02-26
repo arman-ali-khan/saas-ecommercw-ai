@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -18,9 +19,15 @@ import { Input } from '@/components/ui/input';
 import { Plus, Edit, Trash2, Loader2, Wand2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import IconPicker from '@/components/icon-picker';
+import DynamicIcon from '@/components/dynamic-icon';
 
 const categorySchema = z.object({ title: z.string().min(1, 'Title is required') });
-const linkSchema = z.object({ label: z.string().min(1, 'Label is required'), href: z.string().min(1, 'URL is required') });
+const linkSchema = z.object({ 
+    label: z.string().min(1, 'Label is required'), 
+    href: z.string().min(1, 'URL is required'),
+    icon: z.string().optional().or(z.literal('')),
+});
 
 export default function FooterManagerPage() {
     const { user, loading: authLoading } = useAuth();
@@ -32,7 +39,10 @@ export default function FooterManagerPage() {
     const [dialog, setDialog] = useState<{ type: 'category' | 'link'; data?: any; categoryId?: string } | null>(null);
 
     const catForm = useForm({ resolver: zodResolver(categorySchema) });
-    const linkForm = useForm({ resolver: zodResolver(linkSchema) });
+    const linkForm = useForm({ 
+        resolver: zodResolver(linkSchema),
+        defaultValues: { label: '', href: '', icon: '' } 
+    });
 
     const fetchFooterData = useCallback(async () => {
         if (!user) return;
@@ -74,7 +84,7 @@ export default function FooterManagerPage() {
     useEffect(() => {
         if (dialog) {
             if (dialog.type === 'category') catForm.reset(dialog.data || { title: '' });
-            if (dialog.type === 'link') linkForm.reset(dialog.data || { label: '', href: '' });
+            if (dialog.type === 'link') linkForm.reset(dialog.data || { label: '', href: '', icon: '' });
         }
     }, [dialog, catForm, linkForm]);
 
@@ -198,9 +208,16 @@ export default function FooterManagerPage() {
                                             {(cat.footer_links || []).length > 0 ? (
                                                 cat.footer_links?.map(link => (
                                                     <div key={link.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                                                        <div className="truncate pr-4">
-                                                            <p className="font-medium">{link.label}</p>
-                                                            <p className="text-xs text-muted-foreground font-mono truncate">{link.href}</p>
+                                                        <div className="flex items-center gap-3 truncate pr-4">
+                                                            {link.icon && (
+                                                                <div className="bg-primary/10 p-1.5 rounded-lg shrink-0">
+                                                                    <DynamicIcon name={link.icon} className="h-4 w-4 text-primary" />
+                                                                </div>
+                                                            )}
+                                                            <div className="truncate">
+                                                                <p className="font-medium">{link.label}</p>
+                                                                <p className="text-xs text-muted-foreground font-mono truncate">{link.href}</p>
+                                                            </div>
                                                         </div>
                                                         <div className="flex items-center gap-1 shrink-0">
                                                             <Button variant="ghost" size="icon" onClick={() => setDialog({ type: 'link', data: link, categoryId: cat.id })}><Edit className="h-4 w-4"/></Button>
@@ -224,7 +241,7 @@ export default function FooterManagerPage() {
             </Card>
 
             <Dialog open={!!dialog} onOpenChange={() => setDialog(null)}>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{dialog?.data ? 'Edit' : 'Add'} {dialog?.type === 'category' ? 'Category' : 'Link'}</DialogTitle>
                     </DialogHeader>
@@ -237,7 +254,7 @@ export default function FooterManagerPage() {
                         </Form>
                     ) : (
                         <Form {...linkForm}>
-                            <form onSubmit={linkForm.handleSubmit(handleDialogSubmit)} className="space-y-4 pt-2">
+                            <form onSubmit={linkForm.handleSubmit(handleDialogSubmit)} className="space-y-6 pt-2">
                                 <FormField control={linkForm.control} name="label" render={({ field }) => (<FormItem><FormLabel>Link Label</FormLabel><FormControl><Input placeholder="e.g., All Products" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={linkForm.control} name="href" render={({ field }) => (
                                     <FormItem>
@@ -272,6 +289,24 @@ export default function FooterManagerPage() {
                                             </DropdownMenu>
                                         </div>
                                         <FormDescription>Select from suggestions using the magic wand icon.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={linkForm.control} name="icon" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Icon (Optional)</FormLabel>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-4 p-4 rounded-xl border bg-muted/20">
+                                                <div className="h-10 w-10 rounded-lg bg-background border flex items-center justify-center shadow-sm">
+                                                    {field.value ? <DynamicIcon name={field.value} className="h-5 w-5 text-primary" /> : <div className="text-[10px] text-muted-foreground uppercase font-black">None</div>}
+                                                </div>
+                                                <div className="flex-grow">
+                                                    <p className="text-xs font-bold">{field.value || 'No icon selected'}</p>
+                                                    {field.value && <Button type="button" variant="link" className="h-auto p-0 text-xs text-destructive" onClick={() => field.onChange('')}>Remove Icon</Button>}
+                                                </div>
+                                            </div>
+                                            <FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl>
+                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )} />

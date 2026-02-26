@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
-    const { id, siteId, categoryId, label, href, order } = await request.json();
+    const { id, siteId, categoryId, label, href, order, icon } = await request.json();
 
     if (!siteId || !categoryId || !label || !href) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -15,7 +15,14 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const payload = { site_id: siteId, category_id: categoryId, label, href, order: order || 0 };
+    const payload = { 
+        site_id: siteId, 
+        category_id: categoryId, 
+        label, 
+        href, 
+        order: order || 0,
+        icon: icon || null
+    };
 
     let result;
     if (id) {

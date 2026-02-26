@@ -89,7 +89,10 @@ export default function Footer({ siteInfo, footerCategories, socialLinks, isLoad
                         <ul className="space-y-2">
                             {(cat.links || []).map(link => (
                                 <li key={link.id}>
-                                    <Link href={link.href} className="text-secondary-foreground/80 hover:text-primary transition-colors">{link.label}</Link>
+                                    <Link href={link.href} className="text-secondary-foreground/80 hover:text-primary transition-all flex items-center gap-2 group">
+                                        {link.icon && <DynamicIcon name={link.icon} className="h-4 w-4 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all" />}
+                                        {link.label}
+                                    </Link>
                                 </li>
                             ))}
                         </ul>
@@ -117,7 +120,7 @@ export default function Footer({ siteInfo, footerCategories, socialLinks, isLoad
         <div className="mt-8 border-t border-border pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
              <div className="flex space-x-4">
                 {socialLinks.map(link => {
-                    const Icon = platformIcons[link.platform];
+                    const Icon = platformIcons[link.platform as keyof typeof platformIcons];
                     return (
                         <Link key={link.id} href={link.href} aria-label={link.platform} className="text-secondary-foreground/80 hover:text-primary transition-colors">
                             {Icon ? <Icon /> : link.platform}

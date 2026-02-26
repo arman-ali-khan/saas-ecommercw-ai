@@ -369,6 +369,7 @@ export interface FooterLink {
   label: string;
   href: string;
   order: number;
+  icon?: string | null;
 }
 
 export interface FooterLinkCategory {
