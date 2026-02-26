@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -75,10 +76,10 @@ export default function AdminDashboard() {
         const finalQnaList = Array.isArray(qnaData.qna) ? qnaData.qna : [];
         const finalCustomersList = Array.isArray(customersData.customers) ? customersData.customers : [];
 
-        const totalRevenueCalculated = finalOrdersList.filter((orderRec: any) => orderRec.status === 'delivered').reduce((acc: number, orderRec: any) => acc + (orderRec.total || 0), 0);
-        const monthlyOrdersCounted = finalOrdersList.filter((orderRec: any) => new Date(orderRec.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && orderRec.status !== 'canceled').length;
-        const unviewedCartsCount = finalUncompletedList.filter((ucRecord: any) => !ucRecord.is_viewed).length;
-        const activeFlashDealsCount = finalDealsList.filter((dealRecord: any) => dealRecord.is_active && new Date(dealRecord.end_date) > new Date()).length;
+        const totalRevenueCalculated = finalOrdersList.filter((o: any) => o.status === 'delivered').reduce((sum: number, o: any) => sum + (o.total || 0), 0);
+        const monthlyOrdersCounted = finalOrdersList.filter((o: any) => new Date(o.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && o.status !== 'canceled').length;
+        const unviewedCartsCount = finalUncompletedList.filter((uc: any) => !uc.is_viewed).length;
+        const activeFlashDealsCount = finalDealsList.filter((d: any) => d.is_active && new Date(d.end_date) > new Date()).length;
 
         // Daily Revenue Mapping
         const dailyRevenueMap: { [key: string]: number } = {};
@@ -88,27 +89,27 @@ export default function AdminDashboard() {
           dailyRevenueMap[dateLabelString] = 0;
         }
         
-        finalOrdersList.filter((orderRec: any) => orderRec.status === 'delivered' && new Date(orderRec.created_at) >= lastWeekDateTime).forEach((orderRec: any) => {
-          const dateLabelString = safeDateFormatter(new Date(orderRec.created_at), 'MMM d');
+        finalOrdersList.filter((o: any) => o.status === 'delivered' && new Date(o.created_at) >= lastWeekDateTime).forEach((o: any) => {
+          const dateLabelString = safeDateFormatter(new Date(o.created_at), 'MMM d');
           if (Object.prototype.hasOwnProperty.call(dailyRevenueMap, dateLabelString)) {
-            dailyRevenueMap[dateLabelString] += (orderRec.total || 0);
+            dailyRevenueMap[dateLabelString] += (o.total || 0);
           }
         });
 
         // Advanced Low Stock Detection
-        const detectedLowStockItems = finalProductsList.filter((productItemRec: any) => {
-            const hasVariants = productItemRec.variants && Array.isArray(productItemRec.variants) && productItemRec.variants.length > 0;
+        const detectedLowStockItems = finalProductsList.filter((product: any) => {
+            const hasVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0;
             if (hasVariants) {
-                return productItemRec.variants.some((vRecord: any) => (vRecord.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
+                return product.variants.some((v: any) => (v.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD);
             }
-            return (productItemRec.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
-        }).sort((aRec: any, bRec: any) => {
-            const getEffStock = (pItem: any) => {
-                const hasV = pItem.variants && Array.isArray(pItem.variants) && pItem.variants.length > 0;
-                if (hasV) return Math.min(...pItem.variants.map((v: any) => v.stock ?? 0));
-                return pItem.stock ?? 0;
+            return (product.stock ?? 0) < MINIMUM_QUANTITY_THRESHOLD;
+        }).sort((a: any, b: any) => {
+            const getEffStock = (p: any) => {
+                const hasV = p.variants && Array.isArray(p.variants) && p.variants.length > 0;
+                if (hasV) return Math.min(...p.variants.map((v: any) => v.stock ?? 0));
+                return p.stock ?? 0;
             };
-            return getEffStock(aRec) - getEffStock(bRec);
+            return getEffStock(a) - getEffStock(b);
         }).slice(0, 5);
 
         // Top Selling Products Calculation
@@ -142,10 +143,10 @@ export default function AdminDashboard() {
           activeFlashDeals: activeFlashDealsCount,
           allOrders: finalOrdersList,
           revenueChartData: Object.keys(dailyRevenueMap).map(dateKey => ({ date: dateKey, Revenue: dailyRevenueMap[dateKey] })),
-          pendingOrders: finalOrdersList.filter((orderRec: any) => orderRec.status === 'pending').slice(0, 5),
+          pendingOrders: finalOrdersList.filter((o: any) => o.status === 'pending').slice(0, 5),
           lowStockProducts: detectedLowStockItems,
-          pendingReviews: finalReviewsList.filter((reviewRecord: any) => !reviewRecord.is_approved).slice(0, 5),
-          unansweredQuestions: finalQnaList.filter((qnaRecord: any) => !qnaRecord.answer).slice(0, 5),
+          pendingReviews: finalReviewsList.filter((r: any) => !r.is_approved).slice(0, 5),
+          unansweredQuestions: finalQnaList.filter((q: any) => !q.answer).slice(0, 5),
           topSellingProducts: topSellingProducts,
           recentCustomers: finalCustomersList.slice(0, 5),
         };
@@ -237,3 +238,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+    

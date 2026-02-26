@@ -244,9 +244,15 @@ export default function ManageProductPage() {
     if (user) fetchProductData();
   }, [user, fetchProductData]);
 
-  const groupedAttributes = useMemo(() => attributes.reduce((accMap, attrRecord) => { 
-    (accMap[attrRecord.type] = accMap[accRecord.type] || []).push(attrRecord.value); return accMap; 
-  }, {} as Record<string, string[]>), [attributes]);
+  const groupedAttributes = useMemo(() => {
+    if (!attributes || !Array.isArray(attributes)) return {} as Record<string, string[]>;
+    return attributes.reduce((acc, record) => { 
+        const type = record.type;
+        if (!acc[type]) acc[type] = [];
+        acc[type].push(record.value);
+        return acc; 
+    }, {} as Record<string, string[]>);
+  }, [attributes]);
 
   const unitOptions = useMemo(() => {
     const fromAttr = groupedAttributes['unit'] || [];
@@ -866,3 +872,4 @@ export default function ManageProductPage() {
     </div>
   );
 }
+    
