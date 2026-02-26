@@ -6,11 +6,20 @@ import DynamicIcon from './dynamic-icon';
 import { ScrollArea } from './ui/scroll-area';
 
 export const iconList = [
-  'Leaf', 'Store', 'ShoppingBasket', 'Sparkles', 'Gift', 'Heart', 'Star', 'Sun', 'Moon', 'Apple', 
-  'Carrot', 'Grape', 'Coffee', 'Flower', 'TreePine', 'Mountain', 'Wind', 'Gem', 'HandHeart', 'Book', 
-  'Home', 'Package', 'ShoppingCart', 'Truck', 'Bike', 'Plane', 'Anchor', 'Award', 'Badge', 'Banknote', 
-  'Bone', 'Cake', 'Candy', 'Cookie', 'Crown', 'Diamond', 'Feather', 'Fish', 'Flame', 'Gamepad2', 
-  'Ghost', 'Hammer', 'IceCream2', 'KeyRound', 'Lightbulb', 'Map', 'Palette', 'Pizza', 'Puzzle', 'Rocket'
+  // Home & General
+  'Home', 'Store', 'Building2', 'Warehouse', 'Map', 'Globe',
+  // Shopping & Ecommerce
+  'Package', 'ShoppingCart', 'ShoppingBag', 'ShoppingBasket', 'Tag', 'Tags', 'Ticket', 'Percent', 'Truck', 'Box', 'CreditCard', 'Wallet', 'Banknote',
+  // Layout & Categories
+  'LayoutGrid', 'List', 'Columns', 'Grid3X3', 'Rows', 'Layers',
+  // Social & Communication
+  'Facebook', 'Twitter', 'Instagram', 'Linkedin', 'Youtube', 'Share2', 'MessageCircle', 'MessageSquare', 'Send', 'Mail', 'Phone',
+  // Tools & Settings
+  'Settings', 'Cog', 'Wrench', 'Hammer', 'Shield', 'ShieldCheck', 'Lock', 'Key', 'Search', 'Info', 'Bell', 'HelpCircle', 'Clock',
+  // Nature & Food
+  'Leaf', 'Sprout', 'TreePine', 'Flower', 'Sun', 'Moon', 'Cloud', 'Apple', 'Carrot', 'Grape', 'Coffee', 'Beef', 'Fish', 'Milk', 'GlassWater', 'Pizza', 'Cake', 'Cookie',
+  // Indicators & Misc
+  'Star', 'Heart', 'Smile', 'ThumbsUp', 'Flame', 'Zap', 'Sparkles', 'Gift', 'Award', 'Badge', 'Crown', 'Trophy', 'Rocket', 'MapPin', 'CheckCircle2'
 ];
 
 interface IconPickerProps {
@@ -20,20 +29,26 @@ interface IconPickerProps {
 
 export default function IconPicker({ value, onChange }: IconPickerProps) {
   return (
-    <ScrollArea className="h-72 w-full rounded-md border p-4">
-        <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+    <ScrollArea className="h-72 w-full rounded-xl border p-4 bg-muted/10">
+        <div className="grid grid-cols-5 sm:grid-cols-8 gap-2">
         {iconList.map((iconName) => (
             <Button
             key={iconName}
             variant="outline"
             size="icon"
-            onClick={(e) => { e.preventDefault(); onChange(iconName); }}
+            type="button"
+            onClick={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation();
+                onChange(iconName); 
+            }}
             className={cn(
-                'flex items-center justify-center',
-                value === iconName && 'ring-2 ring-primary'
+                'flex items-center justify-center h-10 w-10 transition-all',
+                value === iconName ? 'border-primary bg-primary/10 ring-2 ring-primary/20' : 'hover:border-primary/50'
             )}
+            title={iconName}
             >
-            <DynamicIcon name={iconName} className="h-5 w-5" />
+            <DynamicIcon name={iconName} className={cn("h-5 w-5", value === iconName ? "text-primary" : "text-muted-foreground")} />
             <span className="sr-only">{iconName}</span>
             </Button>
         ))}
