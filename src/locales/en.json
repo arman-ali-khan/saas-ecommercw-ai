@@ -1,3 +1,4 @@
+
 {
   "common": {
     "save": "Save",
@@ -12,6 +13,12 @@
     "loading": "Loading...",
     "confirmDelete": "Are you sure?",
     "deleteWarning": "This action cannot be undone."
+  },
+  "error404": {
+    "title": "404 - Not Found",
+    "description": "Sorry, the page you are looking for doesn't exist. It might have been moved or the link is incorrect.",
+    "goHome": "Go to Homepage",
+    "browseProducts": "Browse Products"
   },
   "orders": {
     "title": "Order Management",
