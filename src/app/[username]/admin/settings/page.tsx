@@ -31,7 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck } from 'lucide-react';
+import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -101,6 +101,7 @@ export default function SettingsAdminPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
   const [isChangePlanDialogOpen, setIsChangePlanDialogOpen] = useState(false);
+  const [isFreePlanConfirmOpen, setIsFreePlanConfirmOpen] = useState(false);
   const [planToChange, setPlanToChange] = useState<Plan | null>(null);
 
   const form = useForm<z.infer<typeof settingsSchema>>({
@@ -328,8 +329,42 @@ export default function SettingsAdminPage() {
     const handlePlanChangeClick = (plan: Plan) => {
         if (!user || plan.id === user.subscriptionPlan) return;
         setPlanToChange(plan);
-        setIsChangePlanDialogOpen(true);
+        if (plan.id === 'free') {
+            setIsFreePlanConfirmOpen(true);
+        } else {
+            setIsChangePlanDialogOpen(true);
+        }
     };
+
+    const handleFreePlanSwitch = async () => {
+        if (!user || !planToChange) return;
+        setIsSubmitting(true);
+        try {
+            const response = await fetch('/api/settings/request-plan-change', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    siteId: user.id, 
+                    planId: 'free', 
+                    amount: 0, 
+                    transactionId: `FREE_SWITCH_${Date.now()}`
+                }),
+            });
+
+            if (response.ok) {
+                toast({ title: 'Downgrade Request Submitted', description: 'Your request to switch to the Free plan is under review.' });
+                await refreshUser();
+            } else {
+                const res = await response.json();
+                throw new Error(res.error);
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setIsSubmitting(false);
+            setIsFreePlanConfirmOpen(false);
+        }
+    }
 
     const onSubscriptionChangeSubmit = async (data: SubscriptionChangeFormData) => {
         if (!user || !planToChange) return;
@@ -972,6 +1007,8 @@ export default function SettingsAdminPage() {
           </Tabs>
       </CardContent>
     </Card>
+
+    {/* Upgrade Plan Dialog */}
     <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1012,6 +1049,30 @@ export default function SettingsAdminPage() {
                 </DialogFooter>
             </form>
             </Form>
+        </DialogContent>
+    </Dialog>
+
+    {/* Free Plan Confirmation Dialog */}
+    <Dialog open={isFreePlanConfirmOpen} onOpenChange={setIsFreePlanConfirmOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <div className="flex items-center gap-2 text-amber-500 mb-2">
+                    <AlertTriangle className="h-6 w-6" />
+                    <DialogTitle>Confirm Plan Change</DialogTitle>
+                </div>
+                <DialogDescription className="text-foreground">
+                    আপনি কি নিশ্চিত যে আপনি <span className="font-bold text-primary">Free</span> প্ল্যানে ফিরে যেতে চান? 
+                    <br/><br/>
+                    এর ফলে আপনার স্টোরের কিছু প্রিমিয়াম ফিচার (যেমন: AI, SMS, Custom Domain) বন্ধ হয়ে যেতে পারে।
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4 gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setIsFreePlanConfirmOpen(false)} disabled={isSubmitting}>বাতিল করুন</Button>
+                <Button onClick={handleFreePlanSwitch} disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    হ্যাঁ, পরিবর্তন করুন
+                </Button>
+            </DialogFooter>
         </DialogContent>
     </Dialog>
     </>
