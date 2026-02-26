@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -19,7 +18,11 @@ export async function GET(request: Request) {
         domainRes,
         supportRes
     ] = await Promise.all([
-        supabaseAdmin.from('notifications').select('*', { count: 'exact', head: true }).eq('is_read', false),
+        supabaseAdmin.from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_read', false)
+            .eq('recipient_type', 'admin')
+            .is('recipient_id', null), // Only counts platform-wide unread for SaaS admin
         supabaseAdmin.from('subscription_payments').select('*', { count: 'exact', head: true }).or('status.eq.pending,status.eq.pending_verification'),
         supabaseAdmin.from('seo_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabaseAdmin.from('saas_reviews').select('*', { count: 'exact', head: true }).eq('is_approved', false),

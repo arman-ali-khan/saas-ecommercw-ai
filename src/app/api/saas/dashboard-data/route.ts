@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
@@ -56,7 +55,13 @@ export async function GET(request: Request) {
     ] = await Promise.all([
         supabaseAdmin.from('profiles').select('id, subscription_status'),
         supabaseAdmin.from('subscription_payments').select('*, profiles(full_name, username, email), plans(name)').order('created_at', { ascending: false }),
-        supabaseAdmin.from('notifications').select('*, profiles!notifications_recipient_id_fkey(full_name, username, email)').eq('is_read', false).eq('recipient_type', 'admin').order('created_at', { ascending: false }).limit(5),
+        supabaseAdmin.from('notifications')
+            .select('*, profiles:site_id(full_name, username, email, site_name)')
+            .eq('is_read', false)
+            .eq('recipient_type', 'admin')
+            .is('recipient_id', null) // Only platform level notifications for SaaS Admin
+            .order('created_at', { ascending: false })
+            .limit(5),
         supabaseAdmin.from('saas_reviews').select('id', { count: 'exact', head: true }).eq('is_approved', false)
     ]);
 
