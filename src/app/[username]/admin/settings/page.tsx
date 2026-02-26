@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -31,7 +30,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle, Wallet } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -47,6 +46,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
 
 
 const availableBankingMethods = [
@@ -83,8 +84,18 @@ const brandingSchema = z.object({
 });
 
 const subscriptionChangeSchema = z.object({
-  transactionId: z.string().min(5, "A valid transaction ID is required."),
+  paymentMethod: z.enum(['credit_card', 'mobile_banking']).default('credit_card'),
+  transactionId: z.string().optional(),
+}).refine(data => {
+    if (data.paymentMethod === 'mobile_banking') {
+        return !!data.transactionId && data.transactionId.trim() !== '';
+    }
+    return true;
+}, {
+    message: "Transaction ID is required for manual payment.",
+    path: ["transactionId"]
 });
+
 type SubscriptionChangeFormData = z.infer<typeof subscriptionChangeSchema>;
 
 
@@ -126,8 +137,10 @@ export default function SettingsAdminPage() {
   
   const subscriptionChangeForm = useForm<SubscriptionChangeFormData>({
     resolver: zodResolver(subscriptionChangeSchema),
-    defaultValues: { transactionId: '' },
+    defaultValues: { paymentMethod: 'credit_card', transactionId: '' },
   });
+
+  const watchedSubMethod = subscriptionChangeForm.watch('paymentMethod');
 
   const fetchSettingsData = useCallback(async () => {
     if (!user) return;
@@ -370,6 +383,38 @@ export default function SettingsAdminPage() {
         if (!user || !planToChange) return;
 
         setIsSubmitting(true);
+
+        if (data.paymentMethod === 'credit_card') {
+            try {
+                const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                const response = await fetch('/api/saas/payments/stripe/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        planId: planToChange.id,
+                        planName: planToChange.name,
+                        amount: planToChange.price,
+                        siteId: user.id,
+                        email: user.email,
+                        successUrl: `${origin}/admin/settings?payment=success`,
+                        cancelUrl: `${origin}/admin/settings?payment=cancel`,
+                    }),
+                });
+
+                const result = await response.json();
+                if (result.url) {
+                    window.location.href = result.url;
+                } else {
+                    throw new Error(result.error || 'Checkout failed');
+                }
+            } catch (e: any) {
+                toast({ variant: 'destructive', title: 'Error', description: e.message });
+                setIsSubmitting(false);
+            }
+            return;
+        }
+
+        // Manual Mobile Banking Flow
         try {
             const response = await fetch('/api/settings/request-plan-change', {
                 method: 'POST',
@@ -960,40 +1005,49 @@ export default function SettingsAdminPage() {
                          {isLoadingPlans || !currentPlan ? (
                             <Skeleton className="h-48 w-full" />
                          ) : (
-                            <Card className="bg-muted/50">
+                            <Card className="bg-muted/50 border-2">
                                 <CardHeader>
-                                    <CardTitle>Your Current Plan: {currentPlan.name}</CardTitle>
-                                    <CardDescription>{currentPlan.description}</CardDescription>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <CardTitle className="text-2xl">Your Current Plan: {currentPlan.name}</CardTitle>
+                                            <CardDescription>{currentPlan.description}</CardDescription>
+                                        </div>
+                                        <Badge className="px-4 py-1">{user?.subscription_status}</Badge>
+                                    </div>
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-4xl font-bold font-headline">
                                         {currentPlan.price === 0 ? 'Free' : `৳${currentPlan.price}`}
                                         <span className="text-sm font-normal text-muted-foreground">{currentPlan.period}</span>
                                     </p>
+                                    {user?.subscription_end_date && (
+                                        <p className="text-xs text-muted-foreground mt-2 font-bold uppercase tracking-widest">Expires on: {new Date(user.subscription_end_date).toLocaleDateString()}</p>
+                                    )}
                                 </CardContent>
                             </Card>
                          )}
                          <div className="space-y-4">
-                            <h3 className="font-semibold">Available Plans</h3>
-                            <div className="grid md:grid-cols-2 gap-4">
+                            <h3 className="font-bold text-lg border-l-4 border-primary pl-3">Available Plans</h3>
+                            <div className="grid md:grid-cols-2 gap-6">
                                 {plans.filter(p => p.id !== user?.subscriptionPlan).map(plan => (
-                                    <Card key={plan.id}>
-                                        <CardHeader>
+                                    <Card key={plan.id} className="flex flex-col border-2 hover:border-primary/30 transition-all group overflow-hidden">
+                                        <CardHeader className="bg-muted/30">
                                             <CardTitle>{plan.name}</CardTitle>
+                                            <CardDescription className="line-clamp-1">{plan.description}</CardDescription>
                                         </CardHeader>
-                                        <CardContent>
-                                            <p className="text-2xl font-bold font-headline">
+                                        <CardContent className="pt-6 flex-grow">
+                                            <p className="text-3xl font-black font-headline text-primary">
                                                 {plan.price === 0 ? 'Free' : `৳${plan.price}`}
                                                 <span className="text-sm font-normal text-muted-foreground">{plan.period}</span>
                                             </p>
-                                            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+                                            <ul className="mt-6 space-y-3 text-sm">
                                                 {plan.features.map((feature, i) => (
-                                                    <li key={i} className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-500" /> {feature}</li>
+                                                    <li key={i} className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-500 shrink-0" /> <span className="text-muted-foreground">{feature}</span></li>
                                                 ))}
                                             </ul>
                                         </CardContent>
-                                        <CardFooter>
-                                            <Button className="w-full" onClick={() => handlePlanChangeClick(plan)} disabled={user?.subscription_status === 'pending_verification'}>
+                                        <CardFooter className="bg-muted/10 pt-4">
+                                            <Button className="w-full rounded-xl font-bold" onClick={() => handlePlanChangeClick(plan)} disabled={user?.subscription_status === 'pending_verification'}>
                                                 {user?.subscription_status === 'pending_verification' ? 'Upgrade Pending' : `Switch to ${plan.name}`}
                                             </Button>
                                         </CardFooter>
@@ -1010,66 +1064,132 @@ export default function SettingsAdminPage() {
 
     {/* Upgrade Plan Dialog */}
     <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upgrade to {planToChange?.name}</DialogTitle>
-            <DialogDescription>To upgrade your plan, please complete the payment below.</DialogDescription>
-          </DialogHeader>
-            <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
-                <h3 className="font-bold mb-2 text-foreground">Mobile Banking Instructions</h3>
-                <ol className="list-decimal list-inside space-y-2">
-                    <li>Open your preferred mobile banking app.</li>
-                    <li>Select the "Payment" option.</li>
-                    <li>Enter the merchant number: <strong>{paymentForm.getValues('mobileBankingNumber') || '...'}</strong></li>
-                    <li>Enter the amount: <strong>৳{planToChange?.price.toFixed(2)}</strong></li>
-                    <li>Complete the payment and copy the Transaction ID.</li>
-                    <li>Paste the Transaction ID in the box below.</li>
-                </ol>
+        <DialogContent className="max-w-2xl rounded-[2rem] p-0 overflow-hidden border-2 shadow-2xl">
+          <DialogHeader className="bg-primary p-8 text-primary-foreground">
+            <div className="flex items-center gap-3">
+                <div className="p-3 bg-white/20 rounded-2xl">
+                    <CreditCard className="h-8 w-8" />
+                </div>
+                <div>
+                    <DialogTitle className="text-2xl font-black">Upgrade to {planToChange?.name}</DialogTitle>
+                    <DialogDescription className="text-primary-foreground/80 font-bold">
+                        Please choose your preferred payment method to activate this plan.
+                    </DialogDescription>
+                </div>
             </div>
+          </DialogHeader>
+          
+          <div className="p-8 space-y-8">
             <Form {...subscriptionChangeForm}>
-            <form onSubmit={subscriptionChangeForm.handleSubmit(onSubscriptionChangeSubmit)} className="space-y-4">
-                <FormField
-                    control={subscriptionChangeForm.control}
-                    name="transactionId"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Transaction ID</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., 8N7F6G5H4J" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
+                <form onSubmit={subscriptionChangeForm.handleSubmit(onSubscriptionChangeSubmit)} className="space-y-8">
+                    <FormField
+                        control={subscriptionChangeForm.control}
+                        name="paymentMethod"
+                        render={({ field }) => (
+                            <FormItem className="space-y-4">
+                                <FormLabel className="text-sm font-black uppercase tracking-widest text-muted-foreground">Choose Payment Method</FormLabel>
+                                <FormControl>
+                                    <RadioGroup
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                                    >
+                                        <Label 
+                                            htmlFor="up-pm-stripe" 
+                                            className={cn(
+                                                "flex flex-col items-center justify-center rounded-2xl border-2 p-6 cursor-pointer transition-all",
+                                                field.value === 'credit_card' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/10" : "border-muted hover:border-primary/20"
+                                            )}
+                                        >
+                                            <RadioGroupItem value="credit_card" id="up-pm-stripe" className="sr-only" />
+                                            <CreditCard className={cn("h-8 w-8 mb-3 transition-colors", field.value === 'credit_card' ? "text-primary" : "text-muted-foreground")} />
+                                            <p className="font-bold text-base">Debit / Credit Card</p>
+                                            <p className="text-[10px] text-muted-foreground mt-1">Instant Activation</p>
+                                        </Label>
+
+                                        <Label 
+                                            htmlFor="up-pm-mobile" 
+                                            className={cn(
+                                                "flex flex-col items-center justify-center rounded-2xl border-2 p-6 cursor-pointer transition-all",
+                                                field.value === 'mobile_banking' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/10" : "border-muted hover:border-primary/20"
+                                            )}
+                                        >
+                                            <RadioGroupItem value="mobile_banking" id="up-pm-mobile" className="sr-only" />
+                                            <Wallet className={cn("h-8 w-8 mb-3 transition-colors", field.value === 'mobile_banking' ? "text-primary" : "text-muted-foreground")} />
+                                            <p className="font-bold text-base">Mobile Banking</p>
+                                            <p className="text-[10px] text-muted-foreground mt-1">Manual Verification</p>
+                                        </Label>
+                                    </RadioGroup>
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    {watchedSubMethod === 'mobile_banking' && (
+                        <div className="space-y-6 animate-in slide-in-from-top-4 duration-500">
+                            <div className="text-sm text-muted-foreground bg-muted/50 p-6 rounded-2xl border-2 border-dashed">
+                                <h3 className="font-bold mb-3 text-foreground flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-primary" /> Mobile Banking Instructions</h3>
+                                <ol className="list-decimal list-inside space-y-2 leading-relaxed">
+                                    <li>Open your preferred mobile banking app.</li>
+                                    <li>Select the "Payment" or "Send Money" option.</li>
+                                    <li>Enter our merchant/admin number: <strong>{paymentForm.getValues('mobileBankingNumber') || '...'}</strong></li>
+                                    <li>Enter the amount: <strong>৳{planToChange?.price.toFixed(2)}</strong></li>
+                                    <li>After payment, enter the Transaction ID below.</li>
+                                </ol>
+                            </div>
+                            <FormField
+                                control={subscriptionChangeForm.control}
+                                name="transactionId"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="font-bold">Transaction ID (TxnID)</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., 8N7F6G5H4J" {...field} className="h-12 rounded-xl border-2 focus:border-primary font-mono text-lg font-bold" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
                     )}
-                />
-                <DialogFooter>
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Submit for Verification
-                    </Button>
-                </DialogFooter>
-            </form>
+
+                    <DialogFooter className="gap-3 pt-4">
+                        <Button type="button" variant="ghost" onClick={() => setIsChangePlanDialogOpen(false)} className="rounded-xl h-12 px-8">Cancel</Button>
+                        <Button type="submit" disabled={isSubmitting} className="flex-grow sm:flex-none h-12 px-10 rounded-xl font-bold shadow-xl shadow-primary/20">
+                            {isSubmitting ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
+                            ) : (
+                                watchedSubMethod === 'credit_card' ? 'Pay with Card' : 'Submit for Verification'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </form>
             </Form>
+          </div>
         </DialogContent>
     </Dialog>
 
     {/* Free Plan Confirmation Dialog */}
     <Dialog open={isFreePlanConfirmOpen} onOpenChange={setIsFreePlanConfirmOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-3xl border-2">
             <DialogHeader>
-                <div className="flex items-center gap-2 text-amber-500 mb-2">
-                    <AlertTriangle className="h-6 w-6" />
-                    <DialogTitle>Confirm Plan Change</DialogTitle>
+                <div className="flex items-center gap-3 text-amber-500 mb-4 bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20">
+                    <AlertTriangle className="h-8 w-8 shrink-0" />
+                    <div>
+                        <DialogTitle className="text-xl font-bold">Confirm Plan Change</DialogTitle>
+                        <p className="text-xs font-medium">Downgrading to Free Plan</p>
+                    </div>
                 </div>
-                <DialogDescription className="text-foreground">
+                <DialogDescription className="text-foreground text-base leading-relaxed">
                     আপনি কি নিশ্চিত যে আপনি <span className="font-bold text-primary">Free</span> প্ল্যানে ফিরে যেতে চান? 
                     <br/><br/>
-                    এর ফলে আপনার স্টোরের কিছু প্রিমিয়াম ফিচার (যেমন: AI, SMS, Custom Domain) বন্ধ হয়ে যেতে পারে।
+                    এর ফলে আপনার স্টোরের কিছু প্রিমিয়াম ফিচার (যেমন: <span className="font-bold">AI Assistant, SMS Notifications, Custom Domain</span>) বন্ধ হয়ে যাবে।
                 </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="mt-4 gap-2 sm:gap-0">
-                <Button variant="outline" onClick={() => setIsFreePlanConfirmOpen(false)} disabled={isSubmitting}>বাতিল করুন</Button>
-                <Button onClick={handleFreePlanSwitch} disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <DialogFooter className="mt-8 gap-3 sm:gap-0">
+                <Button variant="outline" onClick={() => setIsFreePlanConfirmOpen(false)} disabled={isSubmitting} className="rounded-xl h-11">বাতিল করুন</Button>
+                <Button onClick={handleFreePlanSwitch} disabled={isSubmitting} className="rounded-xl h-11 px-8 font-bold shadow-lg">
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     হ্যাঁ, পরিবর্তন করুন
                 </Button>
             </DialogFooter>
