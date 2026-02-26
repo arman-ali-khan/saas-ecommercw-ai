@@ -25,8 +25,8 @@ export async function POST(request: Request) {
   let userId: string | undefined;
 
   try {
-    // Step 1: Normalize Plan ID to lowercase to ensure it matches the foreign key constraint
-    const finalPlanId = (planId && typeof planId === 'string') ? planId.toLowerCase().trim() : 'free';
+    // Step 1: Normalize Plan ID and handle "null" string cases
+    let finalPlanId = (planId && typeof planId === 'string' && planId !== 'null') ? planId.toLowerCase().trim() : 'free';
 
     // Verify if the plan exists in the database to prevent FK violation
     const { data: planExists } = await supabaseAdmin
@@ -36,7 +36,8 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (!planExists && finalPlanId !== 'free') {
-        throw new Error(`অবৈধ সাবস্ক্রিপশন প্ল্যান: ${finalPlanId}`);
+        // Fallback to free if plan not found
+        finalPlanId = 'free';
     }
 
     // Step 2: Create the auth user.

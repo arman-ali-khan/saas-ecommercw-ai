@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -33,15 +34,7 @@ export default function SubscriptionStep({
   onNext,
   onBack,
 }: SubscriptionStepProps) {
-  const searchParams = useSearchParams();
   const [isNavigating, setIsNavigating] = useState(false);
-
-  useEffect(() => {
-    const planFromQuery = searchParams.get('plan');
-    if (planFromQuery && plans.some(p => p.id === planFromQuery)) {
-      updateFormData({ plan: planFromQuery });
-    }
-  }, [searchParams, updateFormData, plans]);
 
   const handleSelectPlan = (planId: string) => {
     updateFormData({ plan: planId });

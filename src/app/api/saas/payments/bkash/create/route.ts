@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       amount: amount.toString(),
       orderID: `SAAS-${planId}-${Date.now()}`,
       intent: 'sale',
-      callbackURL: `${origin}/api/saas/payments/bkash/callback`
+      callbackURL: `${origin}/api/saas/payments/bkash/callback?planId=${planId}`
     });
 
     if (paymentData && paymentData.bkashURL) {

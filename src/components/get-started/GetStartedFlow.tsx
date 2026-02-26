@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -56,23 +57,42 @@ export default function GetStartedFlow() {
     fetchPlans();
   }, []);
 
-  const selectedPlanDetails = plans.find((p) => p.id === formData.plan);
-
   const updateFormData = useCallback((data: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
   }, []);
+
+  // Sync plan and payment info from URL (essential after redirects from Stripe/bKash)
+  useEffect(() => {
+    const planFromQuery = searchParams.get('plan');
+    const stripeId = searchParams.get('stripe_session_id');
+    const bkashTrxId = searchParams.get('trx_id');
+
+    if (planFromQuery && plans.length > 0) {
+        if (plans.some(p => p.id === planFromQuery) && formData.plan !== planFromQuery) {
+            updateFormData({ plan: planFromQuery });
+        }
+    }
+
+    if (stripeId && formData.transactionId !== stripeId) {
+        updateFormData({ transactionId: stripeId, paymentMethod: 'credit_card' });
+    } else if (bkashTrxId && formData.transactionId !== bkashTrxId) {
+        updateFormData({ transactionId: bkashTrxId, paymentMethod: 'bkash' });
+    }
+  }, [searchParams, plans, formData.plan, formData.transactionId, updateFormData]);
+
+  const selectedPlanDetails = plans.find((p) => p.id === formData.plan);
 
   const goToNextStep = () => {
     const currentIndex = STEPS.indexOf(currentStep);
 
     if (currentStep === 'subscription' && formData.plan === 'free') {
-      router.push(`/get-started?step=domain`);
+      router.push(`/get-started?step=domain&plan=free`);
       return;
     }
 
     if (currentIndex < STEPS.length - 1) {
       const nextStep = STEPS[currentIndex + 1];
-      router.push(`/get-started?step=${nextStep}`);
+      router.push(`/get-started?step=${nextStep}${formData.plan ? `&plan=${formData.plan}` : ''}`);
     }
   };
 
@@ -85,12 +105,12 @@ export default function GetStartedFlow() {
     }
 
     if (currentStep === 'domain' && formData.plan === 'free') {
-        router.push(`/get-started?step=subscription`);
+        router.push(`/get-started?step=subscription&plan=free`);
         return;
     }
 
     const prevStep = STEPS[currentIndex - 1];
-    router.push(`/get-started?step=${prevStep}`);
+    router.push(`/get-started?step=${prevStep}${formData.plan ? `&plan=${formData.plan}` : ''}`);
   };
 
   const currentStepIndex = STEPS.indexOf(currentStep);

@@ -93,8 +93,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                     planId: plan.id,
                     planName: plan.name,
                     amount: plan.price,
-                    successUrl: `${origin}/get-started?step=domain&stripe_session_id={CHECKOUT_SESSION_ID}`,
-                    cancelUrl: `${origin}/get-started?step=payment`,
+                    successUrl: `${origin}/get-started?step=domain&plan=${plan.id}&stripe_session_id={CHECKOUT_SESSION_ID}`,
+                    cancelUrl: `${origin}/get-started?step=payment&plan=${plan.id}`,
                 }),
             });
 
@@ -286,7 +286,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
 
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
                             <Button type="button" variant="outline" onClick={onBack} disabled={isNavigating} className="h-12 rounded-xl flex-1 font-bold">
-                                <ArrowLeft className="mr-2 h-4 w-4" /> পিছে ফিরে যান
+                                <ArrowLeft className="mr-2 h-4 w-4" /> আগের ধাপ
                             </Button>
                             <Button type="submit" className="h-12 rounded-xl flex-1 font-bold shadow-lg shadow-primary/20" disabled={isNavigating}>
                                 {isNavigating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> প্রসেসিং...</> : 'পরবর্তী ধাপ'}

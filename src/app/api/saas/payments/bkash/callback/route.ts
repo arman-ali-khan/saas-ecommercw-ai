@@ -10,11 +10,12 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const paymentID = searchParams.get('paymentID');
   const status = searchParams.get('status');
+  const planId = searchParams.get('planId') || 'pro';
 
   const origin = request.headers.get('origin') || `${new URL(request.url).protocol}//${request.headers.get('host')}`;
 
   if (status !== 'success') {
-    return NextResponse.redirect(`${origin}/get-started?step=payment&error=bkash_failed`);
+    return NextResponse.redirect(`${origin}/get-started?step=payment&plan=${planId}&error=bkash_failed`);
   }
 
   try {
@@ -33,13 +34,13 @@ export async function GET(request: Request) {
 
     if (executeRes && executeRes.transactionStatus === 'Completed') {
       // Payment successful, redirect to domain step
-      return NextResponse.redirect(`${origin}/get-started?step=domain&bkash_payment_id=${executeRes.paymentID}&trx_id=${executeRes.trxID}`);
+      return NextResponse.redirect(`${origin}/get-started?step=domain&plan=${planId}&bkash_payment_id=${executeRes.paymentID}&trx_id=${executeRes.trxID}`);
     } else {
       throw new Error(executeRes?.statusMessage || 'bKash execution failed');
     }
 
   } catch (err: any) {
     console.error('bKash Callback Error:', err);
-    return NextResponse.redirect(`${origin}/get-started?step=payment&error=bkash_verify_failed`);
+    return NextResponse.redirect(`${origin}/get-started?step=payment&plan=${planId}&error=bkash_verify_failed`);
   }
 }
