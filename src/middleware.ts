@@ -24,9 +24,12 @@ export async function middleware(request: NextRequest) {
 
   const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
   const hostWithoutPort = hostname.split(':')[0];
+  
+  // Explicitly ignore localhost and common dev hosts for custom domain lookups
+  const isDevHost = hostWithoutPort === 'localhost' || hostWithoutPort === '127.0.0.1' || hostWithoutPort.includes('workstation');
   const isRoot = hostWithoutPort === rootDomain || hostWithoutPort === `www.${rootDomain}`;
 
-  if (isRoot) {
+  if (isRoot || (isDevHost && !hostWithoutPort.endsWith(`.${rootDomain}`))) {
     return NextResponse.next();
   }
 
@@ -36,10 +39,8 @@ export async function middleware(request: NextRequest) {
   // Check if it's a subdomain of our root domain
   if (hostWithoutPort.endsWith(`.${rootDomain}`)) {
     username = hostWithoutPort.replace(`.${rootDomain}`, '');
-  } else {
-    // If not a subdomain, it might be a CUSTOM DOMAIN
-    // We need to look up which site this domain belongs to.
-    // NOTE: For performance in production, consider caching this lookup (e.g. Upstash Redis).
+  } else if (!isDevHost) {
+    // Only attempt custom domain lookup on production hosts
     try {
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,

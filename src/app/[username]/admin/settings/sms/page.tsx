@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const smsSettingsSchema = z.object({
   sms_notifications_enabled: z.boolean().default(false),
