@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -31,10 +32,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, Search, X, CheckCircle2, Clock, Bell, ShoppingCart, MessageSquare, Globe, Sparkles, Filter } from 'lucide-react';
+import { Loader2, Plus, Search, X, CheckCircle2, Clock, Bell, ShoppingCart, MessageSquare, Globe, Sparkles, Filter, Store } from 'lucide-react';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/stores/auth';
 
 type NotificationWithDetails = Notification & {
   profiles?: {
@@ -49,6 +51,7 @@ type NotificationWithDetails = Notification & {
 const NOTIFICATIONS_PER_PAGE = 15;
 
 export default function SaasNotificationsPage() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<NotificationWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +66,11 @@ export default function SaasNotificationsPage() {
         const response = await fetch('/api/notifications/list', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ recipientType: 'admin', limit: 200 }),
+            body: JSON.stringify({ 
+                recipientType: 'admin', 
+                limit: 200,
+                platformView: true // Requesting all notifications for SaaS admin
+            }),
         });
         const result = await response.json();
         
@@ -94,8 +101,10 @@ export default function SaasNotificationsPage() {
   }, [toast]);
 
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    if (user?.isSaaSAdmin) {
+        fetchNotifications();
+    }
+  }, [fetchNotifications, user]);
   
   useEffect(() => {
     setCurrentPage(1);
@@ -228,10 +237,14 @@ export default function SaasNotificationsPage() {
                                 <span className="flex items-center gap-1 font-bold">
                                     <Clock className="h-3 w-3" /> {format(new Date(n.created_at), 'PPPp', { locale: bn })}
                                 </span>
-                                {n.profiles && (
+                                {n.profiles ? (
                                     <span className="flex items-center gap-1 font-bold uppercase tracking-wider text-primary">
                                         <Store className="h-3 w-3" /> {n.profiles.site_name} (@{n.profiles.domain})
                                     </span>
+                                ) : n.recipient_id ? (
+                                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded">User ID: {n.recipient_id.slice(0,8)}</span>
+                                ) : (
+                                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold uppercase">System Alert</span>
                                 )}
                             </div>
                         </div>

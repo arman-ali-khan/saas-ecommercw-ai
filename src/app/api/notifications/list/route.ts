@@ -1,19 +1,35 @@
 
 import { NextResponse } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
-    const { recipientId, recipientType, siteId, limit = 50 } = await request.json();
+    const { recipientId, recipientType, siteId, limit = 100, platformView = false } = await request.json();
 
-    // recipientType is mandatory
     if (!recipientType) {
       return NextResponse.json({ error: 'Recipient Type is required.' }, { status: 400 });
     }
 
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
+
+    const { data: { session } } = await supabase.auth.getSession();
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
     );
 
     let query = supabaseAdmin
@@ -21,15 +37,25 @@ export async function POST(request: Request) {
       .select('*')
       .eq('recipient_type', recipientType);
 
-    // If recipientId is provided, filter by it. 
-    // If NOT provided, we assume it's a platform-level notification (recipient_id IS NULL)
-    if (recipientId) {
-      query = query.eq('recipient_id', recipientId);
+    // SECURITY & FILTERING LOGIC
+    if (platformView && session) {
+        // Verify caller is actually a SaaS admin before allowing platform-wide view
+        const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
+        if (caller?.role !== 'saas_admin') {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        // For SaaS Admin in platform view, we show EVERYTHING for that recipient type (usually 'admin')
+        // No additional recipient_id filter needed to show all history
     } else {
-      query = query.is('recipient_id', null);
+        // Standard user or site admin view
+        if (recipientId) {
+          query = query.eq('recipient_id', recipientId);
+        } else {
+          query = query.is('recipient_id', null);
+        }
     }
 
-    if (siteId) {
+    if (siteId && !platformView) {
       query = query.eq('site_id', siteId);
     }
 
