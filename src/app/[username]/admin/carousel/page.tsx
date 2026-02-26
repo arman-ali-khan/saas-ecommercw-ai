@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
-import type { CarouselSlide } from '@/types';
+import type { CarouselSlide, SiteImage } from '@/types';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, GalleryHorizontal, MoreHorizontal, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, GalleryHorizontal, MoreHorizontal, X, Search, ChevronLeft, ChevronRight, Check, ImageIcon } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
@@ -37,7 +37,7 @@ type SlideFormData = z.infer<typeof slideSchema>;
 
 export default function CarouselAdminPage() {
     const { user } = useAuth();
-    const { carousel: slides, setCarousel: setSlides } = useAdminStore();
+    const { carousel: slides, setCarousel: setSlides, images: galleryImages, setImages } = useAdminStore();
     const { toast } = useToast();
     
     const [isLoading, setIsLoading] = useState(() => !useAdminStore.getState().carousel.length);
@@ -45,6 +45,12 @@ export default function CarouselAdminPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [selectedSlide, setSelectedSlide] = useState<CarouselSlide | null>(null);
+
+    // Image Picker State
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const [pickerSearch, setPickerSearch] = useState('');
+    const [pickerPage, setPickerPage] = useState(1);
+    const IMAGES_PER_PAGE = 8;
 
     const form = useForm<SlideFormData>({
         resolver: zodResolver(slideSchema),
@@ -94,11 +100,27 @@ export default function CarouselAdminPage() {
         }
     }, [user, setSlides, toast, slides.length]);
 
+    const fetchImages = useCallback(async () => {
+        if (!user) return;
+        try {
+            const response = await fetch('/api/images/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setImages(result.images || []);
+            }
+        } catch (e) { console.error("Gallery fetch error:", e); }
+    }, [user, setImages]);
+
     useEffect(() => {
         if (user) {
             fetchSlides();
+            fetchImages();
         }
-    }, [user, fetchSlides]);
+    }, [user, fetchSlides, fetchImages]);
 
     useEffect(() => {
         if (isFormOpen) {
@@ -211,6 +233,50 @@ export default function CarouselAdminPage() {
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Failed to reorder slides' });
             await fetchSlides(true);
+        }
+    };
+
+    // Image Picker Logic
+    const filteredGallery = useMemo(() => {
+        return galleryImages.filter(img => 
+            (img.name || '').toLowerCase().includes(pickerSearch.toLowerCase())
+        );
+    }, [galleryImages, pickerSearch]);
+
+    const paginatedGallery = useMemo(() => {
+        const start = (pickerPage - 1) * IMAGES_PER_PAGE;
+        return filteredGallery.slice(start, start + IMAGES_PER_PAGE);
+    }, [filteredGallery, pickerPage]);
+
+    const totalPickerPages = Math.ceil(filteredGallery.length / IMAGES_PER_PAGE);
+
+    const handlePickerImageSelect = (url: string) => {
+        form.setValue('image_url', url, { shouldValidate: true, shouldDirty: true });
+        setIsPickerOpen(false);
+    };
+
+    const handlePickerUploadSuccess = async (uploadRes: any) => {
+        if (!user) return;
+        try {
+            const response = await fetch('/api/images/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    siteId: user.id,
+                    url: uploadRes.info.secure_url,
+                    name: uploadRes.info.original_filename
+                }),
+            });
+            if (response.ok) {
+                const result = await response.json();
+                const newImg = result.image;
+                setImages([newImg, ...galleryImages]);
+                form.setValue('image_url', newImg.url, { shouldValidate: true, shouldDirty: true });
+                setIsPickerOpen(false);
+                toast({ title: 'Image uploaded and selected!' });
+            }
+        } catch (e) {
+            console.error("Picker upload save error:", e);
         }
     };
     
@@ -330,7 +396,7 @@ export default function CarouselAdminPage() {
             {/* Form Modal */}
             {isFormOpen && (
                 <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsFormOpen(false)} />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsFormOpen(false)} />
                     <div className="relative w-full max-w-2xl bg-background rounded-t-[2rem] sm:rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
                         <div className="flex items-center justify-between p-6 border-b">
                             <h2 className="text-xl font-bold">{selectedSlide ? 'Edit Slide' : 'Add New Slide'}</h2>
@@ -349,8 +415,10 @@ export default function CarouselAdminPage() {
                                                     {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <span className="text-xs text-muted-foreground">Image Preview</span>}
                                                 </div>
                                                 <div className="space-y-3 flex-grow w-full">
-                                                    <FormControl><Input placeholder="https://example.com/image.png" {...field} className="h-11" /></FormControl>
-                                                    <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} label="Upload Image" />
+                                                    <Button type="button" variant="outline" className="w-full rounded-xl border-2 border-dashed h-11" onClick={() => setIsPickerOpen(true)}>
+                                                        <ImageIcon className="h-4 w-4 mr-2" /> গ্যালারি থেকে ছবি নিন
+                                                    </Button>
+                                                    <FormControl><Input placeholder="https://example.com/image.png" {...field} className="h-9 text-[10px]" /></FormControl>
                                                 </div>
                                             </div>
                                             <FormMessage />
@@ -384,6 +452,105 @@ export default function CarouselAdminPage() {
                                     </div>
                                 </form>
                             </Form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Image Picker Modal */}
+            {isPickerOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsPickerOpen(false)} />
+                    <div className="relative w-full max-w-4xl bg-background rounded-[2.5rem] shadow-2xl border-2 border-primary/10 overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b flex justify-between items-center bg-muted/30">
+                            <div>
+                                <h2 className="text-2xl font-bold flex items-center gap-2">
+                                    <ImageIcon className="h-6 w-6 text-primary" /> ছবি নির্বাচন করুন
+                                </h2>
+                                <p className="text-xs text-muted-foreground">গ্যালারি থেকে সিলেক্ট করুন অথবা নতুন ছবি আপলোড করুন।</p>
+                            </div>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsPickerOpen(false)}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+
+                        <div className="p-6 flex flex-col gap-6 flex-grow overflow-hidden">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div className="relative flex-grow w-full sm:max-w-md">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input 
+                                        placeholder="ছবির নাম দিয়ে খুঁজুন..." 
+                                        className="pl-10 h-11 rounded-xl"
+                                        value={pickerSearch}
+                                        onChange={(e) => { setPickerSearch(e.target.value); setPickerPage(1); }}
+                                    />
+                                </div>
+                                <ImageUploader onUpload={handlePickerUploadSuccess} label="নতুন আপলোড" />
+                            </div>
+
+                            <div className="flex-grow overflow-y-auto pr-2">
+                                {paginatedGallery.length > 0 ? (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                        {paginatedGallery.map((img) => {
+                                            const isSelected = form.watch('image_url') === img.url;
+                                            return (
+                                                <div 
+                                                    key={img.id} 
+                                                    onClick={() => handlePickerImageSelect(img.url)}
+                                                    className={cn(
+                                                        "relative aspect-square rounded-2xl overflow-hidden border-2 cursor-pointer transition-all group",
+                                                        isSelected ? "border-primary ring-4 ring-primary/10" : "border-border hover:border-primary/40"
+                                                    )}
+                                                >
+                                                    <Image src={img.url} alt={img.name || 'Gallery Image'} fill className="object-cover transition-transform group-hover:scale-110" />
+                                                    {isSelected && (
+                                                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                                            <div className="bg-primary text-primary-foreground rounded-full p-1.5 shadow-lg">
+                                                                <Check className="h-5 w-5" />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <p className="text-[10px] text-white truncate text-center">{img.name}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-20">
+                                        <ImageIcon className="h-12 w-12 opacity-20 mb-4" />
+                                        <p className="text-sm font-bold">কোনো ছবি পাওয়া যায়নি</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/30">
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="h-9 w-9 rounded-lg" 
+                                    disabled={pickerPage === 1}
+                                    onClick={() => setPickerPage(p => p - 1)}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <span className="text-xs font-bold px-3 py-1 bg-background rounded-md border">
+                                    পৃষ্ঠা {pickerPage} / {totalPickerPages || 1}
+                                </span>
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="h-9 w-9 rounded-lg" 
+                                    disabled={pickerPage >= totalPickerPages}
+                                    onClick={() => setPickerPage(p => p + 1)}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <Button variant="ghost" onClick={() => setIsPickerOpen(false)}>বাতিল</Button>
                         </div>
                     </div>
                 </div>

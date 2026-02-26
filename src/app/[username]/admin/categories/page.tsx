@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
-import type { Category } from '@/types';
+import type { Category, SiteImage } from '@/types';
 import Image from 'next/image';
 
 import {
@@ -36,7 +36,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, MoreHorizontal, Palette, X, AlertTriangle, Check } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, MoreHorizontal, Palette, X, AlertTriangle, Check, Search, ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
@@ -83,7 +83,7 @@ const softColorPalette = [
 
 export default function CategoriesAdminPage() {
     const { user } = useAuth();
-    const { categories, setCategories } = useAdminStore();
+    const { categories, setCategories, images: galleryImages, setImages } = useAdminStore();
     const { toast } = useToast();
     
     const [isLoading, setIsLoading] = useState(() => {
@@ -94,6 +94,12 @@ export default function CategoriesAdminPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+
+    // Image Picker State
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const [pickerSearch, setPickerSearch] = useState('');
+    const [pickerPage, setPickerPage] = useState(1);
+    const IMAGES_PER_PAGE = 8;
 
     const lang = user?.language || 'bn';
     const t = translations[lang].categories;
@@ -140,11 +146,27 @@ export default function CategoriesAdminPage() {
         }
     }, [user, setCategories, toast, categories.length]);
 
+    const fetchImages = useCallback(async () => {
+        if (!user) return;
+        try {
+            const response = await fetch('/api/images/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ siteId: user.id }),
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setImages(result.images || []);
+            }
+        } catch (e) { console.error("Gallery fetch error:", e); }
+    }, [user, setImages]);
+
     useEffect(() => {
         if(user) {
             fetchCategories();
+            fetchImages();
         }
-    }, [user, fetchCategories]);
+    }, [user, fetchCategories, fetchImages]);
 
     useEffect(() => {
         if (isFormOpen) {
@@ -232,6 +254,50 @@ export default function CategoriesAdminPage() {
             setSelectedCategory(null);
         }
     }
+
+    // Image Picker Logic
+    const filteredGallery = useMemo(() => {
+        return galleryImages.filter(img => 
+            (img.name || '').toLowerCase().includes(pickerSearch.toLowerCase())
+        );
+    }, [galleryImages, pickerSearch]);
+
+    const paginatedGallery = useMemo(() => {
+        const start = (pickerPage - 1) * IMAGES_PER_PAGE;
+        return filteredGallery.slice(start, start + IMAGES_PER_PAGE);
+    }, [filteredGallery, pickerPage]);
+
+    const totalPickerPages = Math.ceil(filteredGallery.length / IMAGES_PER_PAGE);
+
+    const handlePickerImageSelect = (url: string) => {
+        form.setValue('image_url', url, { shouldValidate: true, shouldDirty: true });
+        setIsPickerOpen(false);
+    };
+
+    const handlePickerUploadSuccess = async (uploadRes: any) => {
+        if (!user) return;
+        try {
+            const response = await fetch('/api/images/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    siteId: user.id,
+                    url: uploadRes.info.secure_url,
+                    name: uploadRes.info.original_filename
+                }),
+            });
+            if (response.ok) {
+                const result = await response.json();
+                const newImg = result.image;
+                setImages([newImg, ...galleryImages]);
+                form.setValue('image_url', newImg.url, { shouldValidate: true, shouldDirty: true });
+                setIsPickerOpen(false);
+                toast({ title: 'Image uploaded and selected!' });
+            }
+        } catch (e) {
+            console.error("Picker upload save error:", e);
+        }
+    };
     
     if (isLoading && categories.length === 0) {
         return (
@@ -405,7 +471,7 @@ export default function CategoriesAdminPage() {
                 </CardContent>
             </Card>
 
-            {/* Custom Modal */}
+            {/* Form Modal */}
             {isFormOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isSubmitting && setIsFormOpen(false)} />
@@ -500,9 +566,11 @@ export default function CategoriesAdminPage() {
                                                     >
                                                         {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover"/> : <div className="text-center flex flex-col items-center gap-2"><ImageIcon className="h-8 w-8 text-muted-foreground/30" /><span className="text-[10px] text-muted-foreground font-black uppercase">Preview</span></div>}
                                                     </div>
-                                                    <div className="space-y-3 flex-grow w-full">
-                                                        <FormControl><Input placeholder="https://example.com/image.png" {...field} className="rounded-xl h-10 text-xs" /></FormControl>
-                                                        <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} label="Upload Image" />
+                                                    <div className="flex flex-col gap-2">
+                                                        <Button type="button" variant="outline" className="w-full rounded-xl border-2 border-dashed h-11" onClick={() => setIsPickerOpen(true)}>
+                                                            <ImageIcon className="h-4 w-4 mr-2" /> গ্যালারি থেকে ছবি নিন
+                                                        </Button>
+                                                        <FormControl><Input placeholder="বা ইমেজের লিঙ্ক দিন" {...field} className="rounded-xl h-9 text-[10px]" /></FormControl>
                                                     </div>
                                                 </div>
                                                 <FormMessage />
@@ -544,6 +612,105 @@ export default function CategoriesAdminPage() {
                 </div>
             )}
 
+            {/* Image Picker Modal */}
+            {isPickerOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsPickerOpen(false)} />
+                    <div className="relative w-full max-w-4xl bg-background rounded-[2.5rem] shadow-2xl border-2 border-primary/10 overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b flex justify-between items-center bg-muted/30">
+                            <div>
+                                <h2 className="text-2xl font-bold flex items-center gap-2">
+                                    <ImageIcon className="h-6 w-6 text-primary" /> ছবি নির্বাচন করুন
+                                </h2>
+                                <p className="text-xs text-muted-foreground">গ্যালারি থেকে সিলেক্ট করুন অথবা নতুন ছবি আপলোড করুন।</p>
+                            </div>
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsPickerOpen(false)}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+
+                        <div className="p-6 flex flex-col gap-6 flex-grow overflow-hidden">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div className="relative flex-grow w-full sm:max-w-md">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input 
+                                        placeholder="ছবির নাম দিয়ে খুঁজুন..." 
+                                        className="pl-10 h-11 rounded-xl"
+                                        value={pickerSearch}
+                                        onChange={(e) => { setPickerSearch(e.target.value); setPickerPage(1); }}
+                                    />
+                                </div>
+                                <ImageUploader onUpload={handlePickerUploadSuccess} label="নতুন আপলোড" />
+                            </div>
+
+                            <div className="flex-grow overflow-y-auto pr-2">
+                                {paginatedGallery.length > 0 ? (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                        {paginatedGallery.map((img) => {
+                                            const isSelected = form.watch('image_url') === img.url;
+                                            return (
+                                                <div 
+                                                    key={img.id} 
+                                                    onClick={() => handlePickerImageSelect(img.url)}
+                                                    className={cn(
+                                                        "relative aspect-square rounded-2xl overflow-hidden border-2 cursor-pointer transition-all group",
+                                                        isSelected ? "border-primary ring-4 ring-primary/10" : "border-border hover:border-primary/40"
+                                                    )}
+                                                >
+                                                    <Image src={img.url} alt={img.name || 'Gallery Image'} fill className="object-cover transition-transform group-hover:scale-110" />
+                                                    {isSelected && (
+                                                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                                            <div className="bg-primary text-primary-foreground rounded-full p-1.5 shadow-lg">
+                                                                <Check className="h-5 w-5" />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <p className="text-[10px] text-white truncate text-center">{img.name}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-20">
+                                        <ImageIcon className="h-12 w-12 opacity-20 mb-4" />
+                                        <p className="text-sm font-bold">কোনো ছবি পাওয়া যায়নি</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/30">
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="h-9 w-9 rounded-lg" 
+                                    disabled={pickerPage === 1}
+                                    onClick={() => setPickerPage(p => p - 1)}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <span className="text-xs font-bold px-3 py-1 bg-background rounded-md border">
+                                    পৃষ্ঠা {pickerPage} / {totalPickerPages || 1}
+                                </span>
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="h-9 w-9 rounded-lg" 
+                                    disabled={pickerPage >= totalPickerPages}
+                                    onClick={() => setPickerPage(p => p + 1)}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <Button variant="ghost" onClick={() => setIsPickerOpen(false)}>বাতিল</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Delete Confirmation */}
             {isAlertOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -574,7 +741,3 @@ export default function CategoriesAdminPage() {
         </>
     )
 }
-
-const ImageIcon = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-);
