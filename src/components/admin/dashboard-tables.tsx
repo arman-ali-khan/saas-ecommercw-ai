@@ -7,8 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowRight, Eye, Star, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ArrowRight, Eye, Star, AlertTriangle, TrendingUp, Users, MessageCircle, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import type { Order, ProductReview, ProductQna, Product } from '@/types';
 import Image from 'next/image';
 
@@ -18,6 +20,7 @@ interface DashboardTablesProps {
   pendingReviews: ProductReview[];
   unansweredQuestions: ProductQna[];
   topSellingProducts: any[];
+  recentCustomers: any[];
   isLoading: boolean;
   t: any;
 }
@@ -39,6 +42,7 @@ export default function DashboardTables({
   pendingReviews, 
   unansweredQuestions, 
   topSellingProducts,
+  recentCustomers,
   isLoading, 
   t 
 }: DashboardTablesProps) {
@@ -91,6 +95,130 @@ export default function DashboardTables({
           </CardContent>
         </Card>
 
+        {/* New Customers Table */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-blue-500" /> নতুন গ্রাহক</CardTitle>
+              <CardDescription>আপনার স্টোরে সম্প্রতি যুক্ত হওয়া গ্রাহক।</CardDescription>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/customers`}>সকল গ্রাহক</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? <TableSkeletonLoader /> : !recentCustomers?.length ? <p className="text-muted-foreground text-center py-8">কোনো গ্রাহক পাওয়া যায়নি।</p> : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>নাম</TableHead>
+                      <TableHead>তারিখ</TableHead>
+                      <TableHead className="text-right">বিস্তারিত</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentCustomers.map(customer => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="text-[10px]">{customer.full_name?.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold truncate max-w-[120px]">{customer.full_name}</span>
+                            <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{customer.email}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">
+                          {format(new Date(customer.created_at), 'PP')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                            <Link href={`/admin/customers/${customer.id}`}><Eye className="h-4 w-4" /></Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Unanswered Q&A */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2"><HelpCircle className="h-5 w-5 text-amber-500" /> উত্তরহীন প্রশ্নসমূহ</CardTitle>
+              <CardDescription>গ্রাহকদের করা প্রশ্নগুলোর উত্তর দিন।</CardDescription>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/qna`}>সকল প্রশ্ন</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? <TableSkeletonLoader /> : !unansweredQuestions?.length ? <p className="text-muted-foreground text-center py-8">সব প্রশ্নের উত্তর দেওয়া হয়েছে।</p> : (
+              <div className="space-y-3">
+                {unansweredQuestions.map(qna => (
+                  <div key={qna.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-muted/30 transition-colors">
+                    <div className="flex flex-col min-w-0 flex-1 mr-4">
+                        <span className="text-xs font-bold truncate">Q: {qna.question}</span>
+                        <span className="text-[10px] text-muted-foreground mt-1">Product ID: {qna.product_id} • By {qna.customer_name}</span>
+                    </div>
+                    <Button variant="secondary" size="sm" asChild className="h-8 px-3 rounded-lg shrink-0">
+                      <Link href={`/admin/qna`}>
+                        রিপ্লাই দিন
+                      </Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pending Reviews */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Star className="h-5 w-5 text-yellow-500" /> পেন্ডিং রিভিউ</CardTitle>
+              <CardDescription>{t.reviewDesc}</CardDescription>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/reviews`}>সকল রিভিউ</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? <TableSkeletonLoader /> : !pendingReviews?.length ? <p className="text-muted-foreground text-center py-8">{t.noPendingReviews}</p> : (
+              <div className="space-y-3">
+                {pendingReviews.map(reviewItemRecord => (
+                  <div key={reviewItemRecord.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-muted/30 transition-colors">
+                    <div className="flex flex-col">
+                        <span className="text-xs font-bold">{reviewItemRecord.customer_name}</span>
+                        <div className="flex items-center mt-0.5">
+                            {[...Array(5)].map((_, starIndex) => (
+                                <Star key={starIndex} className={cn("h-3 w-3", starIndex < reviewItemRecord.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                            ))}
+                        </div>
+                    </div>
+                    <Button variant="secondary" size="sm" asChild className="h-9 px-4 rounded-lg">
+                      <Link href={`/admin/reviews`}>
+                        <Eye className="mr-2 h-4 w-4" /> {t.view}
+                      </Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Pending Orders */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -137,9 +265,8 @@ export default function DashboardTables({
             )}
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Low Stock Products */}
         <Card className="border-destructive/20">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -207,41 +334,6 @@ export default function DashboardTables({
                   })}
                 </div>
               </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>{t.pendingReviews}</CardTitle>
-              <CardDescription>{t.reviewDesc}</CardDescription>
-            </div>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/admin/reviews`}>{t.viewAll}</Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? <TableSkeletonLoader /> : pendingReviews.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noPendingReviews}</p> : (
-              <div className="space-y-3">
-                {pendingReviews.map(reviewItemRecord => (
-                  <div key={reviewItemRecord.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-muted/30 transition-colors">
-                    <div className="flex flex-col">
-                        <span className="text-xs font-bold">{reviewItemRecord.customer_name}</span>
-                        <div className="flex items-center mt-0.5">
-                            {[...Array(5)].map((_, starIndex) => (
-                                <Star key={starIndex} className={cn("h-3 w-3", starIndex < reviewItemRecord.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
-                            ))}
-                        </div>
-                    </div>
-                    <Button variant="secondary" size="sm" asChild className="h-9 px-4 rounded-lg">
-                      <Link href={`/admin/reviews`}>
-                        <Eye className="mr-2 h-4 w-4" /> {t.view}
-                      </Link>
-                    </Button>
-                  </div>
-                ))}
-              </div>
             )}
           </CardContent>
         </Card>

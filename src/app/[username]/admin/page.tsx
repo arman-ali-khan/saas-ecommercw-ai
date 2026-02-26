@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { subDays, format as safeDateFormatter } from 'date-fns';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Ban, Loader2, AlertTriangle } from 'lucide-react';
+import { Ban, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
@@ -73,6 +73,7 @@ export default function AdminDashboard() {
         const finalDealsList = Array.isArray(flashDealsData.deals) ? flashDealsData.deals : [];
         const finalReviewsList = Array.isArray(reviewsData.reviews) ? reviewsData.reviews : [];
         const finalQnaList = Array.isArray(qnaData.qna) ? qnaData.qna : [];
+        const finalCustomersList = Array.isArray(customersData.customers) ? customersData.customers : [];
 
         const totalRevenueCalculated = finalOrdersList.filter((orderRec: any) => orderRec.status === 'delivered').reduce((acc: number, orderRec: any) => acc + (orderRec.total || 0), 0);
         const monthlyOrdersCounted = finalOrdersList.filter((orderRec: any) => new Date(orderRec.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1) && orderRec.status !== 'canceled').length;
@@ -136,7 +137,7 @@ export default function AdminDashboard() {
           totalProducts: finalProductsList.length,
           uncompletedOrders: unviewedCartsCount,
           totalUncompletedOrders: finalUncompletedList.length,
-          totalCustomers: (customersData.customers || []).length,
+          totalCustomers: finalCustomersList.length,
           ordersThisMonth: monthlyOrdersCounted,
           activeFlashDeals: activeFlashDealsCount,
           allOrders: finalOrdersList,
@@ -144,11 +145,12 @@ export default function AdminDashboard() {
           pendingOrders: finalOrdersList.filter((orderRec: any) => orderRec.status === 'pending').slice(0, 5),
           lowStockProducts: detectedLowStockItems,
           pendingReviews: finalReviewsList.filter((reviewRecord: any) => !reviewRecord.is_approved).slice(0, 5),
-          unansweredQuestions: finalQnaList.filter((qnaRecord: any) => !qnaRecord.is_approved).slice(0, 5),
+          unansweredQuestions: finalQnaList.filter((qnaRecord: any) => !qnaRecord.answer).slice(0, 5),
           topSellingProducts: topSellingProducts,
+          recentCustomers: finalCustomersList.slice(0, 5),
         };
 
-        globalAdminStore.setDashboard(comprehensiveDashboardData);
+        globalAdminStore.setDashboard(comprehensiveDashboardData as any);
       } catch (dashboardFetchError: any) {
         console.error("Dashboard Fetch Error:", dashboardFetchError);
         if (!useAdminStore.getState().dashboard) {
@@ -184,6 +186,7 @@ export default function AdminDashboard() {
     pendingReviews: [],
     unansweredQuestions: [],
     topSellingProducts: [],
+    recentCustomers: [],
   }, [globalAdminStore.dashboard]);
 
   const shouldShowSkeleton = isDataLoading && !globalAdminStore.dashboard;
@@ -227,6 +230,7 @@ export default function AdminDashboard() {
         pendingReviews={dashboardDisplayStats.pendingReviews} 
         unansweredQuestions={dashboardDisplayStats.unansweredQuestions} 
         topSellingProducts={dashboardDisplayStats.topSellingProducts}
+        recentCustomers={(dashboardDisplayStats as any).recentCustomers}
         isLoading={shouldShowSkeleton} 
         t={currentLangStrings} 
       />
