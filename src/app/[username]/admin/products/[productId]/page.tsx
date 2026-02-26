@@ -51,7 +51,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
-import type { Product, Category, ProductAttribute, SiteImage } from '@/types';
+import type { Product, Category, ProductAttribute, SiteImage, ProductVariant } from '@/types';
 import ImageUploader from '@/components/image-uploader';
 import {
   DropdownMenu,
@@ -246,11 +246,11 @@ export default function ManageProductPage() {
 
   const groupedAttributes = useMemo(() => {
     if (!attributes || !Array.isArray(attributes)) return {} as Record<string, string[]>;
-    return attributes.reduce((acc, record) => { 
-        const type = record.type;
-        if (!acc[type]) acc[type] = [];
-        acc[type].push(record.value);
-        return acc; 
+    return attributes.reduce((accMap, attrRecord) => { 
+        const type = attrRecord.type;
+        if (!accMap[type]) accMap[type] = [];
+        accMap[type].push(attrRecord.value);
+        return accMap; 
     }, {} as Record<string, string[]>);
   }, [attributes]);
 
@@ -362,16 +362,16 @@ export default function ManageProductPage() {
   };
 
   const handleAddTag = (tagVal: string) => {
-    const currentTagsList = form.getValues('tags');
+    const currentTagsList = form.getValues('tags') || [];
     if (tagVal && !currentTagsList.includes(tagVal)) {
-        form.setValue('tags', [...currentTagsList, tagVal], { shouldDirty: true });
+        form.setValue('tags', [...currentTagsList, tagVal], { shouldDirty: true, shouldValidate: true });
     }
     setTagInput('');
   };
 
   const handleRemoveTag = (tagVal: string) => {
-    const currentTagsList = form.getValues('tags');
-    form.setValue('tags', currentTagsList.filter(tItem => tItem !== tagVal), { shouldDirty: true });
+    const currentTagsList = form.getValues('tags') || [];
+    form.setValue('tags', currentTagsList.filter(tItem => tItem !== tagVal), { shouldDirty: true, shouldValidate: true });
   };
 
   // Image Picker Logic
@@ -389,7 +389,7 @@ export default function ManageProductPage() {
   const totalPickerPages = Math.ceil(filteredGallery.length / IMAGES_PER_PAGE);
 
   const handlePickerImageSelect = (url: string) => {
-    const currentImages = form.getValues('images');
+    const currentImages = form.getValues('images') || [];
     if (currentImages.some(img => img.imageUrl === url)) {
         form.setValue('images', currentImages.filter(img => img.imageUrl !== url));
     } else {
@@ -656,20 +656,22 @@ export default function ManageProductPage() {
                                 </FormItem>
                             )} />
 
-                            <FormField control={form.control} name="categories" render={({ field }) => (<FormItem><FormLabel>ক্যাটাগরি সিলেক্ট করুন</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full h-11 justify-between font-normal"><span className="truncate">{field.value?.length ? field.value.join(', ') : "সিলেক্ট করুন"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((catRecord) => (<DropdownMenuCheckboxItem key={catRecord.id} checked={field.value?.includes(catRecord.name)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), catRecord.name] : field.value.filter((vItem) => vItem !== catRecord.name))}>{catRecord.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu></FormItem>)} />
+                            <FormField control={form.control} name="categories" render={({ field }) => (<FormItem><FormLabel>ক্যাটাগরি সিলেক্ট করুন</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full h-11 justify-between font-normal"><span className="truncate">{field.value?.length ? field.value.join(', ') : "সিলেক্ট করুন"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((catRecord) => (<DropdownMenuCheckboxItem key={catRecord.id} checked={field.value?.includes(catRecord.name)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), catRecord.name] : (field.value || []).filter((vItem) => vItem !== catRecord.name))}>{catRecord.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu></FormItem>)} />
                             
-                            <FormField control={form.control} name="tags" render={({ field }) => (
+                            <FormField control={form.control} name="tags" render={({ field }) => {
+                                const currentTags = field.value || [];
+                                return (
                                 <FormItem>
                                     <FormLabel className="flex items-center gap-2"><TagsIcon className="h-4 w-4" /> ট্যাগ যোগ করুন (Tags)</FormLabel>
                                     <div className="space-y-3">
                                         <div className="flex flex-wrap gap-2 min-h-10 p-2 border-2 rounded-xl bg-muted/10 border-dashed">
-                                            {field.value?.map((tagVal) => (
+                                            {currentTags.map((tagVal) => (
                                                 <Badge key={tagVal} className="gap-1.5 py-1 px-3 bg-primary text-primary-foreground">
                                                     {tagVal}
                                                     <X className="h-3 w-3 cursor-pointer hover:text-white/80" onClick={() => handleRemoveTag(tagVal)} />
                                                 </Badge>
                                             ))}
-                                            {(!field.value || field.value.length === 0) && <span className="text-xs text-muted-foreground self-center px-2">কোনো ট্যাগ যোগ করা হয়নি</span>}
+                                            {currentTags.length === 0 && <span className="text-xs text-muted-foreground self-center px-2">কোনো ট্যাগ যোগ করা হয়নি</span>}
                                         </div>
                                         <div className="flex gap-2">
                                             <div className="relative flex-grow">
@@ -704,8 +706,8 @@ export default function ManageProductPage() {
                                                     {tagOptions.length > 0 ? tagOptions.map(tOpt => (
                                                         <DropdownMenuCheckboxItem 
                                                             key={tOpt} 
-                                                            checked={field.value?.includes(tOpt)} 
-                                                            onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), tOpt] : field.value.filter((vItem: string) => vItem !== tOpt))}
+                                                            checked={currentTags.includes(tOpt)} 
+                                                            onCheckedChange={(checked) => field.onChange(checked ? [...currentTags, tOpt] : currentTags.filter((vItem: string) => vItem !== tOpt))}
                                                         >
                                                             {tOpt}
                                                         </DropdownMenuCheckboxItem>
@@ -717,31 +719,33 @@ export default function ManageProductPage() {
                                     </div>
                                     <FormMessage />
                                 </FormItem>
-                            )} />
+                            )}} />
 
                             <FormField control={form.control} name="origin" render={({ field }) => (<FormItem><FormLabel>উৎপত্তি স্থল (Origin)</FormLabel><FormControl><Input {...field} placeholder="যেমন: রাজশাহী, খুলনা" className="h-11" /></FormControl></FormItem>)} />
                             <div className="space-y-4">
                                 {(['brand', 'color'] as const).map((attrNameString) => (
-                                    <FormField key={attrNameString} control={form.control} name={attrNameString as any} render={({ field: attrFormField }) => (
+                                    <FormField key={attrNameString} control={form.control} name={attrNameString as any} render={({ field: attrFormField }) => {
+                                        const currentSelections = attrFormField.value || [];
+                                        return (
                                         <FormItem>
                                             <FormLabel className="capitalize">{attrNameString}</FormLabel>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="outline" className="w-full h-11 justify-between font-normal">
-                                                        <span className="truncate">{attrFormField.value?.length ? attrFormField.value.join(', ') : `সিলেক্ট ${attrNameString}`}</span>
+                                                        <span className="truncate">{currentSelections.length ? currentSelections.join(', ') : `সিলেক্ট ${attrNameString}`}</span>
                                                         <ChevronDown className="h-4 w-4 opacity-50" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
                                                     {(groupedAttributes[attrNameString] || []).map((optVal) => (
-                                                        <DropdownMenuCheckboxItem key={optVal} checked={attrFormField.value?.includes(optVal)} onCheckedChange={(checked) => attrFormField.onChange(checked ? [...(attrFormField.value || []), optVal] : attrFormField.value.filter((vItem) => vItem !== optVal))}>
+                                                        <DropdownMenuCheckboxItem key={optVal} checked={currentSelections.includes(optVal)} onCheckedChange={(checked) => attrFormField.onChange(checked ? [...currentSelections, optVal] : currentSelections.filter((vItem: string) => vItem !== optVal))}>
                                                             {optVal}
                                                         </DropdownMenuCheckboxItem>
                                                     ))}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </FormItem>
-                                    )} />
+                                    )}} />
                                 ))}
                             </div>
                         </CardContent>
@@ -799,7 +803,7 @@ export default function ManageProductPage() {
                         {paginatedGallery.length > 0 ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                 {paginatedGallery.map((img) => {
-                                    const isSelected = watchedValues.images.some(i => i.imageUrl === img.url);
+                                    const isSelected = (watchedValues.images || []).some(i => i.imageUrl === img.url);
                                     return (
                                         <div 
                                             key={img.id} 
@@ -859,7 +863,7 @@ export default function ManageProductPage() {
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
                         <p className="text-xs text-muted-foreground hidden sm:block">
-                            {watchedValues.images.length}টি ছবি সিলেক্ট করা আছে
+                            {(watchedValues.images || []).length}টি ছবি সিলেক্ট করা আছে
                         </p>
                         <Button className="flex-1 sm:flex-none h-11 px-8 rounded-xl font-bold" onClick={() => setIsPickerOpen(false)}>
                             সম্পন্ন করুন
