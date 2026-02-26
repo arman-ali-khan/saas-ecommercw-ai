@@ -5,7 +5,7 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LineChart, PieChart as PieChartIcon } from 'lucide-react';
+import { LineChart, PieChart as PieChartIcon, Filter } from 'lucide-react';
 import {
   ResponsiveContainer,
   LineChart as RechartsLineChart,
@@ -19,7 +19,20 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { format as uniqueDateStringFormatter, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
+import { 
+    format as uniqueDateStringFormatter, 
+    startOfMonth, 
+    endOfMonth, 
+    isWithinInterval, 
+    subMonths, 
+    subDays, 
+    startOfYear, 
+    endOfYear, 
+    eachDayOfInterval, 
+    eachMonthOfInterval,
+    isSameDay,
+    isSameMonth
+} from 'date-fns';
 
 const CHART_ORDER_STATUS_LABELS = {
   pending: { label: 'Pending', color: 'hsl(var(--chart-1))' },
@@ -50,14 +63,47 @@ const dashboardChartItemTextStyle = {
 };
 
 interface DashboardChartsProps {
-  revenueChartData: any[];
+  revenueChartData: any[]; // Kept for backward compatibility, but we compute locally now
   allOrders: any[];
   isLoading: boolean;
   t: any;
 }
 
-export default function DashboardCharts({ revenueChartData, allOrders, isLoading, t }: DashboardChartsProps) {
+export default function DashboardCharts({ allOrders, isLoading, t }: DashboardChartsProps) {
+  const [revenueTimeRange, setRevenueTimeRange] = useState<'7days' | 'month' | 'year'>('7days');
   const [selectedDisplayMonth, setSelectedDisplayMonth] = useState(new Date());
+
+  const computedRevenueData = useMemo(() => {
+    if (!allOrders) return [];
+    
+    const now = new Date();
+    let interval: { start: Date; end: Date };
+    let formatStr = 'MMM d';
+    let filterFn: (d1: Date, d2: Date) => boolean = isSameDay;
+
+    if (revenueTimeRange === '7days') {
+        interval = { start: subDays(now, 6), end: now };
+    } else if (revenueTimeRange === 'month') {
+        interval = { start: startOfMonth(now), end: endOfMonth(now) };
+    } else {
+        interval = { start: startOfYear(now), end: endOfYear(now) };
+        formatStr = 'MMM';
+        filterFn = isSameMonth;
+    }
+
+    const points = revenueTimeRange === 'year' 
+        ? eachMonthOfInterval(interval)
+        : eachDayOfInterval(interval);
+
+    return points.map(point => {
+        const label = uniqueDateStringFormatter(point, formatStr);
+        const revenue = allOrders
+            .filter(o => o.status === 'delivered' && filterFn(new Date(o.created_at), point))
+            .reduce((sum, o) => sum + (o.total || 0), 0);
+        
+        return { date: label, Revenue: revenue };
+    });
+  }, [allOrders, revenueTimeRange]);
 
   const paymentMethodAnalyticsData = useMemo(() => {
     const paymentMethodSalesTotalsMap = allOrders
@@ -99,16 +145,35 @@ export default function DashboardCharts({ revenueChartData, allOrders, isLoading
   const monthlyTotalOrdersSum = orderStatusAnalyticsData.reduce((sum, entryRecord) => sum + entryRecord.value, 0);
   const lifetimeTotalSalesSum = paymentMethodAnalyticsData.reduce((sum, entryRecord) => sum + entryRecord.value, 0);
 
+  const chartTitle = useMemo(() => {
+      if (revenueTimeRange === '7days') return t.revenue7Days;
+      if (revenueTimeRange === 'month') return t.revenueMonth;
+      return t.revenueYear;
+  }, [revenueTimeRange, t]);
+
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> {t.revenue7Days}</CardTitle>
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> {chartTitle}</CardTitle>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
+            <Select value={revenueTimeRange} onValueChange={(val: any) => setRevenueTimeRange(val)}>
+                <SelectTrigger className="w-full sm:w-[150px] h-9">
+                    <SelectValue placeholder={t.revenueFilter} />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="7days">{t.last7Days}</SelectItem>
+                    <SelectItem value="month">{t.thisMonth}</SelectItem>
+                    <SelectItem value="year">{t.thisYear}</SelectItem>
+                </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent className="h-80">
           {isLoading ? <Skeleton className="h-full w-full" /> : (
             <ResponsiveContainer width="100%" height="100%">
-              <RechartsLineChart data={revenueChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+              <RechartsLineChart data={computedRevenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                 <XAxis 
                   dataKey="date" 
