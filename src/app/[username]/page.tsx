@@ -17,7 +17,7 @@ import FeaturesCarousel from '@/components/features-carousel';
 import ReviewsCarousel from '@/components/reviews-carousel';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
-import DynamicIcon from '@/components/dynamic-icon';
+import DynamicIcon from './dynamic-icon';
 import CategoriesGrid from '@/components/categories-grid';
 import FeaturedProductsList from '@/components/featured-products-list';
 import FeaturedCarousel from '@/components/featured-carousel';
@@ -48,7 +48,7 @@ const getGridClass = (view?: string) => {
         case '1-col': return 'grid-cols-1';
         case 'list': return 'grid-cols-1 gap-3';
         case '2-col': return 'grid-cols-2';
-        default: return null;
+        default: return 'grid-cols-2';
     }
 };
 
@@ -142,7 +142,6 @@ async function TopSellingSection({ siteId, section, t }: { siteId: string, secti
     }
   );
 
-  // 1. Get delivered orders to identify top sellers
   const { data: orders } = await supabase
     .from('orders')
     .select('cart_items')
@@ -151,7 +150,6 @@ async function TopSellingSection({ siteId, section, t }: { siteId: string, secti
 
   if (!orders || orders.length === 0) return null;
 
-  // 2. Aggregate sales count
   const salesMap: Record<string, number> = {};
   orders.forEach(o => {
     (o.cart_items as any[]).forEach(item => {
@@ -159,7 +157,6 @@ async function TopSellingSection({ siteId, section, t }: { siteId: string, secti
     });
   });
 
-  // 3. Get top product IDs sorted by sales
   const topIds = Object.entries(salesMap)
     .sort((a, b) => b[1] - a[1])
     .slice(0, section.productLimit || 10)
@@ -167,7 +164,6 @@ async function TopSellingSection({ siteId, section, t }: { siteId: string, secti
 
   if (topIds.length === 0) return null;
 
-  // 4. Fetch actual product details
   const { data: products } = await supabase
     .from('products')
     .select('*')
@@ -175,12 +171,11 @@ async function TopSellingSection({ siteId, section, t }: { siteId: string, secti
 
   if (!products || products.length === 0) return null;
 
-  // Maintain the top-selling order
   const sortedProducts = topIds
     .map(id => products.find(p => p.id === id))
     .filter(Boolean) as Product[];
 
-  const gridClass = getGridClass(section.mobileView) || "grid-cols-2";
+  const gridClass = getGridClass(section.mobileView);
 
   return (
     <section>
@@ -234,40 +229,20 @@ async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, 
 
   let query = supabase.from('products').select('*').eq('site_id', siteId);
 
-  if (section.category) {
-    query = query.overlaps('categories', [section.category]);
-  }
-
-  if (section.tags && section.tags.length > 0) {
-      query = query.overlaps('categories', section.tags); 
-  }
-
-  if (section.brand) {
-      query = query.overlaps('brand', [section.brand]);
-  }
-
-  if (section.origin) {
-      query = query.eq('origin', section.origin);
-  }
-
-  if (section.color) {
-      query = query.overlaps('color', [section.color]);
-  }
-
-  if (section.minPrice !== undefined) {
-      query = query.gte('price', section.minPrice);
-  }
-  
-  if (section.maxPrice !== undefined) {
-      query = query.lte('price', section.maxPrice);
-  }
+  if (section.category) query = query.overlaps('categories', [section.category]);
+  if (section.tags && section.tags.length > 0) query = query.overlaps('categories', section.tags); 
+  if (section.brand) query = query.overlaps('brand', [section.brand]);
+  if (section.origin) query = query.eq('origin', section.origin);
+  if (section.color) query = query.overlaps('color', [section.color]);
+  if (section.minPrice !== undefined) query = query.gte('price', section.minPrice);
+  if (section.maxPrice !== undefined) query = query.lte('price', section.maxPrice);
 
   const { data } = await query.limit(section.productLimit || 10);
   const products = (data as Product[]) || [];
   
   if (products.length === 0) return null;
 
-  const gridClass = getGridClass(section.mobileView) || "grid-cols-2";
+  const gridClass = getGridClass(section.mobileView);
 
   return (
     <section>

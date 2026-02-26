@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -35,13 +36,12 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
 
   if (!hasMounted) return null;
 
-  const isListMode = section.mobileView === 'list' && isMobile;
+  const isListMode = section.mobileView === 'list';
   const isOneColMode = section.mobileView === '1-col' && isMobile;
-  const isTwoColMode = (section.mobileView === '2-col' || !section.mobileView) && isMobile;
 
-  // Chunk deals into pairs ONLY for mobile list view
+  // Chunk deals into pairs for mobile list view
   const chunks = [];
-  if (isListMode) {
+  if (isListMode && isMobile) {
     for (let i = 0; i < deals.length; i += 2) {
       chunks.push(deals.slice(i, i + 2));
     }
@@ -56,7 +56,7 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
       onMouseLeave={plugin.current.reset}
     >
       <CarouselContent className="-ml-4">
-        {isListMode ? (
+        {isMobile && isListMode ? (
           // Mobile List View: 2 items stacked per slide
           chunks.map((chunk, idx) => (
             <CarouselItem key={idx} className="pl-4 basis-[90%]">
@@ -73,21 +73,21 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
             </CarouselItem>
           ))
         ) : (
-          // Standard View: respects 1-col/2-col on mobile, normal carousel on desktop
+          // Standard View
           deals.map((deal) => (
             <CarouselItem 
               key={deal.id} 
               className={cn(
                 "pl-4",
                 isOneColMode ? "basis-full" : 
-                isTwoColMode ? "basis-1/2" : 
-                "basis-1/2 md:basis-1/4 lg:basis-1/5" // Default Desktop Layout
+                isMobile ? "basis-1/2" : 
+                "basis-1/2 md:basis-1/4 lg:basis-1/5"
               )}
             >
               <ProductCard
                 product={deal.products}
                 flashDeal={deal}
-                isList={false}
+                isList={isListMode}
               />
             </CarouselItem>
           ))
