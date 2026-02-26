@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useTransition } from 'react';
@@ -9,7 +8,8 @@ import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
-import type { Page, Product } from '@/types';
+import { useAdminStore } from '@/stores/useAdminStore';
+import type { Page, Product, SiteImage } from '@/types';
 import { format } from 'date-fns';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette, Columns, AlignLeft, AlignCenter, AlignRight, Plus, ShoppingBag, Clock, GalleryHorizontal, CalendarIcon, ChevronDown, Star, User } from 'lucide-react';
+import { Loader2, ArrowLeft, Heading2, Type, Image as ImageIcon, Link as LinkIcon, Youtube, Trash2, ArrowUp, ArrowDown, GripVertical, Palette, Columns, AlignLeft, AlignCenter, AlignRight, Plus, ShoppingBag, Clock, GalleryHorizontal, CalendarIcon, ChevronDown, Star, User, Search, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
@@ -182,6 +182,7 @@ export default function ManagePage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const { images: galleryImages, setImages } = useAdminStore();
   const pageId = params.pageId as string;
   const isNew = pageId === 'new';
 
@@ -190,11 +191,22 @@ export default function ManagePage() {
   const [isPending, startTransition] = useTransition();
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
+  // Picker State
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [pickerPath, setPickerPath] = useState<string | null>(null);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerPage, setPickerPage] = useState(1);
+  const IMAGES_PER_PAGE = 8;
 
   const form = useForm<PageFormData>({
     resolver: zodResolver(pageFormSchema),
     defaultValues: { title: '', slug: '', content: [], is_published: false },
   });
+
+  const openPicker = (path: string) => {
+    setPickerPath(path);
+    setIsPickerOpen(true);
+  };
 
   const ProductSelector = ({ control, namePrefix, allProducts, productIdsFieldName = "product_ids", label = "Select Products" }: { control: Control<PageFormData>, namePrefix: string, allProducts: Product[], productIdsFieldName?: string, label?: string }) => {
       const { field: selectionField } = useController({ control, name: `${namePrefix}.${productIdsFieldName}` as any });
@@ -259,8 +271,11 @@ export default function ManagePage() {
                                             <div className="relative aspect-video rounded-md border bg-muted overflow-hidden">
                                                 {imgField.value ? <Image src={imgField.value} alt="Preview" fill className="object-cover" /> : <div className="h-full w-full flex items-center justify-center text-[10px] text-muted-foreground">No Image</div>}
                                             </div>
-                                            <FormControl><Input {...imgField} className="h-8 text-xs" /></FormControl>
-                                            <ImageUploader onUpload={(res) => form.setValue(`${namePrefix}.slides.${index}.image` as any, res.info.secure_url)} label="Replace Image" />
+                                            <div className="flex gap-2">
+                                                <FormControl><Input {...imgField} className="h-8 text-[10px]" /></FormControl>
+                                                <Button type="button" variant="outline" size="sm" className="h-8 text-[10px]" onClick={() => openPicker(`${namePrefix}.slides.${index}.image`)}><ImageIcon className="h-3 w-3 mr-1" /> Gallery</Button>
+                                            </div>
+                                            <ImageUploader onUpload={(res) => form.setValue(`${namePrefix}.slides.${index}.image` as any, res.info.secure_url)} label="Upload New" />
                                         </div>
                                         <FormMessage />
                                     </FormItem>
@@ -316,7 +331,7 @@ export default function ManagePage() {
                                 
                                 <div className="space-y-4 flex-grow">
                                     <div className="flex items-center gap-3">
-                                        <div className="relative h-12 w-12 shrink-0 rounded-full border bg-muted overflow-hidden">
+                                        <div className="relative h-12 w-12 shrink-0 rounded-full border bg-muted overflow-hidden cursor-pointer" onClick={() => openPicker(`${currentReviewPath}.reviewer_image`)}>
                                             {form.watch(`${currentReviewPath}.reviewer_image` as any) ? (
                                                 <Image src={form.watch(`${currentReviewPath}.reviewer_image` as any)} alt="Reviewer" fill className="object-cover" />
                                             ) : (
@@ -325,7 +340,10 @@ export default function ManagePage() {
                                         </div>
                                         <div className="flex-grow space-y-1">
                                             <FormField control={control} name={`${currentReviewPath}.reviewer_name`} render={({ field: rnField }) => (<FormControl><Input {...rnField} placeholder="Reviewer Name" className="h-8 text-xs font-bold" /></FormControl>)} />
-                                            <ImageUploader onUpload={(res) => form.setValue(`${currentReviewPath}.reviewer_image` as any, res.info.secure_url)} label="Replace Photo" />
+                                            <div className="flex gap-1">
+                                                <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] flex-1" onClick={() => openPicker(`${currentReviewPath}.reviewer_image`)}>Gallery</Button>
+                                                <ImageUploader onUpload={(res) => form.setValue(`${currentReviewPath}.reviewer_image` as any, res.info.secure_url)} label="Upload" />
+                                            </div>
                                         </div>
                                     </div>
 
@@ -463,7 +481,7 @@ export default function ManagePage() {
                               )}
                               {(field as any).type === 'image' && (
                                   <>
-                                  <FormField control={control} name={`${currentFieldName}.src`} render={({ field: iField }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input {...iField} /></FormControl><FormMessage /></FormItem>)} />
+                                  <FormField control={control} name={`${currentFieldName}.src`} render={({ field: iField }) => (<FormItem><FormLabel>Image URL</FormLabel><div className="flex gap-2"><FormControl><Input {...iField} /></FormControl><Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => openPicker(`${currentFieldName}.src`)}><ImageIcon className="h-4 w-4" /></Button></div><FormMessage /></FormItem>)} />
                                   <FormField control={control} name={`${currentFieldName}.alt`} render={({ field: iAltField }) => (<FormItem><FormLabel>Alt Text</FormLabel><FormControl><Input {...iAltField} /></FormControl><FormMessage /></FormItem>)} />
                                   <ImageUploader onUpload={(res) => form.setValue(`${currentFieldName}.src` as any, res.info.secure_url)} />
                                   </>
@@ -695,32 +713,79 @@ export default function ManagePage() {
         }
     }
 
-    // Fetch all products via API instead of direct supabase
     try {
-        const productsResponse = await fetch('/api/products/list', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId: user.id }),
-        });
-        const productsResult = await productsResponse.json();
-        if (productsResponse.ok) {
-            setAllProducts(productsResult.products || []);
-        } else {
-            throw new Error(productsResult.error);
-        }
+        const [pRes, imgRes] = await Promise.all([
+            fetch('/api/products/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: user.id }) }),
+            fetch('/api/images/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: user.id }) })
+        ]);
+        const pResult = await pRes.json();
+        const imgResult = await imgRes.json();
+
+        if (pRes.ok) setAllProducts(pResult.products || []);
+        if (imgRes.ok) setImages(imgResult.images || []);
     } catch (err: any) {
-        toast({ variant: 'destructive', title: 'Error fetching products', description: err.message });
+        console.error("Error fetching data:", err);
     }
     
     setIsLoading(false);
 
-  }, [pageId, isNew, user, router, toast, form]);
+  }, [pageId, isNew, user, router, toast, form, setImages]);
 
   useEffect(() => {
     if (!authLoading) {
       fetchPageAndProducts();
     }
   }, [authLoading, fetchPageAndProducts]);
+
+  // Image Picker filtered logic
+  const filteredGallery = useMemo(() => {
+    return galleryImages.filter(img => 
+        (img.name || '').toLowerCase().includes(pickerSearch.toLowerCase())
+    );
+  }, [galleryImages, pickerSearch]);
+
+  const paginatedGallery = useMemo(() => {
+    const start = (pickerPage - 1) * IMAGES_PER_PAGE;
+    return filteredGallery.slice(start, start + IMAGES_PER_PAGE);
+  }, [filteredGallery, pickerPage]);
+
+  const totalPickerPages = Math.ceil(filteredGallery.length / IMAGES_PER_PAGE);
+
+  const handlePickerImageSelect = (url: string) => {
+    if (pickerPath) {
+        form.setValue(pickerPath as any, url, { shouldValidate: true, shouldDirty: true });
+        setIsPickerOpen(false);
+        setPickerPath(null);
+    }
+  };
+
+  const handlePickerUploadSuccess = async (uploadRes: any) => {
+    if (!user) return;
+    try {
+        const response = await fetch('/api/images/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                siteId: user.id,
+                url: uploadRes.info.secure_url,
+                name: uploadRes.info.original_filename
+            }),
+        });
+        if (response.ok) {
+            const result = await response.json();
+            const newImg = result.image;
+            setImages([newImg, ...galleryImages]);
+            if (pickerPath) {
+                form.setValue(pickerPath as any, newImg.url, { shouldValidate: true, shouldDirty: true });
+                setIsPickerOpen(false);
+                setPickerPath(null);
+            }
+            toast({ title: 'Image uploaded and selected!' });
+        }
+    } catch (e) {
+        console.error("Picker upload save error:", e);
+    }
+  };
 
   const onSubmit = async (values: PageFormData) => {
     if (!user) {
@@ -802,6 +867,105 @@ export default function ManagePage() {
           </div>
         </form>
       </Form>
+
+      {/* Image Picker Modal */}
+      {isPickerOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsPickerOpen(false)} />
+            <div className="relative w-full max-w-4xl bg-background rounded-[2.5rem] shadow-2xl border-2 border-primary/10 overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+                <div className="p-6 border-b flex justify-between items-center bg-muted/30">
+                    <div>
+                        <h2 className="text-2xl font-bold flex items-center gap-2">
+                            <ImageIcon className="h-6 w-6 text-primary" /> ছবি নির্বাচন করুন
+                        </h2>
+                        <p className="text-xs text-muted-foreground">গ্যালারি থেকে সিলেক্ট করুন অথবা নতুন ছবি আপলোড করুন।</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsPickerOpen(false)}>
+                        <X className="h-5 w-5" />
+                    </Button>
+                </div>
+
+                <div className="p-6 flex flex-col gap-6 flex-grow overflow-hidden">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="relative flex-grow w-full sm:max-w-md">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="ছবির নাম দিয়ে খুঁজুন..." 
+                                className="pl-10 h-11 rounded-xl"
+                                value={pickerSearch}
+                                onChange={(e) => { setPickerSearch(e.target.value); setPickerPage(1); }}
+                            />
+                        </div>
+                        <ImageUploader onUpload={handlePickerUploadSuccess} label="নতুন আপলোড" />
+                    </div>
+
+                    <div className="flex-grow overflow-y-auto pr-2">
+                        {paginatedGallery.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {paginatedGallery.map((img) => {
+                                    const isSelected = pickerPath && form.watch(pickerPath as any) === img.url;
+                                    return (
+                                        <div 
+                                            key={img.id} 
+                                            onClick={() => handlePickerImageSelect(img.url)}
+                                            className={cn(
+                                                "relative aspect-square rounded-2xl overflow-hidden border-2 cursor-pointer transition-all group",
+                                                isSelected ? "border-primary ring-4 ring-primary/10" : "border-border hover:border-primary/40"
+                                            )}
+                                        >
+                                            <Image src={img.url} alt={img.name || 'Gallery Image'} fill className="object-cover transition-transform group-hover:scale-110" />
+                                            {isSelected && (
+                                                <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                                    <div className="bg-primary text-primary-foreground rounded-full p-1.5 shadow-lg">
+                                                        <Check className="h-5 w-5" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <p className="text-[10px] text-white truncate text-center">{img.name}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-20">
+                                <ImageIcon className="h-12 w-12 opacity-20 mb-4" />
+                                <p className="text-sm font-bold">কোনো ছবি পাওয়া যায়নি</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="p-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/30">
+                    <div className="flex items-center gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-9 w-9 rounded-lg" 
+                            disabled={pickerPage === 1}
+                            onClick={() => setPickerPage(p => p - 1)}
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-xs font-bold px-3 py-1 bg-background rounded-md border">
+                            পৃষ্ঠা {pickerPage} / {totalPickerPages || 1}
+                        </span>
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-9 w-9 rounded-lg" 
+                            disabled={pickerPage >= totalPickerPages}
+                            onClick={() => setPickerPage(p => p + 1)}
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <Button variant="ghost" onClick={() => setIsPickerOpen(false)}>বাতিল</Button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }
