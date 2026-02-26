@@ -32,7 +32,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, Search, X, CheckCircle2, Clock, Bell, ShoppingCart, MessageSquare, Globe, Sparkles, Filter, Store } from 'lucide-react';
+import { Loader2, Plus, Search, X, CheckCircle2, Clock, Bell, ShoppingCart, MessageSquare, Globe, Sparkles, Filter, Store, UserCheck, Send } from 'lucide-react';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -57,7 +57,7 @@ export default function SaasNotificationsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterType, setFilterType] = useState<'all' | 'sent' | 'received'>('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   const fetchNotifications = useCallback(async () => {
@@ -69,7 +69,7 @@ export default function SaasNotificationsPage() {
             body: JSON.stringify({ 
                 recipientType: 'admin', 
                 limit: 200,
-                platformView: true // Requesting all notifications for SaaS admin
+                platformView: true
             }),
         });
         const result = await response.json();
@@ -78,7 +78,6 @@ export default function SaasNotificationsPage() {
 
         const notificationsData = result.notifications || [];
 
-        // Fetch profiles via our secure API to ensure decryption
         const profileRes = await fetch('/api/saas/admins/list');
         const profileResult = await profileRes.json();
         
@@ -108,20 +107,24 @@ export default function SaasNotificationsPage() {
   
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterStatus]);
+  }, [searchQuery, filterType]);
 
   const filteredNotifications = useMemo(() => {
     return notifications.filter(n => {
-        const statusMatch = filterStatus === 'all' || (filterStatus === 'read' && n.is_read) || (filterStatus === 'unread' && !n.is_read);
+        // Sent means a specific recipient_id is set
+        // Received/System Request means recipient_id is NULL
+        const typeMatch = filterType === 'all' || 
+                         (filterType === 'sent' && n.recipient_id !== null) || 
+                         (filterType === 'received' && n.recipient_id === null);
+
         const searchMatch = searchQuery === '' ||
             n.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
             n.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            n.profiles?.site_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            n.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+            n.profiles?.site_name?.toLowerCase().includes(searchQuery.toLowerCase());
         
-        return statusMatch && searchMatch;
+        return typeMatch && searchMatch;
     });
-  }, [notifications, searchQuery, filterStatus]);
+  }, [notifications, searchQuery, filterType]);
 
   const totalPages = Math.ceil(filteredNotifications.length / NOTIFICATIONS_PER_PAGE);
   const paginatedNotifications = filteredNotifications.slice(
@@ -129,12 +132,13 @@ export default function SaasNotificationsPage() {
     currentPage * NOTIFICATIONS_PER_PAGE
   );
 
-  const getIcon = (message: string) => {
-      const msg = message.toLowerCase();
-      if (msg.includes('অর্ডার') || msg.includes('order')) return <ShoppingCart className="h-5 w-5 text-blue-500" />;
-      if (msg.includes('টিকেট') || msg.includes('ticket') || msg.includes('support')) return <MessageSquare className="h-5 w-5 text-amber-500" />;
+  const getIcon = (n: Notification) => {
+      if (n.recipient_id !== null) return <Send className="h-5 w-5 text-blue-500" />;
+      const msg = n.message.toLowerCase();
+      if (msg.includes('অর্ডার') || msg.includes('order')) return <ShoppingCart className="h-5 w-5 text-green-500" />;
+      if (msg.includes('টিকেট') || msg.includes('ticket')) return <MessageSquare className="h-5 w-5 text-amber-500" />;
       if (msg.includes('domain') || msg.includes('ডোমেইন')) return <Globe className="h-5 w-5 text-purple-500" />;
-      if (msg.includes('seo') || msg.includes('এসইও')) return <Sparkles className="h-5 w-5 text-green-500" />;
+      if (msg.includes('account') || msg.includes('অ্যাকাউন্ট')) return <UserCheck className="h-5 w-5 text-primary" />;
       return <Bell className="h-5 w-5 text-primary" />;
   }
 
@@ -153,98 +157,95 @@ export default function SaasNotificationsPage() {
   }
 
   if (isLoading) {
-    return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <Skeleton className="h-10 w-64" />
-                <Skeleton className="h-10 w-32" />
-            </div>
-            <div className="space-y-3">
-                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}
-            </div>
-        </div>
-    );
+    return <div className="p-10 flex justify-center"><Loader2 className="animate-spin" /></div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Platform Notifications</h1>
-            <p className="text-muted-foreground mt-1">Track all activities, requests, and system alerts across the platform.</p>
+            <h1 className="text-3xl font-bold tracking-tight">Activity & Announcements</h1>
+            <p className="text-muted-foreground mt-1">Monitor platform alerts and track sent announcement status.</p>
           </div>
-          <Button asChild className="rounded-full shadow-lg shadow-primary/20">
+          <Button asChild className="rounded-full shadow-lg">
             <Link href="/dashboard/notifications/new">
-                <Plus className="mr-2 h-4 w-4" /> Send Announcement
+                <Plus className="mr-2 h-4 w-4" /> Send New Announcement
             </Link>
           </Button>
       </div>
 
       <Card className="border-2 shadow-sm">
-        <CardHeader className="pb-4">
-            <div className="flex flex-wrap gap-4 items-center">
+        <CardHeader className="pb-4 border-b bg-muted/10">
+            <div className="flex flex-wrap gap-4 items-center justify-between">
                 <div className="relative flex-grow max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by store, admin, or message..."
+                        placeholder="Search stores or messages..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10 h-11 rounded-xl"
                     />
                 </div>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-44 h-11 rounded-xl">
-                        <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="unread">Pending</SelectItem>
-                        <SelectItem value="read">Dismissed</SelectItem>
-                    </SelectContent>
-                </Select>
+                <div className="flex bg-muted p-1 rounded-xl">
+                    <Button 
+                        variant={filterType === 'all' ? 'secondary' : 'ghost'} 
+                        size="sm" 
+                        onClick={() => setFilterType('all')}
+                        className="rounded-lg h-9"
+                    >All</Button>
+                    <Button 
+                        variant={filterType === 'received' ? 'secondary' : 'ghost'} 
+                        size="sm" 
+                        onClick={() => setFilterType('received')}
+                        className="rounded-lg h-9"
+                    >Requests</Button>
+                    <Button 
+                        variant={filterType === 'sent' ? 'secondary' : 'ghost'} 
+                        size="sm" 
+                        onClick={() => setFilterType('sent')}
+                        className="rounded-lg h-9"
+                    >Sent (Tracking)</Button>
+                </div>
             </div>
         </CardHeader>
         <CardContent className="p-0">
           {paginatedNotifications.length > 0 ? (
-            <div className="divide-y border-t">
+            <div className="divide-y">
                 {paginatedNotifications.map((n) => (
                     <div
                         key={n.id}
                         className={cn(
                             "group p-4 flex items-start gap-4 transition-all hover:bg-muted/30 relative",
-                            !n.is_read ? "bg-primary/[0.02]" : "opacity-70"
+                            !n.is_read && n.recipient_id === null ? "bg-primary/[0.03]" : ""
                         )}
                     >
-                        {!n.is_read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
-                        
                         <div className={cn(
-                            "h-12 w-12 rounded-full flex items-center justify-center shrink-0 border-2",
-                            !n.is_read ? "bg-primary/10 border-primary/20" : "bg-muted border-transparent"
+                            "h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 border-2",
+                            n.recipient_id !== null ? "bg-blue-500/10 border-blue-200" : "bg-primary/10 border-primary/20"
                         )}>
-                            {getIcon(n.message)}
+                            {getIcon(n)}
                         </div>
 
                         <div className="flex-grow min-w-0 space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
-                                <p className={cn("text-sm sm:text-base leading-snug", !n.is_read ? "font-bold text-foreground" : "font-medium")}>
+                                <p className={cn("text-sm sm:text-base leading-snug", !n.is_read && n.recipient_id === null ? "font-bold text-foreground" : "font-medium")}>
                                     {n.message}
                                 </p>
-                                {!n.is_read && <Badge variant="default" className="h-4 px-1.5 text-[8px] font-black">NEW</Badge>}
+                                {n.recipient_id !== null && (
+                                    <Badge variant={n.is_read ? 'default' : 'outline'} className={cn("text-[8px] h-4 uppercase", n.is_read ? "bg-green-500 hover:bg-green-600" : "")}>
+                                        {n.is_read ? 'READ BY STORE' : 'SENT / UNREAD'}
+                                    </Badge>
+                                )}
                             </div>
                             
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[10px] sm:text-xs text-muted-foreground">
                                 <span className="flex items-center gap-1 font-bold">
                                     <Clock className="h-3 w-3" /> {format(new Date(n.created_at), 'PPPp', { locale: bn })}
                                 </span>
-                                {n.profiles ? (
-                                    <span className="flex items-center gap-1 font-bold uppercase tracking-wider text-primary">
+                                {n.profiles && (
+                                    <span className="flex items-center gap-1 font-bold text-primary">
                                         <Store className="h-3 w-3" /> {n.profiles.site_name} (@{n.profiles.domain})
                                     </span>
-                                ) : n.recipient_id ? (
-                                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded">User ID: {n.recipient_id.slice(0,8)}</span>
-                                ) : (
-                                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold uppercase">System Alert</span>
                                 )}
                             </div>
                         </div>
@@ -252,12 +253,12 @@ export default function SaasNotificationsPage() {
                         <div className="flex items-center gap-2 shrink-0">
                             {n.link && (
                                 <Button variant="outline" size="sm" asChild className="h-8 text-xs rounded-full">
-                                    <Link href={n.link} onClick={() => !n.is_read && markAsRead(n.id)}>View Details</Link>
+                                    <Link href={n.link} onClick={() => !n.is_read && n.recipient_id === null && markAsRead(n.id)}>Open</Link>
                                 </Button>
                             )}
-                            {!n.is_read && (
+                            {n.recipient_id === null && !n.is_read && (
                                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => markAsRead(n.id)}>
-                                    <CheckCircle2 className="h-4 w-4 text-muted-foreground hover:text-green-500" />
+                                    <X className="h-4 w-4" />
                                 </Button>
                             )}
                         </div>
@@ -268,7 +269,6 @@ export default function SaasNotificationsPage() {
             <div className="text-center py-24 text-muted-foreground flex flex-col items-center">
               <Bell className="mx-auto h-16 w-16 mb-4 opacity-10" />
               <p className="text-lg font-medium">No activity notifications found.</p>
-              <p className="text-sm">Try changing your filters or search terms.</p>
             </div>
           )}
         </CardContent>

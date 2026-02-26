@@ -39,13 +39,15 @@ export async function POST(request: Request) {
 
     // SECURITY & FILTERING LOGIC
     if (platformView && session) {
-        // Verify caller is actually a SaaS admin before allowing platform-wide view
         const { data: caller } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
         if (caller?.role !== 'saas_admin') {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
-        // For SaaS Admin in platform view, we show EVERYTHING for that recipient type (usually 'admin')
-        // No additional recipient_id filter needed to show all history
+        
+        // SaaS Admin Platform View: 
+        // 1. Show requests from store admins (where recipient_id is NULL)
+        // 2. Show announcements sent BY SaaS admin (where recipient_id IS NOT NULL but recipient_type is 'admin')
+        // We do this by essentially showing everything for recipient_type: 'admin'
     } else {
         // Standard user or site admin view
         if (recipientId) {

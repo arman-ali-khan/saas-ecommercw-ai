@@ -27,10 +27,8 @@ export async function POST(request: Request) {
   let userId: string | undefined;
 
   try {
-    // Step 1: Normalize Plan ID and handle "null" string cases
     let finalPlanId = (planId && typeof planId === 'string' && planId !== 'null') ? planId.toLowerCase().trim() : 'free';
 
-    // Verify if the plan exists in the database
     const { data: planData } = await supabaseAdmin
       .from('plans')
       .select('*')
@@ -41,12 +39,10 @@ export async function POST(request: Request) {
         finalPlanId = 'free';
     }
 
-    // Step 2: Auto-activation Logic
     let finalSubscriptionStatus = finalPlanId === 'free' ? 'active' : 'pending_verification';
     let finalPaymentStatus = 'pending_verification';
     let subscriptionEndDate = null;
 
-    // A. Stripe Auto-activation
     if (paymentMethod === 'credit_card' && transactionId && transactionId.startsWith('cs_')) {
       try {
         const session = await stripe.checkout.sessions.retrieve(transactionId);
@@ -59,7 +55,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // B. aamarPay Auto-activation
     if (paymentMethod === 'aamarpay' && transactionId) {
         try {
             const storeId = process.env.AAMARPAY_STORE_ID || 'aamarpaytest';
@@ -81,7 +76,6 @@ export async function POST(request: Request) {
         }
     }
 
-    // Calculate end date if activated
     if (finalSubscriptionStatus === 'active' && planData?.duration_value && planData?.duration_unit) {
         const now = new Date();
         subscriptionEndDate = planData.duration_unit === 'month' 
@@ -89,7 +83,6 @@ export async function POST(request: Request) {
             : addYears(now, planData.duration_value);
     }
 
-    // Step 3: Create the auth user.
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -107,7 +100,6 @@ export async function POST(request: Request) {
 
     userId = authData.user.id;
 
-    // Step 4: Update the profile row
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -129,7 +121,15 @@ export async function POST(request: Request) {
       throw new Error(`প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ${profileError.message}`);
     }
 
-    // Step 5: If the plan is not free, create the payment record.
+    // CREATE NOTIFICATION FOR SAAS ADMIN ABOUT NEW ACCOUNT
+    await supabaseAdmin.from('notifications').insert({
+        recipient_type: 'admin',
+        recipient_id: null, // Global/Platform level for SaaS admin
+        site_id: userId,
+        message: `একটি নতুন অ্যাডমিন অ্যাকাউন্ট তৈরি হয়েছে: "${siteName}" (@${domain})। প্ল্যান: ${finalPlanId.toUpperCase()}`,
+        link: `/dashboard/users/${userId}`
+    });
+
     if (finalPlanId !== 'free') {
       const priceNumber = parseFloat(String(planData?.price || '0').replace(/[^0-9.]/g, '')) || 0;
       const finalTransactionId = (transactionId && transactionId.trim()) ? transactionId.trim() : uuidv4();

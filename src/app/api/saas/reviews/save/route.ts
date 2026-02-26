@@ -30,7 +30,11 @@ export async function POST(request: Request) {
     );
 
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
-    if (profile?.role !== 'saas_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (profile?.role !== 'saas_admin' && !id) {
+        // Allow public/customer submission only if no ID (new review)
+    } else if (profile?.role !== 'saas_admin') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     let result;
     if (id) {
@@ -41,6 +45,14 @@ export async function POST(request: Request) {
       const { data: inserted, error } = await supabaseAdmin.from('saas_reviews').insert(data).select().single();
       if (error) throw error;
       result = inserted;
+
+      // CREATE NOTIFICATION FOR SAAS ADMIN ABOUT NEW LANDING PAGE REVIEW
+      await supabaseAdmin.from('notifications').insert({
+          recipient_type: 'admin',
+          recipient_id: null,
+          message: `নতুন প্ল্যাটফর্ম রিভিউ এসেছে: "${data.name}" (${data.rating} স্টোর)। অনুমোদনের জন্য রিভিউ ম্যানেজার দেখুন।`,
+          link: '/dashboard/reviews'
+      });
     }
 
     return NextResponse.json({ success: true, data: result });
