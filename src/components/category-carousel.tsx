@@ -42,7 +42,7 @@ export default function CategoryCarousel({ categories }: { categories: Category[
                   )}
                 </div>
                 <CardFooter className="p-3">
-                  <h3 className="font-bold w-full text-headline text-center text-sm truncate">{cat.name}</h3>
+                  <h3 className="font-bold w-full text-black text-center text-sm truncate">{cat.name}</h3>
                 </CardFooter>
               </Card>
             </Link>
