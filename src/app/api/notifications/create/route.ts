@@ -6,8 +6,10 @@ export async function POST(request: Request) {
   try {
     const { recipientId, recipientType, siteId, message, link, orderId } = await request.json();
 
-    if (!recipientId || !recipientType || !siteId || !message) {
-      return NextResponse.json({ error: 'Missing required notification fields.' }, { status: 400 });
+    // Basic validation: recipientType and message are always required.
+    // recipientId can be null for platform-level notifications meant for SaaS admins.
+    if (!recipientType || !message) {
+      return NextResponse.json({ error: 'Missing required notification fields (recipientType, message).' }, { status: 400 });
     }
 
     const supabaseAdmin = createClient(
@@ -18,9 +20,9 @@ export async function POST(request: Request) {
     const { data, error } = await supabaseAdmin
       .from('notifications')
       .insert({
-        recipient_id: recipientId,
+        recipient_id: recipientId || null,
         recipient_type: recipientType,
-        site_id: siteId,
+        site_id: siteId || null,
         message,
         link: link || null,
         order_id: orderId || null,

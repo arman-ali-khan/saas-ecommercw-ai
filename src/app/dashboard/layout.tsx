@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -50,8 +51,9 @@ export default function DashboardLayout({
       });
       const result = await response.json();
       if (response.ok) {
-        // Filter only unread ones for the sticky alert
-        setUnreadNotifications(result.notifications?.filter((n: Notification) => !n.is_read) || []);
+        // Show only the unread ones in the sticky bar
+        const notifications = result.notifications || [];
+        setUnreadNotifications(notifications.filter((n: Notification) => !n.is_read));
       }
     } catch (error) {
       console.error("Failed to fetch SaaS notifications:", error);
