@@ -1,8 +1,9 @@
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { encrypt } from '@/lib/encryption';
+import { stripe } from '@/lib/stripe';
+import { addMonths, addYears } from 'date-fns';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -29,18 +30,44 @@ export async function POST(request: Request) {
     let finalPlanId = (planId && typeof planId === 'string' && planId !== 'null') ? planId.toLowerCase().trim() : 'free';
 
     // Verify if the plan exists in the database to prevent FK violation
-    const { data: planExists } = await supabaseAdmin
+    const { data: planData, error: planFetchError } = await supabaseAdmin
       .from('plans')
-      .select('id')
+      .select('*')
       .eq('id', finalPlanId)
       .maybeSingle();
 
-    if (!planExists && finalPlanId !== 'free') {
+    if (!planData && finalPlanId !== 'free') {
         // Fallback to free if plan not found
         finalPlanId = 'free';
     }
 
-    // Step 2: Create the auth user.
+    // Step 2: Auto-activation Logic for Stripe
+    let finalSubscriptionStatus = finalPlanId === 'free' ? 'active' : 'pending_verification';
+    let finalPaymentStatus = 'pending_verification';
+    let subscriptionEndDate = null;
+
+    if (paymentMethod === 'credit_card' && transactionId && transactionId.startsWith('cs_')) {
+      try {
+        const session = await stripe.checkout.sessions.retrieve(transactionId);
+        if (session.payment_status === 'paid') {
+          finalSubscriptionStatus = 'active';
+          finalPaymentStatus = 'completed';
+          
+          // Calculate end date if plan data is available
+          if (planData?.duration_value && planData?.duration_unit) {
+            const now = new Date();
+            subscriptionEndDate = planData.duration_unit === 'month' 
+              ? addMonths(now, planData.duration_value) 
+              : addYears(now, planData.duration_value);
+          }
+        }
+      } catch (stripeErr) {
+        console.error("Stripe session verification failed during registration:", stripeErr);
+        // Fallback to pending if verification fails
+      }
+    }
+
+    // Step 3: Create the auth user.
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -58,7 +85,7 @@ export async function POST(request: Request) {
 
     userId = authData.user.id;
 
-    // Step 3: Update the profile row with encrypted sensitive data
+    // Step 4: Update the profile row with encrypted sensitive data
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -69,7 +96,8 @@ export async function POST(request: Request) {
         site_name: siteName,
         site_description: siteDescription,
         subscription_plan: finalPlanId,
-        subscription_status: finalPlanId === 'free' ? 'active' : 'pending_verification',
+        subscription_status: finalSubscriptionStatus,
+        subscription_end_date: subscriptionEndDate ? subscriptionEndDate.toISOString() : null,
         role: 'admin',
         last_subscription_from: 'get-started'
       })
@@ -79,19 +107,9 @@ export async function POST(request: Request) {
       throw new Error(`প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ${profileError.message}`);
     }
 
-    // Step 4: If the plan is not free, create the payment record.
+    // Step 5: If the plan is not free, create the payment record.
     if (finalPlanId !== 'free') {
-      const { data: planData, error: planError } = await supabaseAdmin
-        .from('plans')
-        .select('id, price')
-        .eq('id', finalPlanId)
-        .single();
-
-      if (planError || !planData) {
-        throw new Error('পেমেন্ট রেকর্ড তৈরির সময় অবৈধ প্ল্যান পাওয়া গেছে।');
-      }
-      
-      const priceString = String(planData.price || '0');
+      const priceString = String(planData?.price || '0');
       const priceNumber = parseFloat(priceString.replace(/[^0-9.]/g, '')) || 0;
       const finalTransactionId = (transactionId && transactionId.trim()) ? transactionId.trim() : uuidv4();
 
@@ -99,11 +117,11 @@ export async function POST(request: Request) {
         .from('subscription_payments')
         .insert({
           user_id: userId,
-          plan_id: planData.id,
+          plan_id: finalPlanId,
           amount: priceNumber,
           payment_method: paymentMethod || 'manual',
           transaction_id: finalTransactionId,
-          status: 'pending_verification',
+          status: finalPaymentStatus,
           subscription_from: 'get-started',
         });
       
