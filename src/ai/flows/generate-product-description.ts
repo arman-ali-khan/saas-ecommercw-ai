@@ -9,14 +9,21 @@
  */
 function extractJson(text: string) {
     try {
-        const firstBrace = text.indexOf('{');
-        const lastBrace = text.lastIndexOf('}');
-        if (firstBrace === -1 || lastBrace === -1) return null;
+        // Remove markdown code blocks if present
+        let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
         
-        const jsonStr = text.substring(firstBrace, lastBrace + 1);
+        const firstBrace = cleanText.indexOf('{');
+        const lastBrace = cleanText.lastIndexOf('}');
+        
+        if (firstBrace === -1 || lastBrace === -1) {
+            console.error("No JSON braces found in text:", text);
+            return null;
+        }
+        
+        const jsonStr = cleanText.substring(firstBrace, lastBrace + 1);
         return JSON.parse(jsonStr);
     } catch (e) {
-        console.error("JSON Parse Error. Raw text was:", text);
+        console.error("JSON Parse Error. Cleaned text was:", text);
         return null;
     }
 }
@@ -35,11 +42,12 @@ async function callOpenRouter(apiKey: string, prompt: string) {
                 "X-Title": "eHut SaaS"
             },
             body: JSON.stringify({
-                model: "arcee-ai/trinity-large-preview:free",
+                model: "google/gemini-2.0-flash-lite-preview-02-05:free",
                 messages: [
+                    { role: "system", content: "You are a specialized JSON generator. You always return valid, minified JSON without any preamble or markdown formatting." },
                     { role: "user", content: prompt }
                 ],
-                temperature: 0.7,
+                temperature: 0.3, // Lower temperature for more consistent JSON
                 max_tokens: 4096
             })
         });
@@ -70,39 +78,37 @@ export async function generateProductDescription(input: any) {
 
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
-        const prompt = `You are a premium e-commerce copywriter for "eHut".
+        const prompt = `Task: Generate a professional product description for "${name}" in Bengali.
         
-        Task: Generate a beautiful, persuasive, and detailed description for: "${name}".
-        Context: ${description || ''}
-        Origin: ${origin || 'Bangladesh'}
-        Categories: ${categoryString}
+        Context:
+        - Short Desc: ${description || ''}
+        - Origin: ${origin || 'Bangladesh'}
+        - Categories: ${categoryString}
 
-        REQUIREMENTS:
+        OUTPUT REQUIREMENTS:
         1. Language: Bengali.
-        2. Structure: Use a clear layout with headers (level 2), impactful paragraphs, and bullet point lists for benefits.
-        3. Experience: Make it sound high-end and trustworthy.
-        4. FORMAT: Return ONLY a valid Tiptap/ProseMirror JSON object: {"type": "doc", "content": [...]}.
+        2. Content: Persuasive, high-end, and trustworthy.
+        3. Structure: Must include Level 2 headings, detailed paragraphs, and a bullet point list of benefits.
+        4. CRITICAL FORMAT: Return ONLY a valid Tiptap/ProseMirror JSON object. 
         
-        Example Structure:
+        Example JSON structure to follow:
         {
           "type": "doc",
           "content": [
             { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "পণ্যের বিশেষত্ব" }] },
-            { "type": "paragraph", "content": [{ "type": "text", "text": "বর্ণনা..." }] },
-            { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "কেন আমাদের পণ্যটি সেরা?" }] },
-            { "type": "bulletList", "content": [
-                { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "উপকারিতা ১" }] }] }
-              ] 
-            }
+            { "type": "paragraph", "content": [{ "type": "text", "text": "..." }] },
+            { "type": "bulletList", "content": [{ "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "..." }] }] }] }
           ]
         }
 
-        DO NOT include markdown code blocks. Just the raw JSON object.`;
+        STRICT: DO NOT wrap in markdown code blocks. Return ONLY the raw JSON object starting with { and ending with }.`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
         
-        if (!resultJson || !resultJson.type) throw new Error("AI failed to return valid Tiptap JSON format.");
+        if (!resultJson || !resultJson.type || !resultJson.content) {
+            throw new Error("AI failed to return valid Tiptap JSON format. Please try again.");
+        }
 
         return { success: true, longDescription: JSON.stringify(resultJson) };
     } catch (e: any) {
@@ -124,36 +130,30 @@ export async function beautifyProductDetails(input: any) {
 
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
-        const prompt = `You are an expert SEO copywriter and e-commerce specialist. Optimize the following product info for high conversion and generate relevant SEO tags.
+        const prompt = `Task: Optimize product details for "${name}" for high conversion and SEO in Bengali.
         
-        Current Name: ${name}
-        Short Description: ${description || 'N/A'}
-        Story: ${story || 'N/A'}
-        Origin: ${origin || 'N/A'}
-        Categories: ${categoryString}
+        Context:
+        - Short Desc: ${description || 'N/A'}
+        - Story: ${story || 'N/A'}
+        - Origin: ${origin || 'N/A'}
+        - Categories: ${categoryString}
 
-        REQUIREMENTS:
-        1. Language: Bengali (except for tags which can be a mix of Bengali and English if appropriate for SEO).
-        2. Return a JSON object with optimized fields.
-        3. "longDescription" field MUST be a full Tiptap JSON document with headings and lists.
-        4. "tags" field: Generate 5-10 relevant SEO tags (single words or short phrases) based on the product.
+        OUTPUT REQUIREMENTS:
+        1. Language: Bengali.
+        2. Return a JSON object with:
+           - "name": Optimized catchy name.
+           - "description": Catchy 2-line short description.
+           - "story": Persuasive brand story.
+           - "origin": Precise origin.
+           - "tags": Array of 5-8 SEO tags.
+           - "longDescription": A full Tiptap JSON document (type: "doc") with headings and lists.
 
-        FORMAT: Return ONLY a valid JSON object:
-        {
-          "name": "...",
-          "description": "...",
-          "story": "...",
-          "origin": "...",
-          "tags": ["tag1", "tag2", ...],
-          "longDescription": {"type": "doc", "content": [...]}
-        }
-
-        DO NOT include markdown code blocks. Just the raw JSON object.`;
+        STRICT: Return ONLY raw JSON object. No markdown, no preamble.`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
         
-        if (!resultJson || !resultJson.longDescription) throw new Error("Could not parse valid AI response");
+        if (!resultJson || !resultJson.longDescription) throw new Error("Could not parse valid AI response. Please try again.");
         
         return {
             success: true,
@@ -162,7 +162,9 @@ export async function beautifyProductDetails(input: any) {
             story: resultJson.story,
             origin: resultJson.origin,
             tags: resultJson.tags || [],
-            longDescription: JSON.stringify(resultJson.longDescription),
+            longDescription: typeof resultJson.longDescription === 'object' 
+                ? JSON.stringify(resultJson.longDescription) 
+                : resultJson.longDescription,
         };
     } catch (e: any) {
         console.error("Beautify Error:", e);
