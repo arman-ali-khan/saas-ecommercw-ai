@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -30,7 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle, Wallet } from 'lucide-react';
+import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle, Wallet, ShoppingBag } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -85,7 +86,7 @@ const brandingSchema = z.object({
 });
 
 const subscriptionChangeSchema = z.object({
-  paymentMethod: z.enum(['credit_card', 'mobile_banking']).default('credit_card'),
+  paymentMethod: z.enum(['credit_card', 'mobile_banking', 'aamarpay']).default('aamarpay'),
   transactionId: z.string().optional(),
 }).refine(data => {
     if (data.paymentMethod === 'mobile_banking') {
@@ -138,7 +139,7 @@ export default function SettingsAdminPage() {
   
   const subscriptionChangeForm = useForm<SubscriptionChangeFormData>({
     resolver: zodResolver(subscriptionChangeSchema),
-    defaultValues: { paymentMethod: 'credit_card', transactionId: '' },
+    defaultValues: { paymentMethod: 'aamarpay', transactionId: '' },
   });
 
   const watchedSubMethod = subscriptionChangeForm.watch('paymentMethod');
@@ -399,9 +400,10 @@ export default function SettingsAdminPage() {
 
         setIsSubmitting(true);
 
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+
         if (data.paymentMethod === 'credit_card') {
             try {
-                const origin = typeof window !== 'undefined' ? window.location.origin : '';
                 const response = await fetch('/api/saas/payments/stripe/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -421,6 +423,34 @@ export default function SettingsAdminPage() {
                     window.location.href = result.url;
                 } else {
                     throw new Error(result.error || 'Checkout failed');
+                }
+            } catch (e: any) {
+                toast({ variant: 'destructive', title: 'Error', description: e.message });
+                setIsSubmitting(false);
+            }
+            return;
+        }
+
+        if (data.paymentMethod === 'aamarpay') {
+            try {
+                const response = await fetch('/api/saas/payments/aamarpay/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        planId: planToChange.id,
+                        amount: planToChange.price,
+                        origin: origin,
+                        fullName: user.fullName,
+                        email: user.email,
+                        siteId: user.id
+                    }),
+                });
+
+                const result = await response.json();
+                if (result.paymentURL) {
+                    window.location.href = result.paymentURL;
+                } else {
+                    throw new Error(result.error || 'Initialization failed');
                 }
             } catch (e: any) {
                 toast({ variant: 'destructive', title: 'Error', description: e.message });
@@ -1119,32 +1149,45 @@ export default function SettingsAdminPage() {
                                     <RadioGroup
                                         onValueChange={field.onChange}
                                         defaultValue={field.value}
-                                        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                                        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
                                     >
+                                        <Label 
+                                            htmlFor="up-pm-aamarpay" 
+                                            className={cn(
+                                                "flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer transition-all",
+                                                field.value === 'aamarpay' ? "border-orange-500 bg-orange-500/5 shadow-md ring-2 ring-orange-500/10" : "border-muted hover:border-orange-500/20"
+                                            )}
+                                        >
+                                            <RadioGroupItem value="aamarpay" id="up-pm-aamarpay" className="sr-only" />
+                                            <ShoppingBag className={cn("h-8 w-8 mb-3 transition-colors", field.value === 'aamarpay' ? "text-orange-500" : "text-muted-foreground")} />
+                                            <p className="font-bold text-sm">Online Payment</p>
+                                            <p className="text-[10px] text-muted-foreground mt-1 text-center">aamarPay (Instant)</p>
+                                        </Label>
+
                                         <Label 
                                             htmlFor="up-pm-stripe" 
                                             className={cn(
-                                                "flex flex-col items-center justify-center rounded-2xl border-2 p-6 cursor-pointer transition-all",
+                                                "flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer transition-all",
                                                 field.value === 'credit_card' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/10" : "border-muted hover:border-primary/20"
                                             )}
                                         >
                                             <RadioGroupItem value="credit_card" id="up-pm-stripe" className="sr-only" />
                                             <CreditCard className={cn("h-8 w-8 mb-3 transition-colors", field.value === 'credit_card' ? "text-primary" : "text-muted-foreground")} />
-                                            <p className="font-bold text-base">Debit / Credit Card</p>
-                                            <p className="text-[10px] text-muted-foreground mt-1">Instant Activation</p>
+                                            <p className="font-bold text-sm">Cards (Stripe)</p>
+                                            <p className="text-[10px] text-muted-foreground mt-1 text-center">Instant Activation</p>
                                         </Label>
 
                                         <Label 
                                             htmlFor="up-pm-mobile" 
                                             className={cn(
-                                                "flex flex-col items-center justify-center rounded-2xl border-2 p-6 cursor-pointer transition-all",
+                                                "flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer transition-all",
                                                 field.value === 'mobile_banking' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/20"
                                             )}
                                         >
                                             <RadioGroupItem value="mobile_banking" id="up-pm-mobile" className="sr-only" />
                                             <Wallet className={cn("h-8 w-8 mb-3 transition-colors", field.value === 'mobile_banking' ? "text-primary" : "text-muted-foreground")} />
-                                            <p className="font-bold text-base">Mobile Banking</p>
-                                            <p className="text-[10px] text-muted-foreground mt-1">Manual Verification</p>
+                                            <p className="font-bold text-sm">Manual Pay</p>
+                                            <p className="text-[10px] text-muted-foreground mt-1 text-center">BKash / Nagad</p>
                                         </Label>
                                     </RadioGroup>
                                 </FormControl>
@@ -1186,7 +1229,9 @@ export default function SettingsAdminPage() {
                             {isSubmitting ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
                             ) : (
-                                watchedSubMethod === 'credit_card' ? 'Pay with Card' : 'Submit for Verification'
+                                watchedSubMethod === 'credit_card' ? 'Pay with Stripe' : 
+                                watchedSubMethod === 'aamarpay' ? 'Pay with aamarPay' :
+                                'Submit for Verification'
                             )}
                         </Button>
                     </DialogFooter>

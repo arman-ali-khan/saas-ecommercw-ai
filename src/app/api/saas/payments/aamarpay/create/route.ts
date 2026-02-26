@@ -4,11 +4,12 @@ import { v4 as uuidv4 } from 'uuid';
 
 /**
  * @fileOverview API to initialize aamarPay Payment for SaaS subscriptions.
+ * Supports both new users and dashboard upgrades.
  */
 
 export async function POST(request: Request) {
   try {
-    const { planId, amount, origin, fullName, email, phone } = await request.json();
+    const { planId, amount, origin, fullName, email, phone, siteId } = await request.json();
 
     if (!planId || !amount) {
       return NextResponse.json({ error: 'Missing required checkout parameters.' }, { status: 400 });
@@ -24,6 +25,11 @@ export async function POST(request: Request) {
 
     const tranId = `SAAS-${uuidv4().slice(0, 8)}`;
 
+    // If siteId is provided, it's an upgrade from the dashboard
+    const successUrl = siteId 
+        ? `${origin}/api/saas/payments/aamarpay/callback?planId=${planId}&siteId=${siteId}`
+        : `${origin}/api/saas/payments/aamarpay/callback?planId=${planId}`;
+
     const formData = {
       store_id: storeId,
       signature_key: signatureKey,
@@ -34,9 +40,9 @@ export async function POST(request: Request) {
       currency: 'BDT',
       tran_id: tranId,
       desc: `SaaS Subscription: ${planId.toUpperCase()}`,
-      success_url: `${origin}/api/saas/payments/aamarpay/callback?planId=${planId}`,
-      fail_url: `${origin}/get-started?step=payment&plan=${planId}&error=aamarpay_failed`,
-      cancel_url: `${origin}/get-started?step=payment&plan=${planId}&error=aamarpay_cancelled`,
+      success_url: successUrl,
+      fail_url: siteId ? `${origin}/admin/settings?payment=failed` : `${origin}/get-started?step=payment&plan=${planId}&error=aamarpay_failed`,
+      cancel_url: siteId ? `${origin}/admin/settings?payment=cancelled` : `${origin}/get-started?step=payment&plan=${planId}&error=aamarpay_cancelled`,
       type: 'json'
     };
 
