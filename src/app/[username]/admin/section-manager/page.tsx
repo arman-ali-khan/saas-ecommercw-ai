@@ -37,7 +37,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const CORE_SECTION_IDS = ['hero', 'categories', 'flash_deals', 'featured', 'why-us', 'customer-reviews'];
+const CORE_SECTION_IDS = ['hero', 'categories', 'flash_deals', 'top_selling', 'featured', 'why-us', 'customer-reviews'];
 
 export default function SectionManagerPage() {
   const { toast } = useToast();
@@ -101,8 +101,8 @@ export default function SectionManagerPage() {
             currentSections = (sectionsData.sections as Section[]).map(s => ({
                 ...s,
                 mobileView: s.mobileView || '2-col',
-                isCarousel: s.isCarousel ?? (s.id === 'categories' || s.id === 'flash_deals'),
-                productLimit: s.productLimit || (s.id === 'featured' ? 10 : (s.isCategorySection ? 8 : undefined)),
+                isCarousel: s.isCarousel ?? (s.id === 'categories' || s.id === 'flash_deals' || s.id === 'top_selling'),
+                productLimit: s.productLimit || (s.id === 'featured' ? 10 : (s.isCategorySection ? 8 : (s.id === 'top_selling' ? 10 : undefined))),
                 showSideCategories: s.showSideCategories || false,
                 selectedCategories: s.selectedCategories || []
             }));
@@ -110,11 +110,15 @@ export default function SectionManagerPage() {
             if (!currentSections.find(s => s.id === 'categories')) {
                 currentSections.splice(1, 0, { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true, selectedCategories: [] });
             }
+            if (!currentSections.find(s => s.id === 'top_selling')) {
+                currentSections.splice(3, 0, { id: 'top_selling', title: 'সেরা বিক্রিত পণ্য', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true, productLimit: 10 });
+            }
         } else {
             currentSections = [
               { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col', showSideCategories: false },
               { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true, selectedCategories: [] },
               { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true },
+              { id: 'top_selling', title: 'সেরা বিক্রিত পণ্য', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true, productLimit: 10 },
               { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col', productLimit: 10 },
               { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false, mobileView: '2-col' },
               { id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false, mobileView: '2-col' },
@@ -399,7 +403,7 @@ export default function SectionManagerPage() {
                                     </div>
                                 </div>
 
-                                {(section.id === 'categories' || section.id === 'flash_deals' || section.id === 'featured' || section.isCategorySection) && (
+                                {(section.id === 'categories' || section.id === 'flash_deals' || section.id === 'top_selling' || section.id === 'featured' || section.isCategorySection) && (
                                     <div className="space-y-2">
                                         <Label>Carousel Mode</Label>
                                         <div className="flex items-center space-x-2 pt-1">
@@ -462,7 +466,7 @@ export default function SectionManagerPage() {
                                     </Select>
                                 </div>
 
-                                {(section.id === 'featured' || section.isCategorySection) && (
+                                {(section.id === 'featured' || section.id === 'top_selling' || section.isCategorySection) && (
                                     <div className="space-y-2">
                                         <Label className="text-sm">{section.id === 'featured' ? 'Initial Products to Show' : 'Products to Show'}</Label>
                                         <Input 
@@ -471,7 +475,7 @@ export default function SectionManagerPage() {
                                             onChange={(e) => handleLimitChange(section.id, e.target.value)} 
                                             className="h-9"
                                         />
-                                        {section.id === 'featured' && <p className="text-[10px] text-muted-foreground">After this limit, a "Load More" button will appear.</p>}
+                                        {(section.id === 'featured' || section.id === 'top_selling') && <p className="text-[10px] text-muted-foreground">After this limit, a "Load More" button will appear.</p>}
                                     </div>
                                 )}
                             </div>

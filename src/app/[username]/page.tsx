@@ -125,6 +125,77 @@ function FeaturedProducts({ products, section, siteId, t }: { products: Product[
   );
 }
 
+async function TopSellingSection({ siteId, section, t }: { siteId: string, section: Section, t: any }) {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value; },
+      },
+    }
+  );
+
+  // 1. Get delivered orders to identify top sellers
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('cart_items')
+    .eq('site_id', siteId)
+    .eq('status', 'delivered');
+
+  if (!orders || orders.length === 0) return null;
+
+  // 2. Aggregate sales count
+  const salesMap: Record<string, number> = {};
+  orders.forEach(o => {
+    (o.cart_items as any[]).forEach(item => {
+      salesMap[item.id] = (salesMap[item.id] || 0) + item.quantity;
+    });
+  });
+
+  // 3. Get top product IDs sorted by sales
+  const topIds = Object.entries(salesMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, section.productLimit || 10)
+    .map(entry => entry[0]);
+
+  if (topIds.length === 0) return null;
+
+  // 4. Fetch actual product details
+  const { data: products } = await supabase
+    .from('products')
+    .select('*')
+    .in('id', topIds);
+
+  if (!products || products.length === 0) return null;
+
+  // Maintain the top-selling order
+  const sortedProducts = topIds
+    .map(id => products.find(p => p.id === id))
+    .filter(Boolean) as Product[];
+
+  const gridClass = getGridClass(section.mobileView) || "grid-cols-2";
+
+  return (
+    <section>
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
+        <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
+      </div>
+      <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
+        {sortedProducts.map((product) => (
+            <ProductCard 
+                key={product.id} 
+                product={product} 
+                isList={section.mobileView === 'list'} 
+            />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function WhyUs({ features, section }: { features: StoreFeature[], section: Section }) {
     return (
         <section>
@@ -265,6 +336,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col', showSideCategories: false },
       { id: 'categories', title: t.homepage.shopByCategory, enabled: true, isCategorySection: false, mobileView: 'carousel', isCarousel: true },
       { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true },
+      { id: 'top_selling', title: 'সেরা বিক্রিত পণ্য', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true, productLimit: 10 },
       { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col', productLimit: 10 },
       { id: 'why-us', title: t.homepage.whyUs, enabled: true, isCategorySection: false, mobileView: '2-col' },
       { id: 'customer-reviews', title: t.homepage.customerReviews, enabled: true, isCategorySection: false, mobileView: '2-col' },
@@ -332,6 +404,12 @@ export default async function UserPage({ params }: { params: Promise<{ username:
         return <CategoriesSection key={section.id} categories={(categoriesResult.data as Category[]) || []} section={section} t={t} />;
       case 'flash_deals':
         return <FlashDeals key={section.id} deals={(flashDealsResult.data as FlashDeal[]) || []} section={section} t={t} />;
+      case 'top_selling':
+        return (
+            <Suspense key={section.id} fallback={<SectionSkeleton />}>
+                <TopSellingSection siteId={siteId} section={section} t={t} />
+            </Suspense>
+        );
       case 'featured':
         const initialFeatured = (featuredProductsResult.data as Product[]) || [];
         const limitedFeatured = initialFeatured.slice(0, section.productLimit || 10);
