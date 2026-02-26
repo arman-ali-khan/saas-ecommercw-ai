@@ -21,7 +21,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    const BkashConstructor: any = (Bkash as any).default || Bkash;
+    // Robust constructor resolution
+    let BkashConstructor: any;
+    if (typeof Bkash === 'function') {
+        BkashConstructor = Bkash;
+    } else if (Bkash && typeof (Bkash as any).default === 'function') {
+        BkashConstructor = (Bkash as any).default;
+    } else {
+        const bKashModule = require('bkash-payment');
+        BkashConstructor = bKashModule.default || bKashModule;
+    }
 
     const bkash = new BkashConstructor({
       bkash_app_key: process.env.BKASH_APP_KEY || 'your_sandbox_app_key',
