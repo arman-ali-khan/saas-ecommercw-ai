@@ -1,10 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { bn } from 'date-fns/locale';
 import {
   Card,
   CardContent,
@@ -31,9 +31,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, Search, X, CheckCircle2, Clock } from 'lucide-react';
+import { Loader2, Plus, Search, X, CheckCircle2, Clock, Bell, ShoppingCart, MessageSquare, Globe, Sparkles, Filter } from 'lucide-react';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type NotificationWithDetails = Notification & {
   profiles?: {
@@ -62,7 +63,7 @@ export default function SaasNotificationsPage() {
         const response = await fetch('/api/notifications/list', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ recipientType: 'admin', limit: 500 }),
+            body: JSON.stringify({ recipientType: 'admin', limit: 200 }),
         });
         const result = await response.json();
         
@@ -80,7 +81,7 @@ export default function SaasNotificationsPage() {
 
         const combinedData = notificationsData.map((n: any) => ({
             ...n,
-            profiles: profilesMap.get(n.recipient_id) || null
+            profiles: profilesMap.get(n.recipient_id || n.site_id) || null
         }));
 
         setNotifications(combinedData);
@@ -119,138 +120,155 @@ export default function SaasNotificationsPage() {
     currentPage * NOTIFICATIONS_PER_PAGE
   );
 
+  const getIcon = (message: string) => {
+      const msg = message.toLowerCase();
+      if (msg.includes('অর্ডার') || msg.includes('order')) return <ShoppingCart className="h-5 w-5 text-blue-500" />;
+      if (msg.includes('টিকেট') || msg.includes('ticket') || msg.includes('support')) return <MessageSquare className="h-5 w-5 text-amber-500" />;
+      if (msg.includes('domain') || msg.includes('ডোমেইন')) return <Globe className="h-5 w-5 text-purple-500" />;
+      if (msg.includes('seo') || msg.includes('এসইও')) return <Sparkles className="h-5 w-5 text-green-500" />;
+      return <Bell className="h-5 w-5 text-primary" />;
+  }
+
+  const markAsRead = async (id: string) => {
+    try {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+        const response = await fetch('/api/notifications/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notificationId: id }),
+        });
+        if (!response.ok) throw new Error('Update failed');
+    } catch (e) {
+        console.error(e);
+    }
+  }
+
   if (isLoading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-muted-foreground" /></div>;
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <Skeleton className="h-10 w-64" />
+                <Skeleton className="h-10 w-32" />
+            </div>
+            <div className="space-y-3">
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}
+            </div>
+        </div>
+    );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
-            <div>
-            <CardTitle>Admin Notifications Tracking</CardTitle>
-            <CardDescription>Monitor announcements sent to site admins and track if they have been dismissed.</CardDescription>
-            </div>
-            <Button asChild>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Platform Notifications</h1>
+            <p className="text-muted-foreground mt-1">Track all activities, requests, and system alerts across the platform.</p>
+          </div>
+          <Button asChild className="rounded-full shadow-lg shadow-primary/20">
             <Link href="/dashboard/notifications/new">
                 <Plus className="mr-2 h-4 w-4" /> Send Announcement
             </Link>
-            </Button>
-        </div>
-        <div className="mt-6 flex flex-wrap gap-4">
-            <div className="relative flex-grow max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                    placeholder="Search by name, site, or message..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                />
+          </Button>
+      </div>
+
+      <Card className="border-2 shadow-sm">
+        <CardHeader className="pb-4">
+            <div className="flex flex-wrap gap-4 items-center">
+                <div className="relative flex-grow max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by store, admin, or message..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 h-11 rounded-xl"
+                    />
+                </div>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-44 h-11 rounded-xl">
+                        <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="unread">Pending</SelectItem>
+                        <SelectItem value="read">Dismissed</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="read">Dismissed</SelectItem>
-                    <SelectItem value="unread">Pending</SelectItem>
-                </SelectContent>
-            </Select>
-            {(searchQuery || filterStatus !== 'all') && (
-                <Button variant="ghost" onClick={() => { setSearchQuery(''); setFilterStatus('all'); }}>
-                    <X className="mr-2 h-4 w-4" /> Clear
-                </Button>
-            )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {paginatedNotifications.length > 0 ? (
-          <>
-            <div className="hidden md:block">
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead>Admin & Site</TableHead>
-                        <TableHead>Message</TableHead>
-                        <TableHead>Sent At</TableHead>
-                        <TableHead>Status</TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {paginatedNotifications.map((n) => (
-                        <TableRow key={n.id}>
-                        <TableCell>
-                            <div className="font-bold">{n.profiles?.full_name || 'Deleted User'}</div>
-                            <div className="text-xs text-muted-foreground">{n.profiles?.email}</div>
-                            <div className="text-[10px] mt-1 bg-muted px-1.5 py-0.5 rounded w-fit">{n.profiles?.site_name} ({n.profiles?.domain})</div>
-                        </TableCell>
-                        <TableCell className="max-w-xs">
-                            <p className="text-sm line-clamp-2" title={n.message}>{n.message}</p>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                            {format(new Date(n.created_at), 'MMM d, p')}
-                        </TableCell>
-                        <TableCell>
-                            {n.is_read ? (
-                                <Badge variant="default" className="bg-green-500 hover:bg-green-600 gap-1">
-                                    <CheckCircle2 className="h-3 w-3" /> Dismissed
-                                </Badge>
-                            ) : (
-                                <Badge variant="secondary" className="gap-1">
-                                    <Clock className="h-3 w-3" /> Pending
-                                </Badge>
-                            )}
-                        </TableCell>
-                        </TableRow>
-                    ))}
-                    </TableBody>
-                </Table>
-            </div>
-            
-            <div className="grid gap-4 md:hidden">
+        </CardHeader>
+        <CardContent className="p-0">
+          {paginatedNotifications.length > 0 ? (
+            <div className="divide-y border-t">
                 {paginatedNotifications.map((n) => (
-                    <Card key={n.id} className={cn(n.is_read ? 'opacity-70' : 'border-primary/20')}>
-                        <CardHeader className="p-4 pb-2">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <CardTitle className="text-sm">{n.profiles?.full_name}</CardTitle>
-                                    <CardDescription className="text-xs">{n.profiles?.site_name}</CardDescription>
-                                </div>
-                                {n.is_read ? (
-                                    <Badge variant="default" className="bg-green-500"><CheckCircle2 className="h-3 w-3 mr-1" /> Dismissed</Badge>
-                                ) : (
-                                    <Badge variant="secondary">Pending</Badge>
+                    <div
+                        key={n.id}
+                        className={cn(
+                            "group p-4 flex items-start gap-4 transition-all hover:bg-muted/30 relative",
+                            !n.is_read ? "bg-primary/[0.02]" : "opacity-70"
+                        )}
+                    >
+                        {!n.is_read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
+                        
+                        <div className={cn(
+                            "h-12 w-12 rounded-full flex items-center justify-center shrink-0 border-2",
+                            !n.is_read ? "bg-primary/10 border-primary/20" : "bg-muted border-transparent"
+                        )}>
+                            {getIcon(n.message)}
+                        </div>
+
+                        <div className="flex-grow min-w-0 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <p className={cn("text-sm sm:text-base leading-snug", !n.is_read ? "font-bold text-foreground" : "font-medium")}>
+                                    {n.message}
+                                </p>
+                                {!n.is_read && <Badge variant="default" className="h-4 px-1.5 text-[8px] font-black">NEW</Badge>}
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[10px] sm:text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1 font-bold">
+                                    <Clock className="h-3 w-3" /> {format(new Date(n.created_at), 'PPPp', { locale: bn })}
+                                </span>
+                                {n.profiles && (
+                                    <span className="flex items-center gap-1 font-bold uppercase tracking-wider text-primary">
+                                        <Store className="h-3 w-3" /> {n.profiles.site_name} (@{n.profiles.domain})
+                                    </span>
                                 )}
                             </div>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                             <p className="text-sm italic mt-2 border-l-2 pl-3">"{n.message}"</p>
-                             <div className="flex justify-between items-center mt-4">
-                                <span className="text-[10px] text-muted-foreground">{n.profiles?.email}</span>
-                                <span className="text-[10px] text-muted-foreground">{format(new Date(n.created_at), 'p, d MMM')}</span>
-                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                            {n.link && (
+                                <Button variant="outline" size="sm" asChild className="h-8 text-xs rounded-full">
+                                    <Link href={n.link} onClick={() => !n.is_read && markAsRead(n.id)}>View Details</Link>
+                                </Button>
+                            )}
+                            {!n.is_read && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => markAsRead(n.id)}>
+                                    <CheckCircle2 className="h-4 w-4 text-muted-foreground hover:text-green-500" />
+                                </Button>
+                            )}
+                        </div>
+                    </div>
                 ))}
             </div>
-          </>
-        ) : (
-          <div className="text-center py-20 text-muted-foreground border-2 border-dashed rounded-xl">
-            <Search className="mx-auto h-10 w-10 mb-4 opacity-20" />
-            <p>No matching tracking records found.</p>
-          </div>
+          ) : (
+            <div className="text-center py-24 text-muted-foreground flex flex-col items-center">
+              <Bell className="mx-auto h-16 w-16 mb-4 opacity-10" />
+              <p className="text-lg font-medium">No activity notifications found.</p>
+              <p className="text-sm">Try changing your filters or search terms.</p>
+            </div>
+          )}
+        </CardContent>
+        {totalPages > 1 && (
+            <CardFooter className="justify-center border-t py-6 bg-muted/10">
+                <div className="flex items-center gap-4 text-sm">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+                    <span className="text-muted-foreground font-bold">Page {currentPage} of {totalPages}</span>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+                </div>
+            </CardFooter>
         )}
-      </CardContent>
-      {totalPages > 1 && (
-        <CardFooter className="justify-center border-t py-4">
-          <div className="flex items-center gap-4 text-sm">
-            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
-            <span className="text-muted-foreground">Page {currentPage} of {totalPages}</span>
-            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
-          </div>
-        </CardFooter>
-      )}
-    </Card>
+      </Card>
+    </div>
   );
 }

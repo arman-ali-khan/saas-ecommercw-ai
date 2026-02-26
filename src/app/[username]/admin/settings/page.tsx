@@ -309,34 +309,48 @@ export default function SettingsAdminPage() {
     if (!user) return;
     setIsSubmitting(true);
     
-    const { count, error: countError } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('site_id', user.id);
+    try {
+        const { count, error: countError } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('site_id', user.id);
 
-    if (countError) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not get product count.' });
-        setIsSubmitting(false);
-        return;
-    }
+        if (countError) {
+            throw new Error('Could not get product count.');
+        }
 
-    const { error } = await supabase.from('seo_requests').insert({
-        site_id: user.id,
-        status: 'pending',
-        product_count: count || 0,
-        user_name: user.fullName,
-        user_email: user.email,
-        site_domain: user.domain,
-        site_name: user.siteName,
-    });
-    setIsSubmitting(false);
+        const { error } = await supabase.from('seo_requests').insert({
+            site_id: user.id,
+            status: 'pending',
+            product_count: count || 0,
+            user_name: user.fullName,
+            user_email: user.email,
+            site_domain: user.domain,
+            site_name: user.siteName,
+        });
 
-    if(error) {
-        toast({ variant: 'destructive', title: 'Error creating request', description: error.message });
-    } else {
+        if(error) throw error;
+
+        // Create notification for SaaS Admin
+        await fetch('/api/notifications/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                recipientType: 'admin',
+                siteId: user.id,
+                message: `New SEO Review Request from "${user.siteName}" (@${user.domain}).`,
+                link: '/dashboard/seo-requests',
+            }),
+        });
+
         toast({ title: 'SEO request submitted!', description: 'You will be notified when the review is complete.' });
         const { data } = await supabase.from('seo_requests').select('*').eq('site_id', user.id).order('created_at', { ascending: false }).limit(1).single();
         if (data) setSeoRequest(data as SeoRequest);
+
+    } catch (err: any) {
+        toast({ variant: 'destructive', title: 'Error', description: err.message });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
@@ -429,6 +443,18 @@ export default function SettingsAdminPage() {
             });
 
             if (response.ok) {
+                // Also create SaaS Admin notification
+                await fetch('/api/notifications/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipientType: 'admin',
+                        siteId: user.id,
+                        message: `New manual payment submitted by "${user.siteName}" (@${user.domain}) for plan: ${planToChange.name}.`,
+                        link: '/dashboard/subscriptions',
+                    }),
+                });
+
                 toast({ title: 'Upgrade Request Submitted', description: 'Your request is under review. You will be notified upon approval.' });
                 await refreshUser();
             } else {
@@ -1112,7 +1138,7 @@ export default function SettingsAdminPage() {
                                             htmlFor="up-pm-mobile" 
                                             className={cn(
                                                 "flex flex-col items-center justify-center rounded-2xl border-2 p-6 cursor-pointer transition-all",
-                                                field.value === 'mobile_banking' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/10" : "border-muted hover:border-primary/20"
+                                                field.value === 'mobile_banking' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/20"
                                             )}
                                         >
                                             <RadioGroupItem value="mobile_banking" id="up-pm-mobile" className="sr-only" />

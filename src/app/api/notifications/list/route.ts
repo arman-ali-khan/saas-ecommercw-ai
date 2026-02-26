@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -6,7 +5,7 @@ export async function POST(request: Request) {
   try {
     const { recipientId, recipientType, siteId, limit = 50 } = await request.json();
 
-    // recipientType is mandatory, but recipientId is optional for SaaS tracking purposes
+    // recipientType is mandatory
     if (!recipientType) {
       return NextResponse.json({ error: 'Recipient Type is required.' }, { status: 400 });
     }
@@ -21,8 +20,15 @@ export async function POST(request: Request) {
       .select('*')
       .eq('recipient_type', recipientType);
 
+    // If recipientId is provided, filter by it. 
+    // If NOT provided AND type is 'admin', we might be fetching global SaaS alerts (where recipient_id is null)
     if (recipientId) {
       query = query.eq('recipient_id', recipientId);
+    } else if (recipientType === 'admin') {
+      // For SaaS admin view, we often want all admin-targeted notifications regardless of specific ID,
+      // or specifically those meant for the system (where recipient_id is null).
+      // Here we assume if no ID is passed, we want the system-wide list.
+      query = query.is('recipient_id', null);
     }
 
     if (siteId) {
