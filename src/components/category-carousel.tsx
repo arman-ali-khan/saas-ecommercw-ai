@@ -8,6 +8,7 @@ import { Card, CardFooter } from '@/components/ui/card';
 import Autoplay from 'embla-carousel-autoplay';
 import DynamicIcon from './dynamic-icon';
 import type { Category } from '@/types';
+import { cn } from '@/lib/utils';
 
 export default function CategoryCarousel({ categories }: { categories: Category[] }) {
   const plugin = useRef(Autoplay({ delay: 3500, stopOnInteraction: true }));
@@ -24,7 +25,13 @@ export default function CategoryCarousel({ categories }: { categories: Category[
         {categories.map((cat) => (
           <CarouselItem key={cat.id} className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
             <Link href={`/products?category=${encodeURIComponent(cat.name)}`}>
-              <Card className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 border-2" style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}>
+              <Card 
+                className={cn(
+                  "overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 border-2",
+                  "dark:brightness-[0.8] dark:hover:brightness-100" // Added dimming for dark mode
+                )} 
+                style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}
+              >
                 <div className="relative aspect-square w-full">
                   {cat.image_url ? (
                     <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
@@ -35,7 +42,7 @@ export default function CategoryCarousel({ categories }: { categories: Category[
                   )}
                 </div>
                 <CardFooter className="p-3">
-                  <h3 className="font-bold w-full text-primary-foreground text-center text-sm truncate">{cat.name}</h3>
+                  <h3 className="font-bold w-full text-headline text-center text-sm truncate">{cat.name}</h3>
                 </CardFooter>
               </Card>
             </Link>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -38,6 +37,7 @@ export default function CategoriesGrid({ categories, section }: CategoriesGridPr
             <Card 
               className={cn(
                 "overflow-hidden h-full flex flex-col transition-all hover:shadow-lg hover:-translate-y-1 border-2 group",
+                "dark:brightness-[0.8] dark:hover:brightness-100", // Added dimming for dark mode
                 isListMode && "rounded-2xl"
               )} 
               style={{ backgroundColor: cat.card_color || 'hsl(var(--card))' }}
