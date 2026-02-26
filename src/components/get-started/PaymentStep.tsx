@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,8 +14,7 @@ import { type Plan } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, ArrowLeft, CreditCard } from "lucide-react";
-import { getStripe } from "@/lib/stripe";
+import { Loader2, ArrowLeft, CreditCard, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PaymentStepProps {
@@ -52,7 +52,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
     const form = useForm<z.infer<typeof paymentSchema>>({
         resolver: zodResolver(paymentSchema),
         defaultValues: {
-            paymentMethod: formData.paymentMethod || 'credit_card',
+            paymentMethod: formData.paymentMethod || 'bkash',
             transactionId: formData.transactionId || '',
         }
     });
@@ -111,9 +111,41 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
         }
     }
 
+    async function handleBkashCheckout() {
+        if (!plan) return;
+        setIsNavigating(true);
+        
+        try {
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            const response = await fetch('/api/saas/payments/bkash/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    planId: plan.id,
+                    amount: plan.price,
+                    origin: origin
+                }),
+            });
+
+            const result = await response.json();
+            if (result.bkashURL) {
+                window.location.href = result.bkashURL;
+            } else {
+                throw new Error(result.error || 'bKash initialization failed');
+            }
+        } catch (e: any) {
+            console.error(e);
+            setIsNavigating(false);
+        }
+    }
+
     function onSubmit(values: z.infer<typeof paymentSchema>) {
         if (values.paymentMethod === 'credit_card') {
             handleStripeCheckout();
+            return;
+        }
+        if (values.paymentMethod === 'bkash') {
+            handleBkashCheckout();
             return;
         }
 
@@ -164,10 +196,28 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                             className="grid grid-cols-1 gap-4"
                                         >
                                             <Label 
+                                                htmlFor="bkash" 
+                                                className={cn(
+                                                    "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
+                                                    field.value === 'bkash' ? "border-pink-500 bg-pink-50 shadow-md ring-2 ring-pink-500/20" : "border-muted hover:border-pink-500/30"
+                                                )}
+                                            >
+                                                <RadioGroupItem value="bkash" id="bkash" className="sr-only" />
+                                                <div className="bg-pink-500/10 p-2 rounded-xl">
+                                                    <Image src="https://res.cloudinary.com/dztv8gu8v/image/upload/v1741081544/bkash_pvmrkp.png" alt="bKash" width={40} height={40} className="object-contain" />
+                                                </div>
+                                                <div className="flex-grow">
+                                                    <p className="text-lg font-bold">বিকাশ পেমেন্ট</p>
+                                                    <p className="text-xs text-muted-foreground">ইনস্ট্যান্ট পেমেন্ট ও অ্যাক্টিভেশন</p>
+                                                </div>
+                                                {field.value === 'bkash' && <CheckCircle2 className="h-5 w-5 text-pink-500" />}
+                                            </Label>
+
+                                            <Label 
                                                 htmlFor="credit_card" 
                                                 className={cn(
                                                     "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
-                                                    field.value === 'credit_card' ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/30"
+                                                    field.value === 'credit_card' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/30"
                                                 )}
                                             >
                                                 <RadioGroupItem value="credit_card" id="credit_card" className="sr-only" />
@@ -185,7 +235,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                                 htmlFor="mobile_banking" 
                                                 className={cn(
                                                     "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
-                                                    field.value === 'mobile_banking' ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/30"
+                                                    field.value === 'mobile_banking' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/30"
                                                 )}
                                             >
                                                 <RadioGroupItem value="mobile_banking" id="mobile_banking" className="sr-only" />
@@ -193,8 +243,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                                     <Wallet className="h-6 w-6 text-primary" />
                                                 </div>
                                                 <div className="flex-grow">
-                                                    <p className="text-lg font-bold">মোবাইল ব্যাংকিং (ম্যানুয়াল)</p>
-                                                    <p className="text-xs text-muted-foreground">বিকাশ, নগদ বা রকেটের মাধ্যমে</p>
+                                                    <p className="text-lg font-bold">অন্যান্য মোবাইল ব্যাংকিং</p>
+                                                    <p className="text-xs text-muted-foreground">নগদ বা রকেটের মাধ্যমে (ম্যানুয়াল)</p>
                                                 </div>
                                                 {field.value === 'mobile_banking' && <CheckCircle2 className="h-5 w-5 text-primary" />}
                                             </Label>
@@ -212,8 +262,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                         <InfoIcon className="h-4 w-4 text-primary" /> মোবাইল ব্যাংকিং নির্দেশনা
                                     </h3>
                                     <ol className="list-decimal list-inside space-y-2 leading-relaxed">
-                                        <li>আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ ({acceptedMethods}) খুলুন।</li>
-                                        <li>"পেমেন্ট" অপশন নির্বাচন করুন।</li>
+                                        <li>আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ (নগদ, রকেট ইত্যাদি) খুলুন।</li>
+                                        <li>"সেন্ড মানি" অথবা "পেমেন্ট" অপশন নির্বাচন করুন।</li>
                                         <li>মার্চেন্ট নম্বর হিসেবে <strong>{merchantNumber}</strong> দিন।</li>
                                         <li>টাকার পরিমাণ হিসেবে <strong>৳{priceText}</strong> লিখুন।</li>
                                         <li>পেমেন্ট সম্পন্ন করে নিচের বক্সে ট্রানজেকশন আইডি দিন।</li>
