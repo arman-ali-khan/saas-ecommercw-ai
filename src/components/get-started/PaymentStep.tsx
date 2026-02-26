@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, ArrowLeft, CreditCard } from "lucide-react";
 import { getStripe } from "@/lib/stripe";
+import { cn } from "@/lib/utils";
 
 interface PaymentStepProps {
     plan?: Plan;
