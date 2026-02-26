@@ -40,6 +40,8 @@ const generateSlug = (title: string) => {
 
 const blockBaseSchema = z.object({
   id: z.string(),
+  padding: z.string().optional().default('p-0'),
+  bg_image: z.string().url().optional().or(z.literal('')),
 });
 
 const headingBlockSchema = blockBaseSchema.extend({
@@ -91,6 +93,7 @@ const countdownBlockSchema = blockBaseSchema.extend({
     type: z.literal('countdown'),
     title: z.string().optional(),
     endDate: z.date({ required_error: "End date is required." }),
+    bg_color: z.string().optional().default('transparent'),
 });
 
 const reviewItemSchema = z.object({
@@ -165,6 +168,7 @@ const themeColorPalette = {
     'Muted': 'hsl(var(--muted))',
     'Accent': 'hsl(var(--accent))',
     'Destructive': 'hsl(var(--destructive))',
+    'Transparent': 'transparent'
 }
 
 const defaultColorPalette = [
@@ -176,6 +180,14 @@ const defaultColorPalette = [
     { name: 'Fuchsia', color: '#4a044e' },
     { name: 'Slate', color: '#334155' },
     { name: 'Stone', color: '#44403c' },
+];
+
+const PADDING_OPTIONS = [
+    { label: 'None', value: 'p-0' },
+    { label: 'Small (16px)', value: 'p-4' },
+    { label: 'Medium (32px)', value: 'p-8' },
+    { label: 'Large (48px)', value: 'p-12' },
+    { label: 'Extra Large (64px)', value: 'p-16' },
 ];
 
 export default function ManagePage() {
@@ -408,20 +420,73 @@ export default function ManagePage() {
           let newBlock: any;
   
           switch (type) {
-              case 'heading': newBlock = { id, type: 'heading', level: 2, text: 'Your Heading', align: 'left' }; break;
-              case 'paragraph': newBlock = { id, type: 'paragraph', text: 'Start writing your paragraph here.', align: 'left' }; break;
+              case 'heading': newBlock = { id, type: 'heading', level: 2, text: 'Your Heading', align: 'left', padding: 'p-0', bg_image: '' }; break;
+              case 'paragraph': newBlock = { id, type: 'paragraph', text: 'Start writing your paragraph here.', align: 'left', padding: 'p-0', bg_image: '' }; break;
               case 'image': newBlock = { id, type: 'image', src: 'https://placehold.co/1200x600?text=Your+Image', alt: 'Placeholder Image' }; break;
-              case 'button': newBlock = { id, type: 'button', text: 'Click Me', href: '#', variant: 'default' }; break;
+              case 'button': newBlock = { id, type: 'button', text: 'Click Me', href: '#', variant: 'default', padding: 'p-0', bg_image: '' }; break;
               case 'youtube': newBlock = { id, type: 'youtube', videoId: 'dQw4w9WgXcQ' }; break;
-              case 'coloredBox': newBlock = { id, type: 'coloredBox', color: 'hsl(var(--card))', text: 'This is a colored box.' }; break;
+              case 'coloredBox': newBlock = { id, type: 'coloredBox', color: 'hsl(var(--card))', text: 'This is a colored box.', padding: 'p-6', bg_image: '' }; break;
               case 'layout': newBlock = { id, type: 'layout', columnCount, columns: Array.from({ length: columnCount || 1 }, () => ({ id: uuidv4(), blocks: [] })) }; break;
               case 'product_showcase': newBlock = { id, type: 'product_showcase', optional_product_ids: [], also_buy_title: 'Also Buy' }; break;
-              case 'countdown': newBlock = { id, type: 'countdown', title: 'Countdown', endDate: new Date() }; break;
+              case 'countdown': newBlock = { id, type: 'countdown', title: 'Countdown', endDate: new Date(), bg_color: 'transparent' }; break;
               case 'carousel': newBlock = { id, type: 'carousel', slides: [] }; break;
               case 'review': newBlock = { id, type: 'review', reviews: [] }; break;
           }
           appendBlock(newBlock);
       };
+
+      const StyleSettings = ({ namePrefix, showBgImage = true, showPadding = true, showBgColor = false }: { namePrefix: string, showBgImage?: boolean, showPadding?: boolean, showBgColor?: boolean }) => (
+          <div className="mt-6 pt-6 border-t space-y-4">
+              <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <Palette className="h-3 w-3" /> Style Settings
+              </h4>
+              <div className="grid sm:grid-cols-2 gap-4">
+                  {showPadding && (
+                      <FormField control={control} name={`${namePrefix}.padding` as any} render={({ field }) => (
+                          <FormItem>
+                              <FormLabel className="text-[10px] uppercase font-bold">Inner Padding</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || 'p-0'}>
+                                  <FormControl><SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger></FormControl>
+                                  <SelectContent className="z-[110]">
+                                      {PADDING_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                                  </SelectContent>
+                              </Select>
+                          </FormItem>
+                      )} />
+                  )}
+                  {showBgColor && (
+                      <FormField control={control} name={`${namePrefix}.bg_color` as any} render={({ field }) => (
+                          <FormItem>
+                              <FormLabel className="text-[10px] uppercase font-bold">Background Color</FormLabel>
+                              <div className="flex items-center gap-2">
+                                  <FormControl><Input {...field} placeholder="transparent" className="h-9 text-xs" /></FormControl>
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0"><Palette className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                      <DropdownMenuContent className="z-[110]">
+                                          {Object.entries(themeColorPalette).map(([name, color]) => (
+                                              <DropdownMenuItem key={name} onSelect={() => form.setValue(`${namePrefix}.bg_color` as any, color)}><div className="h-4 w-4 rounded-full border mr-2" style={{ backgroundColor: color }}/>{name}</DropdownMenuItem>
+                                          ))}
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                              </div>
+                          </FormItem>
+                      )} />
+                  )}
+                  {showBgImage && (
+                      <FormField control={control} name={`${namePrefix}.bg_image` as any} render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                              <FormLabel className="text-[10px] uppercase font-bold">Background Image</FormLabel>
+                              <div className="flex gap-2">
+                                  <FormControl><Input {...field} placeholder="https://..." className="h-9 text-xs" /></FormControl>
+                                  <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => openPicker(`${namePrefix}.bg_image`)}><ImageIcon className="h-4 w-4" /></Button>
+                              </div>
+                              <ImageUploader onUpload={(res) => form.setValue(`${namePrefix}.bg_image` as any, res.info.secure_url)} label="Upload BG" />
+                          </FormItem>
+                      )} />
+                  )}
+              </div>
+          </div>
+      );
   
       return (
           <div className="space-y-4">
@@ -465,6 +530,7 @@ export default function ManagePage() {
                                   <>
                                       <FormField control={control} name={`${currentFieldName}.text`} render={({ field: hField }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Input {...hField} /></FormControl><FormMessage /></FormItem>)} />
                                       <FormField control={control} name={`${currentFieldName}.align`} render={({ field: hAlignField }) => (<FormItem><FormLabel>Alignment</FormLabel><Select onValueChange={hAlignField.onChange} defaultValue={hAlignField.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="left"><AlignLeft className="inline-block mr-2 h-4 w-4"/>Left</SelectItem><SelectItem value="center"><AlignCenter className="inline-block mr-2 h-4 w-4"/>Center</SelectItem><SelectItem value="right"><AlignRight className="inline-block mr-2 h-4 w-4"/>Right</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                      <StyleSettings namePrefix={currentFieldName} />
                                   </>
                               )}
                               {(field as any).type === 'paragraph' && (
@@ -478,6 +544,7 @@ export default function ManagePage() {
                                               <FormMessage />
                                           </FormItem>
                                       )} />
+                                      <StyleSettings namePrefix={currentFieldName} />
                                   </>
                               )}
                               {(field as any).type === 'image' && (
@@ -492,6 +559,7 @@ export default function ManagePage() {
                                       <FormField control={control} name={`${currentFieldName}.text`} render={({ field: bField }) => (<FormItem><FormLabel>Button Text</FormLabel><FormControl><Input {...bField} /></FormControl><FormMessage /></FormItem>)} />
                                       <FormField control={control} name={`${currentFieldName}.href`} render={({ field: bHrefField }) => (<FormItem><FormLabel>Button Link (URL)</FormLabel><FormControl><Input {...bHrefField} /></FormControl><FormMessage /></FormItem>)} />
                                       <FormField control={control} name={`${currentFieldName}.variant`} render={({ field: bVarField }) => (<FormItem><FormLabel>Style</FormLabel><Select onValueChange={bVarField.onChange} defaultValue={bVarField.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="default">Default</SelectItem><SelectItem value="secondary">Secondary</SelectItem><SelectItem value="outline">Outline</SelectItem><SelectItem value="ghost">Ghost</SelectItem><SelectItem value="link">Link</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                      <StyleSettings namePrefix={currentFieldName} />
                                   </>
                               )}
                               {(field as any).type === 'youtube' && (
@@ -507,7 +575,8 @@ export default function ManagePage() {
                               {(field as any).type === 'coloredBox' && (
                                   <>
                                       <FormField control={control} name={`${currentFieldName}.text`} render={({ field: cbField }) => (<FormItem><FormLabel>Text</FormLabel><FormControl><Textarea {...cbField} rows={3} /></FormControl><FormMessage /></FormItem>)} />
-                                      <FormField control={control} name={`${currentFieldName}.color`} render={({ field: cbColorField }) => (<FormItem><FormLabel>Background Color</FormLabel><div className="flex items-center gap-2"><FormControl><Input {...cbColorField} placeholder="hsl(var(--card))" /></FormControl><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon"><Palette className="h-4 w-4" /><span className="sr-only">Open color picker</span></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Theme Colors</DropdownMenuLabel><DropdownMenuSeparator />{Object.entries(themeColorPalette).map(([name, color]) => (<DropdownMenuItem key={name} onSelect={() => form.setValue(`${currentFieldName}.color` as any, color)}><div className="h-4 w-4 rounded-full border mr-2" style={{ backgroundColor: color }}/>{name}</DropdownMenuItem>))}<DropdownMenuSeparator /><DropdownMenuLabel>Standard Palette</DropdownMenuLabel><div className="p-2 grid grid-cols-4 gap-2">{defaultColorPalette.map(({name, color}) => (<button type="button" key={name} title={name} className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring" style={{ backgroundColor: color }} onClick={() => form.setValue(`${currentFieldName}.color` as any, color)}/>))}</div></DropdownMenuContent></DropdownMenu></div><FormDescription>Enter a custom HSL/hex code, or select from the palette.</FormDescription><FormMessage /></FormItem>)} />
+                                      <FormField control={control} name={`${currentFieldName}.color`} render={({ field: cbColorField }) => (<FormItem><FormLabel>Base Background Color</FormLabel><div className="flex items-center gap-2"><FormControl><Input {...cbColorField} placeholder="hsl(var(--card))" /></FormControl><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon"><Palette className="h-4 w-4" /><span className="sr-only">Open color picker</span></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>Theme Colors</DropdownMenuLabel><DropdownMenuSeparator />{Object.entries(themeColorPalette).map(([name, color]) => (<DropdownMenuItem key={name} onSelect={() => form.setValue(`${currentFieldName}.color` as any, color)}><div className="h-4 w-4 rounded-full border mr-2" style={{ backgroundColor: color }}/>{name}</DropdownMenuItem>))}<DropdownMenuSeparator /><DropdownMenuLabel>Standard Palette</DropdownMenuLabel><div className="p-2 grid grid-cols-4 gap-2">{defaultColorPalette.map(({name, color}) => (<button type="button" key={name} title={name} className="h-8 w-8 rounded-md border focus:outline-none focus:ring-2 focus:ring-ring" style={{ backgroundColor: color }} onClick={() => form.setValue(`${currentFieldName}.color` as any, color)}/>))}</div></DropdownMenuContent></DropdownMenu></div><FormDescription>Enter a custom HSL/hex code, or select from the palette.</FormDescription><FormMessage /></FormItem>)} />
+                                      <StyleSettings namePrefix={currentFieldName} />
                                   </>
                               )}
                               {(field as any).type === 'product_showcase' && (
@@ -617,13 +686,14 @@ export default function ManagePage() {
                                                           </FormControl>
                                                       </PopoverTrigger>
                                                       <PopoverContent className="w-auto p-0" align="start">
-                                                          <Calendar mode="single" selected={cdDateField.value} onValueChange={cdDateField.onChange} initialFocus />
+                                                          <Calendar mode="single" selected={cdDateField.value} onSelect={cdDateField.onChange} initialFocus />
                                                       </PopoverContent>
                                                   </Popover>
                                                   <FormMessage />
                                               </FormItem>
                                           )}
                                       />
+                                      <StyleSettings namePrefix={currentFieldName} showBgImage={false} showPadding={false} showBgColor={true} />
                                   </>
                               )}
                               {(field as any).type === 'carousel' && (

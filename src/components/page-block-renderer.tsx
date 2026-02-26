@@ -25,28 +25,37 @@ export async function PageBlock({ block, username, siteId }: { block: any, usern
   }
   
   const alignClass = block.align ? alignmentClasses[block.align as keyof typeof alignmentClasses] : 'text-left';
+  const paddingClass = block.padding || 'p-0';
+  const bgStyle = block.bg_image ? { backgroundImage: `url(${block.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {};
 
   switch (block.type) {
     case 'heading':
       const Tag = block.level === 1 ? 'h1' : block.level === 2 ? 'h2' : 'h3';
-      return <Tag className={cn("text-3xl font-bold my-4", alignClass)}>{block.text}</Tag>;
+      return (
+        <div 
+          className={cn("my-4 rounded-xl overflow-hidden", paddingClass, alignClass, block.bg_image && "text-white shadow-lg")}
+          style={bgStyle}
+        >
+          <Tag className="text-3xl font-bold leading-tight drop-shadow-md">{block.text}</Tag>
+        </div>
+      );
     case 'paragraph':
       let content;
       try {
         const parsed = JSON.parse(block.text);
-        // Basic check to see if it's a Tiptap object
         if (typeof parsed === 'object' && parsed !== null && parsed.type === 'doc') {
             content = parsed;
         } else {
-            // It's valid JSON but not a Tiptap doc, wrap it
             throw new Error("Not a Tiptap doc");
         }
       } catch (e) {
-        // Not a valid JSON string, treat as plain text
         content = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: block.text || '' }] }] };
       }
       return (
-        <div className={cn("my-4 text-lg prose dark:prose-invert max-w-full", alignClass)}>
+        <div 
+          className={cn("my-4 rounded-xl overflow-hidden text-lg prose dark:prose-invert max-w-full", paddingClass, alignClass, block.bg_image && "text-white shadow-lg")}
+          style={bgStyle}
+        >
             <RichTextRenderer content={content} />
         </div>
       );
@@ -58,8 +67,11 @@ export async function PageBlock({ block, username, siteId }: { block: any, usern
       );
     case 'button':
       return (
-        <div className={cn("my-4", alignClass)}>
-          <Button asChild variant={block.variant || 'default'} size="lg">
+        <div 
+          className={cn("my-4 rounded-xl overflow-hidden", paddingClass, alignClass)}
+          style={bgStyle}
+        >
+          <Button asChild variant={block.variant || 'default'} size="lg" className="shadow-md">
             <Link href={block.href || '#'}>{block.text || 'Click Me'}</Link>
           </Button>
         </div>
@@ -92,8 +104,11 @@ export async function PageBlock({ block, username, siteId }: { block: any, usern
             );
         };
         return (
-            <div className="my-4 p-6 rounded-lg" style={{ backgroundColor: block.color || '#172554' }}>
-                <p className="text-lg text-primary-foreground whitespace-pre-wrap"><SimpleMarkdown text={block.text} /></p>
+            <div 
+              className={cn("my-4 rounded-xl overflow-hidden", paddingClass)} 
+              style={{ ...bgStyle, backgroundColor: block.color || 'hsl(var(--card))' }}
+            >
+                <p className="text-lg text-primary-foreground whitespace-pre-wrap drop-shadow-sm"><SimpleMarkdown text={block.text} /></p>
             </div>
         );
     case 'layout':
@@ -126,7 +141,7 @@ export async function PageBlock({ block, username, siteId }: { block: any, usern
         const all_ids = [block.main_product_id, ...(block.optional_product_ids || [])].filter(Boolean) as string[];
 
         if (all_ids.length === 0) {
-            return null; // Or a placeholder in edit mode
+            return null;
         }
 
         const { data: productsData, error } = await supabase
@@ -154,8 +169,8 @@ export async function PageBlock({ block, username, siteId }: { block: any, usern
         />;
     case 'countdown':
         return (
-            <div className="my-8 text-center">
-                {block.title && <h2 className="text-3xl font-bold mb-4">{block.title}</h2>}
+            <div className="my-8 text-center p-10 rounded-[2rem]" style={{ backgroundColor: block.bg_color || 'transparent' }}>
+                {block.title && <h2 className="text-3xl font-bold mb-6">{block.title}</h2>}
                 <CountdownBlock endDate={block.endDate} />
             </div>
         );
