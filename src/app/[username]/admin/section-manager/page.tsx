@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
@@ -100,7 +101,8 @@ export default function SectionManagerPage() {
                 ...s,
                 mobileView: s.mobileView || '2-col',
                 isCarousel: s.isCarousel ?? (s.id === 'categories' || s.id === 'flash_deals'),
-                productLimit: s.productLimit || (s.id === 'featured' ? 10 : (s.isCategorySection ? 8 : undefined))
+                productLimit: s.productLimit || (s.id === 'featured' ? 10 : (s.isCategorySection ? 8 : undefined)),
+                showSideCategories: s.showSideCategories || false
             }));
             
             if (!currentSections.find(s => s.id === 'categories')) {
@@ -108,7 +110,7 @@ export default function SectionManagerPage() {
             }
         } else {
             currentSections = [
-              { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
+              { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col', showSideCategories: false },
               { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true },
               { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true },
               { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col', productLimit: 10 },
@@ -161,6 +163,12 @@ export default function SectionManagerPage() {
   const handleCarouselToggle = (sectionId: string, isCarousel: boolean) => {
     setSections((prev) =>
       prev.map((s) => (s.id === sectionId ? { ...s, isCarousel } : s))
+    );
+  };
+
+  const handleSideCategoriesToggle = (sectionId: string, show: boolean) => {
+    setSections((prev) =>
+      prev.map((s) => (s.id === sectionId ? { ...s, showSideCategories: show } : s))
     );
   };
 
@@ -316,6 +324,11 @@ export default function SectionManagerPage() {
                                     <Badge variant="outline" className="text-[10px] py-0 gap-1">
                                         <Smartphone className="h-2 w-2" /> {section.mobileView || 'Auto'}
                                     </Badge>
+                                    {section.id === 'hero' && section.showSideCategories && (
+                                        <Badge variant="outline" className="text-[10px] py-0 gap-1">
+                                            <List className="h-2 w-2" /> Side Categories (Desktop)
+                                        </Badge>
+                                    )}
                                     {section.productLimit !== undefined && (
                                         <Badge variant="secondary" className="text-[10px] py-0">Limit: {section.productLimit}</Badge>
                                     )}
@@ -372,6 +385,24 @@ export default function SectionManagerPage() {
                                             />
                                             <Label htmlFor={`carousel-${section.id}`} className="font-normal text-xs">
                                                 {section.isCarousel ? "Slider layout." : "Fixed grid layout."}
+                                            </Label>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {section.id === 'hero' && (
+                                    <div className="space-y-2">
+                                        <Label className="flex items-center gap-2"><List className="h-4 w-4" /> Side Category Menu</Label>
+                                        <div className="flex items-center space-x-2 pt-1">
+                                            <Switch
+                                                id={`side-cat-${section.id}`}
+                                                checked={section.showSideCategories}
+                                                onCheckedChange={(checked) =>
+                                                    handleSideCategoriesToggle(section.id, checked)
+                                                }
+                                            />
+                                            <Label htmlFor={`side-cat-${section.id}`} className="font-normal text-xs">
+                                                Show category list on the left side of carousel (Desktop only).
                                             </Label>
                                         </div>
                                     </div>
@@ -482,7 +513,7 @@ export default function SectionManagerPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCreateOpen(false)} />
             <div className="relative w-full max-w-lg bg-background rounded-2xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
-                <div className="flex items-center justify-between p-6 border-b shrink-0">
+                <div className="p-6 border-b shrink-0">
                     <h2 className="text-xl font-bold">নতুন ডাইনামিক সেকশন তৈরি করুন</h2>
                     <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsCreateOpen(false)}>
                         <X className="h-5 w-5" />

@@ -240,6 +240,7 @@ export interface Section {
   mobileView?: '1-col' | '2-col' | 'list';
   isCarousel?: boolean;
   productLimit?: number;
+  showSideCategories?: boolean;
 }
 
 export interface LiveChatMessage {

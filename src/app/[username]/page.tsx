@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import ProductCard from '@/components/product-card';
-import { ArrowRight, SearchX } from 'lucide-react';
+import { ArrowRight, SearchX, List, ChevronRight } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/card';
 import DynamicIcon from '@/components/dynamic-icon';
 import CategoriesGrid from '@/components/categories-grid';
 import FeaturedProductsList from '@/components/featured-products-list';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const dynamic = 'force-dynamic';
 
@@ -232,7 +233,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     if (Array.isArray(dbSections)) return dbSections as Section[];
     
     return [
-      { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col' },
+      { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col', showSideCategories: false },
       { id: 'categories', title: t.homepage.shopByCategory, enabled: true, isCategorySection: false, mobileView: 'carousel', isCarousel: true },
       { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true },
       { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col', productLimit: 10 },
@@ -254,12 +255,47 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     if (!section.enabled) return null;
     switch (section.id) {
       case 'hero':
+        const allCategories = (categoriesResult.data as Category[]) || [];
         return (
           <section key={section.id} className="space-y-16">
-            <div className="w-full rounded-lg overflow-hidden">
-              {heroSlides.length > 0 ? <HeroCarousel slides={heroSlides} /> : (
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center"><p className="text-muted-foreground">Welcome to the store!</p></div>
+            <div className={cn(
+                "w-full rounded-lg overflow-hidden",
+                section.showSideCategories && "md:grid md:grid-cols-[280px_1fr] md:gap-4 md:bg-transparent"
+            )}>
+              {section.showSideCategories && (
+                  <div className="hidden md:flex flex-col bg-card border-2 rounded-xl overflow-hidden shadow-sm">
+                      <div className="bg-primary/10 p-4 border-b">
+                          <h3 className="font-bold flex items-center gap-2"><List className="h-4 w-4" /> সকল ক্যাটাগরি</h3>
+                      </div>
+                      <ScrollArea className="flex-1 max-h-[400px]">
+                          <div className="p-2 space-y-1">
+                              {allCategories.slice(0, 10).map(cat => (
+                                  <Link key={cat.id} href={`/products?category=${encodeURIComponent(cat.name)}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary/5 transition-colors group">
+                                      <div className="relative h-8 w-8 rounded-md overflow-hidden bg-muted shrink-0 border">
+                                          {cat.image_url ? (
+                                              <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
+                                          ) : (
+                                              <div className="flex h-full w-full items-center justify-center">
+                                                  <DynamicIcon name={cat.icon || 'Package'} className="h-4 w-4 text-muted-foreground" />
+                                              </div>
+                                          )}
+                                      </div>
+                                      <span className="text-sm font-medium group-hover:text-primary truncate">{cat.name}</span>
+                                      <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </Link>
+                              ))}
+                              {allCategories.length > 10 && (
+                                  <Link href="/products" className="block text-center p-2 text-xs font-bold text-primary hover:underline">সবগুলো দেখুন</Link>
+                              )}
+                          </div>
+                      </ScrollArea>
+                  </div>
               )}
+              <div className="w-full">
+                {heroSlides.length > 0 ? <HeroCarousel slides={heroSlides} /> : (
+                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center"><p className="text-muted-foreground">Welcome to the store!</p></div>
+                )}
+              </div>
             </div>
           </section>
         );
