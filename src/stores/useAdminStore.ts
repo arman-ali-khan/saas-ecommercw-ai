@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -13,7 +14,8 @@ import type {
     Page,
     SupportTicket,
     SupportMessage,
-    Notification
+    Notification,
+    SiteImage
 } from '@/types';
 
 interface DashboardStats {
@@ -59,6 +61,7 @@ interface AdminState {
     currentTicket: SupportTicket | null;
     currentMessages: SupportMessage[];
     notifications: Notification[];
+    images: SiteImage[];
     sidebarCounts: SidebarCounts;
     
     // Fetch Status (Timestamps)
@@ -80,6 +83,7 @@ interface AdminState {
     setCurrentTicket: (ticket: SupportTicket | null) => void;
     setCurrentMessages: (messages: SupportMessage[]) => void;
     setNotifications: (notifications: Notification[]) => void;
+    setImages: (images: SiteImage[]) => void;
     setSidebarCounts: (counts: SidebarCounts) => void;
     
     invalidateEntity: (entity: string) => void;
@@ -100,6 +104,7 @@ const INITIAL_LAST_FETCHED = {
     pages: 0,
     supportTickets: 0,
     notifications: 0,
+    images: 0,
     sidebarCounts: 0,
 };
 
@@ -128,6 +133,7 @@ export const useAdminStore = create<AdminState>()((set) => ({
     currentTicket: null,
     currentMessages: [],
     notifications: [],
+    images: [],
     sidebarCounts: INITIAL_SIDEBAR_COUNTS,
     
     lastFetched: INITIAL_LAST_FETCHED,
@@ -200,6 +206,11 @@ export const useAdminStore = create<AdminState>()((set) => ({
         lastFetched: { ...state.lastFetched, notifications: Date.now() }
     })),
 
+    setImages: (images) => set((state) => ({
+        images,
+        lastFetched: { ...state.lastFetched, images: Date.now() }
+    })),
+
     setSidebarCounts: (sidebarCounts) => set((state) => ({
         sidebarCounts,
         lastFetched: { ...state.lastFetched, sidebarCounts: Date.now() }
@@ -225,6 +236,7 @@ export const useAdminStore = create<AdminState>()((set) => ({
         currentTicket: null,
         currentMessages: [],
         notifications: [],
+        images: [],
         sidebarCounts: INITIAL_SIDEBAR_COUNTS,
         lastFetched: INITIAL_LAST_FETCHED,
     })

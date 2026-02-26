@@ -466,3 +466,11 @@ export interface SupportMessage {
     full_name: string;
   } | null;
 }
+
+export interface SiteImage {
+  id: string;
+  site_id: string;
+  url: string;
+  name?: string | null;
+  created_at: string;
+}

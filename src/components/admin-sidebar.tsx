@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -24,6 +25,7 @@ import {
   Palette,
   HelpCircle,
   MessageSquare,
+  ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -127,6 +129,7 @@ export default function AdminSidebar() {
     { href: `/admin/customers`, label: 'Customers', icon: Users, count: sidebarCounts.totalCustomers, countVariant: 'neutral' as const },
     { href: `/admin/shipping`, label: 'Shipping', icon: Truck },
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
+    { href: `/admin/images`, label: 'Image Gallery', icon: ImageIcon },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/admin/reviews`, label: 'Reviews', icon: Star, count: sidebarCounts.pendingReviews },

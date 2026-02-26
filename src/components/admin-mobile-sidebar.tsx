@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -24,6 +25,7 @@ import {
   Palette,
   HelpCircle,
   MessageSquare,
+  ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -112,6 +114,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/customers`, label: 'Customers', icon: Users, count: sidebarCounts.totalCustomers, countVariant: 'neutral' as const },
     { href: `/admin/shipping`, label: 'Shipping', icon: Truck },
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
+    { href: `/admin/images`, label: 'Image Gallery', icon: ImageIcon },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/admin/reviews`, label: 'Reviews', icon: Star, count: sidebarCounts.pendingReviews },
@@ -232,7 +235,7 @@ export default function AdminMobileSidebar() {
                 'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
                 pathname.startsWith('/admin/theme') && 'bg-primary text-primary-foreground'
               )}>
-                <div className="flex items-center gap-3">
+                <div className="flex iems-center gap-3">
                   <Palette className="h-4 w-4" />
                   Theme
                 </div>
