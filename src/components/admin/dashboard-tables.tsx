@@ -7,15 +7,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowRight, Eye, Star, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Eye, Star, AlertTriangle, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Order, ProductReview, ProductQna, Product } from '@/types';
+import Image from 'next/image';
 
 interface DashboardTablesProps {
   pendingOrders: Order[];
   lowStockProducts: Product[];
   pendingReviews: ProductReview[];
   unansweredQuestions: ProductQna[];
+  topSellingProducts: any[];
   isLoading: boolean;
   t: any;
 }
@@ -36,12 +38,59 @@ export default function DashboardTables({
   lowStockProducts,
   pendingReviews, 
   unansweredQuestions, 
+  topSellingProducts,
   isLoading, 
   t 
 }: DashboardTablesProps) {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* Top Selling Products Table */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-green-500" /> সেরা বিক্রিত পণ্য</CardTitle>
+              <CardDescription>সবচেয়ে বেশি বিক্রি হওয়া পণ্যগুলোর তালিকা।</CardDescription>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/products`}>সকল পণ্য</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? <TableSkeletonLoader /> : !topSellingProducts?.length ? <p className="text-muted-foreground text-center py-8">কোনো বিক্রয় তথ্য নেই।</p> : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>পণ্য</TableHead>
+                      <TableHead className="text-center">পরিমাণ</TableHead>
+                      <TableHead className="text-right">মোট আয়</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {topSellingProducts.map(item => (
+                      <TableRow key={item.id}>
+                        <TableCell className="flex items-center gap-3">
+                          <div className="relative h-10 w-10 rounded-md overflow-hidden border bg-muted">
+                            <Image src={item.imageUrl || 'https://placehold.co/40x40'} alt={item.name} fill className="object-cover" />
+                          </div>
+                          <span className="text-xs font-bold truncate max-w-[120px]">{item.name}</span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="font-mono">{item.totalSold}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-primary text-xs">
+                          ৳{item.revenue.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -88,7 +137,9 @@ export default function DashboardTables({
             )}
           </CardContent>
         </Card>
+      </div>
 
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-destructive/20">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -159,9 +210,7 @@ export default function DashboardTables({
             )}
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -187,37 +236,6 @@ export default function DashboardTables({
                     </div>
                     <Button variant="secondary" size="sm" asChild className="h-9 px-4 rounded-lg">
                       <Link href={`/admin/reviews`}>
-                        <Eye className="mr-2 h-4 w-4" /> {t.view}
-                      </Link>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>{t.unansweredQna}</CardTitle>
-              <CardDescription>{t.qnaDesc}</CardDescription>
-            </div>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/admin/qna`}>{t.viewAll}</Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? <TableSkeletonLoader /> : unansweredQuestions.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.noUnansweredQna}</p> : (
-              <div className="space-y-3">
-                {unansweredQuestions.map(qnaItemRecord => (
-                  <div key={qnaItemRecord.id} className="flex justify-between items-center p-3 border rounded-xl hover:bg-muted/30 transition-colors">
-                    <div className="flex flex-col min-w-0 flex-1 pr-4">
-                        <span className="text-xs font-bold">{qnaItemRecord.customer_name}</span>
-                        <p className="text-[10px] text-muted-foreground truncate italic">"{qnaItemRecord.question}"</p>
-                    </div>
-                    <Button variant="secondary" size="sm" asChild className="h-9 px-4 rounded-lg">
-                      <Link href={`/admin/qna`}>
                         <Eye className="mr-2 h-4 w-4" /> {t.view}
                       </Link>
                     </Button>

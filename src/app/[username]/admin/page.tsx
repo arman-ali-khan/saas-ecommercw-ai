@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -111,6 +110,27 @@ export default function AdminDashboard() {
             return getEffStock(aRec) - getEffStock(bRec);
         }).slice(0, 5);
 
+        // Top Selling Products Calculation
+        const topProductsMap: { [key: string]: any } = {};
+        finalOrdersList.filter((o: any) => o.status === 'delivered').forEach((order: any) => {
+            order.cart_items.forEach((item: any) => {
+                if (!topProductsMap[item.id]) {
+                    topProductsMap[item.id] = { 
+                        id: item.id, 
+                        name: item.name, 
+                        totalSold: 0, 
+                        revenue: 0,
+                        imageUrl: item.imageUrl 
+                    };
+                }
+                topProductsMap[item.id].totalSold += (item.quantity || 0);
+                topProductsMap[item.id].revenue += (item.quantity * item.price);
+            });
+        });
+        const topSellingProducts = Object.values(topProductsMap)
+            .sort((a, b) => b.totalSold - a.totalSold)
+            .slice(0, 5);
+
         const comprehensiveDashboardData = {
           totalRevenue: totalRevenueCalculated,
           totalProducts: finalProductsList.length,
@@ -125,6 +145,7 @@ export default function AdminDashboard() {
           lowStockProducts: detectedLowStockItems,
           pendingReviews: finalReviewsList.filter((reviewRecord: any) => !reviewRecord.is_approved).slice(0, 5),
           unansweredQuestions: finalQnaList.filter((qnaRecord: any) => !qnaRecord.is_approved).slice(0, 5),
+          topSellingProducts: topSellingProducts,
         };
 
         globalAdminStore.setDashboard(comprehensiveDashboardData);
@@ -162,6 +183,7 @@ export default function AdminDashboard() {
     lowStockProducts: [],
     pendingReviews: [],
     unansweredQuestions: [],
+    topSellingProducts: [],
   }, [globalAdminStore.dashboard]);
 
   const shouldShowSkeleton = isDataLoading && !globalAdminStore.dashboard;
@@ -204,6 +226,7 @@ export default function AdminDashboard() {
         lowStockProducts={dashboardDisplayStats.lowStockProducts}
         pendingReviews={dashboardDisplayStats.pendingReviews} 
         unansweredQuestions={dashboardDisplayStats.unansweredQuestions} 
+        topSellingProducts={dashboardDisplayStats.topSellingProducts}
         isLoading={shouldShowSkeleton} 
         t={currentLangStrings} 
       />

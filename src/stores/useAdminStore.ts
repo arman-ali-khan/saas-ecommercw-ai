@@ -30,6 +30,7 @@ interface DashboardStats {
     lowStockProducts: Product[];
     pendingReviews: any[];
     unansweredQuestions: any[];
+    topSellingProducts: any[];
 }
 
 interface SidebarCounts {
