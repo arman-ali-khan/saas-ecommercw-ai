@@ -1,12 +1,11 @@
-
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  // A minimal, valid service worker required for PWA installation criteria.
+  // A standard, installable service worker.
   const content = `
-    const CACHE_NAME = 'bangla-naturals-v1';
+    const CACHE_NAME = 'ehut-v1';
     
     self.addEventListener('install', (event) => {
       self.skipWaiting();
@@ -17,9 +16,10 @@ export async function GET() {
     });
 
     self.addEventListener('fetch', (event) => {
-      // The presence of a fetch handler is a requirement for PWA installability.
-      // We'll just pass through the request to the network.
-      event.respondWith(fetch(event.request));
+      // Required for PWA installability
+      if (event.request.mode === 'navigate') {
+        event.respondWith(fetch(event.request));
+      }
     });
   `;
 

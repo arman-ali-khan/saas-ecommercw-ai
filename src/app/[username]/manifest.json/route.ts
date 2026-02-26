@@ -40,15 +40,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
 
   const { data: settings } = await supabase
     .from('store_settings')
-    .select('favicon_url')
+    .select('favicon_url, theme_primary')
     .eq('site_id', profile.id)
     .single();
     
   const faviconUrl = settings?.favicon_url;
+  const themeColor = settings?.theme_primary ? `hsl(${settings.theme_primary})` : '#ffffff';
   const siteInitial = (profile.site_name || 'S').charAt(0).toUpperCase();
 
   // Ensure we have a proper icon URL. If it's a Cloudinary URL, it's already a high-res image.
-  // We use the same icon for different sizes as browsers will scale it.
   const iconUrl = faviconUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`;
 
   const manifest = {
@@ -59,7 +59,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     scope: '/',
     display: 'standalone',
     background_color: '#ffffff',
-    theme_color: '#ffffff',
+    theme_color: themeColor,
     orientation: 'portrait',
     icons: [
       {

@@ -52,6 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description: description,
     keywords: settings.seo_keywords || '',
     icons: settings.favicon_url ? [{ rel: 'icon', url: settings.favicon_url }] : null,
+    manifest: '/manifest.json',
   }
 }
 

@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -54,6 +53,7 @@ export async function generateMetadata({
     description,
     keywords: settings.seo_keywords || '',
     icons: faviconUrl ? [{ rel: 'icon', url: faviconUrl }] : null,
+    manifest: '/manifest.json',
     openGraph: {
         title: title,
         description: description,
