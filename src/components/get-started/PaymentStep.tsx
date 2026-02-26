@@ -197,7 +197,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                                 htmlFor="aamarpay" 
                                                 className={cn(
                                                     "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
-                                                    field.value === 'aamarpay' ? "border-orange-500 bg-orange-50 shadow-md ring-2 ring-orange-500/20" : "border-muted hover:border-orange-500/30"
+                                                    field.value === 'aamarpay' ? "border-orange-500 bg-[#060b16] shadow-md ring-2 ring-orange-500/20" : "border-muted hover:border-orange-500/30"
                                                 )}
                                             >
                                                 <RadioGroupItem value="aamarpay" id="aamarpay" className="sr-only" />
@@ -215,7 +215,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                                 htmlFor="credit_card" 
                                                 className={cn(
                                                     "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
-                                                    field.value === 'credit_card' ? "border-blue-600 bg-blue-50 shadow-md ring-2 ring-blue-600/20" : "border-muted hover:border-blue-600/30"
+                                                    field.value === 'credit_card' ? "border-blue-600 bg-[#060b16] shadow-md ring-2 ring-blue-600/20" : "border-muted hover:border-blue-600/30"
                                                 )}
                                             >
                                                 <RadioGroupItem value="credit_card" id="credit_card" className="sr-only" />
