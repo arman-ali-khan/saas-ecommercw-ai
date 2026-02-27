@@ -42,7 +42,7 @@ async function callOpenRouter(apiKey: string, prompt: string) {
                 "X-Title": "eHut SaaS"
             },
             body: JSON.stringify({
-                model: "google/gemini-2.0-flash-lite-preview-02-05:free",
+                model: "arcee-ai/trinity-large-preview:free",
                 messages: [
                     { role: "system", content: "You are a specialized JSON generator. You always return valid, minified JSON without any preamble or markdown formatting." },
                     { role: "user", content: prompt }
