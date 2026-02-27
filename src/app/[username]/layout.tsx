@@ -12,7 +12,6 @@ import LanguageProvider from '@/components/language-provider';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 import ThemeInitializer from '@/components/theme-initializer';
-import FCMTokenManager from '@/components/fcm-token-manager';
 
 const translations = { en, bn };
 
@@ -88,9 +87,6 @@ export default async function UsernameLayout({
   const { data: profile } = await supabase.from('profiles').select('id, site_name, site_description').eq('domain', username).maybeSingle();
   const siteId = profile?.id;
 
-  const { data: customerSession } = await supabase.auth.getSession();
-  const customerId = customerSession.session?.user?.id;
-
   const settingsPromise = siteId ? supabase.from('store_settings').select('*').eq('site_id', siteId).maybeSingle() : Promise.resolve({ data: null });
   const headerLinksPromise = siteId ? supabase.from('header_links').select('*').eq('site_id', siteId).order('order') : Promise.resolve({ data: [] });
   const footerCatPromise = siteId ? supabase.from('footer_link_categories').select('*, footer_links(*)').eq('site_id', siteId).order('order') : Promise.resolve({ data: [] });
@@ -165,7 +161,6 @@ export default async function UsernameLayout({
   return (
     <LanguageProvider translations={translationsToUse}>
       <ThemeInitializer defaultMode={settingsData?.theme_mode || 'light'} />
-      <FCMTokenManager userId={customerId} userType="customer" />
       {themeStyles && <style dangerouslySetInnerHTML={{ __html: themeStyles }} />}
       <div className="flex flex-col min-h-screen">
         <Header siteInfo={siteInfo} navLinks={headerLinks} isLoading={false} />

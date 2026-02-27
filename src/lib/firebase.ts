@@ -11,12 +11,16 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Guard initialization to prevent crashes if config is missing
-const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+// Guard initialization to prevent crashes if config is missing or invalid
+const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId && firebaseConfig.projectId !== '';
 
 let app: FirebaseApp | undefined;
 if (isConfigValid) {
-    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    try {
+        app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    } catch (e) {
+        console.error("Firebase initialization failed:", e);
+    }
 }
 
 export const getFCMToken = async () => {
@@ -24,13 +28,16 @@ export const getFCMToken = async () => {
     if (typeof window === 'undefined' || !app) return null;
     
     const messaging = getMessaging(app);
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
+    
+    // Only proceed if permission is already granted. 
+    // We removed automatic requestPermission() to stop intrusive prompts.
+    if (Notification.permission === 'granted') {
       const token = await getToken(messaging, {
         vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
       });
       return token;
     }
+    
     return null;
   } catch (error) {
     console.error('An error occurred while retrieving token:', error);
@@ -41,12 +48,16 @@ export const getFCMToken = async () => {
 export const onMessageListener = () => {
   if (typeof window === 'undefined' || !app) return null;
   
-  const messaging = getMessaging(app);
-  return new Promise((resolve) => {
-    onMessage(messaging, (payload) => {
-      resolve(payload);
+  try {
+    const messaging = getMessaging(app);
+    return new Promise((resolve) => {
+        onMessage(messaging, (payload) => {
+            resolve(payload);
+        });
     });
-  });
+  } catch (e) {
+      return null;
+  }
 };
 
 export { app };

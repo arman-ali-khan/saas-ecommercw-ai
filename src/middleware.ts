@@ -8,18 +8,19 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
  
   // 1. SKIP REWRITES FOR SYSTEM PATHS AND ALL API ROUTES
+  // We explicitly exclude sw.js, manifest.json, etc. from tenant rewrites 
+  // so they stay at the root domain level.
+  const systemFiles = ['/sitemap.xml', '/robots.txt', '/manifest.json', '/sw.js', '/favicon.ico'];
+  
   if (
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/_next') || 
     url.pathname.startsWith('/_static') ||
     url.pathname.startsWith('/_vercel') ||
-    url.pathname.includes('.') // Static files (except those we explicitly want to rewrite like manifest.json)
+    systemFiles.includes(url.pathname) ||
+    (url.pathname.includes('.') && !systemFiles.includes(url.pathname)) // Other static files
   ) {
-    // Exception for tenant-specific dynamic/static files that NEED to be rewritten
-    const tenantFiles = ['/sitemap.xml', '/robots.txt', '/manifest.json', '/sw.js'];
-    if (!tenantFiles.includes(url.pathname)) {
-        return NextResponse.next();
-    }
+    return NextResponse.next();
   }
 
   const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
