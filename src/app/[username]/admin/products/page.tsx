@@ -26,7 +26,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Tag } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Tag, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
@@ -223,14 +223,22 @@ export default function ProductsAdminPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold">{currentTranslations.title}</h1>
           <p className="text-muted-foreground">{currentTranslations.description}</p>
         </div>
-        <Button asChild>
-          <Link href={`/admin/products/new`}><Plus className="mr-2 h-4 w-4" /> <span className='hidden sm:block'>{currentTranslations.addProduct}</span></Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild className="rounded-xl h-11">
+            <Link href={`/admin/products/bulk-upload`}>
+              <Upload className="mr-2 h-4 w-4" /> 
+              <span className='hidden sm:block'>Bulk Import</span>
+            </Link>
+          </Button>
+          <Button asChild className="rounded-xl h-11">
+            <Link href={`/admin/products/new`}><Plus className="mr-2 h-4 w-4" /> <span className='hidden sm:block'>{currentTranslations.addProduct}</span></Link>
+          </Button>
+        </div>
       </div>
 
       {products.length === 0 && !isLoading ? (
