@@ -29,9 +29,9 @@ export const getFCMToken = async () => {
     
     const messaging = getMessaging(app);
     
-    // Only proceed if permission is already granted. 
-    // We removed automatic requestPermission() to stop intrusive prompts.
-    if (Notification.permission === 'granted') {
+    // Request permission explicitly as per the guide
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
       const token = await getToken(messaging, {
         vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
       });

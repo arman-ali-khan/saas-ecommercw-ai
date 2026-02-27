@@ -8,9 +8,7 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
  
   // 1. SKIP REWRITES FOR SYSTEM PATHS AND ALL API ROUTES
-  // We explicitly exclude sw.js, manifest.json, etc. from tenant rewrites 
-  // so they stay at the root domain level.
-  const systemFiles = ['/sitemap.xml', '/robots.txt', '/manifest.json', '/sw.js', '/favicon.ico'];
+  const systemFiles = ['/sitemap.xml', '/robots.txt', '/manifest.json', '/sw.js', '/firebase-messaging-sw.js', '/favicon.ico'];
   
   if (
     url.pathname.startsWith('/api') || 

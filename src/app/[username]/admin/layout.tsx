@@ -14,6 +14,7 @@ import { differenceInDays, isBefore, format as safeFormat } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import type { Notification } from '@/types';
+import FCMTokenManager from '@/components/fcm-token-manager';
 
 export default function AdminLayout({
   children,
@@ -141,6 +142,7 @@ export default function AdminLayout({
   
   return (
     <div className="fixed inset-0 bg-background z-50">
+      <FCMTokenManager userId={user?.id} userType="admin" />
       <div className="grid w-full h-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <AdminSidebar />
         <div className="flex flex-col h-full overflow-hidden">

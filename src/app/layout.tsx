@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -74,15 +75,15 @@ export default async function RootLayout({
         </AuthProvider>
         <Toaster />
         
-        {/* PWA Service Worker Registration */}
+        {/* Firebase PWA Service Worker Registration */}
         <Script id="register-sw" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                  console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(registration) {
+                  console.log('FCM ServiceWorker registration successful with scope: ', registration.scope);
                 }, function(err) {
-                  console.log('ServiceWorker registration failed: ', err);
+                  console.log('FCM ServiceWorker registration failed: ', err);
                 });
               });
             }

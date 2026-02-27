@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { getFCMToken, onMessageListener } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -12,38 +12,43 @@ interface FCMTokenManagerProps {
 
 export default function FCMTokenManager({ userId, userType }: FCMTokenManagerProps) {
   const { toast } = useToast();
+  const hasRequested = useRef(false);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || hasRequested.current) return;
+    hasRequested.current = true;
 
     const setupFCM = async () => {
-      const token = await getFCMToken();
-      if (token) {
-        try {
+      try {
+        const token = await getFCMToken();
+        if (token) {
+          console.log("FCM Token:", token);
           await fetch('/api/notifications/register-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, userType, token }),
           });
-        } catch (error) {
-          console.error('Failed to register FCM token:', error);
         }
+      } catch (error) {
+        console.error('Failed to setup FCM:', error);
       }
     };
 
     setupFCM();
 
     // Listen for foreground messages
-    const unsubscribe = onMessageListener()?.then((payload: any) => {
-      toast({
-        title: payload.notification?.title || 'নতুন নোটিফিকেশন',
-        description: payload.notification?.body,
-      });
-    });
-
-    return () => {
-      // Unsubscribe logic if applicable
+    const setupListener = async () => {
+        const payload: any = await onMessageListener();
+        if (payload) {
+            toast({
+                title: payload.notification?.title || 'নতুন আপডেট',
+                description: payload.notification?.body,
+            });
+        }
     };
+    
+    setupListener();
+
   }, [userId, userType, toast]);
 
   return null;
