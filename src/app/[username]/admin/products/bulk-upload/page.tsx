@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -8,7 +8,7 @@ import { useAdminStore } from '@/stores/useAdminStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Upload, ArrowLeft, CheckCircle2, AlertTriangle, FileText, X, Edit, Save } from 'lucide-react';
+import { Loader2, Upload, ArrowLeft, CheckCircle2, AlertTriangle, FileText, X, Edit, Save, ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -16,10 +16,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
 
 /**
- * WooCommerce CSV Product Bulk Uploader with Pre-Publish Review
- * Parses WooCommerce standard CSV exports and allows editing before saving.
+ * Advanced WooCommerce CSV Product Bulk Uploader
+ * Parses WooCommerce standard CSV exports with attribute and image handling.
  */
 
 export default function BulkUploadPage() {
@@ -63,7 +64,8 @@ export default function BulkUploadPage() {
     const headers = parseLine(lines[0]);
     const results = [];
 
-    const idx = {
+    // Map WooCommerce headers to our internal indices
+    const hIdx = {
       name: headers.findIndex(h => h.toLowerCase() === 'name'),
       regularPrice: headers.findIndex(h => h.toLowerCase() === 'regular price'),
       salePrice: headers.findIndex(h => h.toLowerCase() === 'sale price'),
@@ -75,26 +77,51 @@ export default function BulkUploadPage() {
       tags: headers.findIndex(h => h.toLowerCase() === 'tags'),
       sku: headers.findIndex(h => h.toLowerCase() === 'sku'),
       featured: headers.findIndex(h => h.toLowerCase() === 'is featured?'),
+      weight: headers.findIndex(h => h.toLowerCase().includes('weight')),
     };
 
     for (let i = 1; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
       const data = parseLine(lines[i]);
       
-      const name = data[idx.name] || '';
+      const name = data[hIdx.name] || '';
       if (!name) continue;
+
+      // Extract Custom Attributes
+      const customAttributes: Record<string, string[]> = {};
+      const colors: string[] = [];
+      const sizes: string[] = [];
+      
+      // Loop headers to find dynamic attributes
+      for (let j = 0; j < headers.length; j++) {
+          const header = headers[j].toLowerCase();
+          if (header.includes('attribute ') && header.includes(' name')) {
+              const attrName = data[j];
+              const attrValuesRaw = data[j + 1]; // Value is usually the next column in standard WC CSV
+              if (attrName && attrValuesRaw) {
+                  const values = attrValuesRaw.split(',').map(v => v.trim());
+                  if (attrName.toLowerCase() === 'color') colors.push(...values);
+                  else if (attrName.toLowerCase() === 'size') sizes.push(...values);
+                  else customAttributes[attrName] = values;
+              }
+          }
+      }
 
       const product = {
         name: name,
-        price: parseFloat(data[idx.regularPrice]) || 0,
-        stock: parseInt(data[idx.stock]) || 0,
-        description: data[idx.shortDesc] || name,
-        long_description: data[idx.longDesc] || '',
-        categories: data[idx.categories] ? data[idx.categories].split(',').map(c => c.trim()) : [],
-        tags: data[idx.tags] ? data[idx.tags].split(',').map(t => t.trim()) : [],
-        is_featured: data[idx.featured] === '1' || data[idx.featured]?.toLowerCase() === 'yes',
-        images: data[idx.images] ? data[idx.images].split(',').map(url => ({ imageUrl: url.trim(), imageHint: '' })) : [],
-        tempId: data[idx.sku] || `new-${i}`
+        price: parseFloat(data[hIdx.regularPrice]) || 0,
+        stock: parseInt(data[hIdx.stock]) || 0,
+        description: data[hIdx.shortDesc] || name,
+        long_description: data[hIdx.longDesc] || '',
+        categories: data[hIdx.categories] ? data[hIdx.categories].split(',').map(c => c.trim()) : [],
+        tags: data[hIdx.tags] ? data[hIdx.tags].split(',').map(t => t.trim()) : [],
+        is_featured: data[hIdx.featured] === '1' || data[hIdx.featured]?.toLowerCase() === 'yes',
+        images: data[hIdx.images] ? data[hIdx.images].split(',').map(url => ({ imageUrl: url.trim(), imageHint: '' })) : [],
+        tempId: data[hIdx.sku] || `new-${i}`,
+        unit: data[hIdx.weight] ? `${data[hIdx.weight]} KG` : '',
+        color: colors,
+        size: sizes,
+        custom_attributes: customAttributes
       };
 
       results.push(product);
@@ -221,13 +248,14 @@ export default function BulkUploadPage() {
             <Card className="border-2 shadow-sm overflow-hidden">
               <CardHeader className="bg-muted/30 border-b">
                 <CardTitle className="text-lg">Review Parsed Products</CardTitle>
-                <CardDescription>Click the edit button to adjust any product data before saving.</CardDescription>
+                <CardDescription>Click the edit button to adjust any product data before saving. Thumbnails will be taken from the first image found.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="max-h-[60vh] overflow-auto">
                   <Table>
                     <TableHeader className="bg-muted/50 sticky top-0 z-10">
                       <TableRow>
+                        <TableHead className="w-16">Img</TableHead>
                         <TableHead>Product Name</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Stock</TableHead>
@@ -238,12 +266,24 @@ export default function BulkUploadPage() {
                     <TableBody>
                       {parsedProducts.map((p, i) => (
                         <TableRow key={i}>
-                          <TableCell className="font-bold text-sm">{p.name}</TableCell>
+                          <TableCell>
+                              <div className="relative h-10 w-10 rounded-md border bg-muted overflow-hidden">
+                                  {p.images?.[0]?.imageUrl ? (
+                                      <Image src={p.images[0].imageUrl} alt="Preview" fill className="object-cover" />
+                                  ) : (
+                                      <ImageIcon className="h-4 w-4 m-auto text-muted-foreground/30" />
+                                  )}
+                              </div>
+                          </TableCell>
+                          <TableCell className="font-bold text-sm">
+                              {p.name}
+                              {p.unit && <span className="block text-[10px] text-muted-foreground">{p.unit}</span>}
+                          </TableCell>
                           <TableCell className="text-primary font-black">{p.price.toFixed(2)} BDT</TableCell>
                           <TableCell>{p.stock}</TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {p.categories.slice(0, 2).map((c: string) => <Badge key={c} variant="secondary" className="text-[8px]">{c}</Badge>)}
+                              {p.categories.slice(0, 2).map((c: string) => <Badge key={c} variant="secondary" className="text-[8px] truncate max-w-[100px]">{c}</Badge>)}
                               {p.categories.length > 2 && <span className="text-[10px]">+{p.categories.length - 2}</span>}
                             </div>
                           </TableCell>
@@ -265,7 +305,7 @@ export default function BulkUploadPage() {
                     <div className="flex items-start gap-3 hidden sm:flex">
                         <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                         <p className="text-[10px] text-muted-foreground leading-relaxed max-w-md">
-                            Ensure all prices and names are correct. Unique identifiers (Slugs) will be generated automatically based on names.
+                            Ensure all prices and names are correct. Categories and attributes will be created automatically if they don't exist.
                         </p>
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
