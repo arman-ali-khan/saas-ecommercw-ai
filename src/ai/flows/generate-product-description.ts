@@ -9,7 +9,7 @@
  */
 function extractJson(text: string) {
     try {
-        // Remove markdown code blocks if present
+        // Remove markdown code blocks if present (```json ... ``` or ``` ...)
         let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
         
         const firstBrace = cleanText.indexOf('{');
@@ -44,10 +44,10 @@ async function callOpenRouter(apiKey: string, prompt: string) {
             body: JSON.stringify({
                 model: "arcee-ai/trinity-large-preview:free",
                 messages: [
-                    { role: "system", content: "You are a specialized JSON generator. You always return valid, minified JSON without any preamble or markdown formatting." },
+                    { role: "system", content: "You are a specialized JSON generator. You always return valid, minified JSON without any preamble, markdown formatting, or explanation." },
                     { role: "user", content: prompt }
                 ],
-                temperature: 0.3, // Lower temperature for more consistent JSON
+                temperature: 0.1, // Lower temperature for even more consistent JSON
                 max_tokens: 4096
             })
         });
@@ -89,7 +89,7 @@ export async function generateProductDescription(input: any) {
         1. Language: Bengali.
         2. Content: Persuasive, high-end, and trustworthy.
         3. Structure: Must include Level 2 headings, detailed paragraphs, and a bullet point list of benefits.
-        4. CRITICAL FORMAT: Return ONLY a valid Tiptap/ProseMirror JSON object. 
+        4. CRITICAL FORMAT: Return ONLY a valid Tiptap/ProseMirror JSON object (type: "doc"). 
         
         Example JSON structure to follow:
         {
@@ -148,23 +148,26 @@ export async function beautifyProductDetails(input: any) {
            - "tags": Array of 5-8 SEO tags.
            - "longDescription": A full Tiptap JSON document (type: "doc") with headings and lists.
 
-        STRICT: Return ONLY raw JSON object. No markdown, no preamble.`;
+        STRICT: Return ONLY the raw JSON object. No markdown, no preamble. 
+        Ensure "longDescription" is a nested object representing a Tiptap document, not a string.`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
         
-        if (!resultJson || !resultJson.longDescription) throw new Error("Could not parse valid AI response. Please try again.");
+        if (!resultJson || (!resultJson.longDescription && !resultJson.description)) {
+            throw new Error("Could not parse valid AI response. The AI might be busy or returned invalid data. Please try again.");
+        }
         
         return {
             success: true,
-            name: resultJson.name,
-            description: resultJson.description,
-            story: resultJson.story,
-            origin: resultJson.origin,
+            name: resultJson.name || name,
+            description: resultJson.description || description,
+            story: resultJson.story || story,
+            origin: resultJson.origin || origin,
             tags: resultJson.tags || [],
             longDescription: typeof resultJson.longDescription === 'object' 
                 ? JSON.stringify(resultJson.longDescription) 
-                : resultJson.longDescription,
+                : resultJson.longDescription || '',
         };
     } catch (e: any) {
         console.error("Beautify Error:", e);
