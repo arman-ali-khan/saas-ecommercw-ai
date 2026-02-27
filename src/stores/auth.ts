@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -87,6 +88,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
           logo_type: settingsData?.logo_type || 'icon',
           logo_icon: settingsData?.logo_icon || 'Leaf',
           logo_image_url: settingsData?.logo_image_url || null,
+          favicon_url: settingsData?.favicon_url || null,
+          pwa_logo_url: settingsData?.pwa_logo_url || null,
         };
 
         set({ user: newUser, loading: false });

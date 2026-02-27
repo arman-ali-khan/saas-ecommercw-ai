@@ -134,6 +134,8 @@ export interface User {
   logo_type?: 'icon' | 'image';
   logo_icon?: string;
   logo_image_url?: string | null;
+  favicon_url?: string | null;
+  pwa_logo_url?: string | null;
 }
 
 export interface Plan {
@@ -394,6 +396,7 @@ export interface SaasSettings {
   platform_description: string | null;
   logo_url: string | null;
   favicon_url: string | null;
+  pwa_logo_url: string | null;
   base_domain: string | null;
   social_facebook: string | null;
   social_twitter: string | null;

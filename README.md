@@ -48,7 +48,8 @@ ADD COLUMN IF NOT EXISTS theme_muted text,
 ADD COLUMN IF NOT EXISTS theme_muted_foreground text,
 ADD COLUMN IF NOT EXISTS theme_border text,
 ADD COLUMN IF NOT EXISTS theme_input text,
-ADD COLUMN IF NOT EXISTS theme_destructive text;
+ADD COLUMN IF NOT EXISTS theme_destructive text,
+ADD COLUMN IF NOT EXISTS pwa_logo_url text;
 ```
 
 ## শুরু করার নিয়ম

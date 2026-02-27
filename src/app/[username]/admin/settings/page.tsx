@@ -31,7 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle, Wallet, ShoppingBag } from 'lucide-react';
+import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle, Wallet, ShoppingBag, Smartphone } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -82,6 +82,7 @@ const brandingSchema = z.object({
     logo_icon: z.string().default('Leaf'),
     logo_image_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
     favicon_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
+    pwa_logo_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
     social_share_image_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
 });
 
@@ -134,7 +135,7 @@ export default function SettingsAdminPage() {
 
   const brandingForm = useForm<z.infer<typeof brandingSchema>>({
     resolver: zodResolver(brandingSchema),
-    defaultValues: { logo_type: 'icon', logo_icon: 'Leaf', logo_image_url: '', favicon_url: '', social_share_image_url: '' },
+    defaultValues: { logo_type: 'icon', logo_icon: 'Leaf', logo_image_url: '', favicon_url: '', pwa_logo_url: '', social_share_image_url: '' },
   });
   
   const subscriptionChangeForm = useForm<SubscriptionChangeFormData>({
@@ -185,6 +186,7 @@ export default function SettingsAdminPage() {
                 logo_icon: settings.logo_icon || 'Leaf',
                 logo_image_url: settings.logo_image_url || '',
                 favicon_url: settings.favicon_url || '',
+                pwa_logo_url: settings.pwa_logo_url || '',
                 social_share_image_url: settings.social_share_image_url || '',
             });
 
@@ -514,6 +516,14 @@ export default function SettingsAdminPage() {
       toast({ title: 'Favicon Uploaded', description: 'Click "Save" to apply the changes.' });
     }
   };
+
+  const handlePwaLogoUpload = (result: any) => {
+    if (result.event === 'success') {
+      const secureUrl = result.info.secure_url;
+      brandingForm.setValue('pwa_logo_url', secureUrl, { shouldValidate: true });
+      toast({ title: 'PWA Logo Uploaded', description: 'Click "Save" to apply the changes.' });
+    }
+  };
   
   const handleSocialShareImageUpload = (result: any) => {
     if (result.event === 'success') {
@@ -527,6 +537,7 @@ export default function SettingsAdminPage() {
   const logoImageUrl = brandingForm.watch('logo_image_url');
   const logoIcon = brandingForm.watch('logo_icon');
   const faviconUrl = brandingForm.watch('favicon_url');
+  const pwaLogoUrl = brandingForm.watch('pwa_logo_url');
   const socialShareImageUrl = brandingForm.watch('social_share_image_url');
   const currentPlan = useMemo(() => plans.find(p => p.id === user?.subscriptionPlan), [plans, user]);
 
@@ -549,6 +560,16 @@ export default function SettingsAdminPage() {
       return false;
     }
   }, [faviconUrl]);
+
+  const isPwaLogoUrlValid = useMemo(() => {
+    if (!pwaLogoUrl) return false;
+    try {
+      new URL(pwaLogoUrl);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [pwaLogoUrl]);
 
   const isSocialShareUrlValid = useMemo(() => {
     if (!socialShareImageUrl) return false;
@@ -736,32 +757,63 @@ export default function SettingsAdminPage() {
                                 )}
                             />
                         )}
-                        <FormField
-                            control={brandingForm.control}
-                            name="favicon_url"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Favicon</FormLabel>
-                                <div className="flex flex-col items-start gap-4">
-                                    <div className="relative h-16 w-16 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
-                                        {isFaviconUrlValid ? (
-                                            <Image src={faviconUrl!} alt="Favicon Preview" fill className="object-contain p-1" />
-                                        ) : <p className='text-xs text-muted-foreground'>Preview</p>}
+
+                        <div className="grid md:grid-cols-2 gap-8 pt-4">
+                            <FormField
+                                control={brandingForm.control}
+                                name="favicon_url"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Browser Favicon (.ico preferred)</FormLabel>
+                                    <div className="flex flex-col items-start gap-4">
+                                        <div className="relative h-16 w-16 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                                            {isFaviconUrlValid ? (
+                                                <Image src={faviconUrl!} alt="Favicon Preview" fill className="object-contain p-1" />
+                                            ) : <p className='text-xs text-muted-foreground'>Preview</p>}
+                                        </div>
+                                        <div className='flex-grow space-y-2 w-full'>
+                                            <FormControl>
+                                                <Input placeholder="https://example.com/favicon.ico" {...field} />
+                                            </FormControl>
+                                            <ImageUploader onUpload={handleFaviconUpload} label='Upload Favicon' />
+                                            <FormDescription className="text-[10px]">
+                                                এটি ব্রাউজার ট্যাবে দেখাবে।
+                                            </FormDescription>
+                                        </div>
                                     </div>
-                                    <div className='flex-grow space-y-2'>
-                                        <FormControl>
-                                            <Input placeholder="https://example.com/favicon.ico" {...field} />
-                                        </FormControl>
-                                        <ImageUploader onUpload={handleFaviconUpload} label='Upload Favicon' />
-                                        <FormDescription>
-                                            Upload a favicon (.ico, .png, .svg). Recommended size: 32x32px.
-                                        </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={brandingForm.control}
+                                name="pwa_logo_url"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>PWA App Logo (High Res .png)</FormLabel>
+                                    <div className="flex flex-col items-start gap-4">
+                                        <div className="relative h-16 w-16 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                                            {isPwaLogoUrlValid ? (
+                                                <Image src={pwaLogoUrl!} alt="PWA Preview" fill className="object-contain p-1" />
+                                            ) : <Smartphone className="h-6 w-6 text-muted-foreground/30" />}
+                                        </div>
+                                        <div className='flex-grow space-y-2 w-full'>
+                                            <FormControl>
+                                                <Input placeholder="https://example.com/pwa-logo.png" {...field} />
+                                            </FormControl>
+                                            <ImageUploader onUpload={handlePwaLogoUpload} label='Upload PWA Logo' />
+                                            <FormDescription className="text-[10px]">
+                                                এটি 'Install' বাটন এবং মোবাইল অ্যাপ আইকন হিসেবে কাজ করবে। (PNG ৫১২x৫১২ সাজেস্টেড)
+                                            </FormDescription>
+                                        </div>
                                     </div>
-                                </div>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+
                         <FormField
                             control={brandingForm.control}
                             name="social_share_image_url"

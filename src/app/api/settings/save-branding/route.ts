@@ -35,6 +35,7 @@ export async function POST(request: Request) {
         logo_icon: brandingData.logo_icon,
         logo_image_url: brandingData.logo_image_url,
         favicon_url: brandingData.favicon_url,
+        pwa_logo_url: brandingData.pwa_logo_url,
         social_share_image_url: brandingData.social_share_image_url
       }, { onConflict: 'site_id' });
 

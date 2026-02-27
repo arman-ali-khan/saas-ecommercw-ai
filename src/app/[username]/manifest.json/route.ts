@@ -31,18 +31,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
 
   const { data: settings } = await supabase
     .from('store_settings')
-    .select('favicon_url, logo_image_url, theme_primary')
+    .select('favicon_url, logo_image_url, pwa_logo_url, theme_primary')
     .eq('site_id', profile.id)
     .single();
     
-  const logoUrl = settings?.logo_image_url;
+  const logoUrl = settings?.pwa_logo_url || settings?.logo_image_url;
   const faviconUrl = settings?.favicon_url;
   const themeColor = settings?.theme_primary ? `hsl(${settings.theme_primary})` : '#ffffff';
   
-  // Browsers require a high-res icon for PWA installation.
-  // We use the site logo if available, or a placeholder based on site initial.
+  // Browsers require a high-res icon for PWA installation (ideally PNG).
+  // We prioritize the new PWA Logo, then fallback to Store Logo, then placeholder.
   const siteInitial = (profile.site_name || 'S').charAt(0).toUpperCase();
-  const pwaIconUrl = logoUrl || faviconUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`;
+  const pwaIconUrl = logoUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`;
 
   const manifest = {
     name: profile.site_name || 'Store',
