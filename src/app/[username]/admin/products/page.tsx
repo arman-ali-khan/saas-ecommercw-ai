@@ -38,6 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
+import { cn } from '@/lib/utils';
 
 const translations = { en, bn };
 const ITEMS_PER_PAGE = 10;
