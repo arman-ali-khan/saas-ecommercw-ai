@@ -1,6 +1,6 @@
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,11 +11,18 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+// Guard initialization to prevent crashes if config is missing
+const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+
+let app: FirebaseApp | undefined;
+if (isConfigValid) {
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+}
 
 export const getFCMToken = async () => {
   try {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined' || !app) return null;
+    
     const messaging = getMessaging(app);
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
@@ -32,7 +39,8 @@ export const getFCMToken = async () => {
 };
 
 export const onMessageListener = () => {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined' || !app) return null;
+  
   const messaging = getMessaging(app);
   return new Promise((resolve) => {
     onMessage(messaging, (payload) => {

@@ -13,11 +13,11 @@ export async function middleware(request: NextRequest) {
     url.pathname.startsWith('/_next') || 
     url.pathname.startsWith('/_static') ||
     url.pathname.startsWith('/_vercel') ||
-    url.pathname.includes('.') // Static files
+    url.pathname.includes('.') // Static files (except those we explicitly want to rewrite like manifest.json)
   ) {
-    // Exception for specific dynamic files
-    const dynamicFiles = ['/sitemap.xml', '/robots.txt', '/manifest.json', '/sw.js'];
-    if (!dynamicFiles.includes(url.pathname)) {
+    // Exception for tenant-specific dynamic/static files that NEED to be rewritten
+    const tenantFiles = ['/sitemap.xml', '/robots.txt', '/manifest.json', '/sw.js'];
+    if (!tenantFiles.includes(url.pathname)) {
         return NextResponse.next();
     }
   }
