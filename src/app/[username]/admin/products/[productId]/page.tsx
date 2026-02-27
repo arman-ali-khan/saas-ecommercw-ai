@@ -522,7 +522,20 @@ export default function ManageProductPage() {
 
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30"><CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> বিস্তারিত বিবরণ</CardTitle></CardHeader>
-                        <CardContent className="pt-6"><FormField control={form.control} name="long_description" render={({ field }) => (<FormItem><FormControl><RichTextEditor value={field.value || ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem> /></CardContent>
+                        <CardContent className="pt-6">
+                            <FormField 
+                                control={form.control} 
+                                name="long_description" 
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <RichTextEditor value={field.value || ''} onChange={field.onChange} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} 
+                            />
+                        </CardContent>
                     </Card>
                 </div>
 
