@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { encrypt, decryptObject } from '@/lib/encryption';
@@ -16,7 +17,6 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Encrypt sensitive order data for database storage
     const encryptedOrderData = {
         ...dbOrderData,
         customer_email: encrypt(dbOrderData.customer_email),
@@ -30,56 +30,52 @@ export async function POST(request: Request) {
         }
     };
 
-    // 1. Create the order in Supabase
     const { data: newOrder, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({ ...encryptedOrderData, status: 'pending' })
       .select()
       .single();
 
-    if (orderError) {
-      console.error('Create Order API Error:', orderError);
-      return NextResponse.json({ error: `Database Error: ${orderError.message}` }, { status: 500 });
-    }
+    if (orderError) throw orderError;
     
-    // 2. Delete the uncompleted order record if session ID exists
     if (uncompletedOrderId) {
-        const { error: deleteError } = await supabaseAdmin
-            .from('uncompleted_orders')
-            .delete()
-            .eq('id', uncompletedOrderId);
-        
-        if (deleteError) {
-            console.error('Failed to delete uncompleted order:', deleteError);
-        }
+        await supabaseAdmin.from('uncompleted_orders').delete().eq('id', uncompletedOrderId);
     }
 
     if (newOrder) {
-      // 3. Create notification for admin
-      await supabaseAdmin.from('notifications').insert({
-        recipient_id: newOrder.site_id,
-        recipient_type: 'admin',
-        site_id: newOrder.site_id,
-        order_id: newOrder.id,
-        message: `একটি নতুন অর্ডার #${newOrder.order_number} এসেছে। মোট মূল্য: ${newOrder.total.toFixed(2)} BDT.`,
-        link: `/admin/orders/${newOrder.id}`,
-      });
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${request.headers.get('host')}`;
+      
+      // Notify admin via our secure internal notification API to trigger Push
+      await fetch(`${baseUrl}/api/notifications/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientId: newOrder.site_id,
+          recipientType: 'admin',
+          siteId: newOrder.site_id,
+          orderId: newOrder.id,
+          message: `একটি নতুন অর্ডার #${newOrder.order_number} এসেছে। মোট: ${newOrder.total.toFixed(2)} BDT.`,
+          link: `/admin/orders/${newOrder.id}`,
+        }),
+      }).catch(e => console.error("Admin order notification failed", e));
 
-      // 4. Create notification for customer (if logged in)
       if (newOrder.customer_id) {
-        await supabaseAdmin.from('notifications').insert({
-          recipient_id: newOrder.customer_id,
-          recipient_type: 'customer',
-          site_id: newOrder.site_id,
-          order_id: newOrder.id,
-          message: `আপনার অর্ডার #${newOrder.order_number} সফলভাবে গ্রহণ করা হয়েছে।`,
-          link: `/profile/orders/${newOrder.id}`,
-        });
+        await fetch(`${baseUrl}/api/notifications/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipientId: newOrder.customer_id,
+            recipientType: 'customer',
+            siteId: newOrder.site_id,
+            orderId: newOrder.id,
+            message: `আপনার অর্ডার #${newOrder.order_number} সফলভাবে গ্রহণ করা হয়েছে।`,
+            link: `/profile/orders/${newOrder.id}`,
+          }),
+        }).catch(e => console.error("Customer order notification failed", e));
       }
 
-      // 5. External SMS API Integration (Paid Users Only)
+      // External SMS
       try {
-        // Fetch Profile to check plan and SMS settings for the site
         const { data: profile } = await supabaseAdmin
           .from('profiles')
           .select('subscription_plan, store_settings(sms_notifications_enabled, admin_sms_number)')
@@ -88,12 +84,7 @@ export async function POST(request: Request) {
 
         const settings = Array.isArray(profile?.store_settings) ? profile?.store_settings[0] : profile?.store_settings;
 
-        // Verify if it's a paid user and SMS is enabled
         if (profile?.subscription_plan !== 'free' && settings?.sms_notifications_enabled && settings?.admin_sms_number) {
-          const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
-          const siteUrl = `${domain}.${baseDomain}`;
-
-          // Fire and forget to external API to avoid blocking the response
           fetch('https://and-api.vercel.app/api/smsData', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -106,22 +97,16 @@ export async function POST(request: Request) {
               orderId: newOrder.id,
               paymentType: dbOrderData.payment_method === 'cod' ? 'cod' : 'paid',
               paymentMethod: dbOrderData.payment_method,
-              domain: siteUrl
+              domain: `${domain}.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top'}`
             }),
           }).catch(err => console.error("External SMS API Error:", err));
         }
-      } catch (smsErr) {
-        console.error("SMS Notification pre-check error:", smsErr);
-      }
+      } catch (smsErr) { console.error("SMS skip:", smsErr); }
     }
 
-    // Decrypt the order for the response
-    const decryptedOrder = decryptObject(newOrder);
-
-    return NextResponse.json({ order: decryptedOrder }, { status: 200 });
-
+    return NextResponse.json({ order: decryptObject(newOrder) }, { status: 200 });
   } catch (err: any) {
-    console.error('Create Order API Catch Error:', err);
+    console.error('Order API Error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

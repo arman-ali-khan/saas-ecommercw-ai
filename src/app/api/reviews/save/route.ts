@@ -16,9 +16,10 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${request.headers.get('host')}`;
     let result;
+
     if (id) {
-      // Update
       const { data, error } = await supabaseAdmin
         .from('product_reviews')
         .update(reviewData)
@@ -29,7 +30,6 @@ export async function POST(request: Request) {
       if (error) throw error;
       result = data;
     } else {
-      // Create
       const { data, error } = await supabaseAdmin
         .from('product_reviews')
         .insert({ ...reviewData, site_id: siteId })
@@ -38,6 +38,19 @@ export async function POST(request: Request) {
       
       if (error) throw error;
       result = data;
+
+      // Notify admin about new review
+      await fetch(`${baseUrl}/api/notifications/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              recipientId: siteId,
+              recipientType: 'admin',
+              siteId: siteId,
+              message: `আপনার স্টোরে একটি নতুন রিভিউ জমা পড়েছে।`,
+              link: '/admin/reviews',
+          }),
+      }).catch(e => console.error("Review push failed", e));
     }
 
     return NextResponse.json({ success: true, review: result }, { status: 200 });

@@ -17,8 +17,9 @@ export async function POST(request: Request) {
     );
 
     let result;
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${request.headers.get('host')}`;
+
     if (id) {
-      // Update existing Q&A (usually answering)
       const { data, error } = await supabaseAdmin
         .from('product_qna')
         .update(qnaData)
@@ -29,27 +30,42 @@ export async function POST(request: Request) {
       if (error) throw error;
       result = data;
 
-      // If an answer is provided, notify the customer
       if (result && result.customer_id && qnaData.answer) {
-          const notificationMessage = `Your question about "${result.products?.name || 'a product'}" has been answered.`;
-          await supabaseAdmin.from('notifications').insert({
-              recipient_id: result.customer_id,
-              recipient_type: 'customer',
-              site_id: siteId,
-              message: notificationMessage,
-              link: `/products/${result.product_id}`,
-          });
+          // Send push via internal notification API
+          await fetch(`${baseUrl}/api/notifications/create`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  recipientId: result.customer_id,
+                  recipientType: 'customer',
+                  siteId: siteId,
+                  message: `"${result.products?.name || 'পণ্যের'}" বিষয়ে আপনার প্রশ্নের উত্তর দেওয়া হয়েছে।`,
+                  link: `/products/${result.product_id}`,
+              }),
+          }).catch(e => console.error("QNA Answer push failed", e));
       }
     } else {
-      // Create new Q&A (manually by admin if needed)
       const { data, error } = await supabaseAdmin
         .from('product_qna')
         .insert({ ...qnaData, site_id: siteId })
-        .select()
+        .select('*, products(name)')
         .single();
       
       if (error) throw error;
       result = data;
+
+      // Notify admin about new question
+      await fetch(`${baseUrl}/api/notifications/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              recipientId: siteId,
+              recipientType: 'admin',
+              siteId: siteId,
+              message: `আপনার পণ্যে নতুন একটি প্রশ্ন এসেছে: "${result.products?.name}"`,
+              link: '/admin/qna',
+          }),
+      }).catch(e => console.error("QNA New Question push failed", e));
     }
 
     return NextResponse.json({ success: true, qna: result }, { status: 200 });

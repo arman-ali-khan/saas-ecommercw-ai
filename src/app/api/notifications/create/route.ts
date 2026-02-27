@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { messaging } from '@/lib/firebase-admin';
 
+/**
+ * @fileOverview Standard API to create a notification and trigger a Firebase Push Notification.
+ * Handles single recipients and platform-wide SaaS Admin alerts.
+ */
+
 export async function POST(request: Request) {
   try {
     const { recipientId, recipientType, siteId, message, link, orderId } = await request.json();
@@ -32,8 +37,12 @@ export async function POST(request: Request) {
 
     if (dbError) throw dbError;
 
-    // 2. Send Push Notification via Firebase
+    // 2. Resolve Recipients for Push
+    let targetTokens: string[] = [];
+    let notificationTitle = 'New Update';
+
     if (recipientId) {
+      // Direct recipient (Store Admin or Customer)
       const table = recipientType === 'admin' ? 'profiles' : 'customer_profiles';
       const { data: userProfile } = await supabaseAdmin
         .from(table)
@@ -41,35 +50,42 @@ export async function POST(request: Request) {
         .eq('id', recipientId)
         .single();
 
-      if (userProfile?.fcm_tokens && userProfile.fcm_tokens.length > 0) {
-        const title = recipientType === 'admin' ? 'New Dashboard Alert' : (userProfile.site_name || 'Store Update');
-        
-        const payload = {
-          notification: {
-            title: title,
-            body: message,
-          },
-          data: {
-            link: link || '/',
-            click_action: 'FLUTTER_NOTIFICATION_CLICK', // Common convention
-          },
-          tokens: userProfile.fcm_tokens,
-        };
+      if (userProfile?.fcm_tokens) {
+        targetTokens = userProfile.fcm_tokens;
+        notificationTitle = recipientType === 'admin' ? 'Dashboard Alert' : (userProfile.site_name || 'Store Update');
+      }
+    } else if (recipientType === 'admin') {
+      // Platform level alert for SaaS Admins
+      const { data: saasAdmins } = await supabaseAdmin
+        .from('profiles')
+        .select('fcm_tokens')
+        .eq('role', 'saas_admin');
+      
+      if (saasAdmins) {
+        targetTokens = saasAdmins.flatMap(admin => admin.fcm_tokens || []);
+        notificationTitle = 'Platform Request';
+      }
+    }
 
-        try {
-          const response = await messaging.sendEachForMulticast(payload);
-          console.log(`FCM success: ${response.successCount}, failure: ${response.failureCount}`);
-          
-          // Cleanup invalid tokens
-          if (response.failureCount > 0) {
-            const validTokens = userProfile.fcm_tokens.filter((_, i) => response.responses[i].success);
-            if (validTokens.length !== userProfile.fcm_tokens.length) {
-                await supabaseAdmin.from(table).update({ fcm_tokens: validTokens }).eq('id', recipientId);
-            }
-          }
-        } catch (fcmError) {
-          console.error('FCM send error:', fcmError);
-        }
+    // 3. Send Push Notification via Firebase
+    if (targetTokens.length > 0) {
+      const payload = {
+        notification: {
+          title: notificationTitle,
+          body: message,
+        },
+        data: {
+          link: link || '/',
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+        tokens: targetTokens,
+      };
+
+      try {
+        const response = await messaging.sendEachForMulticast(payload);
+        console.log(`FCM success: ${response.successCount}, failure: ${response.failureCount}`);
+      } catch (fcmError) {
+        console.error('FCM send error:', fcmError);
       }
     }
 

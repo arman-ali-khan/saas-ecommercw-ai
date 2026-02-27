@@ -5,11 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { addMonths, addYears } from 'date-fns';
 
-/**
- * @fileOverview Secure API for SaaS admins to approve or reject store subscriptions.
- * Updates payment status, profile status, and notifies the store owner.
- */
-
 export async function POST(request: Request) {
   try {
     const { paymentId, newStatus } = await request.json();
@@ -22,56 +17,29 @@ export async function POST(request: Request) {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-        },
-      }
+      { cookies: { get(name: string) { return cookieStore.get(name)?.value; } } }
     );
 
-    // 1. Verify Authentication
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!serviceKey) {
-        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      serviceKey,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } }
     );
 
-    // 2. Verify Authorization (SaaS Admin only)
-    const { data: callerProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single();
+    const { data: callerProfile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
+    if (callerProfile?.role !== 'saas_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    if (callerProfile?.role !== 'saas_admin') {
-      return NextResponse.json({ error: 'Forbidden: SaaS Admin access required.' }, { status: 403 });
-    }
-
-    // 3. Fetch current payment record to get user and plan info
-    // We get the full plan object to check the duration
     const { data: payment, error: fetchError } = await supabaseAdmin
       .from('subscription_payments')
       .select('*, plans(*)')
       .eq('id', Number(paymentId))
       .single();
 
-    if (fetchError || !payment) {
-      return NextResponse.json({ error: 'Subscription payment record not found.' }, { status: 404 });
-    }
+    if (fetchError || !payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
 
-    // 4. Update Subscription Payment Status
     const { error: paymentUpdateError } = await supabaseAdmin
       .from('subscription_payments')
       .update({ status: newStatus })
@@ -79,64 +47,48 @@ export async function POST(request: Request) {
 
     if (paymentUpdateError) throw paymentUpdateError;
 
-    // 5. Update User Profile Status & Notify
     let profileUpdate: any = {};
     let notificationMessage = '';
 
     if (newStatus === 'completed') {
-      // Calculate end date based on plan duration
       let endDate = null;
       if (payment.plans?.duration_value && payment.plans?.duration_unit) {
           const now = new Date();
-          if (payment.plans.duration_unit === 'month') {
-              endDate = addMonths(now, payment.plans.duration_value);
-          } else if (payment.plans.duration_unit === 'year') {
-              endDate = addYears(now, payment.plans.duration_value);
-          }
+          endDate = payment.plans.duration_unit === 'month' ? addMonths(now, payment.plans.duration_value) : addYears(now, payment.plans.duration_value);
       }
-
       profileUpdate = {
         subscription_status: 'active',
         subscription_plan: payment.plan_id,
         subscription_end_date: endDate ? endDate.toISOString() : null
       };
-      notificationMessage = `আপনার ${payment.plans?.name || 'সাবস্ক্রিপশন'} পেমেন্ট সফলভাবে যাচাই করা হয়েছে এবং আপনার প্ল্যানটি সক্রিয় করা হয়েছে।`;
-      if (endDate) {
-          notificationMessage += ` এটি ${new Date(endDate).toLocaleDateString()} তারিখ পর্যন্ত সক্রিয় থাকবে।`;
-      }
-    } else if (newStatus === 'failed' || newStatus === 'canceled') {
-      profileUpdate = {
-        subscription_status: newStatus === 'failed' ? 'failed' : 'inactive'
-      };
-      notificationMessage = newStatus === 'failed'
-        ? `দুঃখিত, আপনার সাবস্ক্রিপশন পেমেন্ট যাচাই করা সম্ভব হয়নি। অনুগ্রহ করে আপনার ট্রানজেকশন আইডি পরীক্ষা করুন বা সাপোর্টে যোগাযোগ করুন।`
-        : `আপনার সাবস্ক্রিপশন পেমেন্ট অনুরোধটি বাতিল করা হয়েছে। বিস্তারিত জানতে অনুগ্রহ করে যোগাযোগ করুন।`;
+      notificationMessage = `আপনার ${payment.plans?.name || 'প্ল্যান'} পেমেন্ট সফলভাবে যাচাই করা হয়েছে।`;
     } else {
-        notificationMessage = `আপনার সাবস্ক্রিপশন পেমেন্ট স্ট্যাটাস আপডেট করা হয়েছে: ${newStatus}`;
+      profileUpdate = { subscription_status: newStatus === 'failed' ? 'failed' : 'inactive' };
+      notificationMessage = `আপনার সাবস্ক্রিপশন পেমেন্ট স্ট্যাটাস আপডেট করা হয়েছে: ${newStatus}`;
     }
 
     if (Object.keys(profileUpdate).length > 0) {
-        const { error: profileError } = await supabaseAdmin
-          .from('profiles')
-          .update(profileUpdate)
-          .eq('id', payment.user_id);
-
-        if (profileError) throw profileError;
+        await supabaseAdmin.from('profiles').update(profileUpdate).eq('id', payment.user_id);
     }
 
-    // 6. Create notification for the store owner
-    await supabaseAdmin.from('notifications').insert({
-      recipient_id: payment.user_id,
-      recipient_type: 'admin',
-      site_id: payment.user_id,
-      message: notificationMessage,
-      link: '/admin/settings',
-    });
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${request.headers.get('host')}`;
 
-    return NextResponse.json({ success: true, message: `Subscription status updated to ${newStatus}` });
+    // Notify user with Push
+    await fetch(`${baseUrl}/api/notifications/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        recipientId: payment.user_id,
+        recipientType: 'admin',
+        siteId: payment.user_id,
+        message: notificationMessage,
+        link: '/admin/settings',
+      }),
+    }).catch(e => console.error("Subscription update push failed", e));
 
+    return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('API /saas/subscriptions/update-status Error:', err);
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    console.error('Update Sub Status API Error:', err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
