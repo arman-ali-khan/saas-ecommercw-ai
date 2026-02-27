@@ -74,6 +74,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
 
 const FALLBACK_UNITS = ['KG', 'Litter', 'GM', 'ML', 'Pcs', 'Pkt', 'Box', 'Dozen'];
 const FALLBACK_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
