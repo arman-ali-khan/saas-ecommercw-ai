@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -25,8 +26,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { 
     ArrowLeft, 
     Package, 
@@ -40,9 +39,7 @@ import {
     ChevronLeft, 
     ChevronRight,
     ExternalLink,
-    Store,
-    Wand2,
-    Save
+    Store
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -57,8 +54,6 @@ export default function UserDetailPage() {
 
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSavingAi, setIsSavingAi] = useState(false);
-  const [aiKey, setAiKey] = useState('');
   
   // Local Pagination State
   const [productPage, setProductPage] = useState(1);
@@ -75,7 +70,6 @@ export default function UserDetailPage() {
       const result = await response.json();
       if (response.ok) {
         setData(result);
-        setAiKey(result.profile?.gemini_api_key || ''); 
       } else {
         throw new Error(result.error);
       }
@@ -90,27 +84,6 @@ export default function UserDetailPage() {
   useEffect(() => {
     fetchUserDetails();
   }, [fetchUserDetails]);
-
-  const handleSaveAiSettings = async () => {
-    setIsSavingAi(true);
-    try {
-        const response = await fetch('/api/saas/admins/save-ai-settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId: userId, gemini_api_key: aiKey }),
-        });
-        if (response.ok) {
-            toast({ title: 'AI settings updated for this store.' });
-        } else {
-            const res = await response.json();
-            throw new Error(res.error);
-        }
-    } catch (e: any) {
-        toast({ variant: 'destructive', title: 'Failed to update AI settings', description: e.message });
-    } finally {
-        setIsSavingAi(false);
-    }
-  };
 
   const paginatedProducts = useMemo(() => {
     if (!data?.products) return [];
@@ -140,7 +113,6 @@ export default function UserDetailPage() {
 
   const { profile, stats } = data;
   const plan = Array.isArray(profile.plans) ? profile.plans[0] : profile.plans;
-  const isFreePlan = profile.subscription_plan === 'free';
 
   return (
     <div className="space-y-6 pb-10">
@@ -153,7 +125,7 @@ export default function UserDetailPage() {
         </Button>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-1 gap-6">
         {/* Profile Card */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-4">
@@ -204,39 +176,6 @@ export default function UserDetailPage() {
                 </div>
             </div>
           </CardContent>
-        </Card>
-
-        {/* AI Key Manager (OpenRouter) */}
-        <Card className="border-primary/20 bg-primary/5">
-            <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> AI Management (OpenRouter)</CardTitle>
-                <CardDescription>Configure store-specific AI capabilities.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {isFreePlan ? (
-                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-xs">
-                        AI features are disabled for Free plan users. Upgrade their plan to enable.
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        <div className="space-y-1.5">
-                            <Label htmlFor="openrouter-key" className="text-xs">OpenRouter API Key</Label>
-                            <Input 
-                                id="openrouter-key"
-                                type="password" 
-                                placeholder="sk-or-v1-..." 
-                                value={aiKey} 
-                                onChange={(e) => setAiKey(e.target.value)} 
-                                className="h-9 bg-background"
-                            />
-                        </div>
-                        <Button className="w-full h-9" size="sm" onClick={handleSaveAiSettings} disabled={isSavingAi}>
-                            {isSavingAi ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                            Save Key
-                        </Button>
-                    </div>
-                )}
-            </CardContent>
         </Card>
       </div>
 

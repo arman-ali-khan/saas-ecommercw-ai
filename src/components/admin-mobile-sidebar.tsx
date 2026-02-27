@@ -263,7 +263,6 @@ export default function AdminMobileSidebar() {
                 <SubNavLink href="/admin/settings" label="Store Settings" />
                 <SubNavLink href="/admin/settings/custom-domain" label="Custom Domain" />
                 <SubNavLink href="/admin/settings/sms" label="SMS Config" />
-                <SubNavLink href="/admin/settings/ai" label="AI Config" />
               </CollapsibleContent>
             </Collapsible>
 

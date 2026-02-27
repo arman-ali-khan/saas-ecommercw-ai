@@ -146,13 +146,11 @@ export default function AdminSidebar() {
     label,
     icon: Icon,
     count,
-    countVariant = 'destructive',
   }: {
     href: string;
     label: string;
     icon: React.ElementType;
     count?: number;
-    countVariant?: 'destructive' | 'neutral';
   }) => {
     const isActive = href === `/admin` ? pathname === href : pathname.startsWith(href);
     const showCount = count !== undefined && (countVariant === 'neutral' || count > 0);
@@ -268,7 +266,6 @@ export default function AdminSidebar() {
                 <SubNavLink href="/admin/settings" label="Store Settings" />
                 <SubNavLink href="/admin/settings/custom-domain" label="Custom Domain" />
                 <SubNavLink href="/admin/settings/sms" label="SMS Config" />
-                <SubNavLink href="/admin/settings/ai" label="AI Config" />
               </CollapsibleContent>
             </Collapsible>
            

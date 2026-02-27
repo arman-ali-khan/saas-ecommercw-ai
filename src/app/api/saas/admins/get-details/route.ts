@@ -58,14 +58,12 @@ export async function POST(request: Request) {
         profileRes,
         productsRes,
         customersRes,
-        ordersCountRes,
-        settingsRes
+        ordersCountRes
     ] = await Promise.all([
         supabaseAdmin.from('profiles').select('*').eq('id', id).single(),
         supabaseAdmin.from('products').select('*').eq('site_id', id).order('created_at', { ascending: false }),
         supabaseAdmin.from('customer_profiles').select('*').eq('site_id', id).order('created_at', { ascending: false }),
-        supabaseAdmin.from('orders').select('id', { count: 'exact', head: true }).eq('site_id', id),
-        supabaseAdmin.from('store_settings').select('gemini_api_key').eq('site_id', id).maybeSingle()
+        supabaseAdmin.from('orders').select('id', { count: 'exact', head: true }).eq('site_id', id)
     ]);
 
     if (profileRes.error) throw profileRes.error;
@@ -86,8 +84,7 @@ export async function POST(request: Request) {
     // 3. Process and Decrypt Data
     const decryptedProfile = decryptObject({
         ...profileData,
-        plans: planData ? [planData] : [],
-        gemini_api_key: settingsRes.data?.gemini_api_key || ''
+        plans: planData ? [planData] : []
     });
     
     const decryptedCustomers = (customersRes.data || []).map(c => decryptObject(c));
