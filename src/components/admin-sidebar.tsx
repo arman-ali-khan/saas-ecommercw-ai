@@ -146,11 +146,13 @@ export default function AdminSidebar() {
     label,
     icon: Icon,
     count,
+    countVariant = 'destructive',
   }: {
     href: string;
     label: string;
     icon: React.ElementType;
     count?: number;
+    countVariant?: 'destructive' | 'neutral';
   }) => {
     const isActive = href === `/admin` ? pathname === href : pathname.startsWith(href);
     const showCount = count !== undefined && (countVariant === 'neutral' || count > 0);
