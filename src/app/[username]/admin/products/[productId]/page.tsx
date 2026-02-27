@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -140,7 +141,7 @@ export default function ManageProductPage() {
     },
   });
 
-  const { fields: imageFields, append: appendImage, remove: removeImage, move: moveImage } = useFieldArray({ control: form.control, name: 'images' });
+  const { fields: imageFields, append: appendImage, remove: removeImage } = useFieldArray({ control: form.control, name: 'images' });
   const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({ control: form.control, name: 'variants' });
   
   const watchedValues = form.watch();
@@ -347,17 +348,15 @@ export default function ManageProductPage() {
     } catch (error: any) { setIsSubmitting(false); toast({ variant: 'destructive', title: `Error`, description: error.message }); }
   };
 
-  const handleAddTag = (tagVal: string) => {
-    const currentTagsList = form.getValues('tags') || [];
-    if (tagVal && !currentTagsList.includes(tagVal)) {
-        form.setValue('tags', [...currentTagsList, tagVal], { shouldDirty: true, shouldValidate: true });
+  const handleAddTag = (tagVal: string, currentTags: string[], onChange: (val: string[]) => void) => {
+    if (tagVal && !currentTags.includes(tagVal)) {
+        onChange([...currentTags, tagVal]);
     }
     setTagInput('');
   };
 
-  const handleRemoveTag = (tagVal: string) => {
-    const currentTagsList = form.getValues('tags') || [];
-    form.setValue('tags', currentTagsList.filter(tItem => tItem !== tagVal), { shouldDirty: true, shouldValidate: true });
+  const handleRemoveTag = (tagVal: string, currentTags: string[], onChange: (val: string[]) => void) => {
+    onChange(currentTags.filter(tItem => tItem !== tagVal));
   };
 
   // Image Picker Logic
@@ -499,7 +498,7 @@ export default function ManageProductPage() {
                                     <div key={imageItemRecord.id} className={cn("relative aspect-square rounded-xl overflow-hidden border-2 group", imageIndexOffset === 0 ? "border-primary ring-4 ring-primary/10" : "border-border")}>
                                         <Image src={imageItemRecord.imageUrl} alt={`Product ${imageIndexOffset + 1}`} fill className="object-cover" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                            {imageIndexOffset !== 0 && <Button type="button" variant="secondary" size="sm" className="h-8 text-[10px] rounded-full" onClick={() => moveImage(imageIndexOffset, 0)}><Star className="h-3 w-3 mr-1" /> থাম্বনেইল করুন</Button>}
+                                            {imageIndexOffset !== 0 && <Button type="button" variant="secondary" size="sm" className="h-8 text-[10px] rounded-full" onClick={() => form.setValue('images', [imageFields[imageIndexOffset], ...imageFields.filter((_, i) => i !== imageIndexOffset)])}><Star className="h-3 w-3 mr-1" /> থাম্বনেইল করুন</Button>}
                                             <Button type="button" variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => removeImage(imageIndexOffset)}><Trash2 className="h-4 w-4" /></Button>
                                         </div>
                                         {imageIndexOffset === 0 && <Badge className="absolute top-2 left-2">থাম্বনেইল</Badge>}
@@ -642,7 +641,7 @@ export default function ManageProductPage() {
                             <FormField control={form.control} name="categories" render={({ field }) => (<FormItem><FormLabel>ক্যাটাগরি সিলেক্ট করুন</FormLabel><DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="w-full h-11 justify-between font-normal"><span className="truncate">{field.value?.length ? field.value.join(', ') : "সিলেক্ট করুন"}</span><ChevronDown className="h-4 w-4 opacity-50" /></Button></DropdownMenuTrigger><DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">{categories.map((catRecord) => (<DropdownMenuCheckboxItem key={catRecord.id} checked={field.value?.includes(catRecord.name)} onCheckedChange={(checked) => field.onChange(checked ? [...(field.value || []), catRecord.name] : (field.value || []).filter((vItem) => vItem !== catRecord.name))}>{catRecord.name}</DropdownMenuCheckboxItem>))}</DropdownMenuContent></DropdownMenu></FormItem>)} />
                             
                             <FormField control={form.control} name="tags" render={({ field }) => {
-                                const currentTags = field.value || [];
+                                const currentTags = Array.isArray(field.value) ? field.value : [];
                                 return (
                                 <FormItem>
                                     <FormLabel className="flex items-center gap-2"><TagsIcon className="h-4 w-4" /> ট্যাগ যোগ করুন (Tags)</FormLabel>
@@ -651,7 +650,7 @@ export default function ManageProductPage() {
                                             {currentTags.map((tagVal) => (
                                                 <Badge key={tagVal} className="gap-1.5 py-1 px-3 bg-primary text-primary-foreground">
                                                     {tagVal}
-                                                    <X className="h-3 w-3 cursor-pointer hover:text-white/80" onClick={() => handleRemoveTag(tagVal)} />
+                                                    <X className="h-3 w-3 cursor-pointer hover:text-white/80" onClick={() => handleRemoveTag(tagVal, currentTags, field.onChange)} />
                                                 </Badge>
                                             ))}
                                             {currentTags.length === 0 && <span className="text-xs text-muted-foreground self-center px-2">কোনো ট্যাগ যোগ করা হয়নি</span>}
@@ -665,7 +664,7 @@ export default function ManageProductPage() {
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') {
                                                             e.preventDefault();
-                                                            handleAddTag(tagInput.trim());
+                                                            handleAddTag(tagInput.trim(), currentTags, field.onChange);
                                                         }
                                                     }}
                                                     className="h-11 pr-10"
@@ -675,7 +674,7 @@ export default function ManageProductPage() {
                                                     variant="ghost" 
                                                     size="icon" 
                                                     className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 text-muted-foreground"
-                                                    onClick={() => handleAddTag(tagInput.trim())}
+                                                    onClick={() => handleAddTag(tagInput.trim(), currentTags, field.onChange)}
                                                 >
                                                     <Plus className="h-4 w-4" />
                                                 </Button>
@@ -708,7 +707,7 @@ export default function ManageProductPage() {
                             <div className="space-y-4">
                                 {(['brand', 'color'] as const).map((attrNameString) => (
                                     <FormField key={attrNameString} control={form.control} name={attrNameString as any} render={({ field: attrFormField }) => {
-                                        const currentSelections = attrFormField.value || [];
+                                        const currentSelections = Array.isArray(attrFormField.value) ? attrFormField.value : [];
                                         return (
                                         <FormItem>
                                             <FormLabel className="capitalize">{attrNameString}</FormLabel>
