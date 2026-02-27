@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -11,6 +10,7 @@ import { allFontVariables } from '@/lib/fonts';
 import { Analytics } from "@vercel/analytics/next"
 import Script from 'next/script';
 import SaasPreloader from '@/components/saas-preloader';
+import OfflineWarning from '@/components/offline-warning';
  
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
@@ -63,6 +63,7 @@ export default async function RootLayout({
         <AuthProvider>
           <SiteLayout>{children}</SiteLayout>
         </AuthProvider>
+        <OfflineWarning />
         <Toaster />
         
         {/* Service Worker Registration for PWA and FCM */}

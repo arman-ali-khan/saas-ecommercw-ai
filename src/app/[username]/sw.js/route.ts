@@ -1,11 +1,21 @@
-
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const config = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ''
+  };
+
   const content = `
-    /* standard PWA life-cycle events */
+    /* Standard PWA Service Worker with Caching and FCM Support */
+    const CACHE_NAME = 'ehut-tenant-v1';
+    
     self.addEventListener('install', (event) => {
       self.skipWaiting();
     });
@@ -14,13 +24,30 @@ export async function GET() {
       event.waitUntil(clients.claim());
     });
 
-    /* Important: PWA requires a fetch handler to be installable */
+    /* Cache-First Fetch Handler for PWA offline support */
     self.addEventListener('fetch', (event) => {
-      // For now, we just let the network handle it.
-      // This satisfies the browser's requirement for a fetch listener.
-      if (event.request.mode === 'navigate') {
-        event.respondWith(fetch(event.request));
+      if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+        return;
       }
+
+      event.respondWith(
+        caches.match(event.request).then((cachedResponse) => {
+          const fetchPromise = fetch(event.request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            }
+            return networkResponse;
+          }).catch(() => {
+              // If network fails and no cache, return null or fallback
+              return null;
+          });
+
+          return cachedResponse || fetchPromise;
+        })
+      );
     });
 
     /* Firebase Cloud Messaging Integration */
@@ -28,12 +55,12 @@ export async function GET() {
     importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
     const firebaseConfig = {
-      apiKey: "${process.env.NEXT_PUBLIC_FIREBASE_API_KEY || ''}",
-      authDomain: "${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || ''}",
-      projectId: "${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || ''}",
-      storageBucket: "${process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || ''}",
-      messagingSenderId: "${process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || ''}",
-      appId: "${process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ''}"
+      apiKey: "${config.apiKey}",
+      authDomain: "${config.authDomain}",
+      projectId: "${config.projectId}",
+      storageBucket: "${config.storageBucket}",
+      messagingSenderId: "${config.messagingSenderId}",
+      appId: "${config.appId}"
     };
 
     if (firebaseConfig.projectId && firebaseConfig.projectId !== '') {
