@@ -36,6 +36,7 @@ export interface Product {
   avg_rating?: number;
   review_count?: number;
   variants?: ProductVariant[] | null;
+  custom_attributes?: Record<string, string[]> | null;
 }
 
 export interface ProductReview {
@@ -306,7 +307,7 @@ export interface SeoRequest {
 export interface ProductAttribute {
   id: string;
   site_id: string;
-  type: 'brand' | 'unit' | 'size' | 'tag' | 'color';
+  type: string;
   value: string;
   created_at: string;
 }

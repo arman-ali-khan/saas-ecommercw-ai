@@ -90,6 +90,7 @@ export async function POST(request: Request) {
         color: Array.isArray(productData.color) ? productData.color : [],
         categories: Array.isArray(productData.categories) ? productData.categories : [],
         tags: Array.isArray(productData.tags) ? productData.tags : [],
+        custom_attributes: productData.custom_attributes || {},
     };
 
     let finalSlug = sanitizedProductData.id;

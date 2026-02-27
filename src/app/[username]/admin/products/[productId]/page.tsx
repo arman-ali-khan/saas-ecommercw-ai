@@ -46,7 +46,8 @@ import {
     ChevronLeft,
     ChevronRight,
     Check,
-    Save
+    Save,
+    Layout
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -106,6 +107,7 @@ const productFormSchema = z.object({
     price: z.preprocess((val) => (val === '' || val == null ? 0 : parseFloat(String(val))), z.number().min(0).default(0)),
     stock: z.preprocess((val) => (val === '' || val == null ? 0 : parseInt(String(val), 10)), z.number().min(0).default(0)),
   })).optional(),
+  custom_attributes: z.record(z.array(z.string())).optional().default({}),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -125,6 +127,12 @@ export default function ManageProductPage() {
   const [isBeautifying, setIsBeautifying] = useState(false);
   const [tagInput, setTagInput] = useState('');
   
+  // Custom Attribute State
+  const [isAttrModalOpen, setIsAttrModalOpen] = useState(false);
+  const [newAttrType, setNewAttrType] = useState('');
+  const [newAttrValue, setNewAttrValue] = useState('');
+  const [isSavingAttr, setIsSavingAttr] = useState(false);
+
   // Image Picker State
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
@@ -137,7 +145,7 @@ export default function ManageProductPage() {
       id: '', name: '', price: 0, stock: 0, currency: 'BDT', description: '', long_description: '',
       categories: [], tags: [], origin: '', story: '', is_featured: false, images: [], brand: [], color: [], unit: '',
       has_flash_deal: false, flash_deal_price: undefined, flash_deal_range: { startDate: undefined, endDate: undefined },
-      use_variants: false, variant_type: 'unit', variants: []
+      use_variants: false, variant_type: 'unit', variants: [], custom_attributes: {}
     },
   });
 
@@ -227,7 +235,8 @@ export default function ManageProductPage() {
                 flash_deal_range: flashDealData ? { startDate: new Date(flashDealData.start_date), endDate: new Date(flashDealData.end_date) } : { startDate: undefined, endDate: undefined },
                 use_variants: !!(mappedVariants.length > 0),
                 variant_type: detectedType,
-                variants: mappedVariants
+                variants: mappedVariants,
+                custom_attributes: productData.custom_attributes || {}
             });
         } else {
             throw new Error(result.error || 'Product not found.');
@@ -357,6 +366,31 @@ export default function ManageProductPage() {
 
   const handleRemoveTag = (tagVal: string, currentTags: string[], onChange: (val: string[]) => void) => {
     onChange(currentTags.filter(tItem => tItem !== tagVal));
+  };
+
+  const handleSaveAttribute = async () => {
+    if (!newAttrType || !newAttrValue || !user) return;
+    setIsSavingAttr(true);
+    try {
+        const response = await fetch('/api/attributes/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                siteId: user.id, 
+                type: newAttrType.toLowerCase().trim(), 
+                value: newAttrValue.trim() 
+            }),
+        });
+        if (response.ok) {
+            toast({ title: 'Attribute added!' });
+            setNewAttrValue('');
+            setIsAttrModalOpen(false);
+            // Re-fetch lookups
+            const attrResponse = await fetch('/api/attributes/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } });
+            const attrResult = await attrResponse.json();
+            if (attrResponse.ok) setAttributes(attrResult.attributes as ProductAttribute[]);
+        }
+    } catch (e) { console.error(e); } finally { setIsSavingAttr(false); }
   };
 
   // Image Picker Logic
@@ -621,7 +655,12 @@ export default function ManageProductPage() {
                     </Card>
 
                     <Card className="shadow-sm border-2">
-                        <CardHeader className="bg-muted/30"><CardTitle>ক্যাটাগরি এবং ফিল্টার</CardTitle></CardHeader>
+                        <CardHeader className="bg-muted/30 flex items-center justify-between flex-row space-y-0">
+                            <CardTitle>ক্যাটাগরি এবং ফিল্টার</CardTitle>
+                            <Button type="button" variant="ghost" size="sm" className="h-8 text-primary" onClick={() => setIsAttrModalOpen(true)}>
+                                <Plus className="h-3 w-3 mr-1" /> Add Attribute
+                            </Button>
+                        </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             <FormField control={form.control} name="is_featured" render={({ field }) => (
                                 <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-primary/20 p-4 bg-primary/5 shadow-sm">
@@ -704,31 +743,41 @@ export default function ManageProductPage() {
                             )}} />
 
                             <FormField control={form.control} name="origin" render={({ field }) => (<FormItem><FormLabel>উৎপত্তি স্থল (Origin)</FormLabel><FormControl><Input {...field} placeholder="যেমন: রাজশাহী, খুলনা" className="h-11" /></FormControl></FormItem>)} />
-                            <div className="space-y-4">
-                                {(['brand', 'color'] as const).map((attrNameString) => (
-                                    <FormField key={attrNameString} control={form.control} name={attrNameString as any} render={({ field: attrFormField }) => {
-                                        const currentSelections = Array.isArray(attrFormField.value) ? attrFormField.value : [];
-                                        return (
-                                        <FormItem>
-                                            <FormLabel className="capitalize">{attrNameString}</FormLabel>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="outline" className="w-full h-11 justify-between font-normal">
-                                                        <span className="truncate">{currentSelections.length ? currentSelections.join(', ') : `সিলেক্ট ${attrNameString}`}</span>
-                                                        <ChevronDown className="h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                                    {(groupedAttributes[attrNameString] || []).map((optVal) => (
-                                                        <DropdownMenuCheckboxItem key={optVal} checked={currentSelections.includes(optVal)} onCheckedChange={(checked) => attrFormField.onChange(checked ? [...currentSelections, optVal] : currentSelections.filter((vItem: string) => vItem !== optVal))}>
-                                                            {optVal}
-                                                        </DropdownMenuCheckboxItem>
-                                                    ))}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </FormItem>
-                                    )}} />
-                                ))}
+                            
+                            <div className="space-y-4 pt-4 border-t">
+                                <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2"><Layout className="h-3 w-3" /> Custom Attributes</h4>
+                                {Object.keys(groupedAttributes)
+                                    .filter(type => !['unit', 'size', 'tag'].includes(type))
+                                    .map((attrType) => (
+                                        <FormField 
+                                            key={attrType} 
+                                            control={form.control} 
+                                            name={['brand', 'color'].includes(attrType) ? attrType as any : `custom_attributes.${attrType}` as any} 
+                                            render={({ field: attrFormField }) => {
+                                                const currentSelections = Array.isArray(attrFormField.value) ? attrFormField.value : [];
+                                                return (
+                                                <FormItem>
+                                                    <FormLabel className="capitalize">{attrType}</FormLabel>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="outline" className="w-full h-11 justify-between font-normal">
+                                                                <span className="truncate">{currentSelections.length ? currentSelections.join(', ') : `সিলেক্ট ${attrType}`}</span>
+                                                                <ChevronDown className="h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                                            {(groupedAttributes[attrType] || []).map((optVal) => (
+                                                                <DropdownMenuCheckboxItem key={optVal} checked={currentSelections.includes(optVal)} onCheckedChange={(checked) => attrFormField.onChange(checked ? [...currentSelections, optVal] : currentSelections.filter((vItem: string) => vItem !== optVal))}>
+                                                                    {optVal}
+                                                                </DropdownMenuCheckboxItem>
+                                                            ))}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </FormItem>
+                                            )}} 
+                                        />
+                                    ))
+                                }
                             </div>
                         </CardContent>
                     </Card>
@@ -764,6 +813,54 @@ export default function ManageProductPage() {
             </div>
         </form>
       </Form>
+
+      {/* Raw Tailwind Attribute Creator Dialog */}
+      {isAttrModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isSavingAttr && setIsAttrModalOpen(false)} />
+            <div className="relative w-full max-w-md bg-background rounded-[2rem] shadow-2xl border-2 border-primary/10 overflow-hidden animate-in zoom-in-95 duration-300">
+                <div className="p-6 border-b flex justify-between items-center bg-muted/30">
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                        <Layout className="h-5 w-5 text-primary" /> Add New Attribute
+                    </h2>
+                    <Button variant="ghost" size="icon" className="rounded-full h-8 w-8" onClick={() => setIsAttrModalOpen(false)}>
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
+                <div className="p-6 space-y-4">
+                    <div className="space-y-2">
+                        <Label>Attribute Type (e.g., Brand, Material, Fabric)</Label>
+                        <Input 
+                            placeholder="যেমন: Material" 
+                            value={newAttrType} 
+                            onChange={(e) => setNewAttrType(e.target.value)} 
+                            className="h-11 rounded-xl"
+                        />
+                        <div className="flex flex-wrap gap-1 mt-2">
+                            {['Brand', 'Color', 'Material', 'Fabric', 'Origin'].map(t => (
+                                <button key={t} type="button" onClick={() => setNewAttrType(t)} className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-muted rounded hover:bg-primary hover:text-white transition-colors">{t}</button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Value</Label>
+                        <Input 
+                            placeholder="যেমন: Cotton" 
+                            value={newAttrValue} 
+                            onChange={(e) => setNewAttrValue(e.target.value)} 
+                            className="h-11 rounded-xl"
+                        />
+                    </div>
+                </div>
+                <div className="p-6 border-t flex gap-3 bg-muted/10">
+                    <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setIsAttrModalOpen(false)} disabled={isSavingAttr}>Cancel</Button>
+                    <Button className="flex-1 rounded-xl font-bold shadow-lg" onClick={handleSaveAttribute} disabled={isSavingAttr || !newAttrType || !newAttrValue}>
+                        {isSavingAttr ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Attribute"}
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
 
       {/* Raw Tailwind Image Picker Dialog */}
       {isPickerOpen && (
