@@ -162,6 +162,7 @@ export interface Category {
   icon: string;
   image_url?: string | null;
   card_color?: string | null;
+  parent_id?: number | null;
 }
 
 export interface ShippingZone {

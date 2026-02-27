@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -33,10 +34,17 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, MoreHorizontal, Palette, X, AlertTriangle, Check, Search, ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, MoreHorizontal, Palette, X, AlertTriangle, Check, Search, ChevronLeft, ChevronRight, ImageIcon, Layers } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import IconPicker from '@/components/icon-picker';
@@ -54,6 +62,7 @@ const categorySchema = z.object({
     icon: z.string().min(1, 'An icon is required.'),
     image_url: z.string().url().optional().or(z.literal('')),
     card_color: z.string().optional().or(z.literal('')),
+    parent_id: z.string().optional().or(z.literal('')),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -107,7 +116,7 @@ export default function CategoriesAdminPage() {
 
     const form = useForm<CategoryFormData>({
         resolver: zodResolver(categorySchema),
-        defaultValues: { name: '', description: '', icon: 'Package', image_url: '', card_color: '' },
+        defaultValues: { name: '', description: '', icon: 'Package', image_url: '', card_color: '', parent_id: '' },
     });
 
     const fetchCategories = useCallback(async (force = false) => {
@@ -176,10 +185,11 @@ export default function CategoriesAdminPage() {
                     description: selectedCategory.description || '', 
                     icon: selectedCategory.icon || 'Package',
                     image_url: selectedCategory.image_url || '',
-                    card_color: selectedCategory.card_color || ''
+                    card_color: selectedCategory.card_color || '',
+                    parent_id: selectedCategory.parent_id?.toString() || ''
                 });
             } else {
-                form.reset({ name: '', description: '', icon: 'Package', image_url: '', card_color: '' });
+                form.reset({ name: '', description: '', icon: 'Package', image_url: '', card_color: '', parent_id: '' });
             }
         }
     }, [isFormOpen, selectedCategory, form]);
@@ -254,6 +264,25 @@ export default function CategoriesAdminPage() {
             setSelectedCategory(null);
         }
     }
+
+    // Filter categories for the Parent ID select (exclude self and current sub-categories to prevent loops)
+    const parentOptions = useMemo(() => {
+        return categories.filter(c => !c.parent_id && (!selectedCategory || c.id !== selectedCategory.id));
+    }, [categories, selectedCategory]);
+
+    // Group categories by hierarchy for display
+    const organizedCategories = useMemo(() => {
+        const root = categories.filter(c => !c.parent_id);
+        const children = categories.filter(c => c.parent_id);
+        
+        const result: any[] = [];
+        root.forEach(parent => {
+            result.push(parent);
+            const subs = children.filter(child => child.parent_id === parent.id);
+            subs.forEach(s => result.push({ ...s, isSub: true, parentName: parent.name }));
+        });
+        return result;
+    }, [categories]);
 
     // Image Picker Logic
     const filteredGallery = useMemo(() => {
@@ -370,17 +399,20 @@ export default function CategoriesAdminPage() {
                                         <TableRow>
                                             <TableHead className="w-[80px]">{t.image}/{t.icon}</TableHead>
                                             <TableHead>{t.name}</TableHead>
+                                            <TableHead>Level</TableHead>
                                             <TableHead>Card Style</TableHead>
-                                            <TableHead>Description</TableHead>
                                             <TableHead className="text-right">{common.actions}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {categories.map((category) => (
-                                            <TableRow key={category.id}>
+                                        {organizedCategories.map((category) => (
+                                            <TableRow key={category.id} className={cn(category.isSub && "bg-muted/5")}>
                                                 <TableCell>
                                                     <div 
-                                                        className="relative h-12 w-12 rounded-lg overflow-hidden border shadow-sm"
+                                                        className={cn(
+                                                            "relative h-12 w-12 rounded-lg overflow-hidden border shadow-sm",
+                                                            category.isSub && "ml-4"
+                                                        )}
                                                         style={{ backgroundColor: category.card_color || 'transparent' }}
                                                     >
                                                         {category.image_url ? (
@@ -392,7 +424,20 @@ export default function CategoriesAdminPage() {
                                                         )}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="font-medium">{category.name}</TableCell>
+                                                <TableCell className="font-medium">
+                                                    <div className="flex flex-col">
+                                                        <span className={cn(category.isSub && "pl-4 flex items-center gap-2")}>
+                                                            {category.isSub && <Layers className="h-3 w-3 text-muted-foreground rotate-90" />}
+                                                            {category.name}
+                                                        </span>
+                                                        {category.isSub && <span className="text-[10px] text-muted-foreground pl-10 uppercase tracking-widest font-black">Under {category.parentName}</span>}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={category.isSub ? 'outline' : 'secondary'} className="text-[10px] h-5">
+                                                        {category.isSub ? 'Sub-category' : 'Main Category'}
+                                                    </Badge>
+                                                </TableCell>
                                                 <TableCell>
                                                     {category.card_color ? (
                                                         <div className="flex items-center gap-2">
@@ -403,7 +448,6 @@ export default function CategoriesAdminPage() {
                                                         <span className="text-xs text-muted-foreground italic">None</span>
                                                     )}
                                                 </TableCell>
-                                                <TableCell className="text-muted-foreground truncate max-w-[200px]">{category.description}</TableCell>
                                                 <TableCell className="text-right">
                                                     <Button variant="ghost" size="sm" onClick={() => openForm(category)} className="mr-2">
                                                         <Edit className="mr-2 h-4 w-4" /> {common.edit}
@@ -419,8 +463,8 @@ export default function CategoriesAdminPage() {
                             </div>
 
                             <div className="grid gap-4 md:hidden p-4">
-                                {categories.map((category) => (
-                                    <Card key={category.id}>
+                                {organizedCategories.map((category) => (
+                                    <Card key={category.id} className={cn(category.isSub && "ml-6 border-primary/10")}>
                                         <CardHeader className="p-4 pb-2">
                                             <div className="flex justify-between items-start">
                                                 <div className="flex items-center gap-3">
@@ -437,8 +481,11 @@ export default function CategoriesAdminPage() {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <CardTitle className="text-lg">{category.name}</CardTitle>
-                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{category.card_color || 'No background'}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <CardTitle className="text-lg">{category.name}</CardTitle>
+                                                            {category.isSub && <Badge variant="outline" className="h-4 px-1 text-[8px] uppercase">Sub</Badge>}
+                                                        </div>
+                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{category.isSub ? `Parent: ${category.parentName}` : (category.card_color || 'No background')}</span>
                                                     </div>
                                                 </div>
                                                 <DropdownMenu>
@@ -458,11 +505,6 @@ export default function CategoriesAdminPage() {
                                                 </DropdownMenu>
                                             </div>
                                         </CardHeader>
-                                        {category.description && (
-                                            <CardContent className="px-4 pb-4">
-                                                <p className="text-muted-foreground text-xs italic">"{category.description}"</p>
-                                            </CardContent>
-                                        )}
                                     </Card>
                                 ))}
                             </div>
@@ -498,54 +540,74 @@ export default function CategoriesAdminPage() {
                                             </FormItem>
                                         )} />
                                         
-                                        <FormField control={form.control} name="card_color" render={({ field }) => (
+                                        <FormField control={form.control} name="parent_id" render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="font-bold">Card Background Style</FormLabel>
-                                                <div className="flex items-center gap-2">
+                                                <FormLabel className="font-bold">Parent Category (Optional)</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value}>
                                                     <FormControl>
-                                                        <Input {...field} placeholder="e.g., #f0f9ff" className="h-12 rounded-xl font-mono text-xs" />
+                                                        <SelectTrigger className="h-12 rounded-xl">
+                                                            <SelectValue placeholder="Main Category" />
+                                                        </SelectTrigger>
                                                     </FormControl>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0 rounded-xl shadow-sm border-2">
-                                                                <Palette className="h-5 w-5 text-primary" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end" className="w-72 p-4 rounded-2xl shadow-2xl border-2">
-                                                            <DropdownMenuLabel className="px-0 pb-3 text-xs font-black uppercase tracking-widest text-muted-foreground">Select Soft Palette</DropdownMenuLabel>
-                                                            <DropdownMenuSeparator className="mb-4" />
-                                                            <div className="grid grid-cols-5 gap-3">
-                                                                {softColorPalette.map(({name, color}) => (
-                                                                    <button 
-                                                                        type="button" 
-                                                                        key={name} 
-                                                                        title={name}
-                                                                        className={cn(
-                                                                            "h-9 w-9 rounded-xl border-2 transition-all hover:scale-110 flex items-center justify-center relative",
-                                                                            field.value === color ? "border-primary ring-4 ring-primary/10" : "border-black/5"
-                                                                        )} 
-                                                                        style={{ backgroundColor: color }} 
-                                                                        onClick={() => form.setValue('card_color', color)}
-                                                                    >
-                                                                        {field.value === color && <Check className="h-4 w-4 text-primary" />}
-                                                                    </button>
-                                                                ))}
-                                                                <button 
-                                                                    type="button" 
-                                                                    className="h-9 w-9 rounded-xl border-2 border-dashed flex items-center justify-center bg-background hover:bg-muted"
-                                                                    onClick={() => form.setValue('card_color', '')}
-                                                                >
-                                                                    <X className="h-4 w-4 text-muted-foreground" />
-                                                                </button>
-                                                            </div>
-                                                            <p className="mt-4 text-[10px] text-muted-foreground italic text-center">These soft colors look great on product grids.</p>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
+                                                    <SelectContent className="z-[110]">
+                                                        <SelectItem value="">None (Top Level)</SelectItem>
+                                                        {parentOptions.map(p => (
+                                                            <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormDescription className="text-[10px]">Make this a sub-category of an existing group.</FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )} />
                                     </div>
+
+                                    <FormField control={form.control} name="card_color" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="font-bold">Card Background Style</FormLabel>
+                                            <div className="flex items-center gap-2">
+                                                <FormControl>
+                                                    <Input {...field} placeholder="e.g., #f0f9ff" className="h-12 rounded-xl font-mono text-xs" />
+                                                </FormControl>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0 rounded-xl shadow-sm border-2">
+                                                            <Palette className="h-5 w-5 text-primary" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-72 p-4 rounded-2xl shadow-2xl border-2">
+                                                        <DropdownMenuLabel className="px-0 pb-3 text-xs font-black uppercase tracking-widest text-muted-foreground">Select Soft Palette</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator className="mb-4" />
+                                                        <div className="grid grid-cols-5 gap-3">
+                                                            {softColorPalette.map(({name, color}) => (
+                                                                <button 
+                                                                    type="button" 
+                                                                    key={name} 
+                                                                    title={name}
+                                                                    className={cn(
+                                                                        "h-9 w-9 rounded-xl border-2 transition-all hover:scale-110 flex items-center justify-center relative",
+                                                                        field.value === color ? "border-primary ring-4 ring-primary/10" : "border-black/5"
+                                                                    )} 
+                                                                    style={{ backgroundColor: color }} 
+                                                                    onClick={() => form.setValue('card_color', color)}
+                                                                >
+                                                                    {field.value === color && <Check className="h-4 w-4 text-primary" />}
+                                                                </button>
+                                                            ))}
+                                                            <button 
+                                                                type="button" 
+                                                                className="h-9 w-9 rounded-xl border-2 border-dashed flex items-center justify-center bg-background hover:bg-muted"
+                                                                onClick={() => form.setValue('card_color', '')}
+                                                            >
+                                                                <X className="h-4 w-4 text-muted-foreground" />
+                                                            </button>
+                                                        </div>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
                                     
                                     <FormField control={form.control} name="description" render={({ field }) => (
                                         <FormItem>

@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { id, siteId, name, description, icon, image_url, card_color } = body;
+    const { id, siteId, name, description, icon, image_url, card_color, parent_id } = body;
 
     if (!siteId || !name) {
       return NextResponse.json({ error: 'Site ID and Name are required' }, { status: 400 });
@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       icon: icon || 'Package',
       image_url: image_url || null,
       card_color: card_color || null,
+      parent_id: parent_id ? parseInt(parent_id) : null,
     };
 
     let result;
