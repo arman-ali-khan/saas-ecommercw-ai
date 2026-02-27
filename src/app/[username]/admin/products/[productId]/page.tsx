@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -122,7 +121,6 @@ export default function ManageProductPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isBeautifying, setIsBeautifying] = useState(false);
   const [tagInput, setTagInput] = useState('');
   
@@ -291,32 +289,9 @@ export default function ManageProductPage() {
             form.setValue('origin', result.origin, { shouldValidate: true, shouldDirty: true });
             form.setValue('tags', result.tags || [], { shouldValidate: true, shouldDirty: true });
             form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
-            toast({ title: 'SEO Beautification সম্পন্ন!' });
+            toast({ title: 'SEO Beautification & Description সম্পন্ন!' });
         } else { throw new Error(result.error); }
     } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsBeautifying(false); }
-  };
-
-  const handleGenerateDescription = async () => {
-    if (!watchedValues.name) return toast({ variant: 'destructive', title: 'আগে পণ্যের নাম প্রদান করুন' });
-    setIsGenerating(true);
-    try {
-        const response = await fetch('/api/products/ai/generate-description', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                siteId: user?.id,
-                name: watchedValues.name,
-                description: watchedValues.description,
-                categories: watchedValues.categories,
-                origin: watchedValues.origin
-            }),
-        });
-        const result = await response.json();
-        if (response.ok) {
-            form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
-            toast({ title: 'AI ম্যাজিক সম্পন্ন!' });
-        } else { throw new Error(result.error); }
-    } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsGenerating(false); }
   };
 
   const onSubmit = async (values: ProductFormData, exit: boolean = true) => {
@@ -544,10 +519,7 @@ export default function ManageProductPage() {
                     </Card>
 
                     <Card className="shadow-sm border-2">
-                        <CardHeader className="bg-muted/30 flex flex-row items-center justify-between space-y-0">
-                            <div><CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> বিস্তারিত বিবরণ</CardTitle></div>
-                            <Button type="button" variant="outline" size="sm" onClick={handleGenerateDescription} disabled={isGenerating}>{isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />} AI দিয়ে জেনারেট করুন</Button>
-                        </CardHeader>
+                        <CardHeader className="bg-muted/30"><CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> বিস্তারিত বিবরণ</CardTitle></CardHeader>
                         <CardContent className="pt-6"><FormField control={form.control} name="long_description" render={({ field }) => (<FormItem><FormControl><RichTextEditor value={field.value || ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} /></CardContent>
                     </Card>
                 </div>

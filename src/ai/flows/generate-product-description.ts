@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview AI flows for generating product descriptions using OpenRouter.
+ * @fileOverview AI flows for generating and beautifying product details using OpenRouter.
  */
 
 /**
@@ -49,7 +49,7 @@ async function callOpenRouter(apiKey: string, prompt: string) {
                     },
                     { role: "user", content: prompt }
                 ],
-                temperature: 0.1, // Lower temperature for even more consistent JSON
+                temperature: 0.1,
                 max_tokens: 4096
             })
         });
@@ -69,6 +69,7 @@ async function callOpenRouter(apiKey: string, prompt: string) {
 
 /**
  * Generates a detailed long description in Tiptap JSON format
+ * @deprecated Integrated into beautifyProductDetails
  */
 export async function generateProductDescription(input: any) {
     try {
@@ -120,7 +121,7 @@ export async function generateProductDescription(input: any) {
 }
 
 /**
- * Beautifies all product details for SEO and conversion, including tag generation
+ * Beautifies all product details for SEO and conversion, including tag generation and a detailed Tiptap description
  */
 export async function beautifyProductDetails(input: any) {
     try {
@@ -148,10 +149,10 @@ export async function beautifyProductDetails(input: any) {
            - "story": Persuasive brand story.
            - "origin": Precise origin.
            - "tags": Array of 5-8 SEO tags.
-           - "longDescription": A full Tiptap JSON document object (type: "doc") with headings and lists.
+           - "longDescription": A full, highly DETAILED Tiptap JSON document object (type: "doc") with Level 2 headings, multiple descriptive paragraphs, and bullet point lists of benefits and usage.
 
         STRICT: Return ONLY the raw JSON object. No markdown, no preamble. 
-        Ensure "longDescription" is a nested object representing a Tiptap document, not a string.`;
+        Ensure "longDescription" is a nested object representing a Tiptap document (type: "doc"), not a string.`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
