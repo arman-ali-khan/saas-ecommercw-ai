@@ -8,22 +8,21 @@
  * Helper to extract JSON from AI response more robustly
  */
 function extractJson(text: string) {
+    if (!text) return null;
     try {
-        // Remove markdown code blocks if present (```json ... ``` or ``` ...)
-        let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        
-        const firstBrace = cleanText.indexOf('{');
-        const lastBrace = cleanText.lastIndexOf('}');
+        // Find the first '{' and the last '}'
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
         
         if (firstBrace === -1 || lastBrace === -1) {
             console.error("No JSON braces found in text:", text);
             return null;
         }
         
-        const jsonStr = cleanText.substring(firstBrace, lastBrace + 1);
+        const jsonStr = text.substring(firstBrace, lastBrace + 1);
         return JSON.parse(jsonStr);
     } catch (e) {
-        console.error("JSON Parse Error. Cleaned text was:", text);
+        console.error("JSON Parse Error. Source text was:", text);
         return null;
     }
 }
@@ -44,7 +43,10 @@ async function callOpenRouter(apiKey: string, prompt: string) {
             body: JSON.stringify({
                 model: "arcee-ai/trinity-large-preview:free",
                 messages: [
-                    { role: "system", content: "You are a specialized JSON generator. You always return valid, minified JSON without any preamble, markdown formatting, or explanation." },
+                    { 
+                        role: "system", 
+                        content: "You are a specialized JSON generator for an e-commerce platform. You only speak JSON. Your output must start with '{' and end with '}'. No preamble, no postamble, no markdown code blocks, no explanation. Just valid JSON." 
+                    },
                     { role: "user", content: prompt }
                 ],
                 temperature: 0.1, // Lower temperature for even more consistent JSON
@@ -101,7 +103,7 @@ export async function generateProductDescription(input: any) {
           ]
         }
 
-        STRICT: DO NOT wrap in markdown code blocks. Return ONLY the raw JSON object starting with { and ending with }.`;
+        STRICT: Return ONLY the raw JSON object starting with { and ending with }. Do not include markdown code blocks.`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
@@ -146,7 +148,7 @@ export async function beautifyProductDetails(input: any) {
            - "story": Persuasive brand story.
            - "origin": Precise origin.
            - "tags": Array of 5-8 SEO tags.
-           - "longDescription": A full Tiptap JSON document (type: "doc") with headings and lists.
+           - "longDescription": A full Tiptap JSON document object (type: "doc") with headings and lists.
 
         STRICT: Return ONLY the raw JSON object. No markdown, no preamble. 
         Ensure "longDescription" is a nested object representing a Tiptap document, not a string.`;
@@ -154,7 +156,7 @@ export async function beautifyProductDetails(input: any) {
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
         
-        if (!resultJson || (!resultJson.longDescription && !resultJson.description)) {
+        if (!resultJson) {
             throw new Error("Could not parse valid AI response. The AI might be busy or returned invalid data. Please try again.");
         }
         
