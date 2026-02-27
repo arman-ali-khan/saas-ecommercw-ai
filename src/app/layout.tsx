@@ -23,16 +23,6 @@ export async function generateMetadata(): Promise<Metadata> {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {}
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {}
-        },
       },
     }
   );
@@ -75,15 +65,15 @@ export default async function RootLayout({
         </AuthProvider>
         <Toaster />
         
-        {/* Firebase PWA Service Worker Registration */}
+        {/* Service Worker Registration for PWA and FCM */}
         <Script id="register-sw" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(registration) {
-                  console.log('FCM ServiceWorker registration successful with scope: ', registration.scope);
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                  console.log('PWA ServiceWorker registered with scope: ', registration.scope);
                 }, function(err) {
-                  console.log('FCM ServiceWorker registration failed: ', err);
+                  console.log('PWA ServiceWorker registration failed: ', err);
                 });
               });
             }

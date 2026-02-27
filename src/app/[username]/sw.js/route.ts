@@ -5,6 +5,25 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const content = `
+    /* standard PWA life-cycle events */
+    self.addEventListener('install', (event) => {
+      self.skipWaiting();
+    });
+
+    self.addEventListener('activate', (event) => {
+      event.waitUntil(clients.claim());
+    });
+
+    /* Important: PWA requires a fetch handler to be installable */
+    self.addEventListener('fetch', (event) => {
+      // For now, we just let the network handle it.
+      // This satisfies the browser's requirement for a fetch listener.
+      if (event.request.mode === 'navigate') {
+        event.respondWith(fetch(event.request));
+      }
+    });
+
+    /* Firebase Cloud Messaging Integration */
     importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
     importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
@@ -17,22 +36,26 @@ export async function GET() {
       appId: "${process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ''}"
     };
 
-    if (firebaseConfig.projectId) {
-        firebase.initializeApp(firebaseConfig);
-        const messaging = firebase.messaging();
+    if (firebaseConfig.projectId && firebaseConfig.projectId !== '') {
+        try {
+            firebase.initializeApp(firebaseConfig);
+            const messaging = firebase.messaging();
 
-        // Background handler
-        messaging.onBackgroundMessage((payload) => {
-          console.log('Received background message ', payload);
-          const notificationTitle = payload.notification.title;
-          const notificationOptions = {
-            body: payload.notification.body,
-            icon: '/logo.png', // Fallback icon
-            data: payload.data,
-          };
+            // Background notification handler
+            messaging.onBackgroundMessage((payload) => {
+              console.log('Received background message ', payload);
+              const notificationTitle = payload.notification.title || 'New Notification';
+              const notificationOptions = {
+                body: payload.notification.body || 'You have a new update.',
+                icon: '/logo.png',
+                data: payload.data,
+              };
 
-          self.registration.showNotification(notificationTitle, notificationOptions);
-        });
+              self.registration.showNotification(notificationTitle, notificationOptions);
+            });
+        } catch (e) {
+            console.error("SW Firebase error:", e);
+        }
     }
 
     self.addEventListener('notificationclick', (event) => {
@@ -41,20 +64,6 @@ export async function GET() {
       event.waitUntil(
         clients.openWindow(link)
       );
-    });
-
-    self.addEventListener('install', (event) => {
-      self.skipWaiting();
-    });
-
-    self.addEventListener('activate', (event) => {
-      event.waitUntil(clients.claim());
-    });
-
-    self.addEventListener('fetch', (event) => {
-      if (event.request.mode === 'navigate') {
-        event.respondWith(fetch(event.request));
-      }
     });
   `;
 

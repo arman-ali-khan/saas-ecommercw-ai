@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -13,16 +14,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {}
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {}
         },
       },
     }
@@ -40,20 +31,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
 
   const { data: settings } = await supabase
     .from('store_settings')
-    .select('favicon_url, logo_image_url, logo_type, theme_primary')
+    .select('favicon_url, logo_image_url, theme_primary')
     .eq('site_id', profile.id)
     .single();
     
-  const faviconUrl = settings?.favicon_url;
   const logoUrl = settings?.logo_image_url;
+  const faviconUrl = settings?.favicon_url;
   const themeColor = settings?.theme_primary ? `hsl(${settings.theme_primary})` : '#ffffff';
+  
+  // Browsers require a high-res icon for PWA installation.
+  // We use the site logo if available, or a placeholder based on site initial.
   const siteInitial = (profile.site_name || 'S').charAt(0).toUpperCase();
-
-  /**
-   * PWA icons must be high resolution (at least 192x192 and 512x512).
-   * Favicons are usually too small (32x32), which breaks PWA installability.
-   * We prioritize the site logo, as it's typically a larger image.
-   */
   const pwaIconUrl = logoUrl || faviconUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`;
 
   const manifest = {
