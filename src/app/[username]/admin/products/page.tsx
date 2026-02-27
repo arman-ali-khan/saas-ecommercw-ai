@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -26,8 +27,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Tag, Upload } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Tag, Upload, CheckSquare, Square } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -49,8 +51,12 @@ export default function ProductsAdminPage() {
     const currentStore = useAdminStore.getState();
     return currentStore.products.length === 0;
   });
+  
   const [isDeleting, setIsDeleting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  
   const [currentPage, setCurrentPage] = useState(1);
 
   const lang = user?.language || 'bn';
@@ -105,8 +111,8 @@ export default function ProductsAdminPage() {
     }
   }, [user?.id, fetchProducts]);
 
-  const handleDelete = async () => {
-    if (!productToDelete || !user) return;
+  const handleDelete = async (ids: string[]) => {
+    if (!user || ids.length === 0) return;
     
     setIsDeleting(true);
     try {
@@ -114,7 +120,7 @@ export default function ProductsAdminPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                productId: productToDelete.id,
+                productIds: ids,
                 siteId: user.id,
             })
         });
@@ -122,21 +128,23 @@ export default function ProductsAdminPage() {
         const result = await response.json();
 
         if (!response.ok) {
-            throw new Error(result.error || 'Failed to delete product');
+            throw new Error(result.error || 'Failed to delete product(s)');
         }
 
-      toast({ title: 'Product deleted' });
+      toast({ title: ids.length > 1 ? `${ids.length} products deleted` : 'Product deleted' });
       invalidateEntity('dashboard'); 
+      setSelectedIds([]);
       await fetchProducts(true);
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Failed to delete product',
+        title: 'Failed to delete',
         description: error.message,
       });
     } finally {
         setIsDeleting(false);
         setProductToDelete(null);
+        setIsBulkDeleteOpen(false);
     }
   };
 
@@ -156,13 +164,29 @@ export default function ProductsAdminPage() {
       }
       return (
         <div className="flex flex-col">
-          <span className="text-xs text-muted-foreground font-normal uppercase tracking-tighter">Range</span>
+          <span className="text-[10px] text-muted-foreground font-normal uppercase tracking-tighter">Range</span>
           <span className="font-bold text-primary">{minPrice.toFixed(2)} - {maxPrice.toFixed(2)} {productItem.currency}</span>
         </div>
       );
     }
     return `${productItem.price.toFixed(2)} ${productItem.currency}`;
   };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+        const allIdsOnPage = paginatedProductsList.map(p => p.id);
+        setSelectedIds(prev => Array.from(new Set([...prev, ...allIdsOnPage])));
+    } else {
+        const allIdsOnPage = paginatedProductsList.map(p => p.id);
+        setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+    }
+  };
+
+  const isAllSelectedOnPage = paginatedProductsList.length > 0 && paginatedProductsList.every(p => selectedIds.includes(p.id));
 
   if (isLoading && products.length === 0) {
     return (
@@ -180,6 +204,7 @@ export default function ProductsAdminPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12"><Skeleton className="h-4 w-4" /></TableHead>
                                 <TableHead className="w-[80px]"><Skeleton className="h-4 w-full" /></TableHead>
                                 <TableHead><Skeleton className="h-4 w-full" /></TableHead>
                                 <TableHead><Skeleton className="h-4 w-full" /></TableHead>
@@ -190,6 +215,7 @@ export default function ProductsAdminPage() {
                         <TableBody>
                             {[...Array(5)].map((_, i) => (
                                 <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                                     <TableCell><Skeleton className="h-12 w-12 rounded-md" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -199,21 +225,6 @@ export default function ProductsAdminPage() {
                             ))}
                         </TableBody>
                     </Table>
-                </div>
-                <div className="grid gap-4 md:hidden p-4">
-                    {[...Array(3)].map((_, i) => (
-                        <Card key={i}>
-                            <CardHeader className="p-4">
-                                <div className="flex gap-4">
-                                    <Skeleton className="h-16 w-16 rounded-md shrink-0" />
-                                    <div className="flex-grow space-y-2">
-                                        <Skeleton className="h-5 w-3/4" />
-                                        <Skeleton className="h-4 w-1/2" />
-                                    </div>
-                                </div>
-                            </CardHeader>
-                        </Card>
-                    ))}
                 </div>
             </CardContent>
         </Card>
@@ -229,6 +240,12 @@ export default function ProductsAdminPage() {
           <p className="text-muted-foreground">{currentTranslations.description}</p>
         </div>
         <div className="flex items-center gap-2">
+          {selectedIds.length > 0 && (
+              <Button variant="destructive" className="rounded-xl h-11 animate-in fade-in zoom-in duration-300" onClick={() => setIsBulkDeleteOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> 
+                  {selectedIds.length} ডিলিট করুন
+              </Button>
+          )}
           <Button variant="outline" asChild className="rounded-xl h-11">
             <Link href={`/admin/products/bulk-upload`}>
               <Upload className="mr-2 h-4 w-4" /> 
@@ -250,6 +267,13 @@ export default function ProductsAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                        <Checkbox 
+                            checked={isAllSelectedOnPage} 
+                            onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                            aria-label="Select all"
+                        />
+                    </TableHead>
                     <TableHead className="w-[80px]">{currentTranslations.image}</TableHead>
                     <TableHead>{currentTranslations.name}</TableHead>
                     <TableHead>{currentTranslations.category}</TableHead>
@@ -259,7 +283,14 @@ export default function ProductsAdminPage() {
                 </TableHeader>
                 <TableBody>
                   {paginatedProductsList.map((productItem) => (
-                    <TableRow key={productItem.id}>
+                    <TableRow key={productItem.id} className={selectedIds.includes(productItem.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox 
+                            checked={selectedIds.includes(productItem.id)} 
+                            onCheckedChange={() => handleToggleSelect(productItem.id)}
+                            aria-label={`Select ${productItem.name}`}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted">
                           <Image src={productItem.images[0]?.imageUrl || 'https://placehold.co/100x100'} alt={productItem.name} fill className="object-cover" />
@@ -312,15 +343,21 @@ export default function ProductsAdminPage() {
 
           <div className="grid gap-4 md:hidden">
             {paginatedProductsList.map((productItem) => (
-              <Card key={productItem.id}>
+              <Card key={productItem.id} className={cn(selectedIds.includes(productItem.id) && "border-primary bg-primary/5")}>
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-start gap-4">
-                    <div className="relative w-16 h-16 min-w-16 min-h-16 sm:h-20 sm:w-20 rounded-md overflow-hidden bg-muted">
+                    <div className="pt-1">
+                        <Checkbox 
+                            checked={selectedIds.includes(productItem.id)} 
+                            onCheckedChange={() => handleToggleSelect(productItem.id)}
+                        />
+                    </div>
+                    <div className="relative w-16 h-16 min-w-16 min-h-16 rounded-md overflow-hidden bg-muted">
                       <Image src={productItem.images[0]?.imageUrl || 'https://placehold.co/100x100'} alt={productItem.name} fill className="object-cover" />
                     </div>
                     <div className="flex-grow">
                       <CardTitle className="text-base line-clamp-1">{productItem.name}</CardTitle>
-                      <div className="mt-2">
+                      <div className="mt-2 text-primary font-bold">
                         {getPriceDisplay(productItem)}
                       </div>
                     </div>
@@ -356,6 +393,7 @@ export default function ProductsAdminPage() {
         </>
       )}
 
+      {/* Single Delete Modal */}
       {productToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setProductToDelete(null)} />
@@ -367,7 +405,25 @@ export default function ProductsAdminPage() {
                 <div className="mb-8"><p className="text-muted-foreground leading-relaxed">{commonTranslations.deleteWarning} <strong>"{productToDelete?.name}"</strong> মুছে ফেলা হবে।</p></div>
                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
                     <Button variant="outline" onClick={() => setProductToDelete(null)} disabled={isDeleting}>{commonTranslations.cancel}</Button>
-                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>{isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{commonTranslations.delete}</Button>
+                    <Button variant="destructive" onClick={() => handleDelete([productToDelete.id])} disabled={isDeleting}>{isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{commonTranslations.delete}</Button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Modal */}
+      {isBulkDeleteOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setIsBulkDeleteOpen(false)} />
+            <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
+                <div className="flex items-center gap-3 mb-4 text-destructive">
+                    <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
+                    <h3 className="text-xl font-bold text-foreground">একসাথে অনেক ডিলিট</h3>
+                </div>
+                <div className="mb-8"><p className="text-muted-foreground leading-relaxed">আপনি কি নিশ্চিত যে আপনি নির্বাচিত <strong>{selectedIds.length} টি</strong> পণ্য স্থায়ীভাবে ডিলিট করতে চান? এটি আর ফেরানো সম্ভব নয়।</p></div>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                    <Button variant="outline" onClick={() => setIsBulkDeleteOpen(false)} disabled={isDeleting}>{commonTranslations.cancel}</Button>
+                    <Button variant="destructive" onClick={() => handleDelete(selectedIds)} disabled={isDeleting}>{isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}সবগুলো ডিলিট করুন</Button>
                 </div>
             </div>
         </div>
