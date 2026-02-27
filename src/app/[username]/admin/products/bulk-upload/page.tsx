@@ -8,7 +8,7 @@ import { useAdminStore } from '@/stores/useAdminStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Upload, ArrowLeft, CheckCircle2, AlertTriangle, FileText, X, Edit, Save, ImageIcon } from 'lucide-react';
+import { Loader2, Upload, ArrowLeft, CheckCircle2, AlertTriangle, FileText, X, Edit, Save, ImageIcon, Tags, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -17,10 +17,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 /**
  * Advanced WooCommerce CSV Product Bulk Uploader
- * Parses WooCommerce standard CSV exports with attribute and image handling.
  */
 
 export default function BulkUploadPage() {
@@ -64,7 +64,6 @@ export default function BulkUploadPage() {
     const headers = parseLine(lines[0]);
     const results = [];
 
-    // Map WooCommerce headers to our internal indices
     const hIdx = {
       name: headers.findIndex(h => h.toLowerCase() === 'name'),
       regularPrice: headers.findIndex(h => h.toLowerCase() === 'regular price'),
@@ -87,17 +86,15 @@ export default function BulkUploadPage() {
       const name = data[hIdx.name] || '';
       if (!name) continue;
 
-      // Extract Custom Attributes
       const customAttributes: Record<string, string[]> = {};
       const colors: string[] = [];
       const sizes: string[] = [];
       
-      // Loop headers to find dynamic attributes
       for (let j = 0; j < headers.length; j++) {
           const header = headers[j].toLowerCase();
           if (header.includes('attribute ') && header.includes(' name')) {
               const attrName = data[j];
-              const attrValuesRaw = data[j + 1]; // Value is usually the next column in standard WC CSV
+              const attrValuesRaw = data[j + 1]; 
               if (attrName && attrValuesRaw) {
                   const values = attrValuesRaw.split(',').map(v => v.trim());
                   if (attrName.toLowerCase() === 'color') colors.push(...values);
@@ -106,6 +103,10 @@ export default function BulkUploadPage() {
               }
           }
       }
+
+      // WooCommerce often uses commas or pipes for multiple images
+      const rawImages = data[hIdx.images] || '';
+      const imageList = rawImages.split(/[,|]/).map(url => ({ imageUrl: url.trim(), imageHint: '' })).filter(img => img.imageUrl);
 
       const product = {
         name: name,
@@ -116,7 +117,7 @@ export default function BulkUploadPage() {
         categories: data[hIdx.categories] ? data[hIdx.categories].split(',').map(c => c.trim()) : [],
         tags: data[hIdx.tags] ? data[hIdx.tags].split(',').map(t => t.trim()) : [],
         is_featured: data[hIdx.featured] === '1' || data[hIdx.featured]?.toLowerCase() === 'yes',
-        images: data[hIdx.images] ? data[hIdx.images].split(',').map(url => ({ imageUrl: url.trim(), imageHint: '' })) : [],
+        images: imageList,
         tempId: data[hIdx.sku] || `new-${i}`,
         unit: data[hIdx.weight] ? `${data[hIdx.weight]} KG` : '',
         color: colors,
@@ -149,14 +150,36 @@ export default function BulkUploadPage() {
   };
 
   const handleEditClick = (index: number) => {
+    const p = parsedProducts[index];
     setEditingIndex(index);
-    setEditFormData({ ...parsedProducts[index] });
+    setEditFormData({ 
+        ...p,
+        categoriesStr: p.categories.join(', '),
+        tagsStr: p.tags.join(', '),
+        mainImageUrl: p.images?.[0]?.imageUrl || ''
+    });
   };
 
   const saveEdit = () => {
     if (editingIndex === null || !editFormData) return;
+    
+    const updatedImages = [...(editFormData.images || [])];
+    if (editFormData.mainImageUrl) {
+        if (updatedImages.length > 0) {
+            updatedImages[0].imageUrl = editFormData.mainImageUrl;
+        } else {
+            updatedImages.push({ imageUrl: editFormData.mainImageUrl, imageHint: '' });
+        }
+    }
+
     const newProducts = [...parsedProducts];
-    newProducts[editingIndex] = editFormData;
+    newProducts[editingIndex] = {
+        ...editFormData,
+        categories: editFormData.categoriesStr.split(',').map((c: string) => c.trim()).filter(Boolean),
+        tags: editFormData.tagsStr.split(',').map((t: string) => t.trim()).filter(Boolean),
+        images: updatedImages
+    };
+    
     setParsedProducts(newProducts);
     setEditingIndex(null);
     setEditFormData(null);
@@ -197,11 +220,6 @@ export default function BulkUploadPage() {
     }
   };
 
-  const clearFile = () => {
-    setFileName('');
-    setParsedProducts([]);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -211,13 +229,13 @@ export default function BulkUploadPage() {
       </div>
 
       <div className="max-w-6xl mx-auto space-y-8">
-        <div>
+        <div className="px-1">
           <h1 className="text-3xl font-bold font-headline">Bulk Product Import</h1>
           <p className="text-muted-foreground">Upload, review, and edit WooCommerce products before publishing them to your store.</p>
         </div>
 
         {!fileName ? (
-          <Card className="border-2 border-dashed bg-muted/10">
+          <Card className="border-2 border-dashed bg-muted/10 rounded-[2rem]">
             <CardContent className="flex flex-col items-center justify-center py-20 text-center">
               <div className="bg-primary/10 p-6 rounded-full mb-6">
                 <Upload className="h-12 w-12 text-primary" />
@@ -242,10 +260,10 @@ export default function BulkUploadPage() {
                   <p className="text-xs text-muted-foreground">{parsedProducts.length} products detected</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={clearFile} disabled={isLoading} className="rounded-full"><X className="h-5 w-5" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => { setFileName(''); setParsedProducts([]); }} disabled={isLoading} className="rounded-full"><X className="h-5 w-5" /></Button>
             </div>
 
-            <Card className="border-2 shadow-sm overflow-hidden">
+            <Card className="border-2 shadow-sm overflow-hidden rounded-2xl">
               <CardHeader className="bg-muted/30 border-b">
                 <CardTitle className="text-lg">Review Parsed Products</CardTitle>
                 <CardDescription>Click the edit button to adjust any product data before saving. Thumbnails will be taken from the first image found.</CardDescription>
@@ -267,11 +285,11 @@ export default function BulkUploadPage() {
                       {parsedProducts.map((p, i) => (
                         <TableRow key={i}>
                           <TableCell>
-                              <div className="relative h-10 w-10 rounded-md border bg-muted overflow-hidden">
+                              <div className="relative h-12 w-12 rounded-lg border bg-muted overflow-hidden">
                                   {p.images?.[0]?.imageUrl ? (
-                                      <Image src={p.images[0].imageUrl} alt="Preview" fill className="object-cover" />
+                                      <Image src={p.images[0].imageUrl} alt="Preview" fill className="object-cover" unoptimized />
                                   ) : (
-                                      <ImageIcon className="h-4 w-4 m-auto text-muted-foreground/30" />
+                                      <ImageIcon className="h-5 w-5 m-auto text-muted-foreground/30" />
                                   )}
                               </div>
                           </TableCell>
@@ -284,11 +302,11 @@ export default function BulkUploadPage() {
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {p.categories.slice(0, 2).map((c: string) => <Badge key={c} variant="secondary" className="text-[8px] truncate max-w-[100px]">{c}</Badge>)}
-                              {p.categories.length > 2 && <span className="text-[10px]">+{p.categories.length - 2}</span>}
+                              {p.categories.length > 2 && <span className="text-[10px] font-bold">+{p.categories.length - 2}</span>}
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(i)} className="h-8 w-8">
+                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(i)} className="h-9 w-9 rounded-full">
                                 <Edit className="h-4 w-4" />
                             </Button>
                           </TableCell>
@@ -309,7 +327,7 @@ export default function BulkUploadPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <Button variant="outline" onClick={clearFile} disabled={isLoading} className="flex-1 sm:flex-none">Cancel</Button>
+                        <Button variant="outline" onClick={() => { setFileName(''); setParsedProducts([]); }} disabled={isLoading} className="flex-1 sm:flex-none">Cancel</Button>
                         <Button 
                             onClick={handleUpload} 
                             disabled={isLoading || isParsing || parsedProducts.length === 0} 
@@ -331,54 +349,105 @@ export default function BulkUploadPage() {
 
       {/* Inline Edit Dialog */}
       <Dialog open={editingIndex !== null} onOpenChange={(open) => !open && setEditingIndex(null)}>
-        <DialogContent className="max-w-2xl rounded-2xl">
-            <DialogHeader>
-                <DialogTitle>Edit Parsed Product</DialogTitle>
+        <DialogContent className="max-w-2xl rounded-[2rem] p-0 overflow-hidden">
+            <DialogHeader className="bg-muted/30 p-6 border-b">
+                <DialogTitle className="text-xl font-bold">Edit Product Before Import</DialogTitle>
             </DialogHeader>
             {editFormData && (
-                <div className="space-y-6 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="edit-name">Product Name</Label>
-                        <Input 
-                            id="edit-name" 
-                            value={editFormData.name} 
-                            onChange={e => setEditFormData({...editFormData, name: e.target.value})} 
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+                <ScrollArea className="max-h-[70vh]">
+                    <div className="space-y-6 p-6">
+                        <div className="flex gap-6 items-start">
+                            <div className="relative h-32 w-32 rounded-2xl border-2 border-dashed flex items-center justify-center bg-muted overflow-hidden shrink-0">
+                                {editFormData.mainImageUrl ? (
+                                    <Image src={editFormData.mainImageUrl} alt="Thumbnail" fill className="object-cover" unoptimized />
+                                ) : (
+                                    <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
+                                )}
+                            </div>
+                            <div className="flex-grow space-y-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-name" className="font-bold">Product Name</Label>
+                                    <Input 
+                                        id="edit-name" 
+                                        value={editFormData.name} 
+                                        onChange={e => setEditFormData({...editFormData, name: e.target.value})} 
+                                        className="h-11 rounded-xl"
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-image" className="font-bold">Thumbnail URL</Label>
+                                    <Input 
+                                        id="edit-image" 
+                                        value={editFormData.mainImageUrl} 
+                                        onChange={e => setEditFormData({...editFormData, mainImageUrl: e.target.value})} 
+                                        className="h-9 text-xs font-mono rounded-lg"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-price" className="font-bold">Price (BDT)</Label>
+                                <Input 
+                                    id="edit-price" 
+                                    type="number" 
+                                    value={editFormData.price} 
+                                    onChange={e => setEditFormData({...editFormData, price: parseFloat(e.target.value) || 0})} 
+                                    className="h-11 rounded-xl font-bold text-primary"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-stock" className="font-bold">Stock</Label>
+                                <Input 
+                                    id="edit-stock" 
+                                    type="number" 
+                                    value={editFormData.stock} 
+                                    onChange={e => setEditFormData({...editFormData, stock: parseInt(e.target.value) || 0})} 
+                                    className="h-11 rounded-xl"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4">
+                            <div className="grid gap-2">
+                                <Label className="font-bold flex items-center gap-2"><Layers className="h-4 w-4" /> Categories</Label>
+                                <Input 
+                                    value={editFormData.categoriesStr} 
+                                    onChange={e => setEditFormData({...editFormData, categoriesStr: e.target.value})} 
+                                    placeholder="Food, Fruit, Local"
+                                    className="h-11 rounded-xl"
+                                />
+                                <p className="text-[10px] text-muted-foreground">Separate categories with commas.</p>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label className="font-bold flex items-center gap-2"><Tags className="h-4 w-4" /> Tags</Label>
+                                <Input 
+                                    value={editFormData.tagsStr} 
+                                    onChange={e => setEditFormData({...editFormData, tagsStr: e.target.value})} 
+                                    placeholder="organic, fresh, rajshahi"
+                                    className="h-11 rounded-xl"
+                                />
+                                <p className="text-[10px] text-muted-foreground">Separate tags with commas.</p>
+                            </div>
+                        </div>
+
                         <div className="grid gap-2">
-                            <Label htmlFor="edit-price">Price (BDT)</Label>
-                            <Input 
-                                id="edit-price" 
-                                type="number" 
-                                value={editFormData.price} 
-                                onChange={e => setEditFormData({...editFormData, price: parseFloat(e.target.value) || 0})} 
+                            <Label htmlFor="edit-desc" className="font-bold">Short Description</Label>
+                            <Textarea 
+                                id="edit-desc" 
+                                value={editFormData.description} 
+                                onChange={e => setEditFormData({...editFormData, description: e.target.value})} 
+                                rows={3}
+                                className="rounded-xl resize-none"
                             />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-stock">Stock</Label>
-                            <Input 
-                                id="edit-stock" 
-                                type="number" 
-                                value={editFormData.stock} 
-                                onChange={e => setEditFormData({...editFormData, stock: parseInt(e.target.value) || 0})} 
-                            />
-                        </div>
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="edit-desc">Short Description</Label>
-                        <Textarea 
-                            id="edit-desc" 
-                            value={editFormData.description} 
-                            onChange={e => setEditFormData({...editFormData, description: e.target.value})} 
-                            rows={3}
-                        />
-                    </div>
-                </div>
+                </ScrollArea>
             )}
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setEditingIndex(null)}>Cancel</Button>
-                <Button onClick={saveEdit} className="gap-2">
+            <DialogFooter className="bg-muted/30 p-6 border-t gap-3 sm:gap-0">
+                <Button variant="outline" onClick={() => setEditingIndex(null)} className="rounded-xl h-11">Cancel</Button>
+                <Button onClick={saveEdit} className="rounded-xl h-11 px-8 shadow-lg shadow-primary/20 gap-2">
                     <Save className="h-4 w-4" /> Update Item
                 </Button>
             </DialogFooter>
