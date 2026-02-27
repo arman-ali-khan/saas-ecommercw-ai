@@ -27,9 +27,14 @@ export const getFCMToken = async () => {
   try {
     if (typeof window === 'undefined' || !app) return null;
     
+    // Explicitly check for Notification API
+    if (!('Notification' in window)) {
+        console.warn("This browser does not support desktop notifications.");
+        return null;
+    }
+
     const messaging = getMessaging(app);
     
-    // Request permission explicitly as per the guide
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       const token = await getToken(messaging, {

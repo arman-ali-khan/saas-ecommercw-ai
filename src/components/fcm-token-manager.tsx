@@ -22,7 +22,7 @@ export default function FCMTokenManager({ userId, userType }: FCMTokenManagerPro
       try {
         const token = await getFCMToken();
         if (token) {
-          console.log("FCM Token:", token);
+          console.log("FCM Token registered:", token);
           await fetch('/api/notifications/register-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -39,15 +39,39 @@ export default function FCMTokenManager({ userId, userType }: FCMTokenManagerPro
     // Listen for foreground messages
     const setupListener = async () => {
         const payload: any = await onMessageListener();
-        if (payload) {
+        if (payload && payload.notification) {
+            const { title, body } = payload.notification;
+            
+            // 1. Show UI Toast
             toast({
-                title: payload.notification?.title || 'নতুন আপডেট',
-                description: payload.notification?.body,
+                title: title || 'নতুন আপডেট',
+                description: body,
             });
+
+            // 2. Trigger Native Browser Notification (Foreground)
+            // This makes it show in the Desktop/Mobile notification bar like Facebook
+            if (Notification.permission === 'granted') {
+                const options = {
+                    body: body,
+                    icon: '/logo.png', // Fallback icon
+                    badge: '/favicon.ico',
+                    data: payload.data
+                };
+                
+                // Use Service Worker to show notification even in foreground for better OS integration
+                navigator.serviceWorker.ready.then((registration) => {
+                    registration.showNotification(title || 'নতুন আপডেট', options);
+                });
+            }
         }
     };
     
-    setupListener();
+    // Polling or persistent listener setup
+    const interval = setInterval(() => {
+        setupListener();
+    }, 1000);
+    
+    return () => clearInterval(interval);
 
   }, [userId, userType, toast]);
 

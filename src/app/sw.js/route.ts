@@ -4,45 +4,16 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const config = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ''
+  };
+
   const content = `
-    importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-    importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
-
-    const firebaseConfig = {
-      apiKey: "${process.env.NEXT_PUBLIC_FIREBASE_API_KEY || ''}",
-      authDomain: "${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || ''}",
-      projectId: "${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || ''}",
-      storageBucket: "${process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || ''}",
-      messagingSenderId: "${process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || ''}",
-      appId: "${process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ''}"
-    };
-
-    if (firebaseConfig.projectId && firebaseConfig.projectId !== '') {
-        firebase.initializeApp(firebaseConfig);
-        const messaging = firebase.messaging();
-
-        // Background handler
-        messaging.onBackgroundMessage((payload) => {
-          console.log('Received background message ', payload);
-          const notificationTitle = payload.notification.title;
-          const notificationOptions = {
-            body: payload.notification.body,
-            icon: '/logo.png', // Fallback icon
-            data: payload.data,
-          };
-
-          self.registration.showNotification(notificationTitle, notificationOptions);
-        });
-    }
-
-    self.addEventListener('notificationclick', (event) => {
-      event.notification.close();
-      const link = event.notification.data?.link || '/';
-      event.waitUntil(
-        clients.openWindow(link)
-      );
-    });
-
+    /* Standard PWA Service Worker with FCM Support */
+    
     self.addEventListener('install', (event) => {
       self.skipWaiting();
     });
@@ -55,6 +26,41 @@ export async function GET() {
       if (event.request.mode === 'navigate') {
         event.respondWith(fetch(event.request));
       }
+    });
+
+    /* Firebase Messaging Integration */
+    importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+    importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+
+    if ("${config.projectId}" !== "") {
+        try {
+            firebase.initializeApp({
+                apiKey: "${config.apiKey}",
+                projectId: "${config.projectId}",
+                messagingSenderId: "${config.messagingSenderId}",
+                appId: "${config.appId}"
+            });
+            
+            const messaging = firebase.messaging();
+
+            messaging.onBackgroundMessage((payload) => {
+                const notificationTitle = payload.notification.title || 'New Update';
+                const notificationOptions = {
+                    body: payload.notification.body || 'New message received.',
+                    icon: '/logo.png',
+                    data: payload.data,
+                };
+                return self.registration.showNotification(notificationTitle, notificationOptions);
+            });
+        } catch (e) {
+            console.error("SW Firebase Init Error:", e);
+        }
+    }
+
+    self.addEventListener('notificationclick', (event) => {
+      event.notification.close();
+      const link = event.notification.data?.link || '/';
+      event.waitUntil(clients.openWindow(link));
     });
   `;
 
