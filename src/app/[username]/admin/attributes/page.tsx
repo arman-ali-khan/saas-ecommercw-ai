@@ -14,11 +14,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Plus, Edit, Trash2, Loader2, Store, Scale, Ruler, Tags, Palette, X, AlertTriangle, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
 
 
 const attributeSchema = z.object({
@@ -123,26 +123,25 @@ export default function AttributesAdminPage() {
         setIsSubmitting(true);
 
         try {
-            const response = await fetch('/api/attributes/save', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    id: selectedAttribute?.id,
-                    siteId: user.id,
-                    type: data.type.toLowerCase().trim(),
-                    value: data.value.trim() 
-                }),
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                toast({ title: `Attribute ${selectedAttribute ? 'Updated' : 'Created'}` });
-                await fetchAttributes(true);
-                setIsFormOpen(false);
-            } else {
-                throw new Error(result.error || 'Failed to save attribute');
+            const values = data.value.split(',').map(v => v.trim()).filter(v => v !== '');
+            
+            // Loop through each value for bulk creation
+            for (const val of values) {
+                await fetch('/api/attributes/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        id: selectedAttribute?.id, // Only applies if editing one, but bulk is for creation
+                        siteId: user.id,
+                        type: data.type.toLowerCase().trim(),
+                        value: val 
+                    }),
+                });
             }
+
+            toast({ title: `Attributes ${selectedAttribute ? 'Updated' : 'Processed'}` });
+            await fetchAttributes(true);
+            setIsFormOpen(false);
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'An error occurred', description: error.message });
         } finally {
@@ -323,8 +322,19 @@ export default function AttributesAdminPage() {
                                     
                                     <FormField control={form.control} name="value" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="font-bold">Value</FormLabel>
-                                            <FormControl><Input placeholder="e.g., 100% Cotton" {...field} className="h-12 rounded-xl" /></FormControl>
+                                            <FormLabel className="font-bold">Value(s)</FormLabel>
+                                            <FormControl>
+                                                <Textarea 
+                                                    placeholder="e.g., Cotton, Silk, Linen" 
+                                                    {...field} 
+                                                    className="rounded-xl min-h-[100px]"
+                                                />
+                                            </FormControl>
+                                            {!selectedAttribute && (
+                                                <FormDescription className="text-[10px]">
+                                                    You can add multiple values at once by separating them with commas.
+                                                </FormDescription>
+                                            )}
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -335,7 +345,7 @@ export default function AttributesAdminPage() {
                             <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSubmitting} className="rounded-xl h-11 px-6">Cancel</Button>
                             <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting} className="rounded-xl h-11 px-8 font-bold shadow-lg shadow-primary/20">
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save Attribute
+                                {selectedAttribute ? 'Update Attribute' : 'Create Attribute(s)'}
                             </Button>
                         </div>
                     </div>

@@ -127,7 +127,6 @@ export default function ManageProductPage() {
   const [isBeautifying, setIsBeautifying] = useState(false);
   const [tagInput, setTagInput] = useState('');
   
-  // Image Picker State
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
   const [pickerPage, setPickerPage] = useState(1);
@@ -362,7 +361,6 @@ export default function ManageProductPage() {
     onChange(currentTags.filter(tItem => tItem !== tagVal));
   };
 
-  // Image Picker Logic
   const filteredGallery = useMemo(() => {
     return galleryImages.filter(img => 
         (img.name || '').toLowerCase().includes(pickerSearch.toLowerCase())
@@ -521,7 +519,11 @@ export default function ManageProductPage() {
                     </Card>
 
                     <Card className="shadow-sm border-2">
-                        <CardHeader className="bg-muted/30"><CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> বিস্তারিত বিবরণ</CardTitle></CardHeader>
+                        <CardHeader className="bg-muted/30">
+                            <CardTitle className="flex items-center gap-2">
+                                <Wand2 className="h-5 w-5 text-primary" /> বিস্তারিত বিবরণ
+                            </CardTitle>
+                        </CardHeader>
                         <CardContent className="pt-6">
                             <FormField 
                                 control={form.control} 
@@ -801,7 +803,6 @@ export default function ManageProductPage() {
         </form>
       </Form>
 
-      {/* Raw Tailwind Image Picker Dialog */}
       {isPickerOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setIsPickerOpen(false)} />
