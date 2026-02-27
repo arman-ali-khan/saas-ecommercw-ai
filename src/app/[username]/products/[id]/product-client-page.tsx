@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,8 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  Maximize2,
+  X,
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
@@ -59,6 +61,41 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
+const ProductImageZoom = ({ src, alt }: { src: string; alt: string }) => {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [showZoom, setShowZoom] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.pageX - left) / width) * 100;
+    const y = ((e.pageY - top - window.scrollY) / height) * 100;
+    setPosition({ x, y });
+  };
+
+  return (
+    <div
+      className="relative w-full h-full overflow-hidden cursor-zoom-in rounded-lg"
+      onMouseEnter={() => setShowZoom(true)}
+      onMouseLeave={() => setShowZoom(false)}
+      onMouseMove={handleMouseMove}
+    >
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className={cn(
+          "object-cover transition-transform duration-300 ease-out",
+          showZoom ? "scale-[2.5]" : "scale-100"
+        )}
+        style={{
+          transformOrigin: `${position.x}% ${position.y}%`,
+        }}
+        sizes="(max-width: 768px) 100vw, 50vw"
+        priority
+      />
+    </div>
+  );
+};
 
 const TikTokIcon = () => (
   <svg
@@ -497,11 +534,9 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     {images.map((image, index) => (
                     <CarouselItem key={index}>
                         <div className="w-full h-[50vh] rounded-lg overflow-hidden shadow-lg relative">
-                        <Image
+                        <ProductImageZoom
                             src={image.imageUrl}
                             alt={`${product.name} image ${index + 1}`}
-                            fill
-                            className="object-cover"
                         />
                         {flashDeal && <Badge variant="destructive" className="absolute top-4 left-4 text-base">SALE</Badge>}
                         </div>
