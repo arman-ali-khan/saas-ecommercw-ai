@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -128,12 +127,6 @@ export default function ManageProductPage() {
   const [isBeautifying, setIsBeautifying] = useState(false);
   const [tagInput, setTagInput] = useState('');
   
-  // Custom Attribute State
-  const [isAttrModalOpen, setIsAttrModalOpen] = useState(false);
-  const [newAttrType, setNewAttrType] = useState('');
-  const [newAttrValue, setNewAttrValue] = useState('');
-  const [isSavingAttr, setIsSavingAttr] = useState(false);
-
   // Image Picker State
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
@@ -369,31 +362,6 @@ export default function ManageProductPage() {
     onChange(currentTags.filter(tItem => tItem !== tagVal));
   };
 
-  const handleSaveAttribute = async () => {
-    if (!newAttrType || !newAttrValue || !user) return;
-    setIsSavingAttr(true);
-    try {
-        const response = await fetch('/api/attributes/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                siteId: user.id, 
-                type: newAttrType.toLowerCase().trim(), 
-                value: newAttrValue.trim() 
-            }),
-        });
-        if (response.ok) {
-            toast({ title: 'Attribute added!' });
-            setNewAttrValue('');
-            setIsAttrModalOpen(false);
-            // Re-fetch lookups
-            const attrResponse = await fetch('/api/attributes/list', { method: 'POST', body: JSON.stringify({ siteId: user.id }), headers: { 'Content-Type': 'application/json' } });
-            const attrResult = await attrResponse.json();
-            if (attrResponse.ok) setAttributes(attrResult.attributes as ProductAttribute[]);
-        }
-    } catch (e) { console.error(e); } finally { setIsSavingAttr(false); }
-  };
-
   // Image Picker Logic
   const filteredGallery = useMemo(() => {
     return galleryImages.filter(img => 
@@ -554,7 +522,7 @@ export default function ManageProductPage() {
 
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30"><CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> বিস্তারিত বিবরণ</CardTitle></CardHeader>
-                        <CardContent className="pt-6"><FormField control={form.control} name="long_description" render={({ field }) => (<FormItem><FormControl><RichTextEditor value={field.value || ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} /></CardContent>
+                        <CardContent className="pt-6"><FormField control={form.control} name="long_description" render={({ field }) => (<FormItem><FormControl><RichTextEditor value={field.value || ''} onChange={field.onChange} /></FormControl><FormMessage /></FormItem> /></CardContent>
                     </Card>
                 </div>
 
@@ -656,11 +624,8 @@ export default function ManageProductPage() {
                     </Card>
 
                     <Card className="shadow-sm border-2">
-                        <CardHeader className="bg-muted/30 flex items-center justify-between flex-row space-y-0">
+                        <CardHeader className="bg-muted/30">
                             <CardTitle>ক্যাটাগরি এবং ফিল্টার</CardTitle>
-                            <Button type="button" variant="ghost" size="sm" className="h-8 text-primary" onClick={() => setIsAttrModalOpen(true)}>
-                                <Plus className="h-3 w-3 mr-1" /> Add Attribute
-                            </Button>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             <FormField control={form.control} name="is_featured" render={({ field }) => (
@@ -779,6 +744,14 @@ export default function ManageProductPage() {
                                         />
                                     ))
                                 }
+                                {Object.keys(groupedAttributes).filter(t => !['unit', 'size', 'tag', 'brand', 'color'].includes(t)).length === 0 && (
+                                    <div className="p-4 rounded-xl border-2 border-dashed bg-muted/10 text-center">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-black">No Custom Attributes Found</p>
+                                        <Button variant="link" size="sm" asChild className="text-[10px] h-auto p-0 mt-1">
+                                            <Link href="/admin/attributes">Manage in Attribute Manager</Link>
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -814,54 +787,6 @@ export default function ManageProductPage() {
             </div>
         </form>
       </Form>
-
-      {/* Raw Tailwind Attribute Creator Dialog */}
-      {isAttrModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isSavingAttr && setIsAttrModalOpen(false)} />
-            <div className="relative w-full max-w-md bg-background rounded-[2rem] shadow-2xl border-2 border-primary/10 overflow-hidden animate-in zoom-in-95 duration-300">
-                <div className="p-6 border-b flex justify-between items-center bg-muted/30">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <Layout className="h-5 w-5 text-primary" /> Add New Attribute
-                    </h2>
-                    <Button variant="ghost" size="icon" className="rounded-full h-8 w-8" onClick={() => setIsAttrModalOpen(false)}>
-                        <X className="h-4 w-4" />
-                    </Button>
-                </div>
-                <div className="p-6 space-y-4">
-                    <div className="space-y-2">
-                        <Label>Attribute Type (e.g., Brand, Material, Fabric)</Label>
-                        <Input 
-                            placeholder="যেমন: Material" 
-                            value={newAttrType} 
-                            onChange={(e) => setNewAttrType(e.target.value)} 
-                            className="h-11 rounded-xl"
-                        />
-                        <div className="flex flex-wrap gap-1 mt-2">
-                            {['Brand', 'Color', 'Material', 'Fabric', 'Origin'].map(t => (
-                                <button key={t} type="button" onClick={() => setNewAttrType(t)} className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-muted rounded hover:bg-primary hover:text-white transition-colors">{t}</button>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Value</Label>
-                        <Input 
-                            placeholder="যেমন: Cotton" 
-                            value={newAttrValue} 
-                            onChange={(e) => setNewAttrValue(e.target.value)} 
-                            className="h-11 rounded-xl"
-                        />
-                    </div>
-                </div>
-                <div className="p-6 border-t flex gap-3 bg-muted/10">
-                    <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setIsAttrModalOpen(false)} disabled={isSavingAttr}>Cancel</Button>
-                    <Button className="flex-1 rounded-xl font-bold shadow-lg" onClick={handleSaveAttribute} disabled={isSavingAttr || !newAttrType || !newAttrValue}>
-                        {isSavingAttr ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Attribute"}
-                    </Button>
-                </div>
-            </div>
-        </div>
-      )}
 
       {/* Raw Tailwind Image Picker Dialog */}
       {isPickerOpen && (
