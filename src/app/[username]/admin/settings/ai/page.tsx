@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -119,9 +118,9 @@ export default function AiSettingsPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Wand2 /> AI Settings</CardTitle>
+        <CardTitle className="flex items-center gap-2"><Wand2 /> AI Settings (OpenRouter)</CardTitle>
         <CardDescription>
-          Configure your Gemini API key to enable AI-powered features like product description generation.
+          Configure your OpenRouter API key to enable advanced AI-powered features like automated product descriptions.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -132,15 +131,15 @@ export default function AiSettingsPage() {
               name="gemini_api_key"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Gemini API Key</FormLabel>
+                  <FormLabel>OpenRouter API Key</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Enter your Google AI Studio API Key" {...field} />
+                    <Input type="password" placeholder="sk-or-v1-..." {...field} />
                   </FormControl>
                   <FormDescription>
-                    You can get your key from{' '}
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">
-                      Google AI Studio
-                    </a>.
+                    Get your API key from the{' '}
+                    <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline font-bold text-primary">
+                      OpenRouter Dashboard
+                    </a>. We recommend using the "Arcee-AI Trinity Large" model for best results.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -148,7 +147,7 @@ export default function AiSettingsPage() {
             />
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save API Key
+              Save AI Key
             </Button>
           </form>
         </Form>

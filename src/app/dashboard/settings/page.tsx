@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -365,8 +364,8 @@ export default function SaasSettingsPage() {
                   
                   <Card className="border-primary/20 bg-primary/5">
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2"><Wand2 className="h-4 w-4" /> Global AI Engine (Fallback)</CardTitle>
-                        <CardDescription className="text-xs">This key will be used by all paid stores that don't have their own specific API key set.</CardDescription>
+                        <CardTitle className="text-base flex items-center gap-2"><Wand2 className="h-4 w-4" /> Global AI Engine (OpenRouter)</CardTitle>
+                        <CardDescription className="text-xs">This master key provides AI features to all paid subscribers across the platform.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <FormField
@@ -379,7 +378,7 @@ export default function SaasSettingsPage() {
                                 <Input type="password" placeholder="sk-or-v1-..." {...field} className="bg-background" />
                                 </FormControl>
                                 <FormDescription className="text-[10px]">
-                                    Provides AI capabilities platform-wide for paid subscribers.
+                                    Supports platform-wide AI product descriptions and data beautification.
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>

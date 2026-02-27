@@ -209,8 +209,8 @@ export default function UserDetailPage() {
         {/* AI Key Manager (OpenRouter) */}
         <Card className="border-primary/20 bg-primary/5">
             <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> AI Management</CardTitle>
-                <CardDescription>Using OpenRouter (Arcee-AI Trinity).</CardDescription>
+                <CardTitle className="text-lg flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> AI Management (OpenRouter)</CardTitle>
+                <CardDescription>Configure store-specific AI capabilities.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {isFreePlan ? (
