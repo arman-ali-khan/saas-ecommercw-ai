@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { messaging } from '@/lib/firebase-admin';
 
 export async function POST(request: Request) {
   try {
@@ -15,23 +16,40 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Create a notification row for each selected admin
+    // 1. Bulk DB Insert
     const notifications = recipientIds.map(id => ({
       recipient_id: id,
       recipient_type: 'admin',
-      site_id: id, // For site admins, their ID is their site_id
+      site_id: id,
       message,
       link: link || null,
     }));
 
-    const { data, error } = await supabaseAdmin
-      .from('notifications')
-      .insert(notifications)
-      .select();
+    const { error: dbError } = await supabaseAdmin.from('notifications').insert(notifications);
+    if (dbError) throw dbError;
 
-    if (error) throw error;
+    // 2. Fetch all tokens for recipients
+    const { data: users } = await supabaseAdmin
+      .from('profiles')
+      .select('id, fcm_tokens')
+      .in('id', recipientIds);
 
-    return NextResponse.json({ success: true, count: data.length }, { status: 201 });
+    if (users) {
+      const allTokens = users.flatMap(u => u.fcm_tokens || []);
+      if (allTokens.length > 0) {
+        const payload = {
+          notification: {
+            title: 'Platform Announcement',
+            body: message,
+          },
+          data: { link: link || '/' },
+          tokens: allTokens,
+        };
+        await messaging.sendEachForMulticast(payload).catch(e => console.error("Bulk FCM Error:", e));
+      }
+    }
+
+    return NextResponse.json({ success: true, count: recipientIds.length }, { status: 201 });
   } catch (err: any) {
     console.error('Bulk Create Notification API Error:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
