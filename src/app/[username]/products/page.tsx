@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
@@ -350,6 +351,11 @@ export default function ProductsPage() {
       </aside>
 
       <main className="lg:col-span-3">
+        <div className="mb-8">
+            <h1 className="text-3xl font-headline font-bold mb-2">আমাদের পণ্যসমূহ</h1>
+            <p className="text-muted-foreground">আপনার পছন্দের পণ্যটি খুঁজে নিন।</p>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-8">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />

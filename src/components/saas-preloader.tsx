@@ -23,11 +23,11 @@ export default function SaasPreloader() {
     setIsVisible(true);
 
     const handleLoad = () => {
-      // Small timeout to ensure the progress bar looks like it finished
+      // Improved Perceivable Performance: shorter timeout
       setTimeout(() => {
         document.body.classList.add('loaded');
-        setTimeout(() => setIsVisible(false), 600); // Wait for CSS transition
-      }, 800);
+        setTimeout(() => setIsVisible(false), 400); // Faster fade out
+      }, 400);
     };
     
     if (document.readyState === 'complete') {
@@ -37,13 +37,13 @@ export default function SaasPreloader() {
       return () => window.removeEventListener('load', handleLoad);
     }
 
-    // Safety fallback: ensure preloader hides after 5 seconds no matter what
+    // Safety fallback: ensure preloader hides after 3 seconds no matter what
     const fallbackTimer = setTimeout(() => {
         if (!document.body.classList.contains('loaded')) {
             document.body.classList.add('loaded');
             setIsVisible(false);
         }
-    }, 5000);
+    }, 3000);
 
     return () => clearTimeout(fallbackTimer);
 

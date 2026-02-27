@@ -52,13 +52,20 @@ const getGridClass = (view?: string) => {
     }
 };
 
-function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Section, t: any }) {
+function SectionTitle({ title, isFirst, isHeroPresent }: { title: string, isFirst: boolean, isHeroPresent: boolean }) {
+    if (isFirst && !isHeroPresent) {
+        return <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-headline font-bold">{title}</h1>;
+    }
+    return <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{title}</h2>;
+}
+
+function FlashDeals({ deals, section, t, isFirst, isHeroPresent }: { deals: FlashDeal[], section: Section, t: any, isFirst: boolean, isHeroPresent: boolean }) {
   if (deals.length === 0) return null;
   
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
+        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
         <Button asChild variant="ghost"><Link href={`/flash-deals`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
       <FlashDealCarousel deals={deals} section={section} />
@@ -66,7 +73,7 @@ function FlashDeals({ deals, section, t }: { deals: FlashDeal[], section: Sectio
   );
 }
 
-function CategoriesSection({ categories, section, t }: { categories: Category[], section: Section, t: any }) {
+function CategoriesSection({ categories, section, t, isFirst, isHeroPresent }: { categories: Category[], section: Section, t: any, isFirst: boolean, isHeroPresent: boolean }) {
     const selectedNames = section.selectedCategories || [];
     const filteredCategories = selectedNames.length > 0 
         ? categories.filter(c => selectedNames.includes(c.name))
@@ -79,7 +86,9 @@ function CategoriesSection({ categories, section, t }: { categories: Category[],
 
     return (
         <section>
-            <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
+            <div className="text-center mb-8">
+                <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
+            </div>
             {isCarousel ? (
                 <CategoryCarousel categories={filteredCategories} />
             ) : isListView ? (
@@ -112,13 +121,13 @@ function CategoriesSection({ categories, section, t }: { categories: Category[],
     );
 }
 
-function FeaturedProducts({ products, section, siteId, t }: { products: Product[], section: Section, siteId: string, t: any }) {
+function FeaturedProducts({ products, section, siteId, t, isFirst, isHeroPresent }: { products: Product[], section: Section, siteId: string, t: any, isFirst: boolean, isHeroPresent: boolean }) {
   if (products.length === 0) return null;
   
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
+        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
         <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
       {section.isCarousel ? (
@@ -130,7 +139,7 @@ function FeaturedProducts({ products, section, siteId, t }: { products: Product[
   );
 }
 
-async function TopSellingSection({ siteId, section, t }: { siteId: string, section: Section, t: any }) {
+async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent }: { siteId: string, section: Section, t: any, isFirst: boolean, isHeroPresent: boolean }) {
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -180,7 +189,7 @@ async function TopSellingSection({ siteId, section, t }: { siteId: string, secti
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
+        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
         <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
       {section.isCarousel ? (
@@ -200,26 +209,30 @@ async function TopSellingSection({ siteId, section, t }: { siteId: string, secti
   );
 }
 
-function WhyUs({ features, section }: { features: StoreFeature[], section: Section }) {
+function WhyUs({ features, section, isFirst, isHeroPresent }: { features: StoreFeature[], section: Section, isFirst: boolean, isHeroPresent: boolean }) {
     return (
         <section>
-            <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
+            <div className="text-center mb-8">
+                <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
+            </div>
             <FeaturesCarousel features={features} />
         </section>
     );
 }
 
-function CustomerReviews({ reviews, section }: { reviews: ProductReview[], section: Section }) {
+function CustomerReviews({ reviews, section, isFirst, isHeroPresent }: { reviews: ProductReview[], section: Section, isFirst: boolean, isHeroPresent: boolean }) {
     if (reviews.length === 0) return null;
     return (
         <section>
-            <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold text-center mb-8">{section.title}</h2>
+            <div className="text-center mb-8">
+                <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
+            </div>
             <ReviewsCarousel reviews={reviews} />
         </section>
     );
 }
 
-async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, section: Section, t: any }) {
+async function DynamicSectionProducts({ siteId, section, t, isFirst, isHeroPresent }: { siteId: string, section: Section, t: any, isFirst: boolean, isHeroPresent: boolean }) {
   const cookieStore = await cookies();
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
@@ -247,7 +260,7 @@ async function DynamicSectionProducts({ siteId, section, t }: { siteId: string, 
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{section.title}</h2>
+        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
         <Button asChild variant="ghost">
             <Link href={`/products?${section.category ? `category=${encodeURIComponent(section.category)}` : ''}`}>
                 {t.homepage.viewAll} <ArrowRight className="ml-2" />
@@ -340,8 +353,16 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       linkText: slide.link_text || 'Shop Now'
   }));
 
-  const renderSection = (section: Section) => {
+  const isHeroPresent = sectionsToRender.some(s => s.id === 'hero' && s.enabled && heroSlides.length > 0);
+  const visibleEnabledSections = sectionsToRender.filter(s => s.enabled);
+
+  const renderSection = (section: Section, index: number) => {
     if (!section.enabled) return null;
+    
+    // Check if this is the first visible non-hero section
+    const firstVisibleIdx = visibleEnabledSections.findIndex(s => s.id !== 'hero');
+    const isFirstNonHero = section.id !== 'hero' && visibleEnabledSections[firstVisibleIdx]?.id === section.id;
+
     switch (section.id) {
       case 'hero':
         const allCategories = (categoriesResult.data as Category[]) || [];
@@ -389,27 +410,27 @@ export default async function UserPage({ params }: { params: Promise<{ username:
           </section>
         );
       case 'categories':
-        return <CategoriesSection key={section.id} categories={(categoriesResult.data as Category[]) || []} section={section} t={t} />;
+        return <CategoriesSection key={section.id} categories={(categoriesResult.data as Category[]) || []} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />;
       case 'flash_deals':
-        return <FlashDeals key={section.id} deals={(flashDealsResult.data as FlashDeal[]) || []} section={section} t={t} />;
+        return <FlashDeals key={section.id} deals={(flashDealsResult.data as FlashDeal[]) || []} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />;
       case 'top_selling':
         return (
             <Suspense key={section.id} fallback={<SectionSkeleton />}>
-                <TopSellingSection siteId={siteId} section={section} t={t} />
+                <TopSellingSection siteId={siteId} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />
             </Suspense>
         );
       case 'featured':
         const initialFeatured = (featuredProductsResult.data as Product[]) || [];
         const limitedFeatured = initialFeatured.slice(0, section.productLimit || 10);
-        return <FeaturedProducts key={section.id} products={limitedFeatured} section={section} siteId={siteId} t={t} />;
+        return <FeaturedProducts key={section.id} products={limitedFeatured} section={section} siteId={siteId} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />;
       case 'why-us':
-        return <WhyUs key={section.id} features={(storeFeaturesResult.data as StoreFeature[]) || []} section={section} />;
+        return <WhyUs key={section.id} features={(storeFeaturesResult.data as StoreFeature[]) || []} section={section} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />;
       case 'customer-reviews':
-        return <CustomerReviews key={section.id} reviews={(reviewsResult.data as ProductReview[]) || []} section={section} />;
+        return <CustomerReviews key={section.id} reviews={(reviewsResult.data as ProductReview[]) || []} section={section} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />;
       default:
         return (
             <Suspense key={section.id} fallback={<SectionSkeleton />}>
-                <DynamicSectionProducts siteId={siteId} section={section} t={t} />
+                <DynamicSectionProducts siteId={siteId} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />
             </Suspense>
         );
     }
@@ -417,7 +438,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
 
   return (
     <div className="space-y-16">
-      {sectionsToRender.map(renderSection)}
+      {sectionsToRender.map((section, index) => renderSection(section, index))}
     </div>
   );
 }

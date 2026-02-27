@@ -93,8 +93,8 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
           ))
         )}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 sm:bg-background/80 backdrop-blur-sm border-primary/20 sm:hover:bg-primary sm:hover:text-primary-foreground transition-all" />
-      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 sm:bg-background/80 backdrop-blur-sm border-primary/20 sm:hover:bg-primary sm:hover:text-primary-foreground transition-all" />
+      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-transparent sm:bg-background/80 backdrop-blur-sm border-primary/20 sm:hover:bg-primary sm:hover:text-primary-foreground transition-all" />
+      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-transparent sm:bg-background/80 backdrop-blur-sm border-primary/20 sm:hover:bg-primary sm:hover:text-primary-foreground transition-all" />
     </Carousel>
   );
 }

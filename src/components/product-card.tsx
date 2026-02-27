@@ -95,6 +95,7 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
                                 alt={product.name} 
                                 fill 
                                 className="object-cover"
+                                sizes="(max-width: 768px) 100vw, 600px"
                             />
                             <div className="absolute top-4 right-4 z-10">
                                 <Button 
@@ -210,6 +211,7 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
                           alt={product.name}
                           fill
                           className="object-cover"
+                          sizes="150px"
                       />
                       {flashDeal && <Badge className="absolute top-1 right-1 text-[8px] sm:text-xs" variant="destructive">Sale</Badge>}
                   </Link>
@@ -283,6 +285,7 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
                     data-ai-hint={product.images[0]?.imageHint || 'product image'}
                     fill
                     className="object-cover"
+                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
                     />
                 </div>
                 {flashDeal && <Badge className="absolute top-2 right-2" variant="destructive">Sale</Badge>}
