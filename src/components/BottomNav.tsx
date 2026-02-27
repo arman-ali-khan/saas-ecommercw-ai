@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -23,6 +22,7 @@ import Image from 'next/image';
 import { ScrollArea } from './ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
+import { Skeleton } from './ui/skeleton';
 
 function CategoryDrawer() {
   const params = useParams();
@@ -52,7 +52,16 @@ function CategoryDrawer() {
       </SheetHeader>
       <ScrollArea className="flex-grow my-4 -mr-6">
         <div className="pr-6">
-            {isLoading ? <p>Loading...</p> : (
+            {isLoading ? (
+              <div className="space-y-2">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-2">
+                    <Skeleton className="h-5 w-5 rounded-md" />
+                    <Skeleton className="h-4 flex-grow" />
+                  </div>
+                ))}
+              </div>
+            ) : (
             <nav className="flex flex-col gap-1">
                 {categories.map((cat) => (
                 <SheetClose asChild key={cat.id}>
@@ -64,7 +73,7 @@ function CategoryDrawer() {
                     </Link>
                 </SheetClose>
                 ))}
-                {categories.length === 0 && <p className="text-muted-foreground text-center">No categories found.</p>}
+                {categories.length === 0 && <p className="text-muted-foreground text-center py-8">No categories found.</p>}
             </nav>
             )}
         </div>
