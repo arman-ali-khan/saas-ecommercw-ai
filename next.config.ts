@@ -7,14 +7,13 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Fix for cross-origin requests in Cloud Workstations / Firebase Studio environment
+  // Using 'any' cast because the type definition might not include it yet in all environments
+  allowedDevOrigins: [
+    '9000-firebase-studio-1770463079853.cluster-aic6jbiihrhmyrqafasatvzbwe.cloudworkstations.dev',
+    '*.cloudworkstations.dev'
+  ] as any,
   experimental: {
-    // Fix for cross-origin requests in Cloud Workstations / Firebase Studio environment
-    allowedDevOrigins: [
-      '9000-firebase-studio-1770463079853.cluster-aic6jbiihrhmyrqafasatvzbwe.cloudworkstations.dev',
-      '*.cloudworkstations.dev'
-    ],
-    // PPR is disabled because it requires Next.js canary version
-    // ppr: 'incremental',
     // Optimize heavy library imports to reduce bundle size
     optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion', 'date-fns'],
   },
