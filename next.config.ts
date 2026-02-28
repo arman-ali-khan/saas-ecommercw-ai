@@ -48,6 +48,14 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: '**', // Allow any domain for remote images
+      },
+      {
+        protocol: 'http',
+        hostname: '**', // Allow any domain for remote images
+      },
     ],
   },
 };

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import cloudinary from '@/lib/cloudinary';
 
 /**
- * Enhanced Bulk Product Importer API
- * Handles unique slug generation, recursive category creation, and attribute auto-mapping.
+ * Enhanced Bulk Product Importer API with Cloudinary Image Migration
  */
 
 async function findUniqueSlug(supabase: any, baseSlug: string) {
@@ -30,7 +30,6 @@ async function findUniqueSlug(supabase: any, baseSlug: string) {
 
 /**
  * Ensures a category hierarchy exists. Returns the final leaf category name.
- * Input format: "Clothing > Men > T-shirts"
  */
 async function ensureCategoryHierarchy(supabase: any, siteId: string, categoryPath: string) {
   const parts = categoryPath.split('>').map(p => p.trim()).filter(Boolean);
@@ -38,7 +37,6 @@ async function ensureCategoryHierarchy(supabase: any, siteId: string, categoryPa
   let lastCategoryName = '';
 
   for (const part of parts) {
-    // Check if category exists at this level
     let query = supabase.from('categories').select('id, name').eq('site_id', siteId).eq('name', part);
     if (parentId) {
       query = query.eq('parent_id', parentId);
@@ -52,7 +50,6 @@ async function ensureCategoryHierarchy(supabase: any, siteId: string, categoryPa
       parentId = existing.id;
       lastCategoryName = existing.name;
     } else {
-      // Create new category
       const { data: created, error } = await supabase
         .from('categories')
         .insert({
@@ -114,7 +111,6 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 1. Subscription & Limit Check
     const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('subscription_plan, subscription_status')
@@ -130,7 +126,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'আপনার সাবস্ক্রিপশন স্ট্যাটাস সক্রিয় নয়।' }, { status: 403 });
     }
 
-    // Get current product count for limits
     const { count: currentCount } = await supabaseAdmin
         .from('products')
         .select('*', { count: 'exact', head: true })
@@ -147,9 +142,7 @@ export async function POST(request: Request) {
     const productsToImport = products.slice(0, remainingSlots);
     const results = [];
 
-    // 2. Sequential Processing
     for (const p of productsToImport) {
-        // A. Handle Slug
         const baseSlug = p.name
             .toLowerCase()
             .replace(/\s+/g, '-')
@@ -160,7 +153,6 @@ export async function POST(request: Request) {
         
         const finalSlug = await findUniqueSlug(supabaseAdmin, baseSlug);
 
-        // B. Handle Categories (Auto-create Hierarchy)
         const finalCategoryNames: string[] = [];
         if (p.categories && Array.isArray(p.categories)) {
             for (const catPath of p.categories) {
@@ -171,12 +163,37 @@ export async function POST(request: Request) {
             }
         }
 
-        // C. Handle Attributes (Auto-create)
         if (p.custom_attributes && typeof p.custom_attributes === 'object') {
             await ensureAttributes(supabaseAdmin, siteId, p.custom_attributes);
         }
 
-        // D. Build Sanitize Product
+        // --- NEW: CLOUDINARY IMAGE MIGRATION ---
+        const migratedImages = [];
+        const originalImages = Array.isArray(p.images) ? p.images : [];
+        
+        for (const img of originalImages) {
+            if (!img.imageUrl) continue;
+            
+            try {
+                // Upload external image to Cloudinary
+                const uploadRes = await cloudinary.uploader.upload(img.imageUrl, {
+                    folder: `site_${siteId}/products`,
+                    resource_type: 'image',
+                    tags: ['bulk-import', p.name]
+                });
+                
+                migratedImages.push({
+                    imageUrl: uploadRes.secure_url,
+                    imageHint: p.name
+                });
+            } catch (cloudErr) {
+                console.error(`Cloudinary upload failed for ${img.imageUrl}:`, cloudErr);
+                // Fallback to original URL if Cloudinary upload fails
+                migratedImages.push(img);
+            }
+        }
+        // ----------------------------------------
+
         const sanitizedProduct = {
             id: finalSlug,
             site_id: siteId,
@@ -188,7 +205,7 @@ export async function POST(request: Request) {
             long_description: p.long_description || '',
             categories: finalCategoryNames,
             tags: Array.isArray(p.tags) ? p.tags : [],
-            images: Array.isArray(p.images) ? p.images : [],
+            images: migratedImages, // Use the new Cloudinary URLs
             is_featured: !!p.is_featured,
             origin: p.origin || '',
             story: p.story || '',
