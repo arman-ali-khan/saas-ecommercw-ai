@@ -8,7 +8,7 @@ import { useAdminStore } from '@/stores/useAdminStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Upload, ArrowLeft, CheckCircle2, AlertTriangle, FileText, X, Edit, Save, ImageIcon, Tags, Layers } from 'lucide-react';
+import { Loader2, Upload, ArrowLeft, CheckCircle2, AlertTriangle, FileText, X, Edit, Save, ImageIcon, Tags, Layers, Wand2, Info, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import RichTextEditor from '@/components/rich-text-editor';
 
 /**
  * Advanced WooCommerce CSV Product Bulk Uploader
@@ -120,6 +121,8 @@ export default function BulkUploadPage() {
         images: imageList,
         tempId: data[hIdx.sku] || `new-${i}`,
         unit: data[hIdx.weight] ? `${data[hIdx.weight]} KG` : '',
+        origin: '',
+        story: '',
         color: colors,
         size: sizes,
         custom_attributes: customAttributes
@@ -349,44 +352,49 @@ export default function BulkUploadPage() {
 
       {/* Inline Edit Dialog */}
       <Dialog open={editingIndex !== null} onOpenChange={(open) => !open && setEditingIndex(null)}>
-        <DialogContent className="max-w-2xl rounded-[2rem] p-0 overflow-hidden">
+        <DialogContent className="max-w-4xl rounded-[2rem] p-0 overflow-hidden border-2 shadow-2xl">
             <DialogHeader className="bg-muted/30 p-6 border-b">
-                <DialogTitle className="text-xl font-bold">Edit Product Before Import</DialogTitle>
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-xl"><Edit className="h-5 w-5 text-primary" /></div>
+                    <DialogTitle className="text-xl font-bold">Edit Product Before Import</DialogTitle>
+                </div>
             </DialogHeader>
             {editFormData && (
-                <ScrollArea className="max-h-[70vh]">
-                    <div className="space-y-6 p-6">
-                        <div className="flex gap-6 items-start">
-                            <div className="relative h-32 w-32 rounded-2xl border-2 border-dashed flex items-center justify-center bg-muted overflow-hidden shrink-0">
+                <ScrollArea className="max-h-[75vh]">
+                    <div className="space-y-8 p-8">
+                        {/* Header Info */}
+                        <div className="flex gap-8 items-start">
+                            <div className="relative h-40 w-40 rounded-2xl border-2 border-dashed flex items-center justify-center bg-muted overflow-hidden shrink-0 shadow-inner">
                                 {editFormData.mainImageUrl ? (
                                     <Image src={editFormData.mainImageUrl} alt="Thumbnail" fill className="object-cover" unoptimized />
                                 ) : (
-                                    <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
+                                    <ImageIcon className="h-10 w-10 text-muted-foreground/30" />
                                 )}
                             </div>
-                            <div className="flex-grow space-y-4">
+                            <div className="flex-grow space-y-5">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="edit-name" className="font-bold">Product Name</Label>
+                                    <Label htmlFor="edit-name" className="font-bold flex items-center gap-2"><Info className="h-4 w-4 text-primary" /> Product Name</Label>
                                     <Input 
                                         id="edit-name" 
                                         value={editFormData.name} 
                                         onChange={e => setEditFormData({...editFormData, name: e.target.value})} 
-                                        className="h-11 rounded-xl"
+                                        className="h-12 rounded-xl text-lg font-medium"
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="edit-image" className="font-bold">Thumbnail URL</Label>
+                                    <Label htmlFor="edit-image" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Thumbnail URL</Label>
                                     <Input 
                                         id="edit-image" 
                                         value={editFormData.mainImageUrl} 
                                         onChange={e => setEditFormData({...editFormData, mainImageUrl: e.target.value})} 
-                                        className="h-9 text-xs font-mono rounded-lg"
+                                        className="h-9 text-xs font-mono rounded-lg bg-muted/20"
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Pricing & Stock */}
+                        <div className="grid grid-cols-2 gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="edit-price" className="font-bold">Price (BDT)</Label>
                                 <Input 
@@ -394,61 +402,109 @@ export default function BulkUploadPage() {
                                     type="number" 
                                     value={editFormData.price} 
                                     onChange={e => setEditFormData({...editFormData, price: parseFloat(e.target.value) || 0})} 
-                                    className="h-11 rounded-xl font-bold text-primary"
+                                    className="h-12 rounded-xl font-black text-xl text-primary"
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-stock" className="font-bold">Stock</Label>
+                                <Label htmlFor="edit-stock" className="font-bold">Stock Quantity</Label>
                                 <Input 
                                     id="edit-stock" 
                                     type="number" 
                                     value={editFormData.stock} 
                                     onChange={e => setEditFormData({...editFormData, stock: parseInt(e.target.value) || 0})} 
-                                    className="h-11 rounded-xl"
+                                    className="h-12 rounded-xl font-bold"
                                 />
                             </div>
                         </div>
 
-                        <div className="grid gap-4">
+                        {/* Classification */}
+                        <div className="grid md:grid-cols-2 gap-6">
                             <div className="grid gap-2">
-                                <Label className="font-bold flex items-center gap-2"><Layers className="h-4 w-4" /> Categories</Label>
+                                <Label className="font-bold flex items-center gap-2"><Layers className="h-4 w-4 text-primary" /> Categories</Label>
                                 <Input 
                                     value={editFormData.categoriesStr} 
                                     onChange={e => setEditFormData({...editFormData, categoriesStr: e.target.value})} 
                                     placeholder="Food, Fruit, Local"
-                                    className="h-11 rounded-xl"
+                                    className="h-12 rounded-xl"
                                 />
-                                <p className="text-[10px] text-muted-foreground">Separate categories with commas.</p>
+                                <p className="text-[10px] text-muted-foreground italic">Separate categories with commas. Parent > Child supported.</p>
                             </div>
                             <div className="grid gap-2">
-                                <Label className="font-bold flex items-center gap-2"><Tags className="h-4 w-4" /> Tags</Label>
+                                <Label className="font-bold flex items-center gap-2"><Tags className="h-4 w-4 text-primary" /> Tags</Label>
                                 <Input 
                                     value={editFormData.tagsStr} 
                                     onChange={e => setEditFormData({...editFormData, tagsStr: e.target.value})} 
                                     placeholder="organic, fresh, rajshahi"
-                                    className="h-11 rounded-xl"
+                                    className="h-12 rounded-xl"
                                 />
-                                <p className="text-[10px] text-muted-foreground">Separate tags with commas.</p>
+                                <p className="text-[10px] text-muted-foreground italic">Separate tags with commas.</p>
                             </div>
                         </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-desc" className="font-bold">Short Description</Label>
-                            <Textarea 
-                                id="edit-desc" 
-                                value={editFormData.description} 
-                                onChange={e => setEditFormData({...editFormData, description: e.target.value})} 
-                                rows={3}
-                                className="rounded-xl resize-none"
-                            />
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid gap-2">
+                                <Label className="font-bold">Origin</Label>
+                                <Input 
+                                    value={editFormData.origin || ''} 
+                                    onChange={e => setEditFormData({...editFormData, origin: e.target.value})} 
+                                    placeholder="e.g., Rajshahi"
+                                    className="h-11 rounded-xl"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label className="font-bold">Unit/Weight</Label>
+                                <Input 
+                                    value={editFormData.unit || ''} 
+                                    onChange={e => setEditFormData({...editFormData, unit: e.target.value})} 
+                                    placeholder="e.g., 5 KG"
+                                    className="h-11 rounded-xl"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Descriptions */}
+                        <div className="space-y-6">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-desc" className="font-bold">Short Description</Label>
+                                <Textarea 
+                                    id="edit-desc" 
+                                    value={editFormData.description} 
+                                    onChange={e => setEditFormData({...editFormData, description: e.target.value})} 
+                                    rows={3}
+                                    className="rounded-xl resize-none shadow-inner"
+                                />
+                            </div>
+
+                            <div className="grid gap-3">
+                                <Label className="font-bold flex items-center gap-2 text-primary">
+                                    <BookOpen className="h-4 w-4" /> Full Description (Rich Text)
+                                </Label>
+                                <div className="rounded-2xl border-2 overflow-hidden shadow-inner bg-background">
+                                    <RichTextEditor 
+                                        value={editFormData.long_description || ''} 
+                                        onChange={val => setEditFormData({...editFormData, long_description: val})} 
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label className="font-bold">Our Story (Optional)</Label>
+                                <Textarea 
+                                    value={editFormData.story || ''} 
+                                    onChange={e => setEditFormData({...editFormData, story: e.target.value})} 
+                                    rows={3}
+                                    className="rounded-xl resize-none shadow-inner"
+                                    placeholder="Share the context of this product..."
+                                />
+                            </div>
                         </div>
                     </div>
                 </ScrollArea>
             )}
             <DialogFooter className="bg-muted/30 p-6 border-t gap-3 sm:gap-0">
-                <Button variant="outline" onClick={() => setEditingIndex(null)} className="rounded-xl h-11">Cancel</Button>
-                <Button onClick={saveEdit} className="rounded-xl h-11 px-8 shadow-lg shadow-primary/20 gap-2">
-                    <Save className="h-4 w-4" /> Update Item
+                <Button variant="outline" onClick={() => setEditingIndex(null)} className="rounded-xl h-12 px-8 font-bold">Cancel</Button>
+                <Button onClick={saveEdit} className="rounded-xl h-12 px-10 shadow-lg shadow-primary/20 gap-2 font-black text-lg">
+                    <Save className="h-5 w-5" /> Update Item
                 </Button>
             </DialogFooter>
         </DialogContent>
