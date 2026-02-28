@@ -291,7 +291,8 @@ export default function ManageProductPage() {
         try {
             result = JSON.parse(rawText);
         } catch (parseError) {
-            throw new Error(rawText || "সার্ভার থেকে সঠিক ডাটা আসেনি।");
+            console.error("Non-JSON result received from server:", rawText);
+            throw new Error("সার্ভার থেকে সঠিক তথ্য পাওয়া যায়নি। দয়া করে আবার চেষ্টা করুন।");
         }
 
         if (response.ok) {
@@ -386,7 +387,7 @@ export default function ManageProductPage() {
     return filteredGallery.slice(start, start + IMAGES_PER_PAGE);
   }, [filteredGallery, pickerPage]);
 
-  const totalPickerPages = Math.ceil(filteredGallery.length / IMAGES_PER_PAGE);
+  const totalPages = Math.ceil(filteredGallery.length / IMAGES_PER_PAGE);
 
   const handlePickerImageSelect = (url: string) => {
     const currentImages = form.getValues('images') || [];
@@ -522,7 +523,7 @@ export default function ManageProductPage() {
                                     <FormControl>
                                         <Switch checked={field.value} onCheckedChange={(val) => { 
                                             field.onChange(val); 
-                                            if(val && variantFields.length === 0) appendVariant({ amount: '1', unitType: unitOptions[0], size: '', price: 0, stock: 0 }); 
+                                            if(val && variantFields.length === 0) appendVariant({ amount: '1', unitType: unitOptions[0] || 'KG', size: '', price: 0, stock: 0 }); 
                                         }} />
                                     </FormControl>
                                 </FormItem>
@@ -535,9 +536,12 @@ export default function ManageProductPage() {
                                         <FormField control={form.control} name="unit" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>একক (Unit)</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                                <Select onValueChange={(val) => field.onChange(val === 'none' ? '' : val)} value={field.value || 'none'}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="সিলেক্ট করুন" /></SelectTrigger></FormControl>
-                                                    <SelectContent>{unitOptions.map(uOpt => <SelectItem key={uOpt} value={uOpt}>{uOpt}</SelectItem>)}</SelectContent>
+                                                    <SelectContent className="z-[110]">
+                                                        <SelectItem value="none">-- কোনোটিই নয় --</SelectItem>
+                                                        {unitOptions.filter(Boolean).map(uOpt => <SelectItem key={uOpt} value={uOpt}>{uOpt}</SelectItem>)}
+                                                    </SelectContent>
                                                 </Select>
                                             </FormItem>
                                         )} />
@@ -562,9 +566,12 @@ export default function ManageProductPage() {
                                                         <FormField control={form.control} name={`variants.${iIdx}.unitType`} render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel className="text-[10px] uppercase font-bold">একক</FormLabel>
-                                                                <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                                                <Select onValueChange={field.onChange} value={field.value || (unitOptions[0] || 'none')}>
                                                                     <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="কেজি" /></SelectTrigger></FormControl>
-                                                                    <SelectContent>{unitOptions.map(uOpt => <SelectItem key={uOpt} value={uOpt}>{uOpt}</SelectItem>)}</SelectContent>
+                                                                    <SelectContent className="z-[110]">
+                                                                        {unitOptions.filter(Boolean).map(uOpt => <SelectItem key={uOpt} value={uOpt}>{uOpt}</SelectItem>)}
+                                                                        {unitOptions.length === 0 && <SelectItem value="KG">KG</SelectItem>}
+                                                                    </SelectContent>
                                                                 </Select>
                                                             </FormItem>
                                                         )} />
@@ -576,7 +583,7 @@ export default function ManageProductPage() {
                                                     <Button type="button" variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-white opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeVariant(iIdx)}><X className="h-3 w-3" /></Button>
                                                 </div>
                                             ))}
-                                            <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ amount: '1', unitType: unitOptions[0], size: '', price: 0, stock: 0 })}><Plus className="mr-2 h-4 w-4" /> নতুন ওজন যোগ করুন</Button>
+                                            <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ amount: '1', unitType: unitOptions[0] || 'KG', size: '', price: 0, stock: 0 })}><Plus className="mr-2 h-4 w-4" /> নতুন ওজন যোগ করুন</Button>
                                         </TabsContent>
 
                                         <TabsContent value="size" className="space-y-4 mt-4">
@@ -585,9 +592,12 @@ export default function ManageProductPage() {
                                                     <FormField control={form.control} name={`variants.${iIdx}.size`} render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel className="text-[10px] uppercase font-bold">সাইজ</FormLabel>
-                                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                                            <Select onValueChange={field.onChange} value={field.value || (sizeOptions[0] || 'none')}>
                                                                 <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="সিলেক্ট সাইজ" /></SelectTrigger></FormControl>
-                                                                <SelectContent>{sizeOptions.map(sOpt => <SelectItem key={sOpt} value={sOpt}>{sOpt}</SelectItem>)}</SelectContent>
+                                                                <SelectContent className="z-[110]">
+                                                                    {sizeOptions.filter(Boolean).map(sOpt => <SelectItem key={sOpt} value={sOpt}>{sOpt}</SelectItem>)}
+                                                                    {sizeOptions.length === 0 && <SelectItem value="M">M</SelectItem>}
+                                                                </SelectContent>
                                                             </Select>
                                                         </FormItem>
                                                     )} />
@@ -598,7 +608,7 @@ export default function ManageProductPage() {
                                                     <Button type="button" variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-white opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeVariant(iIdx)}><X className="h-3 w-3" /></Button>
                                                 </div>
                                             ))}
-                                            <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ amount: '', unitType: '', size: sizeOptions[0], price: 0, stock: 0 })}><Plus className="mr-2 h-4 w-4" /> নতুন সাইজ যোগ করুন</Button>
+                                            <Button type="button" variant="outline" size="sm" className="w-full border-dashed" onClick={() => appendVariant({ amount: '', unitType: '', size: sizeOptions[0] || 'M', price: 0, stock: 0 })}><Plus className="mr-2 h-4 w-4" /> নতুন সাইজ যোগ করুন</Button>
                                         </TabsContent>
                                     </Tabs>
                                 </div>
@@ -710,11 +720,22 @@ export default function ManageProductPage() {
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button variant="outline" className="w-full h-11 justify-between font-normal">
-                                                                <span className="truncate">{currentSelections.length ? currentSelections.join(', ') : `সিলেক্ট ${attrType}`}</span>
+                                                                <span className="truncate">{currentSelections.length ? currentSelections.join(', ') : `সিলেক্ট ${attrType} (ঐচ্ছিক)`}</span>
                                                                 <ChevronDown className="h-4 w-4 opacity-50" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
-                                                        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                                        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] z-[110]">
+                                                            <div className="p-2 border-b bg-muted/30">
+                                                                <Button 
+                                                                    type="button" 
+                                                                    variant="ghost" 
+                                                                    size="sm" 
+                                                                    className="w-full h-8 text-[10px] uppercase font-bold text-destructive hover:bg-destructive/10"
+                                                                    onClick={() => attrFormField.onChange([])}
+                                                                >
+                                                                    সব মুছুন (Clear All)
+                                                                </Button>
+                                                            </div>
                                                             {(groupedAttributes[attrType] || []).map((optVal) => (
                                                                 <DropdownMenuCheckboxItem key={optVal} checked={currentSelections.includes(optVal)} onCheckedChange={(checked) => attrFormField.onChange(checked ? [...currentSelections, optVal] : currentSelections.filter((vItem: string) => vItem !== optVal))}>
                                                                     {optVal}
@@ -851,13 +872,13 @@ export default function ManageProductPage() {
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <span className="text-xs font-bold px-3 py-1 bg-background rounded-md border">
-                            পৃষ্ঠা {pickerPage} / {totalPickerPages || 1}
+                            পৃষ্ঠা {pickerPage} / {totalPages || 1}
                         </span>
                         <Button 
                             variant="outline" 
                             size="icon" 
                             className="h-9 w-9 rounded-lg" 
-                            disabled={pickerPage >= totalPickerPages}
+                            disabled={pickerPage >= totalPages}
                             onClick={() => setPickerPage(p => p + 1)}
                         >
                             <ChevronRight className="h-4 w-4" />

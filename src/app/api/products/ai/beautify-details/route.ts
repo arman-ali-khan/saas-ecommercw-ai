@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { beautifyProductDetails } from '@/ai/flows/generate-product-description';
@@ -8,13 +9,13 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
     if (!body) {
-      return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Invalid JSON request body' }, { status: 400 });
     }
 
     const { siteId, name, description, story, origin, categories } = body;
 
     if (!siteId || !name) {
-      return NextResponse.json({ error: 'Site ID and Product Name are required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Site ID and Product Name are required' }, { status: 400 });
     }
 
     const supabaseAdmin = createClient(
@@ -30,13 +31,14 @@ export async function POST(request: Request) {
 
     if (!profile || profile.subscription_plan === 'free') {
         return NextResponse.json({ 
+            success: false,
             error: 'এই ফিচারটি শুধুমাত্র পেইড প্ল্যানে উপলব্ধ।' 
         }, { status: 403 });
     }
 
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'Server configuration missing (OpenRouter API Key).' }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'Server configuration missing (OpenRouter API Key).' }, { status: 500 });
     }
 
     const result = await beautifyProductDetails({
@@ -51,6 +53,6 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: result.success ? 200 : 500 });
 
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Server error occurred' }, { status: 500 });
+    return NextResponse.json({ success: false, error: err.message || 'Server error occurred' }, { status: 500 });
   }
 }
