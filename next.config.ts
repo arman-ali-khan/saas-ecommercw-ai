@@ -2,6 +2,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["jose", "jwks-rsa"],
   typescript: {
     ignoreBuildErrors: true,
   },

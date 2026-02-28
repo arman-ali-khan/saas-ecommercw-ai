@@ -1,0 +1,44 @@
+exports.id=2596,exports.ids=[2596],exports.modules={18003:(a,b,c)=>{"use strict";c.d(b,{$:()=>g,H:()=>h});var d=c(75879);function e(a){if(!a)return null;try{let b=a.indexOf("{"),c=a.lastIndexOf("}");if(-1===b||-1===c)return console.error("No JSON braces found in text:",a),null;let d=a.substring(b,c+1);return JSON.parse(d)}catch(b){return console.error("JSON Parse Error. Source text was:",a),null}}async function f(a,b){try{let c=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{Authorization:`Bearer ${a}`,"Content-Type":"application/json","HTTP-Referer":"https://banglanaturals.site","X-Title":"eHut SaaS"},body:JSON.stringify({model:"arcee-ai/trinity-large-preview:free",messages:[{role:"system",content:"You are a specialized JSON generator for an e-commerce platform. You only speak JSON. Your output must start with '{' and end with '}'. No preamble, no postamble, no markdown code blocks, no explanation. Just valid JSON."},{role:"user",content:b}],temperature:.1,max_tokens:4096})});if(!c.ok){let a=await c.json();throw Error(a.error?.message||"OpenRouter API request failed")}let d=await c.json();return d.choices[0]?.message?.content||""}catch(a){throw console.error("OpenRouter Call Error:",a),a}}async function g(a){try{let{apiKey:b,name:c,description:d,categories:g,origin:h}=a;if(!b)throw Error("Missing AI API Key");let i=g?.length?g.join(", "):"সাধারণ",j=`Task: Generate a professional product description for "${c}" in Bengali.
+        
+        Context:
+        - Short Desc: ${d||""}
+        - Origin: ${h||"Bangladesh"}
+        - Categories: ${i}
+
+        OUTPUT REQUIREMENTS:
+        1. Language: Bengali.
+        2. Content: Persuasive, high-end, and trustworthy.
+        3. Structure: Must include Level 2 headings, detailed paragraphs, and a bullet point list of benefits.
+        4. CRITICAL FORMAT: Return ONLY a valid Tiptap/ProseMirror JSON object (type: "doc"). 
+        
+        Example JSON structure to follow:
+        {
+          "type": "doc",
+          "content": [
+            { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "পণ্যের বিশেষত্ব" }] },
+            { "type": "paragraph", "content": [{ "type": "text", "text": "..." }] },
+            { "type": "bulletList", "content": [{ "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "..." }] }] }] }
+          ]
+        }
+
+        STRICT: Return ONLY the raw JSON object starting with { and ending with }. Do not include markdown code blocks.`,k=await f(b,j),l=e(k);if(!l||!l.type||!l.content)throw Error("AI failed to return valid Tiptap JSON format. Please try again.");return{success:!0,longDescription:JSON.stringify(l)}}catch(a){return console.error("AI Generation Error:",a),{success:!1,error:a.message}}}async function h(a){try{let{apiKey:b,name:c,description:d,story:g,origin:h,categories:i}=a;if(!b)throw Error("Missing AI API Key");let j=i?.length?i.join(", "):"সাধারণ",k=`Task: Optimize product details for "${c}" for high conversion and SEO in Bengali.
+        
+        Context:
+        - Short Desc: ${d||"N/A"}
+        - Story: ${g||"N/A"}
+        - Origin: ${h||"N/A"}
+        - Categories: ${j}
+
+        OUTPUT REQUIREMENTS:
+        1. Language: Bengali.
+        2. Return a JSON object with:
+           - "name": Optimized catchy name.
+           - "description": Catchy 2-line short description.
+           - "story": Persuasive brand story.
+           - "origin": Precise origin.
+           - "tags": Array of 5-8 SEO tags.
+           - "longDescription": A full, highly DETAILED Tiptap JSON document object (type: "doc") with Level 2 headings, multiple descriptive paragraphs, and bullet point lists of benefits and usage.
+
+        STRICT: Return ONLY the raw JSON object. No markdown, no preamble. 
+        Ensure "longDescription" is a nested object representing a Tiptap document (type: "doc"), not a string.`,l=await f(b,k),m=e(l);if(!m)throw Error("Could not parse valid AI response. The AI might be busy or returned invalid data. Please try again.");return{success:!0,name:m.name||c,description:m.description||d,story:m.story||g,origin:m.origin||h,tags:m.tags||[],longDescription:"object"==typeof m.longDescription?JSON.stringify(m.longDescription):m.longDescription||""}}catch(a){return console.error("Beautify Error:",a),{success:!1,error:a.message}}}c(68633),(0,c(51669).D)([g,h]),(0,d.A)(g,"40a4cc73781b6ac73a2e1e401e8507d7e5388524b2",null),(0,d.A)(h,"4009acbee2e73a5fd3ef16fec7235b8c7568aef0e0",null)},51669:(a,b)=>{"use strict";function c(a){for(let b=0;b<a.length;b++){let c=a[b];if("function"!=typeof c)throw Object.defineProperty(Error(`A "use server" file can only export async functions, found ${typeof c}.
+Read more: https://nextjs.org/docs/messages/invalid-use-server-value`),"__NEXT_ERROR_CODE",{value:"E352",enumerable:!1,configurable:!0})}}Object.defineProperty(b,"D",{enumerable:!0,get:function(){return c}})},68633:(a,b,c)=>{"use strict";Object.defineProperty(b,"__esModule",{value:!0}),!function(a,b){for(var c in b)Object.defineProperty(a,c,{enumerable:!0,get:b[c]})}(b,{decryptActionBoundArgs:function(){return s},encryptActionBoundArgs:function(){return r}}),c(77925);let d=c(97954),e=c(27825),f=c(47686),g=c(77533),h=c(63033),i=c(26906),j=function(a){return a&&a.__esModule?a:{default:a}}(c(74515)),k=new TextEncoder,l=new TextDecoder,m=void 0,n=void 0;async function o(a,b){let c=await (0,g.getActionEncryptionKey)();if(void 0===c)throw Object.defineProperty(Error("Missing encryption key for Server Action. This is a bug in Next.js"),"__NEXT_ERROR_CODE",{value:"E65",enumerable:!1,configurable:!0});let d=atob(b),e=d.slice(0,16),f=d.slice(16),h=l.decode(await (0,g.decrypt)(c,(0,g.stringToUint8Array)(e),(0,g.stringToUint8Array)(f)));if(!h.startsWith(a))throw Object.defineProperty(Error("Invalid Server Action payload: failed to decrypt."),"__NEXT_ERROR_CODE",{value:"E191",enumerable:!1,configurable:!0});return h.slice(a.length)}async function p(a,b){let c=await (0,g.getActionEncryptionKey)();if(void 0===c)throw Object.defineProperty(Error("Missing encryption key for Server Action. This is a bug in Next.js"),"__NEXT_ERROR_CODE",{value:"E65",enumerable:!1,configurable:!0});let d=new Uint8Array(16);h.workUnitAsyncStorage.exit(()=>crypto.getRandomValues(d));let e=(0,g.arrayBufferToString)(d.buffer),f=await (0,g.encrypt)(c,d,k.encode(a+b));return btoa(e+(0,g.arrayBufferToString)(f))}var q=function(a){return a[a.Ready=0]="Ready",a[a.Pending=1]="Pending",a[a.Complete=2]="Complete",a}(q||{});let r=j.default.cache(async function a(b,...c){let e=h.workUnitAsyncStorage.getStore(),j=e?(0,h.getCacheSignal)(e):void 0,{clientModules:k}=(0,g.getClientReferenceManifestForRsc)(),l=Error();Error.captureStackTrace(l,a);let n=!1,o=e?(0,i.createHangingInputAbortSignal)(e):void 0,q=0;function r(){0===q&&(q=1,null==j||j.beginRead())}function s(){1===q&&(null==j||j.endRead()),q=2}o&&j&&o.addEventListener("abort",r,{once:!0});let t=await (0,f.streamToString)((0,d.renderToReadableStream)(c,k,{filterStackFrame:m,signal:o,onError(a){(null==o||!o.aborted)&&(n||(n=!0,l.message=a instanceof Error?a.message:String(a)))}}),o);if(n)throw s(),l;if(!e)return p(b,t);r();let u=(0,h.getPrerenderResumeDataCache)(e),v=(0,h.getRenderResumeDataCache)(e),w=b+t,x=(null==u?void 0:u.encryptedBoundArgs.get(w))??(null==v?void 0:v.encryptedBoundArgs.get(w));if(x)return x;let y=await p(b,t);return s(),null==u||u.encryptedBoundArgs.set(w,y),y});async function s(a,b){let c,d=await b,f=h.workUnitAsyncStorage.getStore();if(f){let b=(0,h.getCacheSignal)(f),e=(0,h.getPrerenderResumeDataCache)(f),g=(0,h.getRenderResumeDataCache)(f);(c=(null==e?void 0:e.decryptedBoundArgs.get(d))??(null==g?void 0:g.decryptedBoundArgs.get(d)))||(null==b||b.beginRead(),c=await o(a,d),null==b||b.endRead(),null==e||e.decryptedBoundArgs.set(d,c))}else c=await o(a,d);let{edgeRscModuleMapping:i,rscModuleMapping:j}=(0,g.getClientReferenceManifestForRsc)();return await (0,e.createFromReadableStream)(new ReadableStream({start(a){switch(a.enqueue(k.encode(c)),null==f?void 0:f.type){case"prerender":case"prerender-runtime":f.renderSignal.aborted?a.close():f.renderSignal.addEventListener("abort",()=>a.close(),{once:!0});break;case"prerender-client":case"prerender-ppr":case"prerender-legacy":case"request":case"cache":case"private-cache":case"unstable-cache":case void 0:return a.close()}}}),{findSourceMapURL:n,serverConsumerManifest:{moduleLoading:null,moduleMap:j,serverModuleMap:(0,g.getServerModuleMap)()}})}},75879:(a,b,c)=>{"use strict";Object.defineProperty(b,"A",{enumerable:!0,get:function(){return d.registerServerReference}});let d=c(97954)},78335:()=>{},96487:()=>{},97052:(a,b,c)=>{"use strict";c.r(b),c.d(b,{"4009acbee2e73a5fd3ef16fec7235b8c7568aef0e0":()=>d.H,"40a4cc73781b6ac73a2e1e401e8507d7e5388524b2":()=>d.$});var d=c(18003)}};
