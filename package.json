@@ -6,12 +6,12 @@
     "dev": "next dev --turbopack",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "opennextjs-cloudflare build",
+    "build": "next build && opennextjs-cloudflare build --no-build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview"
+    "deploy": "npm run build && opennextjs-cloudflare deploy",
+    "preview": "npm run build && opennextjs-cloudflare preview"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
