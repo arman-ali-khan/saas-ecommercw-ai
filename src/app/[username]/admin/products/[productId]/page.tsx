@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -285,13 +286,13 @@ export default function ManageProductPage() {
             }),
         });
         
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            const errorText = await response.text();
-            throw new Error(errorText || "Server returned an unexpected response format");
+        const rawText = await response.text();
+        let result;
+        try {
+            result = JSON.parse(rawText);
+        } catch (parseError) {
+            throw new Error(rawText || "সার্ভার থেকে সঠিক ডাটা আসেনি।");
         }
-
-        const result = await response.json();
 
         if (response.ok) {
             form.setValue('name', result.name, { shouldValidate: true, shouldDirty: true });
@@ -300,13 +301,12 @@ export default function ManageProductPage() {
             form.setValue('origin', result.origin, { shouldValidate: true, shouldDirty: true });
             form.setValue('tags', result.tags || [], { shouldValidate: true, shouldDirty: true });
             form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
-            toast({ title: 'SEO Beautification & Description সম্পন্ন!' });
+            toast({ title: 'SEO Beautification সম্পন্ন!' });
         } else { 
-            throw new Error(result.error || "AI Generation failed"); 
+            throw new Error(result.error || "এআই রিকোয়েস্ট ব্যর্থ হয়েছে।"); 
         }
     } catch (e: any) { 
-        console.error("Beautify request failed:", e);
-        toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message || 'সার্ভারে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।' }); 
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); 
     } finally { 
         setIsBeautifying(false); 
     }
@@ -315,7 +315,7 @@ export default function ManageProductPage() {
   const onSubmit = async (values: ProductFormData, exit: boolean = true) => {
     if (!user) return;
     if (isLimitReached) {
-        toast({ variant: 'destructive', title: 'Limit Reached', description: 'আপনার প্রোডাক্ট লিমিট শেষ হয়ে গেছে। আরও পণ্য যোগ করতে আপনার সাবস্ক্রিপশন আপগ্রেড করুন।' });
+        toast({ variant: 'destructive', title: 'Limit Reached', description: 'আপনার প্রোডাক্ট লিমিট শেষ হয়ে গেছে।' });
         return;
     }
     setIsSubmitting(true);
@@ -345,12 +345,11 @@ export default function ManageProductPage() {
             })
         });
         const res = await response.json();
-        if (!response.ok) {
-            throw new Error(res.error || 'Failed to save');
-        }
+        if (!response.ok) throw new Error(res.error || 'Failed to save');
+        
         invalidateEntity('products');
         invalidateEntity('dashboard');
-        toast({ title: `Product ${isNew ? 'created' : 'updated'} successfully!` });
+        toast({ title: 'Product Saved!' });
         
         if (exit) {
             router.push(`/admin/products`);
@@ -423,53 +422,7 @@ export default function ManageProductPage() {
   };
 
   if (isLoading || (authLoading && !user)) {
-      return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <Skeleton className="h-10 w-48" />
-                <div className="flex gap-2">
-                    <Skeleton className="h-10 w-24" />
-                    <Skeleton className="h-10 w-36" />
-                </div>
-            </div>
-            <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                    <Card className="border-2">
-                        <CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader>
-                        <CardContent className="p-6 space-y-6">
-                            <Skeleton className="h-12 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-24 w-full" />
-                        </CardContent>
-                    </Card>
-                    <Card className="border-2">
-                        <CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader>
-                        <CardContent className="p-6">
-                            <div className="grid grid-cols-4 gap-4">
-                                {[...Array(4)].map((_, i) => <Skeleton key={i} className="aspect-square w-full rounded-xl" />)}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-                <div className="space-y-8">
-                    <Card className="border-2">
-                        <CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader>
-                        <CardContent className="p-6 space-y-6">
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                        </CardContent>
-                    </Card>
-                    <Card className="border-2">
-                        <CardHeader className="bg-muted/30"><Skeleton className="h-6 w-32" /></CardHeader>
-                        <CardContent className="p-6 space-y-6">
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-        </div>
-      );
+      return <div className="p-10 flex justify-center"><Loader2 className="animate-spin" /></div>;
   }
 
   return (
@@ -914,7 +867,7 @@ export default function ManageProductPage() {
                         <p className="text-xs text-muted-foreground hidden sm:block">
                             {(watchedValues.images || []).length}টি ছবি সিলেক্ট করা আছে
                         </p>
-                        <Button className="flex-1 sm:flex-none h-11 px-8 rounded-xl font-bold" onClick={() => setIsPickerOpen(false)}>
+                        <Button className="flex-1 sm:flex-none h-11 px-8 rounded-xl font-bold" onClick={() => setIsQuickViewOpen(false)}>
                             সম্পন্ন করুন
                         </Button>
                     </div>

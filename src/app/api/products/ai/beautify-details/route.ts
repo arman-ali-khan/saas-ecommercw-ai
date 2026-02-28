@@ -6,10 +6,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    let body;
-    try {
-      body = await request.json();
-    } catch (e) {
+    const body = await request.json().catch(() => null);
+    if (!body) {
       return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
     }
 
@@ -24,7 +22,6 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 1. Subscription Check (Paid feature)
     const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('subscription_plan')
@@ -33,16 +30,13 @@ export async function POST(request: Request) {
 
     if (!profile || profile.subscription_plan === 'free') {
         return NextResponse.json({ 
-            error: 'এই ফিচারটি শুধুমাত্র প্রো এবং এন্টারপ্রাইজ ইউজারদের জন্য। দয়া করে আপনার প্ল্যান আপগ্রেড করুন।' 
+            error: 'এই ফিচারটি শুধুমাত্র পেইড প্ল্যানে উপলব্ধ।' 
         }, { status: 403 });
     }
 
-    // 2. Load OpenRouter API Key from .env
     const apiKey = process.env.OPENROUTER_API_KEY;
-
     if (!apiKey) {
-      console.error("Critical: OPENROUTER_API_KEY is missing in server environment");
-      return NextResponse.json({ error: 'AI server configuration is missing. Please contact support.' }, { status: 500 });
+      return NextResponse.json({ error: 'Server configuration missing (OpenRouter API Key).' }, { status: 500 });
     }
 
     const result = await beautifyProductDetails({
@@ -54,14 +48,9 @@ export async function POST(request: Request) {
       categories
     });
 
-    if (result.success) {
-      return NextResponse.json(result, { status: 200 });
-    } else {
-      return NextResponse.json({ error: result.error }, { status: 500 });
-    }
+    return NextResponse.json(result, { status: result.success ? 200 : 500 });
 
   } catch (err: any) {
-    console.error('AI API Route Crash:', err);
-    return NextResponse.json({ error: 'A server-side error occurred while processing AI request.' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Server error occurred' }, { status: 500 });
   }
 }
