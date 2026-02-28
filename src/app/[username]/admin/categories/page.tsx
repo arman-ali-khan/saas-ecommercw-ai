@@ -53,6 +53,7 @@ import ImageUploader from '@/components/image-uploader';
 import { Skeleton } from '@/components/ui/skeleton';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
+import { Badge } from '@/components/ui/badge';
 
 const translations = { en, bn };
 
