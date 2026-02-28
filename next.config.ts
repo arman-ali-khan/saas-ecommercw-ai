@@ -1,4 +1,3 @@
-
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -10,6 +9,14 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     ppr: 'incremental',
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      'framer-motion',
+      'date-fns',
+      'clsx',
+      'tailwind-merge'
+    ],
   },
   images: {
     remotePatterns: [
