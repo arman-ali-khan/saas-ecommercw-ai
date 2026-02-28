@@ -2,5 +2,6 @@
 import { defineCloudflareConfig } from "@opennextjs/cloudflare";
 
 export default defineCloudflareConfig({
-    // Keep this for your R2/KV caching if you use it later
+    // Enable minification to stay under the 3MiB limit for the Cloudflare Free plan
+    minify: true,
 });
