@@ -52,6 +52,21 @@ ADD COLUMN IF NOT EXISTS theme_destructive text,
 ADD COLUMN IF NOT EXISTS pwa_logo_url text;
 ```
 
+## এনভায়রনমেন্ট ভেরিয়েবল (Environment Variables)
+
+আপনার প্রজেক্টটি ডেপলয় করার সময় নিচের ভেরিয়েবলগুলো সেট করা নিশ্চিত করুন:
+
+### Cloudinary (ছবি আপলোড এর জন্য)
+- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`: আপনার ক্লাউডিনারি ক্লাউড নেম।
+- `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`: একটি "Unsigned" আপলোড প্রিসেট।
+- `CLOUDINARY_API_KEY`: আপনার এপিআই কি।
+- `CLOUDINARY_API_SECRET`: আপনার এপিআই সিক্রেট।
+
+### Supabase
+- `NEXT_PUBLIC_SUPABASE_URL`: সুপাবেস প্রজেক্ট ইউআরএল।
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: সুপাবেস অ্যানন কি।
+- `SUPABASE_SERVICE_ROLE_KEY`: সুপাবেস সার্ভিস রোল কি (সিক্রেট)।
+
 ## শুরু করার নিয়ম
 
 অ্যাপটি ডেভেলপমেন্ট মোডে রান করতে `npm run dev` কমান্ডটি ব্যবহার করুন। মূল কোড দেখতে `src/app/page.tsx` ফাইলটি দেখুন।
