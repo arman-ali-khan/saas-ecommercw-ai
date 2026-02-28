@@ -5,7 +5,7 @@ import { decrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
-    const { siteId, customerId } = await request.json();
+    const { siteId, customerId, limit, offset } = await request.json();
     if (!siteId) return NextResponse.json({ error: 'Site ID is required' }, { status: 400 });
 
     const supabaseAdmin = createClient(
@@ -15,14 +15,20 @@ export async function POST(request: Request) {
 
     let query = supabaseAdmin
       .from('orders')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('site_id', siteId);
     
     if (customerId) {
         query = query.eq('customer_id', customerId);
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+    if (limit) {
+        const from = offset || 0;
+        const to = from + limit - 1;
+        query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
 
@@ -40,7 +46,7 @@ export async function POST(request: Request) {
         }
     }));
 
-    return NextResponse.json({ orders: decryptedOrders }, { status: 200 });
+    return NextResponse.json({ orders: decryptedOrders, total: count }, { status: 200 });
   } catch (err: any) {
     console.error('List Orders API Error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

@@ -5,7 +5,7 @@ import { decryptObject } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
-    const { siteId } = await request.json();
+    const { siteId, limit, offset } = await request.json();
 
     if (!siteId) {
       return NextResponse.json({ error: 'Site ID is required' }, { status: 400 });
@@ -16,11 +16,18 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('customer_profiles')
-      .select('id, full_name, email, created_at')
-      .eq('site_id', siteId)
-      .order('created_at', { ascending: false });
+      .select('id, full_name, email, created_at', { count: 'exact' })
+      .eq('site_id', siteId);
+
+    if (limit) {
+        const from = offset || 0;
+        const to = from + limit - 1;
+        query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('Database error in customers list API:', error);
@@ -28,9 +35,9 @@ export async function POST(request: Request) {
     }
 
     // Decrypt all customers in the list
-    const decryptedCustomers = data.map(customer => decryptObject(customer));
+    const decryptedCustomers = (data || []).map(customer => decryptObject(customer));
 
-    return NextResponse.json({ customers: decryptedCustomers }, { status: 200 });
+    return NextResponse.json({ customers: decryptedCustomers, total: count }, { status: 200 });
   } catch (err: any) {
     console.error('List Customers API Error:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });

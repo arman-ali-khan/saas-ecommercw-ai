@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
@@ -29,68 +30,57 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const translations = { en, bn };
 const ITEMS_PER_PAGE = 10;
 
 export default function OrdersAdminPage() {
     const { user } = useAuth();
-    const { orders, setOrders } = useAdminStore();
+    const { orders, setOrders, totals, setTotal } = useAdminStore();
     const { toast } = useToast();
     
-    const [isLoading, setIsLoading] = useState(() => {
-        const currentStore = useAdminStore.getState();
-        return currentStore.orders.length === 0;
-    });
+    const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     
     const lang = user?.language || 'bn';
     const currentTranslations = translations[lang as keyof typeof translations]?.orders || translations.bn.orders;
     const statusTranslations = translations[lang as keyof typeof translations]?.statuses || translations.bn.statuses;
     
-    const fetchOrders = useCallback(async (force = false) => {
+    const fetchOrders = useCallback(async (page: number) => {
         const siteId = user?.id;
         if (!siteId) return;
 
-        const currentStore = useAdminStore.getState();
-        const now = Date.now();
-        const isFresh = now - currentStore.lastFetched.orders < 300000;
-        
-        if (!force && currentStore.orders.length > 0 && isFresh) {
-            setIsLoading(false);
-            return;
-        }
-
-        if (currentStore.orders.length === 0 || force) {
-            setIsLoading(true);
-        }
-
+        setIsLoading(true);
         try {
             const response = await fetch('/api/orders/list', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ siteId }),
+                body: JSON.stringify({ 
+                    siteId,
+                    limit: ITEMS_PER_PAGE,
+                    offset: (page - 1) * ITEMS_PER_PAGE
+                }),
             });
             const result = await response.json();
             if (response.ok) {
                 setOrders(result.orders || []);
+                setTotal('orders', result.total || 0);
             } else {
                 throw new Error(result.error || 'Failed to fetch orders');
             }
         } catch (error: any) {
-            if (useAdminStore.getState().orders.length === 0) {
-                console.error("Order fetch failed:", error);
-            }
+            console.error("Order fetch failed:", error);
         } finally {
             setIsLoading(false);
         }
-    }, [user?.id, setOrders]);
+    }, [user?.id, setOrders, setTotal]);
 
     useEffect(() => {
         if (user?.id) {
-            fetchOrders();
+            fetchOrders(currentPage);
         }
-    }, [user?.id, fetchOrders]);
+    }, [user?.id, fetchOrders, currentPage]);
     
     const translateStatus = (status: string): string => {
         const lowerStatus = status.toLowerCase();
@@ -111,10 +101,7 @@ export default function OrdersAdminPage() {
         }
     };
 
-    const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
-    const paginatedOrders = useMemo(() => {
-        return orders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-    }, [orders, currentPage]);
+    const totalPages = Math.ceil(totals.orders / ITEMS_PER_PAGE);
     
     if (isLoading && orders.length === 0) {
         return (
@@ -168,8 +155,8 @@ export default function OrdersAdminPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {paginatedOrders.map(orderItem => (
-                                    <TableRow key={orderItem.id}>
+                                {orders.map(orderItem => (
+                                    <TableRow key={orderItem.id} className={cn(isLoading && "opacity-50")}>
                                         <TableCell className="font-medium">{orderItem.order_number}</TableCell>
                                         <TableCell>
                                             <div className="font-medium">{orderItem.shipping_info?.name || 'Guest'}</div>
@@ -195,8 +182,8 @@ export default function OrdersAdminPage() {
                     </div>
 
                     <div className="grid gap-4 md:hidden">
-                        {paginatedOrders.map(orderItem => (
-                            <Card key={orderItem.id}>
+                        {orders.map(orderItem => (
+                            <Card key={orderItem.id} className={cn(isLoading && "opacity-50")}>
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
                                         <div>
@@ -233,11 +220,11 @@ export default function OrdersAdminPage() {
             </CardContent>
             {totalPages > 1 && (
                 <CardFooter className="flex justify-center gap-4 py-4 border-t">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
                         আগেরটি
                     </Button>
                     <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))} disabled={currentPage === totalPages}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
                         পরবর্তী
                     </Button>
                 </CardFooter>

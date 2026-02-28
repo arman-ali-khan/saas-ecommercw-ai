@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
-    const { recipientId, recipientType, siteId, limit = 100, platformView = false } = await request.json();
+    const { recipientId, recipientType, siteId, limit = 100, offset = 0, platformView = false } = await request.json();
 
     if (!recipientType) {
       return NextResponse.json({ error: 'Recipient Type is required.' }, { status: 400 });
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
     let query = supabaseAdmin
       .from('notifications')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('recipient_type', recipientType);
 
     // SECURITY & FILTERING LOGIC
@@ -43,11 +43,6 @@ export async function POST(request: Request) {
         if (caller?.role !== 'saas_admin') {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
-        
-        // SaaS Admin Platform View: 
-        // 1. Show requests from store admins (where recipient_id is NULL)
-        // 2. Show announcements sent BY SaaS admin (where recipient_id IS NOT NULL but recipient_type is 'admin')
-        // We do this by essentially showing everything for recipient_type: 'admin'
     } else {
         // Standard user or site admin view
         if (recipientId) {
@@ -61,13 +56,18 @@ export async function POST(request: Request) {
       query = query.eq('site_id', siteId);
     }
 
-    const { data, error } = await query
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    if (limit) {
+        const from = offset || 0;
+        const to = from + limit - 1;
+        query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json({ notifications: data }, { status: 200 });
+    return NextResponse.json({ notifications: data, total: count }, { status: 200 });
   } catch (err: any) {
     console.error('List Notifications API Error:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });

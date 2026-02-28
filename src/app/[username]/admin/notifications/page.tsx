@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +18,7 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, BellOff, CheckCheck, Eye, X, MessageSquare, ShoppingCart, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BellOff, CheckCheck, X, ShoppingCart, MessageSquare, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -27,30 +28,16 @@ const ITEMS_PER_PAGE = 10;
 
 export default function AdminNotificationsPage() {
   const { user, loading: authLoading } = useAuth();
-  const { notifications, setNotifications, lastFetched } = useAdminStore();
+  const { notifications, setNotifications, totals, setTotal } = useAdminStore();
   const { toast } = useToast();
   
-  const [isLoading, setIsLoading] = useState(() => {
-    const store = useAdminStore.getState();
-    return store.notifications.length === 0;
-  });
+  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const fetchNotifications = useCallback(async (force = false) => {
+  const fetchNotifications = useCallback(async (page: number) => {
     if (!user) return;
     
-    const store = useAdminStore.getState();
-    const isFresh = Date.now() - store.lastFetched.notifications < 300000; // 5 mins cache
-    
-    if (!force && store.notifications.length > 0 && isFresh) {
-        setIsLoading(false);
-        return;
-    }
-
-    if (store.notifications.length === 0 || force) {
-        setIsLoading(true);
-    }
-
+    setIsLoading(true);
     try {
         const response = await fetch('/api/notifications/list', {
             method: 'POST',
@@ -58,33 +45,34 @@ export default function AdminNotificationsPage() {
             body: JSON.stringify({
                 recipientId: user.id,
                 recipientType: 'admin',
-                siteId: user.id
+                siteId: user.id,
+                limit: ITEMS_PER_PAGE,
+                offset: (page - 1) * ITEMS_PER_PAGE
             }),
         });
         const result = await response.json();
         if (response.ok) {
             setNotifications(result.notifications || []);
+            setTotal('notifications', result.total || 0);
         } else {
             throw new Error(result.error);
         }
     } catch (error: any) {
-      if (useAdminStore.getState().notifications.length === 0) {
-          toast({
+        toast({
             variant: 'destructive',
             title: 'Error fetching notifications',
             description: error.message,
-          });
-      }
+        });
     } finally {
         setIsLoading(false);
     }
-  }, [user, setNotifications, toast]);
+  }, [user, setNotifications, setTotal, toast]);
 
   useEffect(() => {
     if (!authLoading && user) {
-      fetchNotifications();
+      fetchNotifications(currentPage);
     }
-  }, [user, authLoading, fetchNotifications]);
+  }, [user, authLoading, fetchNotifications, currentPage]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
@@ -99,7 +87,7 @@ export default function AdminNotificationsPage() {
         if (!response.ok) throw new Error('Failed to update');
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
-        fetchNotifications(true);
+        fetchNotifications(currentPage);
     }
   };
   
@@ -116,7 +104,7 @@ export default function AdminNotificationsPage() {
         toast({ title: 'সকল নোটিফিকেশন Dismiss করা হয়েছে।' });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
-        fetchNotifications(true);
+        fetchNotifications(currentPage);
     }
   }
 
@@ -126,10 +114,7 @@ export default function AdminNotificationsPage() {
       return <Bell className="h-5 w-5 text-primary" />;
   }
 
-  const totalPages = Math.ceil(notifications.length / ITEMS_PER_PAGE);
-  const paginatedNotifications = useMemo(() => {
-    return notifications.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  }, [notifications, currentPage]);
+  const totalPages = Math.ceil(totals.notifications / ITEMS_PER_PAGE);
 
   if (isLoading && notifications.length === 0) {
     return (
@@ -188,14 +173,15 @@ export default function AdminNotificationsPage() {
         ) : (
           <>
             <div className="grid gap-3">
-                {paginatedNotifications.map((notification) => (
+                {notifications.map((notification) => (
                 <div
                     key={notification.id}
                     className={cn(
                     'relative flex items-start sm:items-center gap-3 sm:gap-4 p-4 rounded-2xl border transition-all duration-300 group overflow-hidden',
                     notification.is_read 
                         ? 'bg-background/40 border-border/40 text-muted-foreground opacity-80' 
-                        : 'bg-card border-primary/20 shadow-sm hover:shadow-md hover:border-primary/40 ring-1 ring-primary/5'
+                        : 'bg-card border-primary/20 shadow-sm hover:shadow-md hover:border-primary/40 ring-1 ring-primary/5',
+                    isLoading && "opacity-50"
                     )}
                 >
                     {notification.link && (
@@ -259,7 +245,7 @@ export default function AdminNotificationsPage() {
                             variant="outline"
                             size="sm"
                             className="rounded-xl h-10 w-10 p-0"
-                            onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))}
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                             disabled={currentPage === 1}
                         >
                             <ChevronLeft className="h-5 w-5" />
@@ -271,7 +257,7 @@ export default function AdminNotificationsPage() {
                             variant="outline"
                             size="sm"
                             className="rounded-xl h-10 w-10 p-0"
-                            onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))}
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                             disabled={currentPage === totalPages}
                         >
                             <ChevronRight className="h-5 w-5" />

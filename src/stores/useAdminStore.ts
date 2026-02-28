@@ -64,6 +64,9 @@ interface AdminState {
     images: SiteImage[];
     sidebarCounts: SidebarCounts;
     
+    // Pagination Totals
+    totals: Record<string, number>;
+    
     // Fetch Status (Timestamps)
     lastFetched: Record<string, number>;
     
@@ -85,6 +88,7 @@ interface AdminState {
     setNotifications: (notifications: Notification[]) => void;
     setImages: (images: SiteImage[]) => void;
     setSidebarCounts: (counts: SidebarCounts) => void;
+    setTotal: (entity: string, count: number) => void;
     
     invalidateEntity: (entity: string) => void;
     clearStore: () => void;
@@ -135,6 +139,13 @@ export const useAdminStore = create<AdminState>()((set) => ({
     notifications: [],
     images: [],
     sidebarCounts: INITIAL_SIDEBAR_COUNTS,
+    
+    totals: {
+        products: 0,
+        orders: 0,
+        customers: 0,
+        notifications: 0
+    },
     
     lastFetched: INITIAL_LAST_FETCHED,
 
@@ -216,6 +227,10 @@ export const useAdminStore = create<AdminState>()((set) => ({
         lastFetched: { ...state.lastFetched, sidebarCounts: Date.now() }
     })),
 
+    setTotal: (entity, count) => set((state) => ({
+        totals: { ...state.totals, [entity]: count }
+    })),
+
     invalidateEntity: (entity) => set((state) => ({
         lastFetched: { ...state.lastFetched, [entity]: 0 }
     })),
@@ -238,6 +253,12 @@ export const useAdminStore = create<AdminState>()((set) => ({
         notifications: [],
         images: [],
         sidebarCounts: INITIAL_SIDEBAR_COUNTS,
+        totals: {
+            products: 0,
+            orders: 0,
+            customers: 0,
+            notifications: 0
+        },
         lastFetched: INITIAL_LAST_FETCHED,
     })
 }));

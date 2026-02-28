@@ -27,12 +27,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Tag, Upload, CheckSquare, Square } from 'lucide-react';
+import { Plus, MoreHorizontal, Edit, Trash2, Eye, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Tag, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { Product } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -45,14 +45,10 @@ const ITEMS_PER_PAGE = 10;
 
 export default function ProductsAdminPage() {
   const { user } = useAuth();
-  const { products, setProducts, invalidateEntity } = useAdminStore();
+  const { products, setProducts, totals, setTotal, invalidateEntity } = useAdminStore();
   const { toast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(() => {
-    const currentStore = useAdminStore.getState();
-    return currentStore.products.length === 0;
-  });
-  
+  const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -64,53 +60,44 @@ export default function ProductsAdminPage() {
   const currentTranslations = translations[lang as keyof typeof translations]?.products || translations.bn.products;
   const commonTranslations = translations[lang as keyof typeof translations]?.common || translations.bn.common;
 
-  const fetchProducts = useCallback(async (force = false) => {
+  const fetchProducts = useCallback(async (page: number) => {
     const siteIdValue = user?.id;
     if (!siteIdValue) return;
 
-    const currentStore = useAdminStore.getState();
-    const nowTimestamp = Date.now();
-    const isCacheFresh = nowTimestamp - currentStore.lastFetched.products < 300000;
-    
-    if (!force && currentStore.products.length > 0 && isCacheFresh) {
-        setIsLoading(false);
-        return;
-    }
-
-    if (force || currentStore.products.length === 0) {
-        setIsLoading(true);
-    }
-
+    setIsLoading(true);
     try {
         const response = await fetch('/api/products/list', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId: siteIdValue }),
+            body: JSON.stringify({ 
+                siteId: siteIdValue,
+                limit: ITEMS_PER_PAGE,
+                offset: (page - 1) * ITEMS_PER_PAGE
+            }),
         });
         const result = await response.json();
         if (response.ok) {
             setProducts(result.products || []);
+            setTotal('products', result.total || 0);
         } else {
             throw new Error(result.error || 'Failed to fetch products');
         }
     } catch (error: any) {
-        if (useAdminStore.getState().products.length === 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Error loading products',
-                description: error.message,
-            });
-        }
+        toast({
+            variant: 'destructive',
+            title: 'Error loading products',
+            description: error.message,
+        });
     } finally {
         setIsLoading(false);
     }
-  }, [user?.id, setProducts, toast]);
+  }, [user?.id, setProducts, setTotal, toast]);
 
   useEffect(() => {
     if (user?.id) {
-      fetchProducts();
+      fetchProducts(currentPage);
     }
-  }, [user?.id, fetchProducts]);
+  }, [user?.id, fetchProducts, currentPage]);
 
   const handleDelete = async (ids: string[]) => {
     if (!user || ids.length === 0) return;
@@ -135,7 +122,7 @@ export default function ProductsAdminPage() {
       toast({ title: ids.length > 1 ? `${ids.length} products deleted` : 'Product deleted' });
       invalidateEntity('dashboard'); 
       setSelectedIds([]);
-      await fetchProducts(true);
+      await fetchProducts(currentPage);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -149,10 +136,7 @@ export default function ProductsAdminPage() {
     }
   };
 
-  const totalPagesCount = Math.ceil(products.length / ITEMS_PER_PAGE);
-  const paginatedProductsList = useMemo(() => {
-    return products.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  }, [products, currentPage]);
+  const totalPagesCount = Math.ceil(totals.products / ITEMS_PER_PAGE);
 
   const getPriceDisplay = (productItem: Product) => {
     if (productItem.variants && productItem.variants.length > 0) {
@@ -179,15 +163,15 @@ export default function ProductsAdminPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-        const allIdsOnPage = paginatedProductsList.map(p => p.id);
+        const allIdsOnPage = products.map(p => p.id);
         setSelectedIds(prev => Array.from(new Set([...prev, ...allIdsOnPage])));
     } else {
-        const allIdsOnPage = paginatedProductsList.map(p => p.id);
+        const allIdsOnPage = products.map(p => p.id);
         setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
     }
   };
 
-  const isAllSelectedOnPage = paginatedProductsList.length > 0 && paginatedProductsList.every(p => selectedIds.includes(p.id));
+  const isAllSelectedOnPage = products.length > 0 && products.every(p => selectedIds.includes(p.id));
 
   if (isLoading && products.length === 0) {
     return (
@@ -283,8 +267,8 @@ export default function ProductsAdminPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedProductsList.map((productItem) => (
-                    <TableRow key={productItem.id} className={selectedIds.includes(productItem.id) ? "bg-muted/50" : ""}>
+                  {products.map((productItem) => (
+                    <TableRow key={productItem.id} className={cn(selectedIds.includes(productItem.id) && "bg-muted/50", isLoading && "opacity-50")}>
                       <TableCell>
                         <Checkbox 
                             checked={selectedIds.includes(productItem.id)} 
@@ -331,11 +315,11 @@ export default function ProductsAdminPage() {
             </CardContent>
             {totalPagesCount > 1 && (
                 <CardFooter className="flex justify-center gap-4 py-4 border-t">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPageVal => Math.max(1, prevPageVal - 1))} disabled={currentPage === 1}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
                         আগেরটি
                     </Button>
                     <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPagesCount}</div>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPageVal => Math.min(totalPagesCount, prevPageVal + 1))} disabled={currentPage === totalPagesCount}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPagesCount, prev + 1))} disabled={currentPage === totalPagesCount}>
                         পরবর্তী
                     </Button>
                 </CardFooter>
@@ -343,8 +327,8 @@ export default function ProductsAdminPage() {
           </Card>
 
           <div className="grid gap-4 md:hidden">
-            {paginatedProductsList.map((productItem) => (
-              <Card key={productItem.id} className={cn(selectedIds.includes(productItem.id) && "border-primary bg-primary/5")}>
+            {products.map((productItem) => (
+              <Card key={productItem.id} className={cn(selectedIds.includes(productItem.id) && "border-primary bg-primary/5", isLoading && "opacity-50")}>
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-start gap-4">
                     <div className="pt-1">
@@ -381,11 +365,11 @@ export default function ProductsAdminPage() {
             ))}
             {totalPagesCount > 1 && (
                 <div className="flex justify-center items-center gap-4 py-4">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPageVal => Math.max(1, prevPageVal - 1))} disabled={currentPage === 1}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
                         আগেরটি
                     </Button>
                     <span className="text-xs font-medium">{currentPage} / {totalPagesCount}</span>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPageVal => Math.min(totalPagesCount, prevPageVal + 1))} disabled={currentPage === totalPagesCount}>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPagesCount, prev + 1))} disabled={currentPage === totalPagesCount}>
                         পরবর্তী
                     </Button>
                 </div>

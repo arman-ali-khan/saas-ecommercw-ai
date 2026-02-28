@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/stores/auth';
 import { useAdminStore } from '@/stores/useAdminStore';
@@ -22,81 +23,68 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Mail, MoreHorizontal, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Mail, MoreHorizontal, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
+import { cn } from '@/lib/utils';
 
 const translations = { en, bn };
 const ITEMS_PER_PAGE = 10;
 
 export default function CustomersAdminPage() {
   const { user } = useAuth();
-  const { customers, setCustomers } = useAdminStore();
+  const { customers, setCustomers, totals, setTotal } = useAdminStore();
   const { toast } = useToast();
   
-  const [isLoading, setIsLoading] = useState(() => {
-    const currentStore = useAdminStore.getState();
-    return currentStore.customers.length === 0;
-  });
+  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   
   const lang = user?.language || 'bn';
   const t = translations[lang].customers;
 
-  const fetchCustomers = useCallback(async (force = false) => {
+  const fetchCustomers = useCallback(async (page: number) => {
     if (!user) return;
     
-    const store = useAdminStore.getState();
-    const isFresh = Date.now() - store.lastFetched.customers < 300000;
-    
-    if (!force && store.customers.length > 0 && isFresh) {
-        setIsLoading(false);
-        return;
-    }
-
-    if (store.customers.length === 0 || force) {
-        setIsLoading(true);
-    }
-
+    setIsLoading(true);
     try {
         const response = await fetch('/api/customers/list', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId: user.id }),
+            body: JSON.stringify({ 
+                siteId: user.id,
+                limit: ITEMS_PER_PAGE,
+                offset: (page - 1) * ITEMS_PER_PAGE
+            }),
         });
         const result = await response.json();
         if (response.ok) {
             setCustomers(result.customers || []);
+            setTotal('customers', result.total || 0);
         } else {
             throw new Error(result.error || 'Failed to fetch customers');
         }
     } catch (error: any) {
-      if (useAdminStore.getState().customers.length === 0) {
-          toast({
+        toast({
             variant: 'destructive',
             title: 'Error fetching customer data',
             description: error.message,
-          });
-      }
+        });
     } finally {
         setIsLoading(false);
     }
-  }, [user?.id, setCustomers, toast]);
+  }, [user?.id, setCustomers, setTotal, toast]);
 
   useEffect(() => {
     if (user) {
-      fetchCustomers();
+      fetchCustomers(currentPage);
     }
-  }, [user, fetchCustomers]);
+  }, [user, fetchCustomers, currentPage]);
 
-  const totalPages = Math.ceil(customers.length / ITEMS_PER_PAGE);
-  const paginatedCustomers = useMemo(() => {
-    return customers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  }, [customers, currentPage]);
+  const totalPages = Math.ceil(totals.customers / ITEMS_PER_PAGE);
 
   if (isLoading && customers.length === 0) {
     return (
@@ -140,7 +128,7 @@ export default function CustomersAdminPage() {
       <CardHeader>
         <CardTitle>{t.title}</CardTitle>
         <CardDescription>
-          {t.description} {t.totalCustomers.replace('{count}', customers.length.toString())}
+          {t.description} {t.totalCustomers.replace('{count}', totals.customers.toString())}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -161,8 +149,8 @@ export default function CustomersAdminPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedCustomers.map((customer) => (
-                    <TableRow key={customer.id}>
+                  {customers.map((customer) => (
+                    <TableRow key={customer.id} className={cn(isLoading && "opacity-50")}>
                       <TableCell className="font-medium flex items-center gap-3">
                         <Avatar className="h-9 w-9">
                           <AvatarFallback>{customer.full_name?.charAt(0) || '?'}</AvatarFallback>
@@ -189,8 +177,8 @@ export default function CustomersAdminPage() {
               </Table>
             </div>
             <div className="grid gap-4 md:hidden">
-              {paginatedCustomers.map((customer) => (
-                <Card key={customer.id}>
+              {customers.map((customer) => (
+                <Card key={customer.id} className={cn(isLoading && "opacity-50")}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3">
@@ -228,11 +216,11 @@ export default function CustomersAdminPage() {
       </CardContent>
       {totalPages > 1 && (
         <CardFooter className="flex justify-center gap-4 py-4 border-t">
-            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1}>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
                 <ChevronLeft className="h-4 w-4 mr-1" /> আগেরটি
             </Button>
             <div className="text-sm font-medium">পৃষ্ঠা {currentPage} / {totalPages}</div>
-            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))} disabled={currentPage === totalPages}>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
                 পরবর্তী <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
         </CardFooter>
