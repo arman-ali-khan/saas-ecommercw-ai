@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -8,7 +8,7 @@ import { useAdminStore } from '@/stores/useAdminStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Upload, ArrowLeft, CheckCircle2, AlertTriangle, FileText, X, Edit, Save, ImageIcon, Tags, Layers, Wand2, Info, BookOpen } from 'lucide-react';
+import { Loader2, Upload, ArrowLeft, CheckCircle2, AlertTriangle, FileText, X, Edit, Save, ImageIcon, Tags, Layers, Wand2, Info, BookOpen, Plus, Trash2, Package, Tag, Hash } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -19,6 +19,8 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import RichTextEditor from '@/components/rich-text-editor';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 
 /**
  * Advanced WooCommerce CSV Product Bulk Uploader
@@ -71,12 +73,12 @@ export default function BulkUploadPage() {
       salePrice: headers.findIndex(h => h.toLowerCase() === 'sale price'),
       shortDesc: headers.findIndex(h => h.toLowerCase() === 'short description'),
       longDesc: headers.findIndex(h => h.toLowerCase() === 'description'),
-      stock: headers.findIndex(h => h.toLowerCase() === 'stock'),
+      stock: headers.findIndex(h => h.toLowerCase() === 'stock' || h.toLowerCase() === 'inventory'),
       images: headers.findIndex(h => h.toLowerCase() === 'images'),
       categories: headers.findIndex(h => h.toLowerCase() === 'categories'),
       tags: headers.findIndex(h => h.toLowerCase() === 'tags'),
-      sku: headers.findIndex(h => h.toLowerCase() === 'sku'),
-      featured: headers.findIndex(h => h.toLowerCase() === 'is featured?'),
+      sku: headers.findIndex(h => h.toLowerCase() === 'sku' || h.toLowerCase() === 'id'),
+      featured: headers.findIndex(h => h.toLowerCase() === 'is featured?' || h.toLowerCase() === 'featured'),
       weight: headers.findIndex(h => h.toLowerCase().includes('weight')),
     };
 
@@ -105,27 +107,25 @@ export default function BulkUploadPage() {
           }
       }
 
-      // WooCommerce often uses commas or pipes for multiple images
       const rawImages = data[hIdx.images] || '';
       const imageList = rawImages.split(/[,|]/).map(url => ({ imageUrl: url.trim(), imageHint: '' })).filter(img => img.imageUrl);
 
       const product = {
         name: name,
-        price: parseFloat(data[hIdx.regularPrice]) || 0,
-        stock: parseInt(data[hIdx.stock]) || 0,
+        price: parseFloat(data[hIdx.regularPrice]?.replace(/[^0-9.]/g, '')) || 0,
+        stock: parseInt(data[hIdx.stock]?.replace(/[^0-9]/g, '')) || 0,
         description: data[hIdx.shortDesc] || name,
         long_description: data[hIdx.longDesc] || '',
         categories: data[hIdx.categories] ? data[hIdx.categories].split(',').map(c => c.trim()) : [],
         tags: data[hIdx.tags] ? data[hIdx.tags].split(',').map(t => t.trim()) : [],
         is_featured: data[hIdx.featured] === '1' || data[hIdx.featured]?.toLowerCase() === 'yes',
         images: imageList,
-        tempId: data[hIdx.sku] || `new-${i}`,
+        tempId: data[hIdx.sku] || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
         unit: data[hIdx.weight] ? `${data[hIdx.weight]} KG` : '',
         origin: '',
         story: '',
         color: colors,
-        size: sizes,
-        custom_attributes: customAttributes
+        variants: [] // Initialize empty variants
       };
 
       results.push(product);
@@ -159,28 +159,47 @@ export default function BulkUploadPage() {
         ...p,
         categoriesStr: p.categories.join(', '),
         tagsStr: p.tags.join(', '),
-        mainImageUrl: p.images?.[0]?.imageUrl || ''
+        use_variants: p.variants && p.variants.length > 0,
+        // Make a deep copy of arrays/objects to avoid direct mutation
+        images: JSON.parse(JSON.stringify(p.images || [])),
+        variants: JSON.parse(JSON.stringify(p.variants || []))
     });
+  };
+
+  const addVariant = () => {
+    const newVariants = [...(editFormData.variants || [])];
+    newVariants.push({ unit: '', price: editFormData.price || 0, stock: editFormData.stock || 0 });
+    setEditFormData({ ...editFormData, variants: newVariants, use_variants: true });
+  };
+
+  const removeVariant = (idx: number) => {
+    const newVariants = (editFormData.variants || []).filter((_: any, i: number) => i !== idx);
+    setEditFormData({ ...editFormData, variants: newVariants, use_variants: newVariants.length > 0 });
+  };
+
+  const removeImage = (idx: number) => {
+    const newImages = (editFormData.images || []).filter((_: any, i: number) => i !== idx);
+    setEditFormData({ ...editFormData, images: newImages });
+  };
+
+  const addImage = () => {
+    const url = prompt('Enter Image URL:');
+    if (url && url.startsWith('http')) {
+        const newImages = [...(editFormData.images || [])];
+        newImages.push({ imageUrl: url, imageHint: '' });
+        setEditFormData({ ...editFormData, images: newImages });
+    }
   };
 
   const saveEdit = () => {
     if (editingIndex === null || !editFormData) return;
     
-    const updatedImages = [...(editFormData.images || [])];
-    if (editFormData.mainImageUrl) {
-        if (updatedImages.length > 0) {
-            updatedImages[0].imageUrl = editFormData.mainImageUrl;
-        } else {
-            updatedImages.push({ imageUrl: editFormData.mainImageUrl, imageHint: '' });
-        }
-    }
-
     const newProducts = [...parsedProducts];
     newProducts[editingIndex] = {
         ...editFormData,
         categories: editFormData.categoriesStr.split(',').map((c: string) => c.trim()).filter(Boolean),
         tags: editFormData.tagsStr.split(',').map((t: string) => t.trim()).filter(Boolean),
-        images: updatedImages
+        variants: editFormData.use_variants ? editFormData.variants : []
     };
     
     setParsedProducts(newProducts);
@@ -269,7 +288,7 @@ export default function BulkUploadPage() {
             <Card className="border-2 shadow-sm overflow-hidden rounded-2xl">
               <CardHeader className="bg-muted/30 border-b">
                 <CardTitle className="text-lg">Review Parsed Products</CardTitle>
-                <CardDescription>Click the edit button to adjust any product data before saving. Thumbnails will be taken from the first image found.</CardDescription>
+                <CardDescription>Click the edit button to adjust any product data before saving.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="max-h-[60vh] overflow-auto">
@@ -350,9 +369,9 @@ export default function BulkUploadPage() {
         )}
       </div>
 
-      {/* Inline Edit Dialog */}
+      {/* Advanced Edit Dialog */}
       <Dialog open={editingIndex !== null} onOpenChange={(open) => !open && setEditingIndex(null)}>
-        <DialogContent className="max-w-4xl rounded-[2rem] p-0 overflow-hidden border-2 shadow-2xl">
+        <DialogContent className="max-w-5xl rounded-[2rem] p-0 overflow-hidden border-2 shadow-2xl">
             <DialogHeader className="bg-muted/30 p-6 border-b">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-xl"><Edit className="h-5 w-5 text-primary" /></div>
@@ -360,64 +379,118 @@ export default function BulkUploadPage() {
                 </div>
             </DialogHeader>
             {editFormData && (
-                <ScrollArea className="max-h-[75vh]">
+                <ScrollArea className="max-h-[80vh]">
                     <div className="space-y-8 p-8">
-                        {/* Header Info */}
-                        <div className="flex gap-8 items-start">
-                            <div className="relative h-40 w-40 rounded-2xl border-2 border-dashed flex items-center justify-center bg-muted overflow-hidden shrink-0 shadow-inner">
-                                {editFormData.mainImageUrl ? (
-                                    <Image src={editFormData.mainImageUrl} alt="Thumbnail" fill className="object-cover" unoptimized />
-                                ) : (
-                                    <ImageIcon className="h-10 w-10 text-muted-foreground/30" />
-                                )}
-                            </div>
-                            <div className="flex-grow space-y-5">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="edit-name" className="font-bold flex items-center gap-2"><Info className="h-4 w-4 text-primary" /> Product Name</Label>
-                                    <Input 
-                                        id="edit-name" 
-                                        value={editFormData.name} 
-                                        onChange={e => setEditFormData({...editFormData, name: e.target.value})} 
-                                        className="h-12 rounded-xl text-lg font-medium"
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="edit-image" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Thumbnail URL</Label>
-                                    <Input 
-                                        id="edit-image" 
-                                        value={editFormData.mainImageUrl} 
-                                        onChange={e => setEditFormData({...editFormData, mainImageUrl: e.target.value})} 
-                                        className="h-9 text-xs font-mono rounded-lg bg-muted/20"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Pricing & Stock */}
-                        <div className="grid grid-cols-2 gap-6">
+                        {/* 1. Main Info & ID */}
+                        <div className="grid md:grid-cols-2 gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-price" className="font-bold">Price (BDT)</Label>
+                                <Label htmlFor="edit-name" className="font-bold flex items-center gap-2"><Package className="h-4 w-4 text-primary" /> Product Name</Label>
                                 <Input 
-                                    id="edit-price" 
-                                    type="number" 
-                                    value={editFormData.price} 
-                                    onChange={e => setEditFormData({...editFormData, price: parseFloat(e.target.value) || 0})} 
-                                    className="h-12 rounded-xl font-black text-xl text-primary"
+                                    id="edit-name" 
+                                    value={editFormData.name} 
+                                    onChange={e => setEditFormData({...editFormData, name: e.target.value})} 
+                                    className="h-12 rounded-xl text-lg font-medium"
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-stock" className="font-bold">Stock Quantity</Label>
+                                <Label htmlFor="edit-slug" className="font-bold flex items-center gap-2"><Hash className="h-4 w-4 text-primary" /> Slug / SKU</Label>
                                 <Input 
-                                    id="edit-stock" 
-                                    type="number" 
-                                    value={editFormData.stock} 
-                                    onChange={e => setEditFormData({...editFormData, stock: parseInt(e.target.value) || 0})} 
-                                    className="h-12 rounded-xl font-bold"
+                                    id="edit-slug" 
+                                    value={editFormData.tempId} 
+                                    onChange={e => setEditFormData({...editFormData, tempId: e.target.value})} 
+                                    className="h-12 rounded-xl font-mono text-xs bg-muted/20"
                                 />
                             </div>
                         </div>
 
-                        {/* Classification */}
+                        {/* 2. Image Management */}
+                        <div className="space-y-4">
+                            <Label className="font-bold flex items-center gap-2"><ImageIcon className="h-4 w-4 text-primary" /> Product Gallery</Label>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                                {editFormData.images?.map((img: any, idx: number) => (
+                                    <div key={idx} className={cn("relative aspect-square rounded-xl border-2 overflow-hidden group", idx === 0 ? "border-primary" : "border-muted")}>
+                                        <Image src={img.imageUrl} alt="Preview" fill className="object-cover" unoptimized />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                            <Button variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => removeImage(idx)}><Trash2 className="h-4 w-4" /></Button>
+                                        </div>
+                                        {idx === 0 && <Badge className="absolute top-1 left-1 text-[8px] h-4">Cover</Badge>}
+                                    </div>
+                                ))}
+                                <button type="button" onClick={addImage} className="aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center hover:bg-muted/50 transition-colors">
+                                    <Plus className="h-6 w-6 text-muted-foreground" />
+                                    <span className="text-[10px] font-bold mt-1">Add URL</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 3. Pricing & Variants */}
+                        <div className="p-6 rounded-2xl border-2 border-primary/10 bg-primary/5 space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-bold flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Pricing & Inventory</h3>
+                                <div className="flex items-center gap-2">
+                                    <Label className="text-xs">Use Multi-Price (Variants)</Label>
+                                    <Switch checked={editFormData.use_variants} onCheckedChange={(val) => setEditFormData({...editFormData, use_variants: val})} />
+                                </div>
+                            </div>
+
+                            {!editFormData.use_variants ? (
+                                <div className="grid grid-cols-2 gap-6 animate-in fade-in">
+                                    <div className="grid gap-2">
+                                        <Label className="font-bold">Base Price (BDT)</Label>
+                                        <Input 
+                                            type="number" 
+                                            value={editFormData.price} 
+                                            onChange={e => setEditFormData({...editFormData, price: parseFloat(e.target.value) || 0})} 
+                                            className="h-12 rounded-xl font-black text-xl text-primary"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label className="font-bold">Total Stock</Label>
+                                        <Input 
+                                            type="number" 
+                                            value={editFormData.stock} 
+                                            onChange={e => setEditFormData({...editFormData, stock: parseInt(e.target.value) || 0})} 
+                                            className="h-12 rounded-xl font-bold"
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 animate-in slide-in-from-top-2">
+                                    {editFormData.variants?.map((v: any, idx: number) => (
+                                        <div key={idx} className="grid grid-cols-3 gap-4 items-end p-4 border rounded-xl bg-background shadow-sm relative group">
+                                            <div className="grid gap-1.5">
+                                                <Label className="text-[10px] uppercase font-black">Weight/Size</Label>
+                                                <Input value={v.unit} onChange={e => {
+                                                    const newVariants = [...editFormData.variants];
+                                                    newVariants[idx].unit = e.target.value;
+                                                    setEditFormData({...editFormData, variants: newVariants});
+                                                }} placeholder="e.g. 5 KG" className="h-9" />
+                                            </div>
+                                            <div className="grid gap-1.5">
+                                                <Label className="text-[10px] uppercase font-black">Price</Label>
+                                                <Input type="number" value={v.price} onChange={e => {
+                                                    const newVariants = [...editFormData.variants];
+                                                    newVariants[idx].price = parseFloat(e.target.value) || 0;
+                                                    setEditFormData({...editFormData, variants: newVariants});
+                                                }} className="h-9" />
+                                            </div>
+                                            <div className="grid gap-1.5">
+                                                <Label className="text-[10px] uppercase font-black">Stock</Label>
+                                                <Input type="number" value={v.stock} onChange={e => {
+                                                    const newVariants = [...editFormData.variants];
+                                                    newVariants[idx].stock = parseInt(e.target.value) || 0;
+                                                    setEditFormData({...editFormData, variants: newVariants});
+                                                }} className="h-9" />
+                                            </div>
+                                            <Button type="button" variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-white opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeVariant(idx)}><X className="h-3 w-3" /></Button>
+                                        </div>
+                                    ))}
+                                    <Button type="button" variant="outline" size="sm" onClick={addVariant} className="w-full border-dashed"><Plus className="h-4 w-4 mr-2" /> Add Price Variant</Button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 4. Organization */}
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="grid gap-2">
                                 <Label className="font-bold flex items-center gap-2"><Layers className="h-4 w-4 text-primary" /> Categories</Label>
@@ -430,7 +503,7 @@ export default function BulkUploadPage() {
                                 <p className="text-[10px] text-muted-foreground italic">Separate categories with commas. Parent &gt; Child supported.</p>
                             </div>
                             <div className="grid gap-2">
-                                <Label className="font-bold flex items-center gap-2"><Tags className="h-4 w-4 text-primary" /> Tags</Label>
+                                <Label className="font-bold flex items-center gap-2"><Tag className="h-4 w-4 text-primary" /> Tags</Label>
                                 <Input 
                                     value={editFormData.tagsStr} 
                                     onChange={e => setEditFormData({...editFormData, tagsStr: e.target.value})} 
@@ -441,33 +514,11 @@ export default function BulkUploadPage() {
                             </div>
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="grid gap-2">
-                                <Label className="font-bold">Origin</Label>
-                                <Input 
-                                    value={editFormData.origin || ''} 
-                                    onChange={e => setEditFormData({...editFormData, origin: e.target.value})} 
-                                    placeholder="e.g., Rajshahi"
-                                    className="h-11 rounded-xl"
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label className="font-bold">Unit/Weight</Label>
-                                <Input 
-                                    value={editFormData.unit || ''} 
-                                    onChange={e => setEditFormData({...editFormData, unit: e.target.value})} 
-                                    placeholder="e.g., 5 KG"
-                                    className="h-11 rounded-xl"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Descriptions */}
+                        {/* 5. Descriptions */}
                         <div className="space-y-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-desc" className="font-bold">Short Description</Label>
+                                <Label className="font-bold">Short Description</Label>
                                 <Textarea 
-                                    id="edit-desc" 
                                     value={editFormData.description} 
                                     onChange={e => setEditFormData({...editFormData, description: e.target.value})} 
                                     rows={3}
@@ -485,17 +536,6 @@ export default function BulkUploadPage() {
                                         onChange={val => setEditFormData({...editFormData, long_description: val})} 
                                     />
                                 </div>
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label className="font-bold">Our Story (Optional)</Label>
-                                <Textarea 
-                                    value={editFormData.story || ''} 
-                                    onChange={e => setEditFormData({...editFormData, story: e.target.value})} 
-                                    rows={3}
-                                    className="rounded-xl resize-none shadow-inner"
-                                    placeholder="Share the context of this product..."
-                                />
                             </div>
                         </div>
                     </div>
