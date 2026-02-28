@@ -284,7 +284,16 @@ export default function ManageProductPage() {
                 categories: watchedValues.categories
             }),
         });
-        const result = await response.json();
+        
+        const contentType = response.headers.get("content-type");
+        let result;
+        if (contentType && contentType.includes("application/json")) {
+            result = await response.json();
+        } else {
+            const errorText = await response.text();
+            throw new Error(errorText || "Server returned an unexpected response format");
+        }
+
         if (response.ok) {
             form.setValue('name', result.name, { shouldValidate: true, shouldDirty: true });
             form.setValue('description', result.description, { shouldValidate: true, shouldDirty: true });
@@ -293,8 +302,15 @@ export default function ManageProductPage() {
             form.setValue('tags', result.tags || [], { shouldValidate: true, shouldDirty: true });
             form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
             toast({ title: 'SEO Beautification & Description সম্পন্ন!' });
-        } else { throw new Error(result.error); }
-    } catch (e: any) { toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); } finally { setIsBeautifying(false); }
+        } else { 
+            throw new Error(result.error || "AI Generation failed"); 
+        }
+    } catch (e: any) { 
+        console.error("Beautify request failed:", e);
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); 
+    } finally { 
+        setIsBeautifying(false); 
+    }
   };
 
   const onSubmit = async (values: ProductFormData, exit: boolean = true) => {

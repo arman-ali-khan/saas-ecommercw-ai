@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * @fileOverview AI flows for generating and beautifying product details using OpenRouter.
  */
@@ -23,7 +21,15 @@ function extractJson(text: string) {
         return JSON.parse(jsonStr);
     } catch (e) {
         console.error("JSON Parse Error. Source text was:", text);
-        return null;
+        // Try a simple cleanup if parsing failed
+        try {
+            const cleaned = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1)
+                .replace(/\n/g, " ")
+                .replace(/\r/g, " ");
+            return JSON.parse(cleaned);
+        } catch (e2) {
+            return null;
+        }
     }
 }
 
@@ -54,13 +60,24 @@ async function callOpenRouter(apiKey: string, prompt: string) {
             })
         });
 
+        const contentType = response.headers.get("content-type");
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || "OpenRouter API request failed");
+            if (contentType && contentType.includes("application/json")) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `OpenRouter API Error ${response.status}`);
+            } else {
+                const textError = await response.text();
+                throw new Error(`OpenRouter API Error ${response.status}: ${textError.slice(0, 100)}`);
+            }
+        }
+
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("OpenRouter returned a non-JSON response");
         }
 
         const data = await response.json();
-        return data.choices[0]?.message?.content || "";
+        return data.choices?.[0]?.message?.content || "";
     } catch (e: any) {
         console.error("OpenRouter Call Error:", e);
         throw e;
@@ -69,7 +86,6 @@ async function callOpenRouter(apiKey: string, prompt: string) {
 
 /**
  * Generates a detailed long description in Tiptap JSON format
- * @deprecated Integrated into beautifyProductDetails
  */
 export async function generateProductDescription(input: any) {
     try {
@@ -116,7 +132,7 @@ export async function generateProductDescription(input: any) {
         return { success: true, longDescription: JSON.stringify(resultJson) };
     } catch (e: any) {
         console.error("AI Generation Error:", e);
-        return { success: false, error: e.message };
+        return { success: false, error: e.message || "An unexpected error occurred during generation" };
     }
 }
 
@@ -167,13 +183,13 @@ export async function beautifyProductDetails(input: any) {
             description: resultJson.description || description,
             story: resultJson.story || story,
             origin: resultJson.origin || origin,
-            tags: resultJson.tags || [],
+            tags: Array.isArray(resultJson.tags) ? resultJson.tags : [],
             longDescription: typeof resultJson.longDescription === 'object' 
                 ? JSON.stringify(resultJson.longDescription) 
                 : resultJson.longDescription || '',
         };
     } catch (e: any) {
         console.error("Beautify Error:", e);
-        return { success: false, error: e.message };
+        return { success: false, error: e.message || "An unexpected error occurred during optimization" };
     }
 }

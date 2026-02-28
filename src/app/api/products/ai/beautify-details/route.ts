@@ -1,11 +1,17 @@
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { beautifyProductDetails } from '@/ai/flows/generate-product-description';
 
 export async function POST(request: Request) {
   try {
-    const { siteId, name, description, story, origin, categories } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
+    }
+
+    const { siteId, name, description, story, origin, categories } = body;
 
     if (!siteId || !name) {
       return NextResponse.json({ error: 'Site ID and Product Name are required' }, { status: 400 });
@@ -33,6 +39,7 @@ export async function POST(request: Request) {
     const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
+      console.error("OPENROUTER_API_KEY is missing in server environment");
       return NextResponse.json({ error: 'AI capabilities are not configured on the server. Please contact support.' }, { status: 500 });
     }
 
@@ -52,7 +59,7 @@ export async function POST(request: Request) {
     }
 
   } catch (err: any) {
-    console.error('AI Beautify API Error:', err);
+    console.error('AI Beautify API Route Error:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }
