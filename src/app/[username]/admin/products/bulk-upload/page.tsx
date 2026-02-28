@@ -8,7 +8,8 @@ import { useAdminStore } from '@/stores/useAdminStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Upload, ArrowLeft, CheckCircle2, AlertTriangle, FileText, X, Edit, Save, ImageIcon, Tags, Layers, Wand2, Info, BookOpen, Plus, Trash2, Package, Tag, Hash } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, Upload, ArrowLeft, CheckCircle2, AlertTriangle, FileText, X, Edit, Save, ImageIcon, Trash2, Package, CreditCard, Tag, Hash, BookOpen, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -35,6 +36,7 @@ export default function BulkUploadPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [parsedProducts, setParsedProducts] = useState<any[]>([]);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [fileName, setFileName] = useState<string>('');
   
   // Editing State
@@ -125,7 +127,7 @@ export default function BulkUploadPage() {
         origin: '',
         story: '',
         color: colors,
-        variants: [] // Initialize empty variants
+        variants: [] 
       };
 
       results.push(product);
@@ -140,6 +142,7 @@ export default function BulkUploadPage() {
 
     setFileName(file.name);
     setIsParsing(true);
+    setSelectedIndices([]);
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -160,7 +163,6 @@ export default function BulkUploadPage() {
         categoriesStr: p.categories.join(', '),
         tagsStr: p.tags.join(', '),
         use_variants: p.variants && p.variants.length > 0,
-        // Make a deep copy of arrays/objects to avoid direct mutation
         images: JSON.parse(JSON.stringify(p.images || [])),
         variants: JSON.parse(JSON.stringify(p.variants || []))
     });
@@ -208,8 +210,35 @@ export default function BulkUploadPage() {
     toast({ title: 'Product updated locally' });
   };
 
+  const handleToggleSelect = (index: number) => {
+    setSelectedIndices(prev => 
+        prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
+    );
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+        setSelectedIndices(parsedProducts.map((_, i) => i));
+    } else {
+        setSelectedIndices([]);
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIndices.length === 0) return;
+    const newProducts = parsedProducts.filter((_, i) => !selectedIndices.includes(i));
+    setParsedProducts(newProducts);
+    setSelectedIndices([]);
+    toast({ title: `${selectedIndices.length} items removed from list.` });
+  };
+
   const handleUpload = async () => {
     if (!user || parsedProducts.length === 0) return;
+    
+    const productsToUpload = selectedIndices.length > 0 
+        ? parsedProducts.filter((_, i) => selectedIndices.includes(i))
+        : parsedProducts;
+
     setIsLoading(true);
 
     try {
@@ -218,7 +247,7 @@ export default function BulkUploadPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           siteId: user.id,
-          products: parsedProducts 
+          products: productsToUpload 
         }),
       });
 
@@ -241,6 +270,8 @@ export default function BulkUploadPage() {
       setIsLoading(false);
     }
   };
+
+  const isAllSelected = parsedProducts.length > 0 && selectedIndices.length === parsedProducts.length;
 
   return (
     <div className="space-y-6">
@@ -282,30 +313,48 @@ export default function BulkUploadPage() {
                   <p className="text-xs text-muted-foreground">{parsedProducts.length} products detected</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => { setFileName(''); setParsedProducts([]); }} disabled={isLoading} className="rounded-full"><X className="h-5 w-5" /></Button>
+              <div className="flex items-center gap-2">
+                {selectedIndices.length > 0 && (
+                    <Button variant="destructive" size="sm" onClick={handleDeleteSelected} className="rounded-xl h-9 px-4">
+                        <Trash2 className="h-4 w-4 mr-2" /> Delete ({selectedIndices.length})
+                    </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => { setFileName(''); setParsedProducts([]); setSelectedIndices([]); }} disabled={isLoading} className="rounded-full"><X className="h-5 w-5" /></Button>
+              </div>
             </div>
 
             <Card className="border-2 shadow-sm overflow-hidden rounded-2xl">
               <CardHeader className="bg-muted/30 border-b">
                 <CardTitle className="text-lg">Review Parsed Products</CardTitle>
-                <CardDescription>Click the edit button to adjust any product data before saving.</CardDescription>
+                <CardDescription>Select products to import or edit details individually.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="max-h-[60vh] overflow-auto">
                   <Table>
                     <TableHeader className="bg-muted/50 sticky top-0 z-10">
                       <TableRow>
+                        <TableHead className="w-12 text-center">
+                            <Checkbox 
+                                checked={isAllSelected}
+                                onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                            />
+                        </TableHead>
                         <TableHead className="w-16">Img</TableHead>
                         <TableHead>Product Name</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Stock</TableHead>
-                        <TableHead>Categories</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {parsedProducts.map((p, i) => (
-                        <TableRow key={i}>
+                        <TableRow key={i} className={cn(selectedIndices.includes(i) && "bg-primary/5")}>
+                          <TableCell className="text-center">
+                            <Checkbox 
+                                checked={selectedIndices.includes(i)}
+                                onCheckedChange={() => handleToggleSelect(i)}
+                            />
+                          </TableCell>
                           <TableCell>
                               <div className="relative h-12 w-12 rounded-lg border bg-muted overflow-hidden">
                                   {p.images?.[0]?.imageUrl ? (
@@ -321,12 +370,6 @@ export default function BulkUploadPage() {
                           </TableCell>
                           <TableCell className="text-primary font-black">{p.price.toFixed(2)} BDT</TableCell>
                           <TableCell>{p.stock}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {p.categories.slice(0, 2).map((c: string) => <Badge key={c} variant="secondary" className="text-[8px] truncate max-w-[100px]">{c}</Badge>)}
-                              {p.categories.length > 2 && <span className="text-[10px] font-bold">+{p.categories.length - 2}</span>}
-                            </div>
-                          </TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="icon" onClick={() => handleEditClick(i)} className="h-9 w-9 rounded-full">
                                 <Edit className="h-4 w-4" />
@@ -345,11 +388,14 @@ export default function BulkUploadPage() {
                     <div className="flex items-start gap-3 hidden sm:flex">
                         <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                         <p className="text-[10px] text-muted-foreground leading-relaxed max-w-md">
-                            Ensure all prices and names are correct. Categories and attributes will be created automatically if they don't exist.
+                            {selectedIndices.length > 0 
+                                ? `You have selected ${selectedIndices.length} items to upload. Ensure all prices and details are correct.`
+                                : `No items selected. Clicking save will upload ALL ${parsedProducts.length} items in the list.`
+                            }
                         </p>
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <Button variant="outline" onClick={() => { setFileName(''); setParsedProducts([]); }} disabled={isLoading} className="flex-1 sm:flex-none">Cancel</Button>
+                        <Button variant="outline" onClick={() => { setFileName(''); setParsedProducts([]); setSelectedIndices([]); }} disabled={isLoading} className="flex-1 sm:flex-none">Cancel</Button>
                         <Button 
                             onClick={handleUpload} 
                             disabled={isLoading || isParsing || parsedProducts.length === 0} 
@@ -359,7 +405,7 @@ export default function BulkUploadPage() {
                             {isLoading ? (
                                 <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Publishing...</>
                             ) : (
-                                <><CheckCircle2 className="mr-2 h-5 w-5" /> Save and Publish {parsedProducts.length} Items</>
+                                <><CheckCircle2 className="mr-2 h-5 w-5" /> {selectedIndices.length > 0 ? `Save & Publish ${selectedIndices.length} Items` : `Save & Publish All (${parsedProducts.length})`}</>
                             )}
                         </Button>
                     </div>
@@ -381,7 +427,6 @@ export default function BulkUploadPage() {
             {editFormData && (
                 <ScrollArea className="max-h-[80vh]">
                     <div className="space-y-8 p-8">
-                        {/* 1. Main Info & ID */}
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="edit-name" className="font-bold flex items-center gap-2"><Package className="h-4 w-4 text-primary" /> Product Name</Label>
@@ -403,7 +448,6 @@ export default function BulkUploadPage() {
                             </div>
                         </div>
 
-                        {/* 2. Image Management */}
                         <div className="space-y-4">
                             <Label className="font-bold flex items-center gap-2"><ImageIcon className="h-4 w-4 text-primary" /> Product Gallery</Label>
                             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
@@ -423,7 +467,6 @@ export default function BulkUploadPage() {
                             </div>
                         </div>
 
-                        {/* 3. Pricing & Variants */}
                         <div className="p-6 rounded-2xl border-2 border-primary/10 bg-primary/5 space-y-6">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-bold flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" /> Pricing & Inventory</h3>
@@ -490,7 +533,6 @@ export default function BulkUploadPage() {
                             )}
                         </div>
 
-                        {/* 4. Organization */}
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="grid gap-2">
                                 <Label className="font-bold flex items-center gap-2"><Layers className="h-4 w-4 text-primary" /> Categories</Label>
@@ -514,7 +556,6 @@ export default function BulkUploadPage() {
                             </div>
                         </div>
 
-                        {/* 5. Descriptions */}
                         <div className="space-y-6">
                             <div className="grid gap-2">
                                 <Label className="font-bold">Short Description</Label>
