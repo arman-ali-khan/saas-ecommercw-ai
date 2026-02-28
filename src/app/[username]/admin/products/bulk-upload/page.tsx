@@ -427,7 +427,7 @@ export default function BulkUploadPage() {
                                     placeholder="Food, Fruit, Local"
                                     className="h-12 rounded-xl"
                                 />
-                                <p className="text-[10px] text-muted-foreground italic">Separate categories with commas. Parent > Child supported.</p>
+                                <p className="text-[10px] text-muted-foreground italic">Separate categories with commas. Parent &gt; Child supported.</p>
                             </div>
                             <div className="grid gap-2">
                                 <Label className="font-bold flex items-center gap-2"><Tags className="h-4 w-4 text-primary" /> Tags</Label>
