@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { WifiOff, X } from 'lucide-react';
+import { WifiOff, X, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 
@@ -11,7 +11,9 @@ export default function OfflineWarning() {
 
   useEffect(() => {
     // Check initial status
-    setIsOffline(!window.navigator.onLine);
+    if (typeof window !== 'undefined') {
+      setIsOffline(!window.navigator.onLine);
+    }
 
     const handleOnline = () => {
       setIsOffline(false);
@@ -34,25 +36,37 @@ export default function OfflineWarning() {
   if (!isOffline || isDismissed) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-md animate-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-destructive text-destructive-foreground px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-between border-2 border-white/10 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 p-2 rounded-full animate-pulse">
-            <WifiOff className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="font-bold text-sm">ইন্টারনেট সংযোগ নেই</p>
-            <p className="text-[10px] opacity-80 uppercase font-black tracking-widest">আপনি এখন অফলাইনে আছেন</p>
-          </div>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-card text-card-foreground p-8 rounded-[2.5rem] shadow-2xl border-2 border-primary/20 max-w-sm w-full text-center space-y-6">
+        <div className="relative mx-auto w-24 h-24">
+            <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
+            <div className="relative bg-primary/10 p-6 rounded-full border-2 border-primary/20 flex items-center justify-center">
+                <WifiOff className="h-12 w-12 text-primary" />
+            </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8 rounded-full hover:bg-white/10" 
-          onClick={() => setIsDismissed(true)}
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        
+        <div className="space-y-2">
+            <h2 className="text-2xl font-black font-headline tracking-tight">ইন্টারনেট সংযোগ নেই</h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+                দুঃখিত, আপনার ডিভাইসে কোনো ইন্টারনেট সংযোগ পাওয়া যাচ্ছে না। পেজটি পুনরায় লোড করতে সংযোগটি চেক করুন।
+            </p>
+        </div>
+
+        <div className="pt-4 flex flex-col gap-3">
+            <Button 
+                onClick={() => window.location.reload()} 
+                className="h-12 rounded-xl font-bold shadow-lg shadow-primary/20 w-full"
+            >
+                <RefreshCw className="mr-2 h-4 w-4" /> পুনরায় চেষ্টা করুন
+            </Button>
+            <Button 
+                variant="ghost" 
+                onClick={() => setIsDismissed(true)}
+                className="h-10 text-muted-foreground text-xs"
+            >
+                বন্ধ করুন
+            </Button>
+        </div>
       </div>
     </div>
   );

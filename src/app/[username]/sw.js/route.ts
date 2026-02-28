@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
-export const dynamic = 'force-dynamic';
-
-export async function GET() {
+export async function GET(request: Request, { params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params;
   const config = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
@@ -13,14 +14,50 @@ export async function GET() {
   };
 
   const content = `
-    /* Standard PWA Service Worker with FCM Support (Caching Disabled) */
-    
+    /* Store Specific PWA Service Worker with Network-First Strategy */
+    const CACHE_NAME = 'ehut-store-${username}-v2';
+    const OFFLINE_URL = '/';
+
     self.addEventListener('install', (event) => {
+      event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => {
+          return cache.add(new Request(OFFLINE_URL, { cache: 'reload' }));
+        })
+      );
       self.skipWaiting();
     });
 
     self.addEventListener('activate', (event) => {
-      event.waitUntil(clients.claim());
+      event.waitUntil(
+        caches.keys().then((cacheNames) => {
+          return Promise.all(
+            cacheNames.map((cacheName) => {
+              if (cacheName !== CACHE_NAME) {
+                return caches.delete(cacheName);
+              }
+            })
+          );
+        })
+      );
+      return self.clients.claim();
+    });
+
+    self.addEventListener('fetch', (event) => {
+      if (event.request.mode === 'navigate') {
+        event.respondWith(
+          fetch(event.request)
+            .then((response) => {
+              const copy = response.clone();
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+              return response;
+            })
+            .catch(() => {
+              return caches.match(event.request).then(response => {
+                return response || caches.match(OFFLINE_URL);
+              });
+            })
+        );
+      }
     });
 
     /* Firebase Cloud Messaging Integration */
@@ -41,7 +78,6 @@ export async function GET() {
             firebase.initializeApp(firebaseConfig);
             const messaging = firebase.messaging();
 
-            // Background notification handler
             messaging.onBackgroundMessage((payload) => {
               console.log('Received background message ', payload);
               const notificationTitle = payload.notification.title || 'New Notification';
