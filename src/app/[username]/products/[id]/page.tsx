@@ -4,6 +4,8 @@ import { getProductById } from '@/lib/products';
 import ProductClientPage from './product-client-page';
 import { notFound } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 type Props = {
   params: Promise<{ id: string, username: string }>;
 };

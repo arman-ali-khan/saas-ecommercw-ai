@@ -15,6 +15,8 @@ import ThemeInitializer from '@/components/theme-initializer';
 
 const translations = { en, bn };
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({
   params,
 }: {
