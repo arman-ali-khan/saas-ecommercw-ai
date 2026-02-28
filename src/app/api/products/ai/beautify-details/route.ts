@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { beautifyProductDetails } from '@/ai/flows/generate-product-description';
@@ -53,6 +52,7 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: result.success ? 200 : 500 });
 
   } catch (err: any) {
+    console.error("Beautify Details Route Error:", err);
     return NextResponse.json({ success: false, error: err.message || 'Server error occurred' }, { status: 500 });
   }
 }

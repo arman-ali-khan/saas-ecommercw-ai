@@ -7,12 +7,12 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
-    if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+    if (!body) return NextResponse.json({ success: false, error: 'Invalid body' }, { status: 400 });
 
     const { siteId, name, description, categories, origin } = body;
 
     if (!siteId || !name) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Missing required parameters' }, { status: 400 });
     }
 
     const supabaseAdmin = createClient(
@@ -27,13 +27,13 @@ export async function POST(request: Request) {
         .single();
 
     if (!profile || profile.subscription_plan === 'free') {
-        return NextResponse.json({ error: 'এআই ডেসক্রিপশন জেনারেটর শুধুমাত্র পেইড প্ল্যানে উপলব্ধ।' }, { status: 403 });
+        return NextResponse.json({ success: false, error: 'এআই ডেসক্রিপশন জেনারেটর শুধুমাত্র পেইড প্ল্যানে উপলব্ধ।' }, { status: 403 });
     }
 
     const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ error: 'AI server is not configured.' }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'AI server is not configured.' }, { status: 500 });
     }
 
     const result = await generateProductDescription({
@@ -44,14 +44,10 @@ export async function POST(request: Request) {
       origin
     });
 
-    if (result.success) {
-      return NextResponse.json(result, { status: 200 });
-    } else {
-      return NextResponse.json({ error: result.error }, { status: 500 });
-    }
+    return NextResponse.json(result, { status: result.success ? 200 : 500 });
 
   } catch (err: any) {
     console.error('AI Generate Description Error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
