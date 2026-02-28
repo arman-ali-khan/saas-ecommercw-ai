@@ -6,6 +6,8 @@ import type { Metadata } from 'next';
 import ProductCard from '@/components/product-card';
 import type { FlashDeal } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 type Props = {
   params: Promise<{ username: string }>;
 };

@@ -5,6 +5,8 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { PageBlock } from '@/components/page-block-renderer';
 
+export const dynamic = 'force-dynamic';
+
 type Props = {
   params: Promise<{ username: string }>;
 };
