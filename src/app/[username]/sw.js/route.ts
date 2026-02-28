@@ -13,8 +13,7 @@ export async function GET() {
   };
 
   const content = `
-    /* Standard PWA Service Worker with Caching and FCM Support */
-    const CACHE_NAME = 'ehut-tenant-v1';
+    /* Standard PWA Service Worker with FCM Support (Caching Disabled) */
     
     self.addEventListener('install', (event) => {
       self.skipWaiting();
@@ -22,32 +21,6 @@ export async function GET() {
 
     self.addEventListener('activate', (event) => {
       event.waitUntil(clients.claim());
-    });
-
-    /* Cache-First Fetch Handler for PWA offline support */
-    self.addEventListener('fetch', (event) => {
-      if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
-        return;
-      }
-
-      event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-          const fetchPromise = fetch(event.request).then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseToCache = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-            }
-            return networkResponse;
-          }).catch(() => {
-              // If network fails and no cache, return null or fallback
-              return null;
-          });
-
-          return cachedResponse || fetchPromise;
-        })
-      );
     });
 
     /* Firebase Cloud Messaging Integration */
