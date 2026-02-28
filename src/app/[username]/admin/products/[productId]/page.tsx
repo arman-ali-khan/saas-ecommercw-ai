@@ -259,15 +259,15 @@ export default function ManageProductPage() {
 
   const unitOptions = useMemo(() => {
     const fromAttr = groupedAttributes['unit'] || [];
-    return fromAttr.length > 0 ? fromAttr : FALLBACK_UNITS;
+    return (fromAttr.length > 0 ? fromAttr : FALLBACK_UNITS).filter(v => v && v.trim() !== "");
   }, [groupedAttributes]);
 
   const sizeOptions = useMemo(() => {
     const fromAttr = groupedAttributes['size'] || [];
-    return fromAttr.length > 0 ? fromAttr : FALLBACK_SIZES;
+    return (fromAttr.length > 0 ? fromAttr : FALLBACK_SIZES).filter(v => v && v.trim() !== "");
   }, [groupedAttributes]);
 
-  const tagOptions = useMemo(() => groupedAttributes['tag'] || [], [groupedAttributes]);
+  const tagOptions = useMemo(() => (groupedAttributes['tag'] || []).filter(v => v && v.trim() !== ""), [groupedAttributes]);
 
   const handleBeautify = async () => {
     if (!watchedValues.name) return toast({ variant: 'destructive', title: 'আগে পণ্যের নাম প্রদান করুন' });
@@ -535,7 +535,7 @@ export default function ManageProductPage() {
                                         <FormField control={form.control} name="unit" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>একক (Unit)</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                <Select onValueChange={field.onChange} value={field.value || undefined}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="সিলেক্ট করুন" /></SelectTrigger></FormControl>
                                                     <SelectContent>{unitOptions.map(uOpt => <SelectItem key={uOpt} value={uOpt}>{uOpt}</SelectItem>)}</SelectContent>
                                                 </Select>
@@ -562,7 +562,7 @@ export default function ManageProductPage() {
                                                         <FormField control={form.control} name={`variants.${iIdx}.unitType`} render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel className="text-[10px] uppercase font-bold">একক</FormLabel>
-                                                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                                <Select onValueChange={field.onChange} value={field.value || undefined}>
                                                                     <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="কেজি" /></SelectTrigger></FormControl>
                                                                     <SelectContent>{unitOptions.map(uOpt => <SelectItem key={uOpt} value={uOpt}>{uOpt}</SelectItem>)}</SelectContent>
                                                                 </Select>
@@ -585,7 +585,7 @@ export default function ManageProductPage() {
                                                     <FormField control={form.control} name={`variants.${iIdx}.size`} render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel className="text-[10px] uppercase font-bold">সাইজ</FormLabel>
-                                                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
                                                                 <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="সিলেক্ট সাইজ" /></SelectTrigger></FormControl>
                                                                 <SelectContent>{sizeOptions.map(sOpt => <SelectItem key={sOpt} value={sOpt}>{sOpt}</SelectItem>)}</SelectContent>
                                                             </Select>
@@ -645,7 +645,7 @@ export default function ManageProductPage() {
                                         </div>
                                         <div className="flex gap-2">
                                             <div className="relative flex-grow">
-                                                <Input 
+                                                <input 
                                                     placeholder="নতুন ট্যাগ লিখুন..." 
                                                     value={tagInput} 
                                                     onChange={(e) => setTagInput(e.target.value)} 
@@ -655,7 +655,7 @@ export default function ManageProductPage() {
                                                             handleAddTag(tagInput.trim(), currentTags, field.onChange);
                                                         }
                                                     }}
-                                                    className="h-11 pr-10"
+                                                    className="w-full h-11 pr-10 border rounded-md px-3 bg-background"
                                                 />
                                                 <Button 
                                                     type="button" 
@@ -867,7 +867,7 @@ export default function ManageProductPage() {
                         <p className="text-xs text-muted-foreground hidden sm:block">
                             {(watchedValues.images || []).length}টি ছবি সিলেক্ট করা আছে
                         </p>
-                        <Button className="flex-1 sm:flex-none h-11 px-8 rounded-xl font-bold" onClick={() => setIsQuickViewOpen(false)}>
+                        <Button className="flex-1 sm:flex-none h-11 px-8 rounded-xl font-bold" onClick={() => setIsPickerOpen(false)}>
                             সম্পন্ন করুন
                         </Button>
                     </div>

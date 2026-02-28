@@ -117,7 +117,7 @@ export default function CategoriesAdminPage() {
 
     const form = useForm<CategoryFormData>({
         resolver: zodResolver(categorySchema),
-        defaultValues: { name: '', description: '', icon: 'Package', image_url: '', card_color: '', parent_id: '' },
+        defaultValues: { name: '', description: '', icon: 'Package', image_url: '', card_color: '', parent_id: 'none' },
     });
 
     const fetchCategories = useCallback(async (force = false) => {
@@ -187,10 +187,10 @@ export default function CategoriesAdminPage() {
                     icon: selectedCategory.icon || 'Package',
                     image_url: selectedCategory.image_url || '',
                     card_color: selectedCategory.card_color || '',
-                    parent_id: selectedCategory.parent_id?.toString() || ''
+                    parent_id: selectedCategory.parent_id?.toString() || 'none'
                 });
             } else {
-                form.reset({ name: '', description: '', icon: 'Package', image_url: '', card_color: '', parent_id: '' });
+                form.reset({ name: '', description: '', icon: 'Package', image_url: '', card_color: '', parent_id: 'none' });
             }
         }
     }, [isFormOpen, selectedCategory, form]);
@@ -199,6 +199,11 @@ export default function CategoriesAdminPage() {
         if (!user) return;
         setIsSubmitting(true);
 
+        const payload = {
+            ...data,
+            parent_id: data.parent_id === 'none' ? '' : data.parent_id
+        };
+
         try {
             const response = await fetch('/api/categories/save', {
                 method: 'POST',
@@ -206,7 +211,7 @@ export default function CategoriesAdminPage() {
                 body: JSON.stringify({ 
                     id: selectedCategory?.id,
                     siteId: user.id,
-                    ...data 
+                    ...payload
                 }),
             });
 
@@ -551,7 +556,7 @@ export default function CategoriesAdminPage() {
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent className="z-[110]">
-                                                        <SelectItem value="">None (Top Level)</SelectItem>
+                                                        <SelectItem value="none">None (Top Level)</SelectItem>
                                                         {parentOptions.map(p => (
                                                             <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
                                                         ))}
@@ -763,7 +768,7 @@ export default function CategoriesAdminPage() {
                                     size="icon" 
                                     className="h-9 w-9 rounded-lg" 
                                     disabled={pickerPage >= totalPickerPages}
-                                    onClick={() => setPickerPage(p => p + 1)}
+                                    onClick={() => setPickerPage(p => + 1)}
                                 >
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>

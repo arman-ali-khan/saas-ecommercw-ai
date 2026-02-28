@@ -8,8 +8,8 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
  
   // 1. SKIP REWRITES FOR SYSTEM PATHS AND ALL API ROUTES
-  // favicon.ico and robots.txt are served globally or handled by specific routes.
-  const globalSystemFiles = ['/sitemap.xml', '/robots.txt', '/favicon.ico'];
+  // Include firebase messaging service worker in global system files
+  const globalSystemFiles = ['/sitemap.xml', '/robots.txt', '/favicon.ico', '/firebase-messaging-sw.js'];
   
   if (
     url.pathname.startsWith('/api') || 
@@ -65,7 +65,6 @@ export async function middleware(request: NextRequest) {
   }
 
   // 3. Rewrite to dynamic route /[username]/...
-  // NOTE: manifest.json and sw.js are now REWRITTEN to be store-specific
   const targetPath = `/${username}${url.pathname}${url.search}`;
   return NextResponse.rewrite(new URL(targetPath, request.url));
 }
