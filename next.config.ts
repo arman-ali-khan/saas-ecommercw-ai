@@ -8,7 +8,8 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    ppr: 'incremental',
+    // PPR is disabled because it requires Next.js canary version
+    // ppr: 'incremental',
     // Optimize heavy library imports to reduce bundle size
     optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion', 'date-fns'],
   },
