@@ -47,15 +47,7 @@ const nextConfig: NextConfig = {
         hostname: 'woocommercecore.mystagingwebsite.com',
         port: '',
         pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**', // Allow any domain for remote images
-      },
-      {
-        protocol: 'http',
-        hostname: '**', // Allow any domain for remote images
-      },
+      }
     ],
   },
 };
