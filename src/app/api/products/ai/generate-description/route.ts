@@ -1,14 +1,18 @@
-
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateProductDescription } from '@/ai/flows/generate-product-description';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
-    const { siteId, name, description, categories, origin } = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+
+    const { siteId, name, description, categories, origin } = body;
 
     if (!siteId || !name) {
-      return NextResponse.json({ error: 'Site ID and Product Name are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
     const supabaseAdmin = createClient(
@@ -16,7 +20,6 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 1. Plan Restriction Check (Only Paid users can use AI)
     const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('subscription_plan')
@@ -24,16 +27,13 @@ export async function POST(request: Request) {
         .single();
 
     if (!profile || profile.subscription_plan === 'free') {
-        return NextResponse.json({ 
-            error: 'এআই ফিচারটি শুধুমাত্র প্রিমিয়াম ইউজারদের জন্য। দয়া করে আপনার প্ল্যান আপগ্রেড করুন।' 
-        }, { status: 403 });
+        return NextResponse.json({ error: 'এআই ডেসক্রিপশন জেনারেটর শুধুমাত্র পেইড প্ল্যানে উপলব্ধ।' }, { status: 403 });
     }
 
-    // 2. Use Global AI Key from .env
     const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ error: 'AI capabilities are not configured on the server. Please contact support.' }, { status: 500 });
+      return NextResponse.json({ error: 'AI server is not configured.' }, { status: 500 });
     }
 
     const result = await generateProductDescription({
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     }
 
   } catch (err: any) {
-    console.error('AI Generate Description API Error:', err);
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    console.error('AI Generate Description Error:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

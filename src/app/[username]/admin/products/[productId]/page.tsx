@@ -286,13 +286,12 @@ export default function ManageProductPage() {
         });
         
         const contentType = response.headers.get("content-type");
-        let result;
-        if (contentType && contentType.includes("application/json")) {
-            result = await response.json();
-        } else {
+        if (!contentType || !contentType.includes("application/json")) {
             const errorText = await response.text();
             throw new Error(errorText || "Server returned an unexpected response format");
         }
+
+        const result = await response.json();
 
         if (response.ok) {
             form.setValue('name', result.name, { shouldValidate: true, shouldDirty: true });
@@ -307,7 +306,7 @@ export default function ManageProductPage() {
         }
     } catch (e: any) { 
         console.error("Beautify request failed:", e);
-        toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message }); 
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: e.message || 'সার্ভারে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।' }); 
     } finally { 
         setIsBeautifying(false); 
     }
