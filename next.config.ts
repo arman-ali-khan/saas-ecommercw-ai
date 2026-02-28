@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
+    // Fix for cross-origin requests in Cloud Workstations / Firebase Studio environment
+    allowedDevOrigins: [
+      '9000-firebase-studio-1770463079853.cluster-aic6jbiihrhmyrqafasatvzbwe.cloudworkstations.dev',
+      '*.cloudworkstations.dev'
+    ],
     // PPR is disabled because it requires Next.js canary version
     // ppr: 'incremental',
     // Optimize heavy library imports to reduce bundle size
