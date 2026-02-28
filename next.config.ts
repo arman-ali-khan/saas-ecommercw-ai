@@ -14,8 +14,7 @@ const nextConfig: NextConfig = {
     '*.cloudworkstations.dev'
   ] as any,
   experimental: {
-<<<<<<< HEAD
-    ppr: 'incremental',
+    // Optimize heavy library imports to reduce bundle size
     optimizePackageImports: [
       'lucide-react',
       'recharts',
@@ -24,10 +23,6 @@ const nextConfig: NextConfig = {
       'clsx',
       'tailwind-merge'
     ],
-=======
-    // Optimize heavy library imports to reduce bundle size
-    optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion', 'date-fns'],
->>>>>>> 014ea8e640b02e8dad251a05e704584869867d45
   },
   images: {
     remotePatterns: [
