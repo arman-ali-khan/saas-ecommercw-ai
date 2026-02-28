@@ -107,7 +107,7 @@ const productFormSchema = z.object({
     price: z.preprocess((val) => (val === '' || val == null ? 0 : parseFloat(String(val))), z.number().min(0).default(0)),
     stock: z.preprocess((val) => (val === '' || val == null ? 0 : parseInt(String(val), 10)), z.number().min(0).default(0)),
   })).optional(),
-  custom_attributes: z.record(z.array(z.string())).optional().default({}),
+  custom_attributes: z.record(z.array(z.string()).optional().default([])).optional().default({}),
 });
 
 type ProductFormData = z.infer<typeof productFormSchema>;
@@ -295,12 +295,12 @@ export default function ManageProductPage() {
         }
 
         if (response.ok) {
-            form.setValue('name', result.name, { shouldValidate: true, shouldDirty: true });
-            form.setValue('description', result.description, { shouldValidate: true, shouldDirty: true });
-            form.setValue('story', result.story, { shouldValidate: true, shouldDirty: true });
-            form.setValue('origin', result.origin, { shouldValidate: true, shouldDirty: true });
-            form.setValue('tags', result.tags || [], { shouldValidate: true, shouldDirty: true });
-            form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
+            form.setValue('name', result.name || watchedValues.name, { shouldValidate: true, shouldDirty: true });
+            form.setValue('description', result.description || watchedValues.description, { shouldValidate: true, shouldDirty: true });
+            form.setValue('story', result.story || watchedValues.story, { shouldValidate: true, shouldDirty: true });
+            form.setValue('origin', result.origin || watchedValues.origin, { shouldValidate: true, shouldDirty: true });
+            if (Array.isArray(result.tags)) form.setValue('tags', result.tags, { shouldValidate: true, shouldDirty: true });
+            if (result.longDescription) form.setValue('long_description', result.longDescription, { shouldValidate: true, shouldDirty: true });
             toast({ title: 'SEO Beautification সম্পন্ন!' });
         } else { 
             throw new Error(result.error || "এআই রিকোয়েস্ট ব্যর্থ হয়েছে।"); 
@@ -565,7 +565,7 @@ export default function ManageProductPage() {
                                                         <FormField control={form.control} name={`variants.${iIdx}.unitType`} render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel className="text-[10px] uppercase font-bold">একক</FormLabel>
-                                                                <Select onValueChange={field.onChange} value={field.value || (unitOptions[0] || 'none')}>
+                                                                <Select onValueChange={field.onChange} value={field.value || (unitOptions[0] || 'KG')}>
                                                                     <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="কেজি" /></SelectTrigger></FormControl>
                                                                     <SelectContent className="z-[110]">
                                                                         {unitOptions.filter(Boolean).map(uOpt => <SelectItem key={uOpt} value={uOpt}>{uOpt}</SelectItem>)}
@@ -591,7 +591,7 @@ export default function ManageProductPage() {
                                                     <FormField control={form.control} name={`variants.${iIdx}.size`} render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel className="text-[10px] uppercase font-bold">সাইজ</FormLabel>
-                                                            <Select onValueChange={field.onChange} value={field.value || (sizeOptions[0] || 'none')}>
+                                                            <Select onValueChange={field.onChange} value={field.value || (sizeOptions[0] || 'M')}>
                                                                 <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="সিলেক্ট সাইজ" /></SelectTrigger></FormControl>
                                                                 <SelectContent className="z-[110]">
                                                                     {sizeOptions.filter(Boolean).map(sOpt => <SelectItem key={sOpt} value={sOpt}>{sOpt}</SelectItem>)}
