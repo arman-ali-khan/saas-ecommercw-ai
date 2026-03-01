@@ -4,21 +4,17 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 /**
- * @fileOverview store-level robots.txt generator.
+ * @fileOverview platform-level robots.txt generator.
  */
 
-export async function GET(request: Request, { params }: { params: Promise<{ username: string }> }) {
-    // Await params to satisfy Next.js 15 requirements
-    await params;
-    
-    const host = request.headers.get('host');
-    const protocol = host?.includes('localhost') ? 'http' : 'https';
+export async function GET(request: Request) {
+    const host = request.headers.get('host') || 'schoolbd.top';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
 
     const content = `User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /profile/
+Disallow: /dashboard/
 Sitemap: ${baseUrl}/sitemap.xml
 `;
 

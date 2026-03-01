@@ -8,8 +8,8 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
  
   // 1. SKIP REWRITES FOR SYSTEM PATHS AND ALL API ROUTES
-  // Include firebase messaging service worker in global system files
-  const globalSystemFiles = ['/sitemap.xml', '/robots.txt', '/favicon.ico', '/firebase-messaging-sw.js'];
+  // Removed sitemap.xml and robots.txt from early skip to allow them to be rewritten for subdomains
+  const globalSystemFiles = ['/favicon.ico', '/firebase-messaging-sw.js'];
   
   if (
     url.pathname.startsWith('/api') || 
@@ -28,6 +28,7 @@ export async function middleware(request: NextRequest) {
   const isDevHost = hostWithoutPort === 'localhost' || hostWithoutPort === '127.0.0.1' || hostWithoutPort.includes('workstation');
   const isRoot = hostWithoutPort === rootDomain || hostWithoutPort === `www.${rootDomain}`;
 
+  // If it's the root domain, serve the platform-level files (from src/app/)
   if (isRoot || (isDevHost && !hostWithoutPort.endsWith(`.${rootDomain}`))) {
     return NextResponse.next();
   }
@@ -65,6 +66,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 3. Rewrite to dynamic route /[username]/...
+  // This will now catch /sitemap.xml and /robots.txt for subdomains
   const targetPath = `/${username}${url.pathname}${url.search}`;
   return NextResponse.rewrite(new URL(targetPath, request.url));
 }
