@@ -16,6 +16,7 @@ function extractJson(text: string) {
         
         const jsonStr = text.substring(firstBrace, lastBrace + 1);
         // Clean common problematic characters from AI output
+        // We replace newlines inside strings with literal \n to maintain JSON validity
         const cleanedStr = jsonStr.replace(/\n/g, " ").replace(/\r/g, " ").replace(/\t/g, " ");
         return JSON.parse(cleanedStr);
     } catch (e) {
@@ -42,7 +43,7 @@ async function callOpenRouter(apiKey: string, prompt: string) {
             messages: [
                 { 
                     role: "system", 
-                    content: "You are a professional product content optimizer. You must respond ONLY with a valid JSON object. Do not include markdown code blocks, explanations, or any text before or after the JSON." 
+                    content: "You are a professional product content optimizer. You must respond ONLY with a valid JSON object. Do not include markdown code blocks, backticks, explanations, or any text before or after the JSON." 
                 },
                 { role: "user", content: prompt }
             ],
@@ -121,12 +122,12 @@ export async function beautifyProductDetails(input: any) {
 
         Response Format:
         {
-          \"name\": \"...\",
-          \"description\": \"...\",
-          \"story\": \"...\",
-          \"origin\": \"...\",
-          \"tags\": [\"tag1\", \"tag2\"],
-          \"longDescription\": { \"type\": \"doc\", \"content\": [...] }
+          "name": "...",
+          "description": "...",
+          "story": "...",
+          "origin": "...",
+          "tags": ["tag1", "tag2"],
+          "longDescription": { "type": "doc", "content": [...] }
         }`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);

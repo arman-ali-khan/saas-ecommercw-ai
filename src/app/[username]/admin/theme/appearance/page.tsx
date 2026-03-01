@@ -25,9 +25,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Palette, Sun, Moon } from 'lucide-react';
+import { Loader2, Palette, Sun, Moon, Type } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const appearanceSchema = z.object({
   theme_mode: z.enum(['light', 'dark']).default('light'),
@@ -51,6 +52,17 @@ const appearanceSchema = z.object({
 });
 
 type AppearanceFormData = z.infer<typeof appearanceSchema>;
+
+const FONT_OPTIONS = [
+    { label: 'Poppins (English Standard)', value: 'Poppins', type: 'en' },
+    { label: 'Hind Siliguri (Bengali Clean)', value: 'Hind Siliguri', type: 'bn' },
+    { label: 'Noto Sans Bengali (Formal)', value: 'Noto Sans Bengali', type: 'bn' },
+    { label: 'Lato (English Sans)', value: 'Lato', type: 'en' },
+    { label: 'Roboto (English Modern)', value: 'Roboto', type: 'en' },
+    { label: 'Montserrat (Bold Headlines)', value: 'Montserrat', type: 'en' },
+    { label: 'Open Sans (English Open)', value: 'Open Sans', type: 'en' },
+    { label: 'Orbitron (Futuristic)', value: 'Orbitron', type: 'en' },
+];
 
 const hexToHslString = (hexValue: string) => {
     let cleanHex = hexValue.replace(/^#/, '');
@@ -120,13 +132,6 @@ const BRAND_PALETTES = [
     { name: 'Amazon', colors: { theme_primary: '36 100% 50%', theme_primary_foreground: '0 0% 100%', theme_secondary: '215 28% 19%', theme_secondary_foreground: '0 0% 100%', theme_accent: '36 100% 60%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '215 28% 10%', theme_card: '0 0% 98%', theme_card_foreground: '215 28% 10%', theme_muted: '215 28% 95%', theme_muted_foreground: '215 28% 40%', theme_border: '215 28% 90%', theme_input: '215 28% 90%', theme_destructive: '0 100% 40%' } },
     { name: 'Daraz', colors: { theme_primary: '20 95% 50%', theme_primary_foreground: '0 0% 100%', theme_secondary: '214 100% 21%', theme_secondary_foreground: '0 0% 100%', theme_accent: '214 100% 35%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '214 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '214 100% 10%', theme_muted: '214 100% 95%', theme_muted_foreground: '214 100% 40%', theme_border: '214 100% 90%', theme_input: '214 100% 90%', theme_destructive: '0 100% 40%' } },
     { name: 'AliExpress', colors: { theme_primary: '11 97% 46%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 10%', theme_secondary_foreground: '0 0% 100%', theme_accent: '0 100% 64%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 15%', theme_card: '0 0% 98%', theme_card_foreground: '0 0% 15%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'eBay', colors: { theme_primary: '210 100% 31%', theme_primary_foreground: '0 0% 100%', theme_secondary: '142 71% 45%', theme_secondary_foreground: '0 0% 100%', theme_accent: '48 100% 50%', theme_accent_foreground: '0 0% 10%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 98%', theme_card_foreground: '0 0% 10%', theme_muted: '0 0% 95%', theme_muted_foreground: '0 0% 40%', theme_border: '0 0% 90%', theme_input: '0 0% 90%', theme_destructive: '358 76% 55%' } },
-    { name: 'Walmart', colors: { theme_primary: '207 100% 40%', theme_primary_foreground: '0 0% 100%', theme_secondary: '46 100% 56%', theme_secondary_foreground: '0 0% 10%', theme_accent: '207 100% 50%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '207 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '207 100% 10%', theme_muted: '207 100% 95%', theme_muted_foreground: '207 100% 40%', theme_border: '207 100% 90%', theme_input: '207 100% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'Etsy', colors: { theme_primary: '19 88% 53%', theme_primary_foreground: '0 0% 100%', theme_secondary: '168 36% 25%', theme_secondary_foreground: '0 0% 100%', theme_accent: '19 88% 65%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '19 88% 10%', theme_card: '0 0% 98%', theme_card_foreground: '19 88% 10%', theme_muted: '19 88% 95%', theme_muted_foreground: '19 88% 40%', theme_border: '19 88% 90%', theme_input: '19 88% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'IKEA', colors: { theme_primary: '214 100% 36%', theme_primary_foreground: '0 0% 100%', theme_secondary: '51 100% 55%', theme_secondary_foreground: '0 0% 10%', theme_accent: '214 100% 45%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '214 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '214 100% 10%', theme_muted: '214 100% 95%', theme_muted_foreground: '214 100% 40%', theme_border: '214 100% 90%', theme_input: '214 100% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'Chaldal', colors: { theme_primary: '142 71% 45%', theme_primary_foreground: '0 0% 100%', theme_secondary: '200 100% 25%', theme_secondary_foreground: '0 0% 100%', theme_accent: '142 71% 60%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '200 100% 10%', theme_card: '0 0% 98%', theme_card_foreground: '200 100% 10%', theme_muted: '142 71% 95%', theme_muted_foreground: '142 71% 40%', theme_border: '142 71% 90%', theme_input: '142 71% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'Pickaboo', colors: { theme_primary: '262 83% 58%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 10%', theme_secondary_foreground: '0 0% 100%', theme_accent: '262 83% 70%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '0 0% 10%', theme_card: '0 0% 98%', theme_card_foreground: '0 0% 10%', theme_muted: '262 83% 95%', theme_muted_foreground: '262 83% 40%', theme_border: '262 83% 90%', theme_input: '262 83% 90%', theme_destructive: '0 100% 40%' } },
-    { name: 'Xbox', colors: { theme_primary: '120 77% 28%', theme_primary_foreground: '0 0% 100%', theme_secondary: '0 0% 10%', theme_secondary_foreground: '0 0% 100%', theme_accent: '120 77% 40%', theme_accent_foreground: '0 0% 100%', theme_background: '0 0% 100%', theme_foreground: '120 77% 5%', theme_card: '0 0% 98%', theme_card_foreground: '120 77% 5%', theme_muted: '120 77% 95%', theme_muted_foreground: '120 77% 40%', theme_border: '120 77% 90%', theme_input: '120 77% 90%', theme_destructive: '0 100% 40%' } },
 ];
 
 export default function AppearanceManagerPage() {
@@ -137,7 +142,11 @@ export default function AppearanceManagerPage() {
 
   const form = useForm<AppearanceFormData>({
     resolver: zodResolver(appearanceSchema),
-    defaultValues: { theme_mode: 'light', font_primary: 'Poppins', font_secondary: 'Poppins' },
+    defaultValues: { 
+        theme_mode: 'light', 
+        font_primary: 'Poppins', 
+        font_secondary: 'Poppins' 
+    },
   });
 
   const fetchAppearance = useCallback(async () => {
@@ -182,9 +191,16 @@ export default function AppearanceManagerPage() {
     if (!user) return;
     setIsSubmitting(true);
     try {
-        const res = await fetch('/api/appearance/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: user.id, ...values }) });
-        if (res.ok) toast({ title: 'Appearance settings saved!' });
-        else throw new Error('Save failed');
+        const res = await fetch('/api/appearance/save', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ siteId: user.id, ...values }) 
+        });
+        if (res.ok) {
+            toast({ title: 'Appearance settings saved!' });
+            // Refresh to apply fonts globally if needed
+            window.location.reload();
+        } else throw new Error('Save failed');
     } catch (e: any) { toast({ variant: 'destructive', title: 'Error saving appearance', description: e.message }); } finally { setIsSubmitting(false); }
   }
 
@@ -222,6 +238,68 @@ export default function AppearanceManagerPage() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          
+          <Card className="border-2">
+            <CardHeader className="bg-muted/30">
+                <CardTitle className="flex items-center gap-2"><Type className="h-5 w-5 text-primary" /> Typography (Fonts)</CardTitle>
+                <CardDescription>Choose the fonts for your website. We support both English and Bengali.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+                <div className="grid sm:grid-cols-2 gap-8">
+                    <FormField
+                        control={form.control}
+                        name="font_primary"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="font-bold">Primary Font (Body Text)</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger className="h-12 rounded-xl">
+                                        <SelectValue placeholder="Select Font" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="z-[110]">
+                                    {FONT_OPTIONS.map(opt => (
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                            <span className={opt.type === 'bn' ? 'font-bold' : ''}>{opt.label}</span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormDescription>Used for descriptions, paragraphs, and most text.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="font_secondary"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="font-bold">Secondary Font (Headlines)</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger className="h-12 rounded-xl">
+                                        <SelectValue placeholder="Select Font" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="z-[110]">
+                                    {FONT_OPTIONS.map(opt => (
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                            <span className={opt.type === 'bn' ? 'font-bold' : ''}>{opt.label}</span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormDescription>Used for titles, buttons, and headings.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-2">
             <CardHeader className="bg-muted/30">
                 <CardTitle className="flex items-center gap-2">
