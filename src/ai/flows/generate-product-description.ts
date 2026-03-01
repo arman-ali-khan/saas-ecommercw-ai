@@ -38,7 +38,7 @@ async function callOpenRouter(apiKey: string, prompt: string) {
             "X-Title": "eHut SaaS AI"
         },
         body: JSON.stringify({
-            model: "google/gemini-2.0-flash-lite-preview-02-05:free",
+            model: "arcee-ai/trinity-large-preview:free",
             messages: [
                 { 
                     role: "system", 
@@ -117,16 +117,16 @@ export async function beautifyProductDetails(input: any) {
         - story: Emotional brand/product story
         - origin: Authentic origin info
         - tags: Array of 5 relevant SEO tags
-        - longDescription: A Tiptap JSON object (type: "doc") with structured headings and bullet points.
+        - longDescription: A Tiptap JSON object (type: \"doc\") with structured headings and bullet points.
 
         Response Format:
         {
-          "name": "...",
-          "description": "...",
-          "story": "...",
-          "origin": "...",
-          "tags": ["tag1", "tag2"],
-          "longDescription": { "type": "doc", "content": [...] }
+          \"name\": \"...\",
+          \"description\": \"...\",
+          \"story\": \"...\",
+          \"origin\": \"...\",
+          \"tags\": [\"tag1\", \"tag2\"],
+          \"longDescription\": { \"type\": \"doc\", \"content\": [...] }
         }`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);
