@@ -2,18 +2,19 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { addMinutes } from 'date-fns';
+import { decrypt } from '@/lib/encryption';
 
 /**
- * @fileOverview API to generate a 6-digit OTP for phone verification.
- * Saves OTP to customer_otps table and potentially triggers an external SMS gateway.
+ * @fileOverview API to generate a 6-digit OTP for phone or email verification.
+ * Supports both registration and password reset flows.
  */
 
 export async function POST(request: Request) {
   try {
-    const { phone, siteId } = await request.json();
+    const { identifier, type, siteId, purpose } = await request.json();
 
-    if (!phone || !siteId) {
-      return NextResponse.json({ error: 'ফোন নম্বর এবং সাইট আইডি প্রয়োজন।' }, { status: 400 });
+    if (!identifier || !siteId || !type) {
+      return NextResponse.json({ error: 'তথ্য অসম্পূর্ণ। পুনরায় চেষ্টা করুন।' }, { status: 400 });
     }
 
     const supabaseAdmin = createClient(
@@ -21,40 +22,47 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 1. Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = addMinutes(new Date(), 5); // 5 minute expiry
+    // 1. If purpose is password_reset, verify user exists first
+    if (purpose === 'password_reset') {
+        const { data: users } = await supabaseAdmin
+            .from('customer_profiles')
+            .select('email, phone')
+            .eq('site_id', siteId);
+        
+        const userExists = users?.some(u => {
+            const val = type === 'email' ? decrypt(u.email) : decrypt(u.phone);
+            return val.toLowerCase() === identifier.toLowerCase().trim();
+        });
 
-    // 2. Save OTP to DB
-    const { error: otpError } = await supabaseAdmin
-      .from('customer_otps')
-      .insert({
+        if (!userExists) {
+            return NextResponse.json({ error: 'এই ঠিকানায় কোনো অ্যাকাউন্ট পাওয়া যায়নি।' }, { status: 404 });
+        }
+    }
+
+    // 2. Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = addMinutes(new Date(), 10); // 10 minute expiry
+
+    // 3. Save OTP to DB
+    const insertData: any = {
         site_id: siteId,
-        phone: phone,
         otp: otp,
         expires_at: expiresAt.toISOString()
-      });
+    };
+
+    if (type === 'email') insertData.email = identifier.toLowerCase().trim();
+    else insertData.phone = identifier.trim();
+
+    const { error: otpError } = await supabaseAdmin
+      .from('customer_otps')
+      .insert(insertData);
 
     if (otpError) throw otpError;
 
-    // 3. Optional: Trigger External SMS Gateway (if admin has SMS enabled)
-    try {
-        const { data: profile } = await supabaseAdmin
-          .from('profiles')
-          .select('subscription_plan, store_settings(sms_notifications_enabled, admin_sms_number)')
-          .eq('id', siteId)
-          .single();
-
-        const settings = Array.isArray(profile?.store_settings) ? profile?.store_settings[0] : profile?.store_settings;
-
-        if (profile?.subscription_plan !== 'free' && settings?.sms_notifications_enabled) {
-            // Logic to call your SMS provider (e.g. Infobip, Twilio, or custom)
-            // Example message: "Your OTP for registration is: 123456"
-            console.log(`[SMS SEND] To: ${phone}, OTP: ${otp}`);
-        }
-    } catch (e) {
-        console.warn("SMS sending logic skipped or failed:", e);
-    }
+    // 4. Send Notification (Simulated/Actual)
+    console.log(`[OTP GENERATED] To: ${identifier}, OTP: ${otp}`);
+    
+    // In production, trigger Email API or SMS Gateway here.
 
     return NextResponse.json({ success: true, message: 'ওটিপি পাঠানো হয়েছে।' }, { status: 200 });
 
