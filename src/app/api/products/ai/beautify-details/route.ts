@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { beautifyProductDetails } from '@/ai/flows/generate-product-description';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Increase timeout to 60 seconds
 
 export async function POST(request: Request) {
   try {

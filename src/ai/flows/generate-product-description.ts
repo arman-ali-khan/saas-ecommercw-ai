@@ -5,7 +5,6 @@
 function extractJson(text: string) {
     if (!text) return null;
     try {
-        // Find the first '{' and the last '}'
         const firstBrace = text.indexOf('{');
         const lastBrace = text.lastIndexOf('}');
         
@@ -15,8 +14,6 @@ function extractJson(text: string) {
         }
         
         const jsonStr = text.substring(firstBrace, lastBrace + 1);
-        // Clean common problematic characters from AI output
-        // We replace newlines inside strings with literal \n to maintain JSON validity
         const cleanedStr = jsonStr.replace(/\n/g, " ").replace(/\r/g, " ").replace(/\t/g, " ");
         return JSON.parse(cleanedStr);
     } catch (e) {
@@ -43,12 +40,12 @@ async function callOpenRouter(apiKey: string, prompt: string) {
             messages: [
                 { 
                     role: "system", 
-                    content: "You are a professional product content optimizer. You must respond ONLY with a valid JSON object. Do not include markdown code blocks, backticks, explanations, or any text before or after the JSON." 
+                    content: "You are a professional product content optimizer. You respond ONLY with raw JSON. No markdown blocks, no backticks, no text before or after." 
                 },
                 { role: "user", content: prompt }
             ],
-            temperature: 0.3,
-            max_tokens: 4096
+            temperature: 0.2,
+            max_tokens: 3000
         })
     });
 
@@ -69,16 +66,16 @@ export async function generateProductDescription(input: any) {
         const { apiKey, name, description, categories, origin } = input;
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
-        const prompt = `Task: Generate a high-conversion product description for "${name}" in Bengali.
+        const prompt = `Task: Generate a conversion-optimized Tiptap product description for "${name}" in Bengali.
         Context: Short Desc: ${description || ''}, Origin: ${origin || 'Bangladesh'}, Categories: ${categoryString}
         
-        Return ONLY a JSON object with this exact structure:
+        Return ONLY this JSON structure:
         {
           "longDescription": {
             "type": "doc",
             "content": [
-              { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "Heading in Bengali" }] },
-              { "type": "paragraph", "content": [{ "type": "text", "text": "Paragraph text in Bengali" }] }
+              { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "Bengali Title" }] },
+              { "type": "paragraph", "content": [{ "type": "text", "text": "Bengali Description..." }] }
             ]
           }
         }`;
@@ -105,27 +102,15 @@ export async function beautifyProductDetails(input: any) {
         const { apiKey, name, description, story, origin, categories } = input;
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
-        const prompt = `Task: Optimize the following product details for SEO and conversion in Bengali language.
-        Product: ${name}
-        Short Description: ${description || 'N/A'}
-        Origin: ${origin || 'N/A'}
-        Story: ${story || 'N/A'}
-        Categories: ${categoryString}
+        const prompt = `Task: SEO optimize product details for "${name}" in Bengali.
+        Context: Desc: ${description || ''}, Story: ${story || ''}, Origin: ${origin || ''}, Categories: ${categoryString}
 
-        Return ONLY a JSON object with these fields:
-        - name: Catchy title
-        - description: Persuasive short summary (max 150 chars)
-        - story: Emotional brand/product story
-        - origin: Authentic origin info
-        - tags: Array of 5 relevant SEO tags
-        - longDescription: A Tiptap JSON object (type: \"doc\") with structured headings and bullet points.
-
-        Response Format:
+        Return ONLY this JSON structure (max 5 tags):
         {
-          "name": "...",
-          "description": "...",
-          "story": "...",
-          "origin": "...",
+          "name": "Catchy Bengali Title",
+          "description": "Short summary",
+          "story": "Brand story",
+          "origin": "Origin info",
           "tags": ["tag1", "tag2"],
           "longDescription": { "type": "doc", "content": [...] }
         }`;
@@ -133,7 +118,7 @@ export async function beautifyProductDetails(input: any) {
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
         
-        if (!resultJson) throw new Error("AI output parsing failed. AI response was not valid JSON.");
+        if (!resultJson) throw new Error("AI output parsing failed.");
         
         return {
             success: true,
