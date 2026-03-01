@@ -33,7 +33,10 @@ export async function POST(request: Request) {
         site_id: siteId,
         seo_title: seoData.seoTitle,
         seo_description: seoData.seoDescription,
-        seo_keywords: seoData.seoKeywords
+        seo_keywords: seoData.seoKeywords,
+        google_analytics_id: seoData.google_analytics_id,
+        facebook_pixel_id: seoData.facebook_pixel_id,
+        google_search_console_tag: seoData.google_search_console_tag
       }, { onConflict: 'site_id' });
 
     if (error) throw error;

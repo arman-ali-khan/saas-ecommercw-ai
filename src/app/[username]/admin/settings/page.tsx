@@ -31,7 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
-import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle, Wallet, ShoppingBag, Smartphone } from 'lucide-react';
+import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle, Wallet, ShoppingBag, Smartphone, Image as ImageIcon, SearchCode, Activity, Share2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -51,6 +51,7 @@ import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Separator } from '@/components/ui/separator';
 
 const availableBankingMethods = [
   { id: 'bkash', label: 'বিকাশ' },
@@ -68,6 +69,9 @@ const seoSchema = z.object({
     seoTitle: z.string().optional(),
     seoDescription: z.string().optional(),
     seoKeywords: z.string().optional(),
+    google_analytics_id: z.string().optional(),
+    facebook_pixel_id: z.string().optional(),
+    google_search_console_tag: z.string().optional(),
 });
 
 const paymentSchema = z.object({
@@ -135,7 +139,14 @@ function SettingsContent() {
 
   const seoForm = useForm<z.infer<typeof seoSchema>>({
     resolver: zodResolver(seoSchema),
-    defaultValues: { seoTitle: '', seoDescription: '', seoKeywords: ''},
+    defaultValues: { 
+        seoTitle: '', 
+        seoDescription: '', 
+        seoKeywords: '',
+        google_analytics_id: '',
+        facebook_pixel_id: '',
+        google_search_console_tag: '',
+    },
   });
 
   const paymentForm = useForm<z.infer<typeof paymentSchema>>({
@@ -180,6 +191,9 @@ function SettingsContent() {
                 seoTitle: settings.seo_title || '',
                 seoDescription: settings.seo_description || '',
                 seoKeywords: settings.seo_keywords || '',
+                google_analytics_id: settings.google_analytics_id || '',
+                facebook_pixel_id: settings.facebook_pixel_id || '',
+                google_search_console_tag: settings.google_search_console_tag || '',
             });
 
             paymentForm.reset({
@@ -311,41 +325,6 @@ function SettingsContent() {
     }
   }
 
-  async function handleSeoRequest() {
-    if (!user) return;
-    setIsSubmitting(true);
-    try {
-        const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('site_id', user.id);
-        const { error } = await supabase.from('seo_requests').insert({
-            site_id: user.id,
-            status: 'pending',
-            product_count: count || 0,
-            user_name: user.fullName,
-            user_email: user.email,
-            site_domain: user.domain,
-            site_name: user.siteName,
-        });
-        if(error) throw error;
-        await fetch('/api/notifications/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                recipientType: 'admin',
-                siteId: user.id,
-                message: `New SEO Review Request from "${user.siteName}" (@${user.domain}).`,
-                link: '/dashboard/seo-requests',
-            }),
-        });
-        toast({ title: 'SEO request submitted!' });
-        const { data } = await supabase.from('seo_requests').select('*').eq('site_id', user.id).order('created_at', { ascending: false }).limit(1).single();
-        if (data) setSeoRequest(data as SeoRequest);
-    } catch (err: any) {
-        toast({ variant: 'destructive', title: 'Error', description: err.message });
-    } finally {
-        setIsSubmitting(false);
-    }
-  }
-
   const handlePlanChangeClick = (plan: Plan) => {
     if (!user || plan.id === user.subscriptionPlan) return;
     setPlanToChange(plan);
@@ -390,11 +369,6 @@ function SettingsContent() {
             body: JSON.stringify({ siteId: user.id, planId: planToChange.id, amount: planToChange.price, transactionId: data.transactionId }),
         });
         if (response.ok) {
-            await fetch('/api/notifications/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ recipientType: 'admin', siteId: user.id, message: `New manual payment from "${user.siteName}" (@${user.domain}) for plan: ${planToChange.name}.`, link: '/dashboard/subscriptions' }),
-            });
             toast({ title: 'Upgrade Request Submitted' });
             await refreshUser();
         } else throw new Error((await response.json()).error);
@@ -405,27 +379,6 @@ function SettingsContent() {
         setIsChangePlanDialogOpen(false);
     }
   };
-
-  const handleFreePlanSwitch = async () => {
-    if (!user || !planToChange) return;
-    setIsSubmitting(true);
-    try {
-        const response = await fetch('/api/settings/request-plan-change', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ siteId: user.id, planId: 'free', amount: 0, transactionId: `FREE_SWITCH_${Date.now()}` }),
-        });
-        if (response.ok) {
-            toast({ title: 'Downgrade Request Submitted' });
-            await refreshUser();
-        } else throw new Error((await response.json()).error);
-    } catch (e: any) {
-        toast({ variant: 'destructive', title: 'Error', description: e.message });
-    } finally {
-        setIsSubmitting(false);
-        setIsFreePlanConfirmOpen(false);
-    }
-  }
 
   const currentPlan = useMemo(() => plans.find(p => p.id === user?.subscriptionPlan), [plans, user]);
 
@@ -459,25 +412,142 @@ function SettingsContent() {
 
             <TabsContent value="branding" className="mt-0">
                 <Form {...brandingForm}>
-                    <form onSubmit={brandingForm.handleSubmit(onBrandingSubmit)} className="space-y-8">
-                         <FormField control={brandingForm.control} name="logo_type" render={({ field }) => ( <FormItem className="space-y-3"><FormLabel>লোগোর ধরন</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="icon" /></FormControl><FormLabel className="font-normal">আইকন</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="image" /></FormControl><FormLabel className="font-normal">ছবি</FormLabel></FormItem></RadioGroup></FormControl><FormMessage /></FormItem> )} />
-                        {brandingForm.watch('logo_type') === 'icon' ? (
-                             <FormField control={brandingForm.control} name="logo_icon" render={({ field }) => ( <FormItem><FormLabel>লোগো আইকন</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem> )} />
-                        ) : (
-                            <FormField control={brandingForm.control} name="logo_image_url" render={({ field }) => ( <FormItem><FormLabel>লোগো ছবি</FormLabel><div className="flex flex-col items-start gap-4"><div className="relative h-24 w-24 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">{field.value ? <Image src={field.value} alt="Logo" fill className="object-contain p-2" /> : <div className="text-[10px]">Preview</div>}</div><div className='flex-grow space-y-2 w-full'><FormControl><Input placeholder="https://..." {...field} /></FormControl><ImageUploader onUpload={(res) => brandingForm.setValue('logo_image_url', res.info.secure_url)} label='আপলোড করুন' /></div></div><FormMessage /></FormItem> )} />
-                        )}
-                        <div className="pt-4 border-t"><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}ব্র্যান্ডিং সেটিংস সংরক্ষণ করুন</Button></div>
+                    <form onSubmit={brandingForm.handleSubmit(onBrandingSubmit)} className="space-y-10">
+                        <div className="space-y-6">
+                            <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
+                                <Palette className="h-5 w-5" /> সাইট লোগো
+                            </h3>
+                            <FormField control={brandingForm.control} name="logo_type" render={({ field }) => ( <FormItem className="space-y-3"><FormLabel>লোগোর ধরন</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="icon" /></FormControl><FormLabel className="font-normal">আইকন</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="image" /></FormControl><FormLabel className="font-normal">ছবি</FormLabel></FormItem></RadioGroup></FormControl><FormMessage /></FormItem> )} />
+                            {brandingForm.watch('logo_type') === 'icon' ? (
+                                <FormField control={brandingForm.control} name="logo_icon" render={({ field }) => ( <FormItem><FormLabel>লোগো আইকন</FormLabel><FormControl><IconPicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem> )} />
+                            ) : (
+                                <FormField control={brandingForm.control} name="logo_image_url" render={({ field }) => ( <FormItem><FormLabel>লোগো ছবি</FormLabel><div className="flex flex-col items-start gap-4"><div className="relative h-24 w-24 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">{field.value ? <Image src={field.value} alt="Logo" fill className="object-contain p-2" /> : <div className="text-[10px]">Preview</div>}</div><div className='flex-grow space-y-2 w-full'><FormControl><Input placeholder="https://..." {...field} /></FormControl><ImageUploader onUpload={(res) => brandingForm.setValue('logo_image_url', res.info.secure_url)} label='লোগো আপলোড' /></div></div><FormMessage /></FormItem> )} />
+                            )}
+                        </div>
+
+                        <Separator />
+
+                        <div className="grid md:grid-cols-2 gap-10">
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
+                                    <Smartphone className="h-5 w-5" /> আইকন ও অ্যাপ ব্র্যান্ডিং
+                                </h3>
+                                <FormField control={brandingForm.control} name="favicon_url" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Favicon (ব্রাউজার ট্যাব আইকন)</FormLabel>
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative h-12 w-12 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                                                {field.value ? <Image src={field.value} alt="Favicon" fill className="object-contain p-1" /> : <Globe className="h-5 w-5 text-muted-foreground/30" />}
+                                            </div>
+                                            <div className="flex-grow space-y-2">
+                                                <FormControl><Input placeholder="URL" {...field} className="h-9 text-xs" /></FormControl>
+                                                <ImageUploader onUpload={(res) => brandingForm.setValue('favicon_url', res.info.secure_url)} label="Favicon আপলোড" />
+                                            </div>
+                                        </div>
+                                        <FormDescription className="text-[10px]">এটি ব্রাউজারের ট্যাবে এবং বুকমার্ক হিসেবে দেখাবে। (.ico বা .png সাজেস্টেড)</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+
+                                <FormField control={brandingForm.control} name="pwa_logo_url" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>PWA/App Logo (ইনস্টলযোগ্য অ্যাপ আইকন)</FormLabel>
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative h-12 w-12 shrink-0 rounded-md border border-dashed flex items-center justify-center bg-muted">
+                                                {field.value ? <Image src={field.value} alt="PWA Logo" fill className="object-contain p-1" /> : <Smartphone className="h-5 w-5 text-muted-foreground/30" />}
+                                            </div>
+                                            <div className="flex-grow space-y-2">
+                                                <FormControl><Input placeholder="URL" {...field} className="h-9 text-xs" /></FormControl>
+                                                <ImageUploader onUpload={(res) => brandingForm.setValue('pwa_logo_url', res.info.secure_url)} label="App আইকন আপলোড" />
+                                            </div>
+                                        </div>
+                                        <FormDescription className="text-[10px]">যখন কেউ আপনার সাইটটি মোবাইলে অ্যাপ হিসেবে সেভ করবে, তখন এই আইকনটি দেখা যাবে। (512x512px সাজেস্টেড)</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
+                                    <Share2 className="h-5 w-5" /> সোশ্যাল শেয়ারিং (OpenGraph)
+                                </h3>
+                                <FormField control={brandingForm.control} name="social_share_image_url" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>সোশ্যাল শেয়ার ইমেজ</FormLabel>
+                                        <div className="space-y-4">
+                                            <div className="relative aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center bg-muted overflow-hidden">
+                                                {field.value ? <Image src={field.value} alt="OG Preview" fill className="object-cover" /> : <div className="text-center"><Share2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground/20" /><p className="text-[10px] text-muted-foreground uppercase font-black">Social Preview</p></div>}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <FormControl><Input placeholder="Share Image URL" {...field} className="h-10 text-xs" /></FormControl>
+                                                <ImageUploader onUpload={(res) => brandingForm.setValue('social_share_image_url', res.info.secure_url)} label="আপলোড" />
+                                            </div>
+                                        </div>
+                                        <FormDescription className="text-[10px]">ফেসবুক বা মেসেঞ্জারে সাইটের লিঙ্ক দিলে এই ছবিটি প্রিভিউ হিসেবে দেখাবে। (1200x630px সাজেস্টেড)</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+                        </div>
+
+                        <div className="pt-6 border-t"><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}ব্র্যান্ডিং সেটিংস সংরক্ষণ করুন</Button></div>
                     </form>
                 </Form>
             </TabsContent>
 
             <TabsContent value="seo" className="mt-0">
                 <Form {...seoForm}>
-                    <form onSubmit={seoForm.handleSubmit(onSeoSubmit)} className="space-y-8">
-                        <FormField control={seoForm.control} name="seoTitle" render={({ field }) => ( <FormItem><FormLabel>এসইও শিরোনাম</FormLabel><FormControl><Input placeholder="..." {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={seoForm.control} name="seoDescription" render={({ field }) => ( <FormItem><FormLabel>এসইও বিবরণ</FormLabel><FormControl><Textarea placeholder="..." rows={3} {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={seoForm.control} name="seoKeywords" render={({ field }) => ( <FormItem><FormLabel>এসইও কীওয়ার্ড</FormLabel><FormControl><Input placeholder="..." {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <div className="pt-4 border-t"><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}এসইও সেটিংস সংরক্ষণ করুন</Button></div>
+                    <form onSubmit={seoForm.handleSubmit(onSeoSubmit)} className="space-y-10">
+                        <div className="space-y-6">
+                            <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
+                                <BarChart className="h-5 w-5" /> মেটা ডাটা
+                            </h3>
+                            <FormField control={seoForm.control} name="seoTitle" render={({ field }) => ( <FormItem><FormLabel>এসইও শিরোনাম (Meta Title)</FormLabel><FormControl><Input placeholder="আপনার স্টোরের গুগল রেজাল্ট শিরোনাম" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={seoForm.control} name="seoDescription" render={({ field }) => ( <FormItem><FormLabel>এসইও বিবরণ (Meta Description)</FormLabel><FormControl><Textarea placeholder="আপনার স্টোর সম্পর্কে সার্চ ইঞ্জিনের জন্য সংক্ষিপ্ত বর্ণনা..." rows={3} {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={seoForm.control} name="seoKeywords" render={({ field }) => ( <FormItem><FormLabel>এসইও কীওয়ার্ডস (Keywords)</FormLabel><FormControl><Input placeholder="organic, fresh, bangladesh (কমা দিয়ে লিখুন)" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+
+                        <Separator />
+
+                        <div className="grid md:grid-cols-2 gap-10">
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
+                                    <Activity className="h-5 w-5" /> অ্যানালিটিক্স ও ট্র্যাকিং
+                                </h3>
+                                <FormField control={seoForm.control} name="google_analytics_id" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Google Analytics ID</FormLabel>
+                                        <FormControl><Input placeholder="G-XXXXXXXXXX" {...field} /></FormControl>
+                                        <FormDescription className="text-[10px]">আপনার গুগলের G- আইডিটি এখানে দিন।</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={seoForm.control} name="facebook_pixel_id" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Facebook Pixel ID</FormLabel>
+                                        <FormControl><Input placeholder="1234567890" {...field} /></FormControl>
+                                        <FormDescription className="text-[10px]">ফেসবুক অ্যাডস ট্র্যাকিং এর জন্য পিক্সেল আইডি দিন।</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
+                                    <SearchCode className="h-5 w-5" /> ওয়েবমাস্টার টুলস
+                                </h3>
+                                <FormField control={seoForm.control} name="google_search_console_tag" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Search Console Verification Tag</FormLabel>
+                                        <FormControl><Input placeholder='<meta name="google-site-verification" content="..." />' {...field} /></FormControl>
+                                        <FormDescription className="text-[10px]">গুগল সার্চ কনসোল থেকে পাওয়া পুরো মেটা ট্যাগটি এখানে দিন।</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+                        </div>
+
+                        <div className="pt-6 border-t"><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}এসইও সেটিংস সংরক্ষণ করুন</Button></div>
                     </form>
                 </Form>
             </TabsContent>
