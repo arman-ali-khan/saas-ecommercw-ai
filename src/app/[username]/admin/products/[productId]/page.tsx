@@ -438,7 +438,7 @@ export default function ManageProductPage() {
                     <Card className="shadow-sm border-2">
                         <CardHeader className="bg-muted/30 flex flex-row items-center justify-between space-y-0">
                             <div><CardTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary" /> সাধারণ তথ্য</CardTitle><CardDescription>পণ্যের নাম এবং বর্ণনা প্রদান করুন।</CardDescription></div>
-                            <Button type="button" variant="secondary" size="sm" onClick={handleBeautify} disabled={isBeautifying}>{isBeautifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />} Beautify Details</Button>
+                            <Button type="button" variant="secondary" size="sm" onClick={handleBeautify} disabled={isBeautifying}>{isBeautifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />} <span className="hidden sm:flex">Beautify Details</span></Button>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel className="font-bold">পণ্যের নাম</FormLabel><FormControl><Input {...field} placeholder="যেমন: হিমসাগর আম (৫ কেজি)" className="h-12 text-lg font-medium" /></FormControl><FormMessage /></FormItem>)} />

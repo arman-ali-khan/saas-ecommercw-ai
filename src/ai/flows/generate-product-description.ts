@@ -5,24 +5,22 @@
 function extractJson(text: string) {
     if (!text) return null;
     try {
+        // Find the first '{' and the last '}'
         const firstBrace = text.indexOf('{');
         const lastBrace = text.lastIndexOf('}');
         
         if (firstBrace === -1 || lastBrace === -1) {
+            console.error("JSON Braces not found in AI response:", text);
             return null;
         }
         
         const jsonStr = text.substring(firstBrace, lastBrace + 1);
-        return JSON.parse(jsonStr);
+        // Clean common problematic characters from AI output
+        const cleanedStr = jsonStr.replace(/\n/g, " ").replace(/\r/g, " ").replace(/\t/g, " ");
+        return JSON.parse(cleanedStr);
     } catch (e) {
-        try {
-            const cleaned = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1)
-                .replace(/\n/g, " ")
-                .replace(/\r/g, " ");
-            return JSON.parse(cleaned);
-        } catch (e2) {
-            return null;
-        }
+        console.error("JSON Parse Error in extractJson:", e, "Raw text:", text);
+        return null;
     }
 }
 
@@ -40,11 +38,11 @@ async function callOpenRouter(apiKey: string, prompt: string) {
             "X-Title": "eHut SaaS AI"
         },
         body: JSON.stringify({
-            model: "arcee-ai/trinity-large-preview:free",
+            model: "google/gemini-2.0-flash-lite-preview-02-05:free",
             messages: [
                 { 
                     role: "system", 
-                    content: "You are a professional JSON generator. Respond ONLY with valid JSON. No markdown, no extra text. Use Bengali language." 
+                    content: "You are a professional product content optimizer. You must respond ONLY with a valid JSON object. Do not include markdown code blocks, explanations, or any text before or after the JSON." 
                 },
                 { role: "user", content: prompt }
             ],
@@ -53,16 +51,9 @@ async function callOpenRouter(apiKey: string, prompt: string) {
         })
     });
 
-    const contentType = response.headers.get("content-type");
     if (!response.ok) {
-        let errorMsg = `API Error ${response.status}`;
-        if (contentType && contentType.includes("application/json")) {
-            const errJson = await response.json();
-            errorMsg = errJson.error?.message || errorMsg;
-        } else {
-            errorMsg = await response.text() || errorMsg;
-        }
-        throw new Error(errorMsg);
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error?.message || `API Error ${response.status}`);
     }
 
     const data = await response.json();
@@ -79,17 +70,31 @@ export async function generateProductDescription(input: any) {
 
         const prompt = `Task: Generate a high-conversion product description for "${name}" in Bengali.
         Context: Short Desc: ${description || ''}, Origin: ${origin || 'Bangladesh'}, Categories: ${categoryString}
-        Return ONLY a valid Tiptap JSON object (type: "doc") with level 2 headings and paragraphs.`;
+        
+        Return ONLY a JSON object with this exact structure:
+        {
+          "longDescription": {
+            "type": "doc",
+            "content": [
+              { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "Heading in Bengali" }] },
+              { "type": "paragraph", "content": [{ "type": "text", "text": "Paragraph text in Bengali" }] }
+            ]
+          }
+        }`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
         
-        if (!resultJson || resultJson.type !== "doc") {
-            throw new Error("Invalid JSON structure from AI.");
+        if (!resultJson || !resultJson.longDescription) {
+            throw new Error("Invalid response structure from AI.");
         }
 
-        return { success: true, longDescription: JSON.stringify(resultJson) };
+        return { 
+            success: true, 
+            longDescription: JSON.stringify(resultJson.longDescription) 
+        };
     } catch (e: any) {
+        console.error("AI Description Flow Error:", e);
         return { success: false, error: e.message };
     }
 }
@@ -99,14 +104,35 @@ export async function beautifyProductDetails(input: any) {
         const { apiKey, name, description, story, origin, categories } = input;
         const categoryString = categories?.length ? categories.join(', ') : 'সাধারণ';
 
-        const prompt = `Task: Optimize product details for "${name}" in Bengali. 
-        Input: Name: ${name}, Desc: ${description}, Story: ${story}, Origin: ${origin}.
-        Return a JSON object with fields: "name", "description", "story", "origin", "tags" (array), and "longDescription" (Tiptap JSON object).`;
+        const prompt = `Task: Optimize the following product details for SEO and conversion in Bengali language.
+        Product: ${name}
+        Short Description: ${description || 'N/A'}
+        Origin: ${origin || 'N/A'}
+        Story: ${story || 'N/A'}
+        Categories: ${categoryString}
+
+        Return ONLY a JSON object with these fields:
+        - name: Catchy title
+        - description: Persuasive short summary (max 150 chars)
+        - story: Emotional brand/product story
+        - origin: Authentic origin info
+        - tags: Array of 5 relevant SEO tags
+        - longDescription: A Tiptap JSON object (type: "doc") with structured headings and bullet points.
+
+        Response Format:
+        {
+          "name": "...",
+          "description": "...",
+          "story": "...",
+          "origin": "...",
+          "tags": ["tag1", "tag2"],
+          "longDescription": { "type": "doc", "content": [...] }
+        }`;
 
         const aiResponse = await callOpenRouter(apiKey, prompt);
         const resultJson = extractJson(aiResponse);
         
-        if (!resultJson) throw new Error("AI output parsing failed.");
+        if (!resultJson) throw new Error("AI output parsing failed. AI response was not valid JSON.");
         
         return {
             success: true,
@@ -120,6 +146,7 @@ export async function beautifyProductDetails(input: any) {
                 : resultJson.longDescription || '',
         };
     } catch (e: any) {
+        console.error("AI Beautify Flow Error:", e);
         return { success: false, error: e.message };
     }
 }
