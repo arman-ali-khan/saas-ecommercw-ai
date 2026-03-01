@@ -1,9 +1,9 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import type { Product, Page } from '@/types';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // Cache sitemap for 1 hour
 
 /**
  * @fileOverview store-level sitemap.xml generator.
@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     const { username } = await params;
     
     // Determine the base URL from request headers.
-    const host = request.headers.get('host') || `${username}.schoolbd.top`;
+    const host = request.headers.get('host') || `${username}.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top'}`;
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
 
@@ -31,7 +31,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
         .single();
     
     if (!profile) {
-        return new NextResponse('Not Found', { status: 404 });
+        return new NextResponse('Store Not Found', { status: 404 });
     }
 
     const siteId = profile.id;
@@ -44,15 +44,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
         { loc: `${baseUrl}/track-order`, lastmod: siteLastMod, priority: '0.5' },
     ];
     
-    // Get all products for the site
+    // Get products for the site - Increased limit to handle more products
     const { data: products } = await supabaseAdmin
         .from('products')
         .select('id, updated_at')
-        .eq('site_id', siteId);
+        .eq('site_id', siteId)
+        .limit(5000); // Support up to 5000 products per sitemap
         
     (products || []).forEach((product: any) => {
         urls.push({
-            loc: `${baseUrl}/products/${product.id}`,
+            loc: `${baseUrl}/products/${encodeURIComponent(product.id)}`,
             lastmod: new Date(product.updated_at || siteLastMod).toISOString(),
             priority: '0.7'
         });
@@ -68,7 +69,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     (pages || []).forEach((page: any) => {
          urls.push({
             loc: `${baseUrl}/pages/${page.slug}`,
-            lastmod: new Date(page.updated_at).toISOString(),
+            lastmod: new Date(page.updated_at || siteLastMod).toISOString(),
             priority: '0.6'
         });
     });
@@ -87,7 +88,7 @@ ${urls.map(url => `
     return new NextResponse(sitemap, {
         headers: {
             'Content-Type': 'application/xml',
-            'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600'
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=600'
         }
     });
 }
