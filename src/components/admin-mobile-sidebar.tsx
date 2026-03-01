@@ -167,7 +167,7 @@ export default function AdminMobileSidebar() {
   };
 
   const SubNavLink = ({ href, label }: { href: string, label: string }) => {
-    const isActive = pathname === href;
+    const isActive = pathname === href || (pathname.includes('/admin/settings') && href.includes('tab=') && new URLSearchParams(window.location.search).get('tab') === new URLSearchParams(href.split('?')[1]).get('tab'));
     return (
       <SheetClose asChild>
         <Link 
@@ -208,7 +208,7 @@ export default function AdminMobileSidebar() {
               <NavLink key={link.href} {...link} />
             ))}
 
-            <Collapsible>
+            <Collapsible defaultOpen={pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')}>
               <CollapsibleTrigger className={cn(
                 'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
                 (pathname.startsWith('/admin/products') || pathname.startsWith('/admin/attributes')) && 'bg-primary text-primary-foreground'
@@ -230,7 +230,7 @@ export default function AdminMobileSidebar() {
               <NavLink key={link.href} {...link} />
             ))}
 
-            <Collapsible>
+            <Collapsible defaultOpen={pathname.startsWith('/admin/theme')}>
               <CollapsibleTrigger className={cn(
                 'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
                 pathname.startsWith('/admin/theme') && 'bg-primary text-primary-foreground'
@@ -248,7 +248,7 @@ export default function AdminMobileSidebar() {
               </CollapsibleContent>
             </Collapsible>
 
-            <Collapsible>
+            <Collapsible defaultOpen={pathname.startsWith('/admin/settings')}>
               <CollapsibleTrigger className={cn(
                 'flex items-center justify-between w-full gap-3 rounded-lg px-3 py-2 text-foreground transition-all hover:bg-accent hover:text-accent-foreground [&>svg:last-child]:data-[state=open]:rotate-180',
                 pathname.startsWith('/admin/settings') && 'bg-primary text-primary-foreground'
@@ -260,9 +260,14 @@ export default function AdminMobileSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
-                <SubNavLink href="/admin/settings" label="Store Settings" />
+                <SubNavLink href="/admin/settings?tab=general" label="General" />
+                <SubNavLink href="/admin/settings?tab=branding" label="Branding" />
+                <SubNavLink href="/admin/settings?tab=seo" label="SEO" />
+                <SubNavLink href="/admin/settings?tab=payments" label="Payments" />
+                <SubNavLink href="/admin/settings?tab=subscription" label="Subscription" />
                 <SubNavLink href="/admin/settings/custom-domain" label="Custom Domain" />
                 <SubNavLink href="/admin/settings/sms" label="SMS Config" />
+                <SubNavLink href="/admin/settings/ai" label="AI Configuration" />
               </CollapsibleContent>
             </Collapsible>
 
