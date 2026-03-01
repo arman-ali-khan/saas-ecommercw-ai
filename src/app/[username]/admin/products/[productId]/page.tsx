@@ -772,7 +772,7 @@ export default function ManageProductPage() {
                         className="flex-1 sm:flex-none sm:min-w-[120px] h-11 sm:h-12 rounded-xl font-bold text-sm sm:text-base whitespace-nowrap"
                     >
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        সংরক্ষণ করুন
+                        <span className='hidden sm:block'>সংরক্ষণ করুন</span>
                     </Button>
                     <Button 
                         type="button" 
@@ -783,7 +783,7 @@ export default function ManageProductPage() {
                         {isSubmitting ? (
                             <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> সেভ হচ্ছে...</>
                         ) : (
-                            <><CheckCircle2 className="mr-2 h-5 w-5" /> {isNew ? 'তৈরি করে বের হোন' : 'সেভ করে বের হোন'}</>
+                            <><CheckCircle2 className="mr-2 h-5 w-5" /> <span className='hidden sm:flex'>{isNew ? 'তৈরি করে বের হোন' : 'সেভ করে বের হোন'}</span></>
                         )}
                     </Button>
                 </div>
