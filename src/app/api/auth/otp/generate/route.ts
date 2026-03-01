@@ -1,12 +1,12 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { addMinutes } from 'date-fns';
+import { addMinutes, subMinutes } from 'date-fns';
 import { decrypt } from '@/lib/encryption';
 
 /**
  * @fileOverview API to generate a 6-digit OTP for phone or email verification.
- * Supports both registration and password reset flows.
+ * Supports both registration and password reset flows with rate limiting.
  */
 
 export async function POST(request: Request) {
@@ -21,6 +21,28 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // --- RATE LIMIT CHECK: Max 2 OTPs in 20 minutes ---
+    const twentyMinutesAgo = subMinutes(new Date(), 20);
+    let checkQuery = supabaseAdmin
+      .from('customer_otps')
+      .select('id', { count: 'exact', head: true })
+      .eq('site_id', siteId)
+      .gt('created_at', twentyMinutesAgo.toISOString());
+    
+    if (type === 'email') {
+        checkQuery = checkQuery.eq('email', identifier.toLowerCase().trim());
+    } else {
+        checkQuery = checkQuery.eq('phone', identifier.trim());
+    }
+
+    const { count: otpCount } = await checkQuery;
+
+    if (otpCount !== null && otpCount >= 2) {
+      return NextResponse.json({ 
+        error: 'অতিরিক্ত চেষ্টার কারণে আপনার ওটিপি রিকোয়েস্ট সাময়িকভাবে বন্ধ করা হয়েছে। ২০ মিনিট পর আবার চেষ্টা করুন।' 
+      }, { status: 429 });
+    }
 
     // 1. If purpose is password_reset, verify user exists first
     if (purpose === 'password_reset') {
