@@ -65,11 +65,12 @@ export async function POST(request: Request) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = addMinutes(new Date(), 10); // 10 minute expiry
 
-    // 3. Save OTP to DB
+    // 3. Save OTP to DB with is_send = false
     const insertData: any = {
         site_id: siteId,
         otp: otp,
-        expires_at: expiresAt.toISOString()
+        expires_at: expiresAt.toISOString(),
+        is_send: false // Initialize as not sent
     };
 
     if (type === 'email') insertData.email = identifier.toLowerCase().trim();
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
     if (otpError) throw otpError;
 
     // 4. Send Notification (Simulated/Actual)
-    console.log(`[OTP GENERATED] To: ${identifier}, OTP: ${otp}`);
+    console.log(`[OTP GENERATED] To: ${identifier}, OTP: ${otp}, is_send: false`);
     
     // In production, trigger Email API or SMS Gateway here.
 

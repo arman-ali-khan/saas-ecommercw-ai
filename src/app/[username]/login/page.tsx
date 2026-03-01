@@ -378,6 +378,9 @@ export default function CustomerLoginPage() {
                 <div className="mt-8 text-center text-sm border-t pt-6">
                     <p className="text-muted-foreground">অ্যাকাউন্ট নেই? <Link href={`/register`} className="font-bold text-primary hover:underline">নতুন অ্যাকাউন্ট তৈরি করুন</Link></p>
                 </div>
+                <div className="mt-8 text-center text-sm border-t pt-6">
+                    <p className="text-muted-foreground"><Link href={`/admin/login`} className="font-bold text-primary hover:underline">Admin Login</Link></p>
+                </div>
                 </CardContent>
             </>
         ) : (
