@@ -12,7 +12,7 @@ interface CustomerAuthState {
   setHasHydrated: (state: boolean) => void;
   setCustomerLoading: (loading: boolean) => void;
   registerCustomer: (fullName: string, email: string, password: string, phone: string, siteId: string) => Promise<{ user: any, error: string | null }>;
-  customerLogin: (email: string, password: string, siteId: string) => Promise<{ error: { message: string } | null }>;
+  customerLogin: (identifier: string, password: string, siteId: string, type?: 'email' | 'phone') => Promise<{ error: { message: string, phone?: string } | null }>;
   customerLogout: () => Promise<void>;
   setCustomer: (customer: CustomerUser | null) => void;
   refreshCustomer: () => Promise<void>;
@@ -70,17 +70,17 @@ export const useCustomerAuth = create<CustomerAuthState>()(
         }
       },
 
-      customerLogin: async (email, password, siteId) => {
+      customerLogin: async (identifier, password, siteId, type = 'email') => {
         set({ loading: true });
         try {
           const response = await fetch('/api/auth/login-customer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, siteId }),
+            body: JSON.stringify({ identifier, password, siteId, type }),
           });
           const result = await response.json();
           if (!response.ok) {
-            return { error: { message: result.error } };
+            return { error: { message: result.error, phone: result.phone } };
           }
           set({ customer: result.user as CustomerUser });
           return { error: null };

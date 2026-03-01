@@ -6,10 +6,10 @@ import { decrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
-    const { email, password, siteId } = await request.json();
+    const { identifier, password, siteId, type = 'email' } = await request.json();
 
-    if (!email || !password || !siteId) {
-        return NextResponse.json({ error: 'ইমেল এবং পাসওয়ার্ড দিন।' }, { status: 400 });
+    if (!identifier || !password || !siteId) {
+        return NextResponse.json({ error: 'সকল তথ্য প্রদান করুন।' }, { status: 400 });
     }
 
     const supabaseAdmin = createClient(
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedIdentifier = identifier.toLowerCase().trim();
 
     // Fetch users for this site
     const { data: users, error } = await supabaseAdmin
@@ -27,19 +27,22 @@ export async function POST(request: Request) {
 
     if (error) throw error;
 
-    // Find user by decrypted email
+    // Find user by decrypted email or phone
     const user = users?.find(u => {
-        try { return decrypt(u.email).toLowerCase() === normalizedEmail; } catch (e) { return false; }
+        try {
+            const decryptedVal = type === 'email' ? decrypt(u.email) : decrypt(u.phone);
+            return decryptedVal.toLowerCase().trim() === normalizedIdentifier;
+        } catch (e) { return false; }
     });
 
     if (!user || !user.password_hash) {
-      return NextResponse.json({ error: 'ভুল ইমেল বা পাসওয়ার্ড।' }, { status: 401 });
+      return NextResponse.json({ error: 'ভুল ইমেল/ফোন বা পাসওয়ার্ড।' }, { status: 401 });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
-      return NextResponse.json({ error: 'ভুল ইমেল বা পাসওয়ার্ড।' }, { status: 401 });
+      return NextResponse.json({ error: 'ভুল ইমেল/ফোন বা পাসওয়ার্ড।' }, { status: 401 });
     }
 
     // Check if verified

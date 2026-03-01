@@ -41,8 +41,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const formSchema = z.object({
+const phoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
+
+const emailFormSchema = z.object({
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
+  password: z.string().min(1, { message: 'পাসওয়ার্ড প্রয়োজন।' }),
+});
+
+const phoneFormSchema = z.object({
+  phone: z.string().regex(phoneRegex, { message: 'সঠিক ফোন নম্বর দিন (017XXXXXXXX)।' }),
   password: z.string().min(1, { message: 'পাসওয়ার্ড প্রয়োজন।' }),
 });
 
@@ -55,6 +62,7 @@ export default function CustomerLoginPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [siteId, setSiteId] = useState<string | null>(null);
+  const [loginType, setLoginType] = useState<'email' | 'phone'>('email');
 
   // Verification States
   const [isVerifying, setIsVerifying] = useState(false);
@@ -82,9 +90,14 @@ export default function CustomerLoginPage() {
     getSiteId();
   }, [username]);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const emailForm = useForm<z.infer<typeof emailFormSchema>>({
+    resolver: zodResolver(emailFormSchema),
     defaultValues: { email: '', password: '' },
+  });
+
+  const phoneForm = useForm<z.infer<typeof phoneFormSchema>>({
+    resolver: zodResolver(phoneFormSchema),
+    defaultValues: { phone: '', password: '' },
   });
 
   useEffect(() => {
@@ -93,12 +106,21 @@ export default function CustomerLoginPage() {
     }
   }, [customer, _hasHydrated, router]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onEmailSubmit(values: z.infer<typeof emailFormSchema>) {
     if (!siteId) return;
+    handleLogin(values.email, values.password, 'email');
+  }
+
+  async function onPhoneSubmit(values: z.infer<typeof phoneFormSchema>) {
+    if (!siteId) return;
+    handleLogin(values.phone, values.password, 'phone');
+  }
+
+  const handleLogin = async (identifier: string, password: string, type: 'email' | 'phone') => {
     setIsSubmitting(true);
     setNeedsVerification(false);
 
-    const result: any = await customerLogin(values.email, values.password, siteId);
+    const result = await customerLogin(identifier, password, siteId!, type);
     
     if (result?.error) {
       setIsSubmitting(false);
@@ -107,13 +129,13 @@ export default function CustomerLoginPage() {
           setNeedsVerification(true);
           toast({ variant: 'destructive', title: 'ভেরিফিকেশন প্রয়োজন', description: 'আপনার একাউন্টটি এখনো ভেরিফাই করা হয়নি।' });
       } else {
-          toast({ variant: 'destructive', title: 'লগইন ব্যর্থ', description: result.error.message || 'ভুল ইমেল বা পাসওয়ার্ড।' });
+          toast({ variant: 'destructive', title: 'লগইন ব্যর্থ', description: result.error.message || 'ভুল তথ্য বা পাসওয়ার্ড।' });
       }
     } else {
        toast({ title: 'লগইন সফল!', description: 'প্রোফাইলে নিয়ে যাওয়া হচ্ছে...' });
        router.push('/profile');
     }
-  }
+  };
 
   const handleStartVerification = async () => {
     if (!verifyPhone || !siteId) return;
@@ -229,7 +251,7 @@ export default function CustomerLoginPage() {
                     <KeyRound className="h-6 w-6 text-primary" />
                 </div>
                 <CardTitle className="text-2xl font-black font-headline">আবারও স্বাগতম!</CardTitle>
-                <CardDescription>আপনার একাউন্টে প্রবেশ করতে ইমেল ও পাসওয়ার্ড দিন।</CardDescription>
+                <CardDescription>আপনার একাউন্টে প্রবেশ করুন।</CardDescription>
                 </CardHeader>
                 <CardContent className="p-8">
                 {needsVerification && (
@@ -245,80 +267,114 @@ export default function CustomerLoginPage() {
                         </AlertDescription>
                     </Alert>
                 )}
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                    <FormField control={form.control} name="email" render={({ field }) => (
-                        <FormItem><FormLabel className="font-bold">ইমেল</FormLabel><FormControl><Input placeholder="you@example.com" {...field} className="h-12 rounded-xl" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={form.control} name="password" render={({ field }) => (
-                        <FormItem>
-                            <div className="flex justify-between items-center">
-                                <FormLabel className="font-bold">পাসওয়ার্ড</FormLabel>
-                                <Dialog open={isForgotDialogOpen} onOpenChange={setIsForgotDialogOpen}>
-                                    <button type="button" onClick={() => setIsForgotDialogOpen(true)} className="text-xs text-primary font-bold hover:underline">পাসওয়ার্ড ভুলে গেছেন?</button>
-                                    <DialogContent className="rounded-[2rem] sm:max-w-md">
-                                        <DialogHeader>
-                                            <DialogTitle className="text-2xl font-black flex items-center gap-2"><KeyRound className="h-6 w-6 text-primary" /> পাসওয়ার্ড রিসেট</DialogTitle>
-                                        </DialogHeader>
-                                        {forgotPasswordStep === 1 && (
-                                            <div className="space-y-6 py-4">
-                                                <Tabs value={resetType} onValueChange={(v: any) => setResetType(v)}>
-                                                    <TabsList className="grid w-full grid-cols-2 rounded-xl h-11">
-                                                        <TabsTrigger value="email" className="rounded-lg gap-2">ইমেল</TabsTrigger>
-                                                        <TabsTrigger value="phone" className="rounded-lg gap-2">ফোন</TabsTrigger>
-                                                    </TabsList>
-                                                    <div className="mt-6 space-y-4">
-                                                        <Label className="font-bold">{resetType === 'email' ? 'আপনার ইমেল দিন' : 'আপনার ফোন নম্বর দিন'}</Label>
-                                                        <Input 
-                                                            placeholder={resetType === 'email' ? 'example@mail.com' : '017XXXXXXXX'} 
-                                                            className="h-12 rounded-xl"
-                                                            value={resetIdentifier}
-                                                            onChange={(e) => setResetIdentifier(e.target.value)}
-                                                        />
-                                                    </div>
-                                                </Tabs>
-                                                <Button className="w-full h-12 rounded-xl font-bold" onClick={handleSendResetOTP} disabled={isResetLoading || !resetIdentifier}>
-                                                    {isResetLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'ওটিপি পাঠান'}
-                                                </Button>
-                                            </div>
-                                        )}
-                                        {forgotPasswordStep === 2 && (
-                                            <div className="space-y-6 py-4">
-                                                <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-3">
-                                                    <ShieldCheck className="h-10 w-10 text-primary shrink-0" />
-                                                    <p className="text-xs text-muted-foreground">আমরা <strong>{resetIdentifier}</strong> ঠিকানায় কোড পাঠিয়েছি।</p>
-                                                </div>
-                                                <Input 
-                                                    placeholder="XXXXXX" 
-                                                    className="h-14 text-center text-2xl font-black tracking-[0.5em] rounded-xl"
-                                                    maxLength={6}
-                                                    value={resetOtp}
-                                                    onChange={(e) => setResetOtp(e.target.value)}
-                                                />
-                                                <Button className="w-full h-12 rounded-xl font-bold" onClick={handleVerifyResetOTP} disabled={isResetLoading || resetOtp.length < 6}>
-                                                    {isResetLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'কোড ভেরিফাই করুন'}
-                                                </Button>
-                                            </div>
-                                        )}
-                                        {forgotPasswordStep === 3 && (
-                                            <div className="space-y-6 py-4">
-                                                <Label className="font-bold">নতুন পাসওয়ার্ড</Label>
-                                                <Input type="password" placeholder="••••••••" className="h-12 rounded-xl" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-                                                <Button className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/20" onClick={handleResetPassword} disabled={isResetLoading || newPassword.length < 6}>
-                                                    {isResetLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'পাসওয়ার্ড পরিবর্তন করুন'}
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <FormControl><Input type="password" placeholder="••••••••" {...field} className="h-12 rounded-xl" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <Button type="submit" className="w-full h-12 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 transition-all active:scale-95" disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'লগ ইন করুন'}
-                    </Button>
-                    </form>
-                </Form>
+
+                <Tabs value={loginType} onValueChange={(v: any) => setLoginType(v)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 rounded-xl h-11 mb-8">
+                        <TabsTrigger value="email" className="rounded-lg gap-2"><Mail className="h-4 w-4" /> ইমেল</TabsTrigger>
+                        <TabsTrigger value="phone" className="rounded-lg gap-2"><Phone className="h-4 w-4" /> ফোন</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="email">
+                        <Form {...emailForm}>
+                            <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-5">
+                                <FormField control={emailForm.control} name="email" render={({ field }) => (
+                                    <FormItem><FormLabel className="font-bold">ইমেল</FormLabel><FormControl><Input placeholder="you@example.com" {...field} className="h-12 rounded-xl" /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={emailForm.control} name="password" render={({ field }) => (
+                                    <FormItem>
+                                        <div className="flex justify-between items-center">
+                                            <FormLabel className="font-bold">পাসওয়ার্ড</FormLabel>
+                                        </div>
+                                        <FormControl><Input type="password" placeholder="••••••••" {...field} className="h-12 rounded-xl" /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <Button type="submit" className="w-full h-12 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 transition-all active:scale-95" disabled={isSubmitting}>
+                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'লগ ইন করুন'}
+                                </Button>
+                            </form>
+                        </Form>
+                    </TabsContent>
+
+                    <TabsContent value="phone">
+                        <Form {...phoneForm}>
+                            <form onSubmit={phoneForm.handleSubmit(onPhoneSubmit)} className="space-y-5">
+                                <FormField control={phoneForm.control} name="phone" render={({ field }) => (
+                                    <FormItem><FormLabel className="font-bold">ফোন নম্বর</FormLabel><FormControl><Input placeholder="017XXXXXXXX" {...field} className="h-12 rounded-xl" /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={phoneForm.control} name="password" render={({ field }) => (
+                                    <FormItem>
+                                        <div className="flex justify-between items-center">
+                                            <FormLabel className="font-bold">পাসওয়ার্ড</FormLabel>
+                                        </div>
+                                        <FormControl><Input type="password" placeholder="••••••••" {...field} className="h-12 rounded-xl" /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <Button type="submit" className="w-full h-12 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 transition-all active:scale-95" disabled={isSubmitting}>
+                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'লগ ইন করুন'}
+                                </Button>
+                            </form>
+                        </Form>
+                    </TabsContent>
+                </Tabs>
+
+                <div className="flex justify-center mt-4">
+                    <Dialog open={isForgotDialogOpen} onOpenChange={setIsForgotDialogOpen}>
+                        <button type="button" onClick={() => setIsForgotDialogOpen(true)} className="text-xs text-primary font-bold hover:underline">পাসওয়ার্ড ভুলে গেছেন?</button>
+                        <DialogContent className="rounded-[2rem] sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle className="text-2xl font-black flex items-center gap-2"><KeyRound className="h-6 w-6 text-primary" /> পাসওয়ার্ড রিসেট</DialogTitle>
+                            </DialogHeader>
+                            {forgotPasswordStep === 1 && (
+                                <div className="space-y-6 py-4">
+                                    <Tabs value={resetType} onValueChange={(v: any) => setResetType(v)}>
+                                        <TabsList className="grid w-full grid-cols-2 rounded-xl h-11">
+                                            <TabsTrigger value="email" className="rounded-lg gap-2">ইমেল</TabsTrigger>
+                                            <TabsTrigger value="phone" className="rounded-lg gap-2">ফোন</TabsTrigger>
+                                        </TabsList>
+                                        <div className="mt-6 space-y-4">
+                                            <Label className="font-bold">{resetType === 'email' ? 'আপনার ইমেল দিন' : 'আপনার ফোন নম্বর দিন'}</Label>
+                                            <Input 
+                                                placeholder={resetType === 'email' ? 'example@mail.com' : '017XXXXXXXX'} 
+                                                className="h-12 rounded-xl"
+                                                value={resetIdentifier}
+                                                onChange={(e) => setResetIdentifier(e.target.value)}
+                                            />
+                                        </div>
+                                    </Tabs>
+                                    <Button className="w-full h-12 rounded-xl font-bold" onClick={handleSendResetOTP} disabled={isResetLoading || !resetIdentifier}>
+                                        {isResetLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'ওটিপি পাঠান'}
+                                    </Button>
+                                </div>
+                            )}
+                            {forgotPasswordStep === 2 && (
+                                <div className="space-y-6 py-4">
+                                    <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-3">
+                                        <ShieldCheck className="h-10 w-10 text-primary shrink-0" />
+                                        <p className="text-xs text-muted-foreground">আমরা <strong>{resetIdentifier}</strong> ঠিকানায় কোড পাঠিয়েছি।</p>
+                                    </div>
+                                    <Input 
+                                        placeholder="XXXXXX" 
+                                        className="h-14 text-center text-2xl font-black tracking-[0.5em] rounded-xl"
+                                        maxLength={6}
+                                        value={resetOtp}
+                                        onChange={(e) => setResetOtp(e.target.value)}
+                                    />
+                                    <Button className="w-full h-12 rounded-xl font-bold" onClick={handleVerifyResetOTP} disabled={isResetLoading || resetOtp.length < 6}>
+                                        {isResetLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'কোড ভেরিফাই করুন'}
+                                    </Button>
+                                </div>
+                            )}
+                            {forgotPasswordStep === 3 && (
+                                <div className="space-y-6 py-4">
+                                    <Label className="font-bold">নতুন পাসওয়ার্ড</Label>
+                                    <Input type="password" placeholder="••••••••" className="h-12 rounded-xl" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                                    <Button className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/20" onClick={handleResetPassword} disabled={isResetLoading || newPassword.length < 6}>
+                                        {isResetLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'পাসওয়ার্ড পরিবর্তন করুন'}
+                                    </Button>
+                                </div>
+                            )}
+                        </DialogContent>
+                    </Dialog>
+                </div>
+
                 <div className="mt-8 text-center text-sm border-t pt-6">
                     <p className="text-muted-foreground">অ্যাকাউন্ট নেই? <Link href={`/register`} className="font-bold text-primary hover:underline">নতুন অ্যাকাউন্ট তৈরি করুন</Link></p>
                 </div>
