@@ -2,14 +2,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isAfter } from 'date-fns';
-
-/**
- * @fileOverview API to verify a 6-digit OTP.
- */
+import { decrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
-    const { identifier, otp, siteId } = await request.json();
+    const { identifier, otp, siteId, purpose } = await request.json();
 
     if (!identifier || !otp || !siteId) {
       return NextResponse.json({ error: 'তথ্য অসম্পূর্ণ।' }, { status: 400 });
@@ -43,6 +40,25 @@ export async function POST(request: Request) {
 
     if (isAfter(now, expiry)) {
       return NextResponse.json({ error: 'ওটিপি কোডের মেয়াদ শেষ হয়ে গেছে।' }, { status: 401 });
+    }
+
+    // --- SUCCESS: MARK AS VERIFIED ---
+    // Find the user and set is_verified = true
+    const { data: users } = await supabaseAdmin
+        .from('customer_profiles')
+        .select('id, email, phone')
+        .eq('site_id', siteId);
+    
+    const targetUser = users?.find(u => {
+        const val = isEmail ? decrypt(u.email) : decrypt(u.phone);
+        return val.toLowerCase() === identifier.toLowerCase().trim();
+    });
+
+    if (targetUser) {
+        await supabaseAdmin
+            .from('customer_profiles')
+            .update({ is_verified: true })
+            .eq('id', targetUser.id);
     }
 
     return NextResponse.json({ success: true, message: 'ভেরিফিকেশন সফল হয়েছে।' }, { status: 200 });

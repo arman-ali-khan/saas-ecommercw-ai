@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { encrypt, decrypt } from '@/lib/encryption';
+import { addMinutes } from 'date-fns';
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 1. LIMIT CHECK: Verify if site has reached customer limit
+    // 1. LIMIT CHECK
     const [profileRes, customersCountRes] = await Promise.all([
         supabaseAdmin.from('profiles').select('subscription_plan').eq('id', siteId).single(),
         supabaseAdmin.from('customer_profiles').select('*', { count: 'exact', head: true }).eq('site_id', siteId)
@@ -36,52 +37,33 @@ export async function POST(request: Request) {
 
         if (limit !== null && limit !== undefined && currentCount >= limit) {
             return NextResponse.json({ 
-                error: 'দুঃখিত, এই স্টোরটিতে বর্তমানে আর নতুন মেম্বার গ্রহণ করা সম্ভব হচ্ছে না। স্টোর অ্যাডমিনের সাথে যোগাযোগ করুন।' 
+                error: 'দুঃখিত, এই স্টোরটিতে বর্তমানে আর নতুন মেম্বার গ্রহণ করা সম্ভব হচ্ছে না।' 
             }, { status: 403 });
         }
     }
     
     const normalizedEmail = email.toLowerCase().trim();
 
-    // 2. Check if email already exists
-    const { data: existingEmailUsers } = await supabaseAdmin
+    // 2. Duplicate Checks
+    const { data: existingUsers } = await supabaseAdmin
         .from('customer_profiles')
-        .select('email')
+        .select('email, phone')
         .eq('site_id', siteId);
 
-    const isEmailDuplicate = existingEmailUsers?.some(u => {
-        try {
-            return decrypt(u.email).toLowerCase() === normalizedEmail;
-        } catch (e) {
-            return false;
-        }
+    const isEmailDuplicate = existingUsers?.some(u => {
+        try { return decrypt(u.email).toLowerCase() === normalizedEmail; } catch (e) { return false; }
     });
+    if (isEmailDuplicate) return NextResponse.json({ error: 'এই ইমেলটি ইতিমধ্যে ব্যবহৃত হয়েছে।' }, { status: 409 });
 
-    if (isEmailDuplicate) {
-        return NextResponse.json({ error: 'এই ইমেলটি দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা হয়েছে।' }, { status: 409 });
-    }
-
-    // 3. Check if phone already exists
-    const { data: existingPhoneUsers } = await supabaseAdmin
-        .from('customer_profiles')
-        .select('phone')
-        .eq('site_id', siteId);
-
-    const isPhoneDuplicate = existingPhoneUsers?.some(u => {
-        try {
-            return decrypt(u.phone) === phone;
-        } catch (e) {
-            return false;
-        }
+    const isPhoneDuplicate = existingUsers?.some(u => {
+        try { return decrypt(u.phone) === phone; } catch (e) { return false; }
     });
-
-    if (isPhoneDuplicate) {
-        return NextResponse.json({ error: 'এই ফোন নম্বরটি দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা হয়েছে।' }, { status: 409 });
-    }
+    if (isPhoneDuplicate) return NextResponse.json({ error: 'এই ফোন নম্বরটি ইতিমধ্যে ব্যবহৃত হয়েছে।' }, { status: 409 });
     
     const password_hash = await bcrypt.hash(password, 10);
     const userId = uuidv4();
 
+    // 3. Create Profile
     const { data, error: insertError } = await supabaseAdmin
       .from('customer_profiles')
       .insert([{
@@ -91,33 +73,35 @@ export async function POST(request: Request) {
         phone: encrypt(phone),
         site_id: siteId,
         role: 'customer',
-        password_hash: password_hash
+        password_hash: password_hash,
+        is_verified: false
       }])
       .select()
       .single();
 
-    if (insertError) {
-      console.error("DB Error on customer insert:", insertError);
-      return NextResponse.json({ error: `ডাটাবেস এরর: ${insertError.message}` }, { status: 500 });
-    }
+    if (insertError) throw insertError;
 
-    // Create notification for admin about the new customer
-    if (data) {
-        await supabaseAdmin.from('notifications').insert({
-            recipient_id: siteId,
-            recipient_type: 'admin',
-            site_id: siteId,
-            message: `নতুন গ্রাহক: ${fullName} আপনার স্টোরে নিবন্ধিত হয়েছেন।`,
-            link: '/admin/customers',
-        });
-    }
+    // 4. Generate Initial OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = addMinutes(new Date(), 10);
+    await supabaseAdmin.from('customer_otps').insert({
+        site_id: siteId,
+        phone: phone,
+        otp: otp,
+        expires_at: expiresAt.toISOString()
+    });
+
+    console.log(`[REGISTRATION OTP] For: ${phone}, OTP: ${otp}`);
 
     const { password_hash: removed, ...safeUser } = data;
 
-    return NextResponse.json({ user: safeUser }, { status: 201 });
+    return NextResponse.json({ 
+        user: { ...safeUser, phone: phone }, 
+        message: 'OTP sent to your phone' 
+    }, { status: 201 });
 
   } catch (err: any) {
     console.error("Customer Registration API Error:", err);
-    return NextResponse.json({ error: 'সার্ভারে একটি অভ্যন্তরীণ ত্রুটি হয়েছে।' }, { status: 500 });
+    return NextResponse.json({ error: 'সার্ভারে সমস্যা হয়েছে।' }, { status: 500 });
   }
 }
