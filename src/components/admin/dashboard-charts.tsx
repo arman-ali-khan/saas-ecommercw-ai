@@ -137,8 +137,8 @@ export default function DashboardCharts({ allOrders, isLoading, t }: DashboardCh
         name: CHART_ORDER_STATUS_LABELS[statusKeyString as keyof typeof CHART_ORDER_STATUS_LABELS]?.label || statusKeyString,
         value: frequencyValue,
         fill: CHART_ORDER_STATUS_LABELS[statusKeyString as keyof typeof CHART_ORDER_STATUS_LABELS]?.color || '#8884d8',
-      }))
-      .filter(entryRecord => entryRecord.name !== 'Canceled');
+      }));
+      // Filter removed to show all statuses including Canceled
   }, [allOrders, selectedDisplayMonth]);
 
   const availableMonthDropdownOptions = useMemo(() => [...Array(6)].map((_, indexOffset) => subMonths(new Date(), indexOffset)), []);
