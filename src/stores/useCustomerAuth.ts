@@ -3,14 +3,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-
-interface CustomerUser {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  site_id: string;
-}
+import type { CustomerUser } from '@/types';
 
 interface CustomerAuthState {
   customer: CustomerUser | null;
@@ -18,7 +11,7 @@ interface CustomerAuthState {
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
   setCustomerLoading: (loading: boolean) => void;
-  registerCustomer: (fullName: string, email: string, password: string, siteId: string) => Promise<{ user: any, error: string | null }>;
+  registerCustomer: (fullName: string, email: string, password: string, phone: string, siteId: string) => Promise<{ user: any, error: string | null }>;
   customerLogin: (email: string, password: string, siteId: string) => Promise<{ error: { message: string } | null }>;
   customerLogout: () => Promise<void>;
   setCustomer: (customer: CustomerUser | null) => void;
@@ -57,11 +50,11 @@ export const useCustomerAuth = create<CustomerAuthState>()(
         }
       },
 
-      registerCustomer: async (fullName, email, password, siteId) => {
+      registerCustomer: async (fullName, email, password, phone, siteId) => {
         try {
             const response = await fetch('/api/auth/register-customer', {
                 method: 'POST',
-                body: JSON.stringify({ fullName, email, password, siteId }),
+                body: JSON.stringify({ fullName, email, password, phone, siteId }),
                 headers: { 'Content-Type': 'application/json' }
             });
     

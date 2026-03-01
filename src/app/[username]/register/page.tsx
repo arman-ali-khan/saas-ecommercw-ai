@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -26,13 +27,17 @@ import {
 } from '@/components/ui/card';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Phone, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+// Validation regex for BD phone numbers
+const phoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'পুরো নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
+  phone: z.string().regex(phoneRegex, { message: 'সঠিক বাংলাদেশী ফোন নম্বর দিন (যেমন: 017XXXXXXXX)।' }),
   password: z.string().min(6, { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' }),
 });
 
@@ -90,6 +95,7 @@ export default function CustomerRegisterPage() {
     defaultValues: {
       fullName: '',
       email: '',
+      phone: '',
       password: '',
     },
     mode: 'onChange',
@@ -110,6 +116,7 @@ export default function CustomerRegisterPage() {
       values.fullName,
       values.email,
       values.password,
+      values.phone,
       siteId
     );
     setIsLoading(false);
@@ -135,17 +142,20 @@ export default function CustomerRegisterPage() {
   }
 
   return (
-    <div className="flex items-center justify-center py-20">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">অ্যাকাউন্ট তৈরি করুন</CardTitle>
-          <CardDescription>
-            কেনাকাটা চালিয়ে যেতে একটি গ্রাহক অ্যাকাউন্ট তৈরি করুন।
+    <div className="flex items-center justify-center py-12 px-4">
+      <Card className="w-full max-w-md border-2 shadow-xl rounded-[2rem] overflow-hidden">
+        <CardHeader className="text-center bg-muted/30 pb-8 pt-8">
+          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+            <Sparkles className="h-6 w-6 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-black font-headline">অ্যাকাউন্ট তৈরি করুন</CardTitle>
+          <CardDescription className="px-6">
+            কেনাকাটা চালিয়ে যেতে এবং অর্ডারের আপডেট পেতে একটি গ্রাহক অ্যাকাউন্ট তৈরি করুন।
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-8">
           {isLimitReached && (
-              <Alert variant="destructive" className="mb-6">
+              <Alert variant="destructive" className="mb-6 rounded-xl">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Registration Suspended</AlertTitle>
                   <AlertDescription>
@@ -155,15 +165,31 @@ export default function CustomerRegisterPage() {
           )}
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
                 control={form.control}
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>পুরো নাম</FormLabel>
+                    <FormLabel className="font-bold">পুরো নাম</FormLabel>
                     <FormControl>
-                      <Input placeholder="আপনার পুরো নাম" {...field} disabled={isLimitReached} />
+                      <Input placeholder="আপনার নাম" {...field} disabled={isLimitReached} className="h-12 rounded-xl" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-bold">ফোন নম্বর</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="017XXXXXXXX" {...field} disabled={isLimitReached} className="h-12 rounded-xl pl-10" />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -174,9 +200,9 @@ export default function CustomerRegisterPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ইমেল</FormLabel>
+                    <FormLabel className="font-bold">ইমেল</FormLabel>
                     <FormControl>
-                      <Input placeholder="you@example.com" {...field} disabled={isLimitReached} />
+                      <Input placeholder="example@mail.com" {...field} disabled={isLimitReached} className="h-12 rounded-xl" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -187,9 +213,9 @@ export default function CustomerRegisterPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>পাসওয়ার্ড</FormLabel>
+                    <FormLabel className="font-bold">পাসওয়ার্ড</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} disabled={isLimitReached} />
+                      <Input type="password" placeholder="••••••••" {...field} disabled={isLimitReached} className="h-12 rounded-xl" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -197,21 +223,21 @@ export default function CustomerRegisterPage() {
               />
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-12 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 transition-all active:scale-95 mt-4"
                 disabled={isLoading || !form.formState.isValid || !siteId || isLimitReached}
               >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? 'অ্যাকাউন্ট তৈরি করা হচ্ছে...' : 'অ্যাকাউন্ট তৈরি করুন'}
+                {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                {isLoading ? 'অ্যাকাউন্ট তৈরি হচ্ছে...' : 'অ্যাকাউন্ট তৈরি করুন'}
               </Button>
             </form>
           </Form>
-          <div className="mt-6 text-center text-sm">
-            ইতিমধ্যে একটি অ্যাকাউন্ট আছে?{' '}
+          <div className="mt-8 text-center text-sm">
+            <p className="text-muted-foreground">ইতিমধ্যে একটি অ্যাকাউন্ট আছে?{' '}</p>
             <Link
               href={`/login`}
-              className="font-medium text-primary hover:underline"
+              className="font-bold text-primary hover:underline mt-1 inline-block"
             >
-              সাইন ইন
+              সাইন ইন করুন
             </Link>
           </div>
         </CardContent>

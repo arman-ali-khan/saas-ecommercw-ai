@@ -480,3 +480,12 @@ export interface SiteImage {
   name?: string | null;
   created_at: string;
 }
+
+export interface CustomerUser {
+  id: string;
+  full_name: string;
+  email: string;
+  phone?: string | null;
+  role: string;
+  site_id: string;
+}

@@ -7,9 +7,9 @@ import { encrypt, decrypt } from '@/lib/encryption';
 
 export async function POST(request: Request) {
   try {
-    const { fullName, email, password, siteId } = await request.json();
+    const { fullName, email, password, phone, siteId } = await request.json();
 
-    if (!fullName || !email || !password || !siteId) {
+    if (!fullName || !email || !password || !phone || !siteId) {
         return NextResponse.json({ error: 'সকল তথ্য প্রদান করা আবশ্যক।' }, { status: 400 });
     }
 
@@ -43,18 +43,13 @@ export async function POST(request: Request) {
     
     const normalizedEmail = email.toLowerCase().trim();
 
-    // 2. Check if user already exists
-    const { data: existingUsers, error: fetchError } = await supabaseAdmin
+    // 2. Check if email already exists
+    const { data: existingEmailUsers } = await supabaseAdmin
         .from('customer_profiles')
         .select('email')
         .eq('site_id', siteId);
 
-    if (fetchError) {
-        console.error("Error fetching existing customers:", fetchError);
-        return NextResponse.json({ error: 'ডাটাবেস সংযোগে সমস্যা হয়েছে।' }, { status: 500 });
-    }
-
-    const isDuplicate = existingUsers?.some(u => {
+    const isEmailDuplicate = existingEmailUsers?.some(u => {
         try {
             return decrypt(u.email).toLowerCase() === normalizedEmail;
         } catch (e) {
@@ -62,8 +57,26 @@ export async function POST(request: Request) {
         }
     });
 
-    if (isDuplicate) {
+    if (isEmailDuplicate) {
         return NextResponse.json({ error: 'এই ইমেলটি দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা হয়েছে।' }, { status: 409 });
+    }
+
+    // 3. Check if phone already exists
+    const { data: existingPhoneUsers } = await supabaseAdmin
+        .from('customer_profiles')
+        .select('phone')
+        .eq('site_id', siteId);
+
+    const isPhoneDuplicate = existingPhoneUsers?.some(u => {
+        try {
+            return decrypt(u.phone) === phone;
+        } catch (e) {
+            return false;
+        }
+    });
+
+    if (isPhoneDuplicate) {
+        return NextResponse.json({ error: 'এই ফোন নম্বরটি দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট তৈরি করা হয়েছে।' }, { status: 409 });
     }
     
     const password_hash = await bcrypt.hash(password, 10);
@@ -75,6 +88,7 @@ export async function POST(request: Request) {
         id: userId,
         full_name: encrypt(fullName),
         email: encrypt(normalizedEmail),
+        phone: encrypt(phone),
         site_id: siteId,
         role: 'customer',
         password_hash: password_hash
