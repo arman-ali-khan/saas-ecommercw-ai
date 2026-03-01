@@ -82,12 +82,10 @@ export async function POST(request: Request) {
 
     if (otpError) throw otpError;
 
-    // 4. Send Notification (Simulated/Actual)
-    console.log(`[OTP GENERATED] To: ${identifier}, OTP: ${otp}, is_send: false`);
-    
     // In production, trigger Email API or SMS Gateway here.
+    console.log(`[OTP GENERATED] To: ${identifier}, OTP: ${otp}, is_send: false`);
 
-    return NextResponse.json({ success: true, message: 'ওটিপি পাঠানো হয়েছে।' }, { status: 200 });
+    return NextResponse.json({ success: true, message: 'ওটিপি জেনারেট হয়েছে।' }, { status: 200 });
 
   } catch (err: any) {
     console.error('Generate OTP API Error:', err);
