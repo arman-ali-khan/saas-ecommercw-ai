@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -18,8 +19,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Wand2 } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2, Wand2, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 const aiSettingsSchema = z.object({
   gemini_api_key: z.string().optional(),
@@ -64,8 +65,6 @@ export default function AiSettingsPage() {
   useEffect(() => {
     if (!authLoading && user) {
       fetchSettings();
-    } else if (!authLoading && !user) {
-        setIsLoading(false);
     }
   }, [user, authLoading, fetchSettings]);
 
@@ -97,61 +96,50 @@ export default function AiSettingsPage() {
     }
   }
 
-  if (isLoading || authLoading) {
-    return (
-        <Card>
-            <CardHeader>
-                <Skeleton className="h-8 w-64" />
-                <Skeleton className="h-4 w-96 mt-2" />
-            </CardHeader>
-            <CardContent className="space-y-6">
-               <div className="space-y-2">
-                    <Skeleton className="h-4 w-1/4" />
-                    <Skeleton className="h-10 w-full" />
-                </div>
-                <Skeleton className="h-10 w-32" />
-            </CardContent>
-        </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Wand2 /> AI Settings (OpenRouter)</CardTitle>
-        <CardDescription>
-          Configure your OpenRouter API key to enable advanced AI-powered features like automated product descriptions.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormField
-              control={form.control}
-              name="gemini_api_key"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>OpenRouter API Key</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="sk-or-v1-..." {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Get your API key from the{' '}
-                    <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline font-bold text-primary">
-                      OpenRouter Dashboard
-                    </a>. We recommend using the "Arcee-AI Trinity Large" model for best results.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save AI Key
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild className="-ml-4"><Link href="/admin/settings"><ArrowLeft className="h-5 w-5" /></Link></Button>
+        <h1 className="text-3xl font-bold tracking-tight">AI Settings</h1>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5" /> OpenRouter Configuration {isLoading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}</CardTitle>
+          <CardDescription>
+            Configure your OpenRouter API key to enable advanced AI-powered features like automated product descriptions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <FormField
+                control={form.control}
+                name="gemini_api_key"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>OpenRouter API Key</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="sk-or-v1-..." {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Get your API key from the{' '}
+                      <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="underline font-bold text-primary">
+                        OpenRouter Dashboard
+                      </a>.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save AI Key
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

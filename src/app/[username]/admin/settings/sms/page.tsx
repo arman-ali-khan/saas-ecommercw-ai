@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -18,8 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/stores/auth';
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, MessageSquare, Save, AlertCircle, Crown } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2, MessageSquare, Save, AlertCircle, Crown, ArrowLeft } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
@@ -74,8 +74,6 @@ export default function SmsSettingsPage() {
   useEffect(() => {
     if (!authLoading && user) {
       fetchSettings();
-    } else if (!authLoading && !user) {
-        setIsLoading(false);
     }
   }, [user, authLoading, fetchSettings]);
 
@@ -112,28 +110,12 @@ export default function SmsSettingsPage() {
     }
   }
 
-  if (isLoading || authLoading) {
-    return (
-        <div className="space-y-6">
-            <Skeleton className="h-10 w-48" />
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-8 w-64" />
-                    <Skeleton className="h-4 w-96 mt-2" />
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <Skeleton className="h-14 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-32" />
-                </CardContent>
-            </Card>
-        </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">SMS Settings</h1>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild className="-ml-4"><Link href="/admin/settings"><ArrowLeft className="h-5 w-5" /></Link></Button>
+        <h1 className="text-3xl font-bold tracking-tight">SMS Settings</h1>
+      </div>
       
       {isFreeUser ? (
         <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400">
@@ -150,18 +132,14 @@ export default function SmsSettingsPage() {
         <Alert className="bg-primary/5 border-primary/20">
             <AlertCircle className="h-4 w-4 text-primary" />
             <AlertTitle>গুরুত্বপূর্ণ তথ্য</AlertTitle>
-            <AlertDescription>
-            অর্ডার আসার সাথে সাথে আপনার মোবাইলে SMS পেতে এই সার্ভিসটি চালু করুন। সার্ভিসটি ব্যবহারের জন্য আপনার ব্যালেন্সে পর্যাপ্ত ক্রেডিট থাকতে হবে (যদি প্রযোজ্য হয়)।
-            </AlertDescription>
+            <AlertDescription>অর্ডার আসার সাথে সাথে আপনার মোবাইলে SMS পেতে এই সার্ভিসটি চালু করুন।</AlertDescription>
         </Alert>
       )}
 
       <Card className={cn("border-2 shadow-sm", isFreeUser && "opacity-60 grayscale-[0.5]")}>
         <CardHeader className="bg-muted/30 border-b">
-          <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /> SMS কনফিগারেশন</CardTitle>
-          <CardDescription>
-            অর্ডার নোটিফিকেশন পাওয়ার জন্য আপনার ফোন নম্বর সেট করুন।
-          </CardDescription>
+          <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /> SMS কনফিগারেশন {isLoading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}</CardTitle>
+          <CardDescription>অর্ডার নোটিফিকেশন পাওয়ার জন্য আপনার ফোন নম্বর সেট করুন।</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <Form {...form}>
@@ -172,48 +150,24 @@ export default function SmsSettingsPage() {
                     name="sms_notifications_enabled"
                     render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 p-4 bg-muted/10">
-                        <div className="space-y-0.5">
-                        <FormLabel className="text-base font-bold">SMS নোটিফিকেশন সক্রিয় করুন</FormLabel>
-                        <FormDescription>
-                            নতুন অর্ডার আসলে আপনার মোবাইলে স্বয়ংক্রিয়ভাবে মেসেজ চলে যাবে।
-                        </FormDescription>
-                        </div>
-                        <FormControl>
-                        <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                        />
-                        </FormControl>
+                        <div className="space-y-0.5"><FormLabel className="text-base font-bold">SMS নোটিফিকেশন সক্রিয় করুন</FormLabel><FormDescription>নতুন অর্ডার আসলে আপনার মোবাইলে স্বয়ংক্রিয়ভাবে মেসেজ চলে যাবে।</FormDescription></div>
+                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                     </FormItem>
                     )}
                 />
-
                 <FormField
                     control={form.control}
                     name="admin_sms_number"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel className="font-bold">অ্যাডমিন ফোন নম্বর</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g. 017XXXXXXXX" className="h-12 text-lg font-medium" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                        এই নম্বরে সকল অর্ডারের তথ্য পাঠানো হবে।
-                        </FormDescription>
+                        <FormControl><Input placeholder="e.g. 017XXXXXXXX" className="h-12 text-lg font-medium" {...field} /></FormControl>
+                        <FormDescription>এই নম্বরে সকল অর্ডারের তথ্য পাঠানো হবে।</FormDescription>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
-
-                <div className="pt-4">
-                    <Button type="submit" size="lg" disabled={isSubmitting || isFreeUser} className="min-w-[200px] h-12 rounded-xl shadow-lg shadow-primary/20">
-                    {isSubmitting ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> সেভ হচ্ছে...</>
-                    ) : (
-                        <><Save className="mr-2 h-4 w-4" /> সেটিংস সেভ করুন</>
-                    )}
-                    </Button>
-                </div>
+                <div className="pt-4"><Button type="submit" size="lg" disabled={isSubmitting || isFreeUser} className="min-w-[200px] h-12 rounded-xl shadow-lg shadow-primary/20">{isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> সেভ হচ্ছে...</> : <><Save className="mr-2 h-4 w-4" /> সেটিংস সেভ করুন</>}</Button></div>
               </fieldset>
             </form>
           </Form>

@@ -581,57 +581,27 @@ export default function SettingsAdminPage() {
     }
   }, [socialShareImageUrl]);
 
-  if (isLoading) {
-    return (
-        <div className="space-y-6">
-            <div className="space-y-2">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-80" />
-            </div>
-            <Card>
-                <CardHeader className="border-b">
-                    <div className="flex gap-4">
-                        <Skeleton className="h-9 w-24 rounded-md" />
-                        <Skeleton className="h-9 w-24 rounded-md" />
-                        <Skeleton className="h-9 w-24 rounded-md" />
-                        <Skeleton className="h-9 w-24 rounded-md" />
-                    </div>
-                </CardHeader>
-                <CardContent className="p-6 space-y-8">
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-10 w-full" />
-                    </div>
-                    <div className="space-y-2">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-24 w-full" />
-                    </div>
-                    <Skeleton className="h-10 w-40 rounded-md" />
-                </CardContent>
-            </Card>
-        </div>
-    );
-  }
-
   return (
-    <>
-    <Card>
-      <CardHeader>
-        <CardTitle>সাইট সেটিংস</CardTitle>
-        <CardDescription>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold tracking-tight">সাইট সেটিংস</h1>
+        <p className="text-muted-foreground">
           আপনার সাইটের সাধারণ তথ্য, ব্র্যান্ডিং এবং পেমেন্ট বিবরণ পরিচালনা করুন।
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </p>
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto mb-8">
               <TabsTrigger value="general">সাধারণ</TabsTrigger>
               <TabsTrigger value="branding">ব্র্যান্ডিং</TabsTrigger>
               <TabsTrigger value="seo">এসইও</TabsTrigger>
               <TabsTrigger value="payments">পেমেন্ট</TabsTrigger>
               <TabsTrigger value="subscription">Subscription</TabsTrigger>
             </TabsList>
-            <TabsContent value="general" className="mt-6">
+            
+            <TabsContent value="general" className="mt-0">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onGeneralSubmit)} className="space-y-8">
                         <FormField
@@ -670,7 +640,7 @@ export default function SettingsAdminPage() {
                             </FormItem>
                             )}
                         />
-                         <div className="pt-4">
+                         <div className="pt-4 border-t">
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 সাধারণ সেটিংস সংরক্ষণ করুন
@@ -679,7 +649,8 @@ export default function SettingsAdminPage() {
                     </form>
                 </Form>
             </TabsContent>
-            <TabsContent value="branding" className="mt-6">
+
+            <TabsContent value="branding" className="mt-0">
                 <Form {...brandingForm}>
                     <form onSubmit={brandingForm.handleSubmit(onBrandingSubmit)} className="space-y-8">
                          <FormField
@@ -742,7 +713,7 @@ export default function SettingsAdminPage() {
                                                 <DynamicIcon name={logoIcon} className="h-10 w-10 text-muted-foreground" />
                                             ) : null}
                                         </div>
-                                        <div className='flex-grow space-y-2'>
+                                        <div className='flex-grow space-y-2 w-full'>
                                             <FormControl>
                                                 <Input placeholder="https://example.com/logo.png" {...field} />
                                             </FormControl>
@@ -826,7 +797,7 @@ export default function SettingsAdminPage() {
                                             <Image src={socialShareImageUrl!} alt="Social Share Preview" fill className="object-contain p-1" />
                                         ) : <p className='text-xs text-muted-foreground'>Preview</p>}
                                     </div>
-                                    <div className='flex-grow space-y-2'>
+                                    <div className='flex-grow space-y-2 w-full'>
                                         <FormControl>
                                             <Input placeholder="https://example.com/social.png" {...field} />
                                         </FormControl>
@@ -840,7 +811,7 @@ export default function SettingsAdminPage() {
                             </FormItem>
                             )}
                         />
-                        <div className="pt-4">
+                        <div className="pt-4 border-t">
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 ব্র্যান্ডিং সেটিংস সংরক্ষণ করুন
@@ -849,7 +820,8 @@ export default function SettingsAdminPage() {
                     </form>
                 </Form>
             </TabsContent>
-            <TabsContent value="seo" className="mt-6">
+
+            <TabsContent value="seo" className="mt-0">
                 <Form {...seoForm}>
                     <form onSubmit={seoForm.handleSubmit(onSeoSubmit)} className="space-y-8">
                         <FormField
@@ -905,70 +877,51 @@ export default function SettingsAdminPage() {
                             )}
                         />
                         
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Sitemap & Robots.txt</CardTitle>
-                                <CardDescription>
-                                    These files are automatically generated to help search engines index your content.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <FormItem>
-                                    <FormLabel>Sitemap URL</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <FormControl>
-                                            <Input value={sitemapUrl} readOnly />
-                                        </FormControl>
-                                        <Button type="button" variant="outline" size="icon" onClick={() => {
-                                            navigator.clipboard.writeText(sitemapUrl);
-                                            toast({ title: 'Sitemap URL copied!' });
-                                        }}>
-                                            <Copy className="h-4 w-4" />
-                                        </Button>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <Card className="bg-muted/20">
+                                <CardHeader>
+                                    <CardTitle className="text-sm">Sitemap & Robots.txt</CardTitle>
+                                    <CardDescription className="text-[10px]">Helper files for search engine indexing.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold">Sitemap</Label>
+                                        <div className="flex gap-2">
+                                            <Input value={sitemapUrl} readOnly className="h-8 text-[10px] font-mono" />
+                                            <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => { navigator.clipboard.writeText(sitemapUrl); toast({ title: 'Copied!' }); }}><Copy className="h-3 w-3" /></Button>
+                                        </div>
                                     </div>
-                                </FormItem>
-                                <FormItem>
-                                    <FormLabel>Robots.txt URL</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <FormControl>
-                                            <Input value={robotsUrl} readOnly />
-                                        </FormControl>
-                                        <Button type="button" variant="outline" size="icon" onClick={() => {
-                                            navigator.clipboard.writeText(robotsUrl);
-                                            toast({ title: 'robots.txt URL copied!' });
-                                        }}>
-                                            <Copy className="h-4 w-4" />
-                                        </Button>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold">Robots</Label>
+                                        <div className="flex gap-2">
+                                            <Input value={robotsUrl} readOnly className="h-8 text-[10px] font-mono" />
+                                            <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => { navigator.clipboard.writeText(robotsUrl); toast({ title: 'Copied!' }); }}><Copy className="h-3 w-3" /></Button>
+                                        </div>
                                     </div>
-                                </FormItem>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Professional SEO Review</CardTitle>
-                                <CardDescription>
-                                    Request a professional SEO audit and optimization service from our team to boost your store's visibility.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {isSeoRequestLoading ? <Loader2 className="animate-spin" /> : (
-                                    seoRequest?.status === 'pending' ? (
-                                        <p className="text-muted-foreground">Your SEO review request is currently <span className="font-bold text-amber-500">pending</span>. Our team will get back to you soon.</p>
-                                    ) : seoRequest?.status === 'completed' ? (
-                                         <p className="text-muted-foreground">Your last SEO review was <span className="font-bold text-green-500">completed</span>. You can request a new review if needed.</p>
-                                    ) : (
-                                        <Button onClick={handleSeoRequest} disabled={isSubmitting}>
-                                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            <Sparkles className="mr-2 h-4 w-4" /> Request SEO Review
-                                        </Button>
-                                    )
-                                )}
-                            </CardContent>
-                        </Card>
+                            <Card className="border-primary/20 bg-primary/5">
+                                <CardHeader>
+                                    <CardTitle className="text-sm">Professional SEO Review</CardTitle>
+                                    <CardDescription className="text-[10px]">Request an audit from our experts.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {isSeoRequestLoading ? <Loader2 className="animate-spin h-4 w-4" /> : (
+                                        seoRequest?.status === 'pending' ? (
+                                            <p className="text-[10px] text-amber-600 font-bold uppercase tracking-widest">Review Pending...</p>
+                                        ) : (
+                                            <Button onClick={handleSeoRequest} disabled={isSubmitting} size="sm" className="w-full">
+                                                {isSubmitting && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                                                <Sparkles className="mr-2 h-3 w-3" /> Request Review
+                                            </Button>
+                                        )
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
 
-
-                        <div className="pt-4">
+                        <div className="pt-4 border-t">
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 এসইও সেটিংস সংরক্ষণ করুন
@@ -977,27 +930,21 @@ export default function SettingsAdminPage() {
                     </form>
                 </Form>
             </TabsContent>
-            <TabsContent value="payments" className="mt-6">
+
+            <TabsContent value="payments" className="mt-0">
                 <Form {...paymentForm}>
                     <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-8">
                         <FormField
                             control={paymentForm.control}
                             name="mobileBankingEnabled"
                             render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 p-4 bg-muted/10">
                                 <div className="space-y-0.5">
-                                <FormLabel className="text-base">
-                                    মোবাইল ব্যাংকিং সক্ষম করুন
-                                </FormLabel>
-                                <FormDescription>
-                                    আপনার গ্রাহকদের মোবাইল ব্যাংকিং এর মাধ্যমে পেমেন্ট করার অনুমতি দিন।
-                                </FormDescription>
+                                <FormLabel className="text-base font-bold">মোবাইল ব্যাংকিং সক্ষম করুন</FormLabel>
+                                <FormDescription>গ্রাহকদের সরাসরি পেমেন্ট করার সুযোগ দিন।</FormDescription>
                                 </div>
                                 <FormControl>
-                                <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
                                 </FormControl>
                             </FormItem>
                             )}
@@ -1009,12 +956,7 @@ export default function SettingsAdminPage() {
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>মোবাইল ব্যাংকিং নম্বর</FormLabel>
-                                    <FormControl>
-                                    <Input placeholder="e.g., 01234567890" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                    গ্রাহকরা যে নম্বরে পেমেন্ট পাঠাবে।
-                                    </FormDescription>
+                                    <FormControl><Input placeholder="e.g., 017XXXXXXXX" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )}
@@ -1026,20 +968,13 @@ export default function SettingsAdminPage() {
                                 <FormItem>
                                     <FormLabel>নম্বরের ধরন (Number Type)</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="সিলেক্ট করুন" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
+                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                        <SelectContent className="z-[110]">
                                             <SelectItem value="personal">Personal (ব্যক্তিগত)</SelectItem>
                                             <SelectItem value="agent">Agent (এজেন্ট)</SelectItem>
                                             <SelectItem value="merchant">Merchant (মার্চেন্ট)</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <FormDescription>
-                                        এটি চেকআউট পেজে গ্রাহককে সঠিক পেমেন্ট নির্দেশনা দিতে সাহায্য করবে।
-                                    </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                                 )}
@@ -1052,9 +987,7 @@ export default function SettingsAdminPage() {
                             <FormItem>
                                 <div className="mb-4">
                                 <FormLabel className="text-base">গৃহীত পদ্ধতি</FormLabel>
-                                <FormDescription>
-                                    আপনি কোন মোবাইল ব্যাংকিং পরিষেবাগুলি গ্রহণ করেন তা নির্বাচন করুন।
-                                </FormDescription>
+                                <FormDescription>আপনি কোন কোন ওয়ালেট গ্রহণ করেন তা নির্বাচন করুন।</FormDescription>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                                 {availableBankingMethods.map((item) => (
@@ -1064,38 +997,28 @@ export default function SettingsAdminPage() {
                                     name="acceptedBankingMethods"
                                     render={({ field }) => {
                                         return (
-                                        <FormItem
-                                            key={item.id}
-                                            className="flex flex-row items-start space-x-3 space-y-0"
-                                        >
+                                        <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
                                             <FormControl>
                                             <Checkbox
                                                 checked={field.value?.includes(item.id)}
                                                 onCheckedChange={(checked) => {
                                                 return checked
                                                     ? field.onChange([...(field.value || []), item.id])
-                                                    : field.onChange(
-                                                        field.value?.filter(
-                                                        (value) => value !== item.id
-                                                        )
-                                                    );
+                                                    : field.onChange(field.value?.filter((v) => v !== item.id));
                                                 }}
                                             />
                                             </FormControl>
-                                            <FormLabel className="font-normal">
-                                            {item.label}
-                                            </FormLabel>
+                                            <FormLabel className="font-normal">{item.label}</FormLabel>
                                         </FormItem>
                                         );
                                     }}
                                     />
                                 ))}
                                 </div>
-                                <FormMessage />
                             </FormItem>
                             )}
                         />
-                         <div className="pt-4">
+                         <div className="pt-4 border-t">
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 পেমেন্ট সেটিংস সংরক্ষণ করুন
@@ -1104,221 +1027,125 @@ export default function SettingsAdminPage() {
                     </form>
                 </Form>
             </TabsContent>
-            <TabsContent value="subscription" className="mt-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Subscription Management</CardTitle>
-                        <CardDescription>View your current plan and manage your subscription.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-8">
-                         {isLoadingPlans || !currentPlan ? (
-                            <Skeleton className="h-48 w-full" />
-                         ) : (
-                            <Card className="bg-muted/50 border-2">
-                                <CardHeader>
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <CardTitle className="text-2xl">Your Current Plan: {currentPlan.name}</CardTitle>
-                                            <CardDescription>{currentPlan.description}</CardDescription>
-                                        </div>
-                                        <Badge className="px-4 py-1">{user?.subscription_status}</Badge>
+
+            <TabsContent value="subscription" className="mt-0">
+                <div className="space-y-8">
+                    {isLoadingPlans || !currentPlan ? (
+                        <div className="space-y-4">
+                            <Skeleton className="h-32 w-full rounded-2xl" />
+                            <div className="grid md:grid-cols-2 gap-6"><Skeleton className="h-64 w-full rounded-2xl" /><Skeleton className="h-64 w-full rounded-2xl" /></div>
+                        </div>
+                    ) : (
+                        <>
+                            <Card className="bg-primary/5 border-2 border-primary/20 rounded-2xl shadow-sm">
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-xl">আপনার বর্তমান প্ল্যান: {currentPlan.name}</CardTitle>
+                                        <CardDescription>{currentPlan.description}</CardDescription>
                                     </div>
+                                    <Badge className="px-4 py-1 uppercase tracking-widest text-[10px] font-black">{user?.subscription_status}</Badge>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-4xl font-bold font-headline">
+                                    <p className="text-4xl font-black text-primary">
                                         {currentPlan.price === 0 ? 'Free' : `৳${currentPlan.price}`}
-                                        <span className="text-sm font-normal text-muted-foreground">{currentPlan.period}</span>
+                                        <span className="text-sm font-normal text-muted-foreground ml-1">{currentPlan.period}</span>
                                     </p>
                                     {user?.subscription_end_date && (
-                                        <p className="text-xs text-muted-foreground mt-2 font-bold uppercase tracking-widest">Expires on: {new Date(user.subscription_end_date).toLocaleDateString()}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-widest">Expires on: {new Date(user.subscription_end_date).toLocaleDateString()}</p>
                                     )}
                                 </CardContent>
                             </Card>
-                         )}
-                         <div className="space-y-4">
-                            <h3 className="font-bold text-lg border-l-4 border-primary pl-3">Available Plans</h3>
-                            <div className="grid md:grid-cols-2 gap-6">
-                                {plans.filter(p => p.id !== user?.subscriptionPlan).map(plan => (
-                                    <Card key={plan.id} className="flex flex-col border-2 hover:border-primary/30 transition-all group overflow-hidden">
-                                        <CardHeader className="bg-muted/30">
-                                            <CardTitle>{plan.name}</CardTitle>
-                                            <CardDescription className="line-clamp-1">{plan.description}</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="pt-6 flex-grow">
-                                            <p className="text-3xl font-black font-headline text-primary">
-                                                {plan.price === 0 ? 'Free' : `৳${plan.price}`}
-                                                <span className="text-sm font-normal text-muted-foreground">{plan.period}</span>
-                                            </p>
-                                            <ul className="mt-6 space-y-3 text-sm">
-                                                {plan.features.map((feature, i) => (
-                                                    <li key={i} className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-500 shrink-0" /> <span className="text-muted-foreground">{feature}</span></li>
-                                                ))}
-                                            </ul>
-                                        </CardContent>
-                                        <CardFooter className="bg-muted/10 pt-4">
-                                            <Button className="w-full rounded-xl font-bold" onClick={() => handlePlanChangeClick(plan)} disabled={user?.subscription_status === 'pending_verification'}>
-                                                {user?.subscription_status === 'pending_verification' ? 'Upgrade Pending' : `Switch to ${plan.name}`}
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                ))}
+
+                            <div className="space-y-4">
+                                <h3 className="font-bold text-lg border-l-4 border-primary pl-3 uppercase tracking-wider text-xs">Available Upgrade Options</h3>
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    {plans.filter(p => p.id !== user?.subscriptionPlan).map(plan => (
+                                        <Card key={plan.id} className="flex flex-col border-2 hover:border-primary/30 transition-all group overflow-hidden rounded-2xl">
+                                            <CardHeader className="bg-muted/30">
+                                                <CardTitle>{plan.name}</CardTitle>
+                                                <CardDescription className="line-clamp-1">{plan.description}</CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="pt-6 flex-grow">
+                                                <p className="text-3xl font-black text-primary">
+                                                    {plan.price === 0 ? 'Free' : `৳${plan.price}`}
+                                                    <span className="text-sm font-normal text-muted-foreground ml-1">{plan.period}</span>
+                                                </p>
+                                                <ul className="mt-6 space-y-3 text-sm">
+                                                    {plan.features.map((feature, i) => (
+                                                        <li key={i} className="flex items-center gap-2 text-xs"><CheckCircle className="h-3 w-3 text-green-500 shrink-0" /> <span className="text-muted-foreground">{feature}</span></li>
+                                                    ))}
+                                                </ul>
+                                            </CardContent>
+                                            <CardFooter className="bg-muted/10 pt-4">
+                                                <Button className="w-full rounded-xl font-bold" onClick={() => handlePlanChangeClick(plan)} disabled={user?.subscription_status === 'pending_verification'}>
+                                                    {user?.subscription_status === 'pending_verification' ? 'Upgrade Pending' : `Switch to ${plan.name}`}
+                                                </Button>
+                                            </CardFooter>
+                                        </Card>
+                                    ))}
+                                </div>
                             </div>
-                         </div>
-                    </CardContent>
-                </Card>
+                        </>
+                    )}
+                </div>
             </TabsContent>
           </Tabs>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
 
-    {/* Upgrade Plan Dialog */}
-    <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}>
+      {/* Dialogs remain the same but use isSubmitting for button states */}
+      <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}>
         <DialogContent className="max-w-2xl rounded-[2rem] p-0 overflow-hidden border-2 shadow-2xl">
           <DialogHeader className="bg-primary p-8 text-primary-foreground">
             <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 rounded-2xl">
-                    <CreditCard className="h-8 w-8" />
-                </div>
-                <div>
-                    <DialogTitle className="text-2xl font-black">Upgrade to {planToChange?.name}</DialogTitle>
-                    <DialogDescription className="text-primary-foreground/80 font-bold">
-                        Please choose your preferred payment method to activate this plan.
-                    </DialogDescription>
-                </div>
+                <div className="p-3 bg-white/20 rounded-2xl"><CreditCard className="h-8 w-8" /></div>
+                <div><DialogTitle className="text-2xl font-black">Upgrade to {planToChange?.name}</DialogTitle><DialogDescription className="text-primary-foreground/80 font-bold">চয়েজ করুন পেমেন্ট মেথড</DialogDescription></div>
             </div>
           </DialogHeader>
-          
           <div className="p-8 space-y-8">
             <Form {...subscriptionChangeForm}>
                 <form onSubmit={subscriptionChangeForm.handleSubmit(onSubscriptionChangeSubmit)} className="space-y-8">
-                    <FormField
-                        control={subscriptionChangeForm.control}
-                        name="paymentMethod"
-                        render={({ field }) => (
-                            <FormItem className="space-y-4">
-                                <FormLabel className="text-sm font-black uppercase tracking-widest text-muted-foreground">Choose Payment Method</FormLabel>
-                                <FormControl>
-                                    <RadioGroup
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-                                    >
-                                        <Label 
-                                            htmlFor="up-pm-aamarpay" 
-                                            className={cn(
-                                                "flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer transition-all",
-                                                field.value === 'aamarpay' ? "border-orange-500 bg-orange-500/5 shadow-md ring-2 ring-orange-500/10" : "border-muted hover:border-orange-500/20"
-                                            )}
-                                        >
-                                            <RadioGroupItem value="aamarpay" id="up-pm-aamarpay" className="sr-only" />
-                                            <ShoppingBag className={cn("h-8 w-8 mb-3 transition-colors", field.value === 'aamarpay' ? "text-orange-500" : "text-muted-foreground")} />
-                                            <p className="font-bold text-sm">Online Payment</p>
-                                            <p className="text-[10px] text-muted-foreground mt-1 text-center">aamarPay (Instant)</p>
-                                        </Label>
-
-                                        <Label 
-                                            htmlFor="up-pm-stripe" 
-                                            className={cn(
-                                                "flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer transition-all",
-                                                field.value === 'credit_card' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/10" : "border-muted hover:border-primary/20"
-                                            )}
-                                        >
-                                            <RadioGroupItem value="credit_card" id="up-pm-stripe" className="sr-only" />
-                                            <CreditCard className={cn("h-8 w-8 mb-3 transition-colors", field.value === 'credit_card' ? "text-primary" : "text-muted-foreground")} />
-                                            <p className="font-bold text-sm">Cards (Stripe)</p>
-                                            <p className="text-[10px] text-muted-foreground mt-1 text-center">Instant Activation</p>
-                                        </Label>
-
-                                        <Label 
-                                            htmlFor="up-pm-mobile" 
-                                            className={cn(
-                                                "flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer transition-all",
-                                                field.value === 'mobile_banking' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/20"
-                                            )}
-                                        >
-                                            <RadioGroupItem value="mobile_banking" id="up-pm-mobile" className="sr-only" />
-                                            <Wallet className={cn("h-8 w-8 mb-3 transition-colors", field.value === 'mobile_banking' ? "text-primary" : "text-muted-foreground")} />
-                                            <p className="font-bold text-sm">Manual Pay</p>
-                                            <p className="text-[10px] text-muted-foreground mt-1 text-center">BKash / Nagad</p>
-                                        </Label>
-                                    </RadioGroup>
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
-
+                    <FormField control={subscriptionChangeForm.control} name="paymentMethod" render={({ field }) => (
+                        <FormItem className="space-y-4">
+                            <FormControl>
+                                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <Label htmlFor="up-pm-aamarpay" className={cn("flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer transition-all", field.value === 'aamarpay' ? "border-orange-500 bg-orange-500/5 shadow-md" : "border-muted hover:border-orange-500/20")}>
+                                        <RadioGroupItem value="aamarpay" id="up-pm-aamarpay" className="sr-only" /><ShoppingBag className={cn("h-8 w-8 mb-3", field.value === 'aamarpay' ? "text-orange-500" : "text-muted-foreground")} /><p className="font-bold text-xs">Online Payment</p>
+                                    </Label>
+                                    <Label htmlFor="up-pm-stripe" className={cn("flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer transition-all", field.value === 'credit_card' ? "border-primary bg-primary/5 shadow-md" : "border-muted hover:border-primary/20")}>
+                                        <RadioGroupItem value="credit_card" id="up-pm-stripe" className="sr-only" /><CreditCard className={cn("h-8 w-8 mb-3", field.value === 'credit_card' ? "text-primary" : "text-muted-foreground")} /><p className="font-bold text-xs">Cards (Stripe)</p>
+                                    </Label>
+                                    <Label htmlFor="up-pm-mobile" className={cn("flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer transition-all", field.value === 'mobile_banking' ? "border-primary bg-primary/5 shadow-md" : "border-muted hover:border-primary/20")}>
+                                        <RadioGroupItem value="mobile_banking" id="up-pm-mobile" className="sr-only" /><Wallet className={cn("h-8 w-8 mb-3", field.value === 'mobile_banking' ? "text-primary" : "text-muted-foreground")} /><p className="font-bold text-xs">Manual Pay</p>
+                                    </Label>
+                                </RadioGroup>
+                            </FormControl>
+                        </FormItem>
+                    )} />
                     {watchedSubMethod === 'mobile_banking' && (
-                        <div className="space-y-6 animate-in slide-in-from-top-4 duration-500">
-                            <div className="text-sm text-muted-foreground bg-muted/50 p-6 rounded-2xl border-2 border-dashed">
-                                <h3 className="font-bold mb-3 text-foreground flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-primary" /> Mobile Banking Instructions</h3>
-                                <ol className="list-decimal list-inside space-y-2 leading-relaxed">
-                                    <li>Open your preferred mobile banking app.</li>
-                                    <li>Select the "Payment" or "Send Money" option.</li>
-                                    <li>Enter our merchant/admin number: <strong>{paymentForm.getValues('mobileBankingNumber') || '...'}</strong></li>
-                                    <li>Enter the amount: <strong>৳{planToChange?.price.toFixed(2)}</strong></li>
-                                    <li>After payment, enter the Transaction ID below.</li>
-                                </ol>
-                            </div>
-                            <FormField
-                                control={subscriptionChangeForm.control}
-                                name="transactionId"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="font-bold">Transaction ID (TxnID)</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g., 8N7F6G5H4J" {...field} className="h-12 rounded-xl border-2 focus:border-primary font-mono text-lg font-bold" />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
+                        <div className="space-y-4 p-5 bg-muted/50 rounded-2xl border-2 border-dashed">
+                            <p className="text-xs">Merchant: <strong>{paymentForm.getValues('mobileBankingNumber') || '...'}</strong><br/>Amount: <strong>৳{planToChange?.price.toFixed(2)}</strong></p>
+                            <FormField control={subscriptionChangeForm.control} name="transactionId" render={({ field }) => (
+                                <FormItem><FormLabel className="font-bold">Transaction ID</FormLabel><FormControl><Input placeholder="8N7F6G5H4J" {...field} className="h-12 rounded-xl border-2" /></FormControl><FormMessage /></FormItem>
+                            )} />
                         </div>
                     )}
-
-                    <DialogFooter className="gap-3 pt-4">
-                        <Button type="button" variant="ghost" onClick={() => setIsChangePlanDialogOpen(false)} className="rounded-xl h-12 px-8">Cancel</Button>
-                        <Button type="submit" disabled={isSubmitting} className="flex-grow sm:flex-none h-12 px-10 rounded-xl font-bold shadow-xl shadow-primary/20">
-                            {isSubmitting ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
-                            ) : (
-                                watchedSubMethod === 'credit_card' ? 'Pay with Stripe' : 
-                                watchedSubMethod === 'aamarpay' ? 'Pay with aamarPay' :
-                                'Submit for Verification'
-                            )}
-                        </Button>
-                    </DialogFooter>
+                    <DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-xl font-bold">{isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : 'Pay & Activate'}</Button></DialogFooter>
                 </form>
             </Form>
           </div>
         </DialogContent>
-    </Dialog>
+      </Dialog>
 
-    {/* Free Plan Confirmation Dialog */}
-    <Dialog open={isFreePlanConfirmOpen} onOpenChange={setIsFreePlanConfirmOpen}>
+      <Dialog open={isFreePlanConfirmOpen} onOpenChange={setIsFreePlanConfirmOpen}>
         <DialogContent className="rounded-3xl border-2">
             <DialogHeader>
-                <div className="flex items-center gap-3 text-amber-500 mb-4 bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20">
-                    <AlertTriangle className="h-8 w-8 shrink-0" />
-                    <div>
-                        <DialogTitle className="text-xl font-bold">Confirm Plan Change</DialogTitle>
-                        <p className="text-xs font-medium">Downgrading to Free Plan</p>
-                    </div>
-                </div>
-                <DialogDescription className="text-foreground text-base leading-relaxed">
-                    আপনি কি নিশ্চিত যে আপনি <span className="font-bold text-primary">Free</span> প্ল্যানে ফিরে যেতে চান? 
-                    <br/><br/>
-                    এর ফলে আপনার স্টোরের কিছু প্রিমিয়াম ফিচার (যেমন: <span className="font-bold">AI Assistant, SMS Notifications, Custom Domain</span>) বন্ধ হয়ে যাবে।
-                </DialogDescription>
+                <div className="flex items-center gap-3 text-amber-500 mb-4 bg-amber-500/10 p-4 rounded-2xl"><AlertTriangle className="h-8 w-8" /><DialogTitle className="text-xl font-bold">Confirm Plan Change</DialogTitle></div>
+                <DialogDescription className="text-foreground text-base leading-relaxed">আপনি কি নিশ্চিত যে আপনি <span className="font-bold text-primary">Free</span> প্ল্যানে ফিরে যেতে চান?</DialogDescription>
             </DialogHeader>
-            <DialogFooter className="mt-8 gap-3 sm:gap-0">
-                <Button variant="outline" onClick={() => setIsFreePlanConfirmOpen(false)} disabled={isSubmitting} className="rounded-xl h-11">বাতিল করুন</Button>
-                <Button onClick={handleFreePlanSwitch} disabled={isSubmitting} className="rounded-xl h-11 px-8 font-bold shadow-lg">
-                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    হ্যাঁ, পরিবর্তন করুন
-                </Button>
-            </DialogFooter>
+            <DialogFooter className="mt-8 gap-3 sm:gap-0"><Button variant="outline" onClick={() => setIsFreePlanConfirmOpen(false)} disabled={isSubmitting} className="rounded-xl h-11">বাতিল</Button><Button onClick={handleFreePlanSwitch} disabled={isSubmitting} className="rounded-xl h-11 px-8 font-bold shadow-lg">{isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : 'পরিবর্তন করুন'}</Button></DialogFooter>
         </DialogContent>
-    </Dialog>
-    </>
+      </Dialog>
+    </div>
   );
 }
