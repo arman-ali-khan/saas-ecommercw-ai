@@ -35,10 +35,11 @@ import {
 } from '@/components/ui/dialog';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, KeyRound, Mail, Phone, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Loader2, KeyRound, Mail, Phone, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'অবৈধ ইমেল ঠিকানা।' }),
@@ -57,6 +58,7 @@ export default function CustomerLoginPage() {
 
   // Verification States
   const [isVerifying, setIsVerifying] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [verifyPhone, setVerifyPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [isResending, setIsResending] = useState(false);
@@ -94,20 +96,45 @@ export default function CustomerLoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!siteId) return;
     setIsSubmitting(true);
-    const { error }: any = await customerLogin(values.email, values.password, siteId);
+    setNeedsVerification(false);
+
+    const result: any = await customerLogin(values.email, values.password, siteId);
     
-    if (error) {
+    if (result?.error) {
       setIsSubmitting(false);
-      if (error.message === 'verification_pending' || (error.phone)) {
-          setVerifyPhone(error.phone);
-          setIsVerifying(true);
-          toast({ title: 'ভেরিফিকেশন প্রয়োজন', description: 'আপনার ফোনে ওটিপি পাঠানো হয়েছে।' });
+      if (result.error.message === 'verification_pending') {
+          setVerifyPhone(result.error.phone || '');
+          setNeedsVerification(true);
+          toast({ variant: 'destructive', title: 'ভেরিফিকেশন প্রয়োজন', description: 'আপনার একাউন্টটি এখনো ভেরিফাই করা হয়নি।' });
       } else {
-          toast({ variant: 'destructive', title: 'লগইন ব্যর্থ', description: error.message || 'ভুল ইমেল বা পাসওয়ার্ড।' });
+          toast({ variant: 'destructive', title: 'লগইন ব্যর্থ', description: result.error.message || 'ভুল ইমেল বা পাসওয়ার্ড।' });
       }
     } else {
        toast({ title: 'লগইন সফল!', description: 'প্রোফাইলে নিয়ে যাওয়া হচ্ছে...' });
        router.push('/profile');
+    }
+  }
+
+  const handleStartVerification = async () => {
+    if (!verifyPhone || !siteId) return;
+    setIsResending(true);
+    try {
+        const response = await fetch('/api/auth/otp/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identifier: verifyPhone, type: 'phone', siteId }),
+        });
+        if (response.ok) {
+            setIsVerifying(true);
+            setNeedsVerification(false);
+            toast({ title: 'ওটিপি পাঠানো হয়েছে!', description: 'আপনার ফোনে কোডটি চেক করুন।' });
+        } else {
+            throw new Error('OTP failed');
+        }
+    } catch (e) {
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'ওটিপি পাঠানো যায়নি। আবার চেষ্টা করুন।' });
+    } finally {
+        setIsResending(false);
     }
   }
 
@@ -205,6 +232,19 @@ export default function CustomerLoginPage() {
                 <CardDescription>আপনার একাউন্টে প্রবেশ করতে ইমেল ও পাসওয়ার্ড দিন।</CardDescription>
                 </CardHeader>
                 <CardContent className="p-8">
+                {needsVerification && (
+                    <Alert variant="destructive" className="mb-6 rounded-xl border-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>ভেরিফিকেশন বাকি!</AlertTitle>
+                        <AlertDescription className="mt-2 space-y-3">
+                            <p>আপনার ফোন নম্বরটি (*******{verifyPhone.slice(-4)}) এখনো ভেরিফাই করা হয়নি।</p>
+                            <Button size="sm" className="w-full bg-destructive text-white hover:bg-destructive/90" onClick={handleStartVerification} disabled={isResending}>
+                                {isResending ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
+                                এখনই ভেরিফাই করুন
+                            </Button>
+                        </AlertDescription>
+                    </Alert>
+                )}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                     <FormField control={form.control} name="email" render={({ field }) => (
