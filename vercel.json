@@ -1,16 +1,11 @@
+
 {
   "version": 2,
   "functions": {
-    "src/app/api/**/*": {
-      "memory": 1024,
+    "src/app/api/products/ai/**/*": {
       "maxDuration": 60
     },
-    "src/app/[username]/**/*": {
-      "memory": 1024,
-      "maxDuration": 60
-    },
-    "src/app/dashboard/**/*": {
-      "memory": 1024,
+    "src/app/api/pages/save": {
       "maxDuration": 60
     }
   },

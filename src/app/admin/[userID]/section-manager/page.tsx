@@ -1,1 +1,1 @@
-// File removed - Redundant with /[username]/admin/section-manager
+export default function Page() { return null; }
