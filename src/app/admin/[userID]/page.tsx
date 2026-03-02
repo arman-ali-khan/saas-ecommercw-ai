@@ -1,1 +1,1 @@
-// File removed - Redundant with /[username]/admin/page
+export default function Page() { return null; }

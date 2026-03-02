@@ -121,10 +121,9 @@ export async function POST(request: Request) {
       throw new Error(`প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ${profileError.message}`);
     }
 
-    // CREATE NOTIFICATION FOR SAAS ADMIN ABOUT NEW ACCOUNT
     await supabaseAdmin.from('notifications').insert({
         recipient_type: 'admin',
-        recipient_id: null, // Global/Platform level for SaaS admin
+        recipient_id: null,
         site_id: userId,
         message: `একটি নতুন অ্যাডমিন অ্যাকাউন্ট তৈরি হয়েছে: "${siteName}" (@${domain})। প্ল্যান: ${finalPlanId.toUpperCase()}`,
         link: `/dashboard/users/${userId}`

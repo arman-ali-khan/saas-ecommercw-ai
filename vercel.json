@@ -1,19 +1,4 @@
+
 {
-  "version": 2,
-  "functions": {
-    "src/app/api/**/*": {
-      "memory": 1024,
-      "maxDuration": 60
-    },
-    "src/app/[username]/**/*": {
-      "memory": 1024,
-      "maxDuration": 60
-    },
-    "src/app/dashboard/**/*": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  },
-  "cleanUrls": true,
-  "framework": "nextjs"
+  "version": 2
 }

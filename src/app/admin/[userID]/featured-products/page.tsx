@@ -1,1 +1,1 @@
-// File removed - Redundant with /[username]/admin/featured-products
+export default function Page() { return null; }

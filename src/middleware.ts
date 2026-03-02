@@ -7,9 +7,8 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
  
-  // 1. SKIP REWRITES FOR SYSTEM PATHS AND ALL API ROUTES
-  // Removed sitemap.xml and robots.txt from early skip to allow them to be rewritten for subdomains
-  const globalSystemFiles = ['/favicon.ico', '/firebase-messaging-sw.js'];
+  // 1. SKIP REWRITES FOR SYSTEM PATHS AND STATIC ASSETS
+  const globalSystemFiles = ['/favicon.ico', '/firebase-messaging-sw.js', '/sw.js', '/manifest.json'];
   
   if (
     url.pathname.startsWith('/api') || 
@@ -22,35 +21,43 @@ export async function middleware(request: NextRequest) {
   }
 
   const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
-  const hostWithoutPort = hostname.split(':')[0];
   
-  // Explicitly ignore localhost and common dev hosts for custom domain lookups
+  // Clean hostname (remove port and www prefix for easier matching)
+  const hostWithoutPort = hostname.split(':')[0];
+  const curHost = hostWithoutPort.replace('www.', '');
+  
+  // Detect if we are on a development environment or local host
   const isDevHost = hostWithoutPort === 'localhost' || hostWithoutPort === '127.0.0.1' || hostWithoutPort.includes('workstation');
-  const isRoot = hostWithoutPort === rootDomain || hostWithoutPort === `www.${rootDomain}`;
+  
+  // Check if it's the root SaaS domain
+  const isRoot = curHost === rootDomain;
 
-  // If it's the root domain, serve the platform-level files (from src/app/)
-  if (isRoot || (isDevHost && !hostWithoutPort.endsWith(`.${rootDomain}`))) {
+  if (isRoot) {
     return NextResponse.next();
   }
 
-  // 2. Resolve Subdomain or Custom Domain
+  // 2. Resolve Username (Slug)
   let username = '';
 
-  // Check if it's a subdomain of our root domain
-  if (hostWithoutPort.endsWith(`.${rootDomain}`)) {
-    username = hostWithoutPort.replace(`.${rootDomain}`, '');
-  } else if (!isDevHost) {
-    // Only attempt custom domain lookup on production hosts
+  // Case A: Check if it's a subdomain of our root domain (e.g., user.schoolbd.top)
+  if (curHost.endsWith(`.${rootDomain}`)) {
+    username = curHost.replace(`.${rootDomain}`, '');
+  } 
+  // Case B: It's likely a custom domain (e.g., userdomain.com)
+  else {
     try {
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
         
+        // We look up the 'profiles' table to find which internal domain (slug) 
+        // is mapped to this external custom domain.
+        // We check both with and without 'www.' for maximum compatibility.
         const { data } = await supabase
             .from('profiles')
             .select('domain')
-            .eq('custom_domain', hostWithoutPort)
+            .or(`custom_domain.eq.${curHost},custom_domain.eq.${hostWithoutPort}`)
             .single();
         
         if (data) {
@@ -61,12 +68,19 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // If no username/store-slug is resolved, serve the standard platform landing page
   if (!username || username === 'www') {
+    // If it's a dev host and not matching anything, just continue to root
+    if (isDevHost) return NextResponse.next();
+    
+    // In production, we could redirect to root or show 404, 
+    // for now we let it fall through to root.
     return NextResponse.next();
   }
 
   // 3. Rewrite to dynamic route /[username]/...
-  // This will now catch /sitemap.xml and /robots.txt for subdomains
+  // This effectively tells Next.js: "Treat this request as if it was for /username/path"
+  // This allows the App Router to use the files in src/app/[username]/...
   const targetPath = `/${username}${url.pathname}${url.search}`;
   return NextResponse.rewrite(new URL(targetPath, request.url));
 }
