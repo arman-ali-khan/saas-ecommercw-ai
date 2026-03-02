@@ -224,7 +224,7 @@ export default function CustomDomainsManagerPage() {
                     <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setSelectedReq(null)} disabled={isActionLoading}><X className="h-5 w-5" /></Button>
                 </div>
                 
-                <ScrollArea className="flex-grow ovherflow-y-auto">
+                <ScrollArea className="flex-grow !overflow-y-auto">
                     <div className="p-6 space-y-8">
                         <div className="p-5 rounded-2xl bg-muted/20 border-2 border-dashed space-y-3">
                             <div className="flex justify-between items-center">
