@@ -389,7 +389,7 @@ export default function CustomerLoginPage() {
                     <div className="mx-auto w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
                         <ShieldCheck className="h-6 w-6 text-primary" />
                     </div>
-                    <CardTitle className="text-2xl font-black font-headline">নম্বর ভেরিফাই করুন</CardTitle>
+                    <CardTitle className="text-2xl font-black font-headline flex">নম্বর ভেরিফাই করুন</CardTitle>
                     <CardDescription>
                         আপনার ফোন <strong>*******{verifyPhone.slice(-4)}</strong> এ ওটিপি পাঠানো হয়েছে।
                     </CardDescription>
