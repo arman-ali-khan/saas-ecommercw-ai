@@ -1,12 +1,4 @@
 
 {
-  "version": 2,
-  "functions": {
-    "api/products/ai/**": {
-      "maxDuration": 60
-    },
-    "api/pages/save": {
-      "maxDuration": 60
-    }
-  }
+  "version": 2
 }
