@@ -151,7 +151,7 @@ export default function ManageProductPage() {
   const productLimit = user?.product_limit;
   const currentProductCount = dashboard?.totalProducts || 0;
   const isLimitReached = isNew && productLimit !== null && currentProductCount >= productLimit;
-
+ 
   useEffect(() => {
     if (isNew && productName) {
       const slug = productName
