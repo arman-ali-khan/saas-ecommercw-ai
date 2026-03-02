@@ -15,24 +15,37 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // 1. Update Request with DNS info
     const { data: requestData, error: updateReqError } = await supabaseAdmin
       .from('custom_domain_requests')
-      .update({ status, dns_info: dnsInfo, updated_at: new Date().toISOString() })
+      .update({ 
+        status, 
+        dns_info: dnsInfo, 
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', id)
       .select()
       .single();
 
     if (updateReqError) throw updateReqError;
 
+    // 2. If status is active, sync to profiles table
     if (status === 'active') {
-        await supabaseAdmin.from('profiles').update({ custom_domain: requestData.custom_domain }).eq('id', siteId);
-    } else if (status === 'rejected') {
-        await supabaseAdmin.from('profiles').update({ custom_domain: null }).eq('id', siteId);
+        await supabaseAdmin
+            .from('profiles')
+            .update({ custom_domain: requestData.custom_domain })
+            .eq('id', siteId);
+    } else if (status === 'rejected' || status === 'pending') {
+        // If moved back from active, clear the custom domain link
+        await supabaseAdmin
+            .from('profiles')
+            .update({ custom_domain: null })
+            .eq('id', siteId);
     }
 
+    // 3. Create notification for store admin
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${request.headers.get('host')}`;
-
-    // Create notification with Push for store admin
+    
     await fetch(`${baseUrl}/api/notifications/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,7 +53,7 @@ export async function POST(request: Request) {
             recipientId: siteId,
             recipientType: 'admin',
             siteId: siteId,
-            message: `আপনার ডোমেইন রিকোয়েস্ট (${requestData.custom_domain}) আপডেট করা হয়েছে: ${status}`,
+            message: `আপনার ডোমেইন রিকোয়েস্ট (${requestData.custom_domain}) আপডেট করা হয়েছে। বর্তমান স্ট্যাটাস: ${status.toUpperCase()}`,
             link: '/admin/settings/custom-domain'
         }),
     }).catch(e => console.error("Domain update push failed", e));
@@ -48,6 +61,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err: any) {
     console.error('Update Domain API Error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }

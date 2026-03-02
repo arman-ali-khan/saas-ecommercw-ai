@@ -15,7 +15,7 @@ import { Loader2, Search, X, CheckCircle2, ShieldAlert, Globe, ExternalLink, Fil
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/stores/auth';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@radix-ui/react-separator';
+import { Separator } from '@/components/ui/separator';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -74,6 +74,10 @@ export default function CustomDomainsManagerPage() {
         setDnsType(req.dns_info.type || 'CNAME');
         setDnsValue(req.dns_info.value || 'www');
         setDnsPointsTo(req.dns_info.pointsTo || 'cname.vercel-dns.com');
+    } else {
+        setDnsType('CNAME');
+        setDnsValue('www');
+        setDnsPointsTo('cname.vercel-dns.com');
     }
   };
 
@@ -217,7 +221,7 @@ export default function CustomDomainsManagerPage() {
                         </div>
 
                         <Separator />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">DNS Instructions (Vercel Info)</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">DNS Instructions (Setup Info)</h3>
                         
                         <div className="grid grid-cols-3 gap-2">
                             <div className="space-y-1">
@@ -227,19 +231,20 @@ export default function CustomDomainsManagerPage() {
                                     <SelectContent className="z-[110]">
                                         <SelectItem value="CNAME">CNAME</SelectItem>
                                         <SelectItem value="A">A Record</SelectItem>
+                                        <SelectItem value="TXT">TXT</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-[10px]">Name/Host</Label>
-                                <Input value={dnsValue} onChange={e => setDnsValue(e.target.value)} className="h-9" />
+                                <Input value={dnsValue} onChange={e => setDnsValue(e.target.value)} className="h-9" placeholder="e.g. www" />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-[10px]">Points To</Label>
-                                <Input value={dnsPointsTo} onChange={e => setDnsPointsTo(e.target.value)} className="h-9" />
+                                <Input value={dnsPointsTo} onChange={e => setDnsPointsTo(e.target.value)} className="h-9" placeholder="e.g. proxy.domain.com" />
                             </div>
                         </div>
-                        <p className="text-[10px] text-muted-foreground italic">Add this domain to your Vercel project first, then provide the CNAME/A record info here for the user.</p>
+                        <p className="text-[10px] text-muted-foreground italic">Provide the DNS configuration that the user needs to add at their registrar.</p>
                     </div>
                 </div>
                 <div className="p-6 border-t flex justify-end gap-3 shrink-0">
