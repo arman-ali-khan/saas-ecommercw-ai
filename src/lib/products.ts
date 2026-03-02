@@ -7,11 +7,11 @@ export const checkDomainExists = async (domain: string): Promise<boolean> => {
         .from('profiles')
         .select('id')
         .eq('domain', domain)
-        .single();
+        .maybeSingle();
     
-    if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+    if (error) {
         console.error("Error checking domain existence:", error);
-        return false; // Failsafe, treat as not existing on error
+        return false;
     }
 
     return !!data;
@@ -24,7 +24,7 @@ export const getProductsByDomain = async (domain: string): Promise<Product[]> =>
         .from('profiles')
         .select('id')
         .eq('domain', domain)
-        .single();
+        .maybeSingle();
     
     if (!profile) {
         return [];
@@ -65,7 +65,7 @@ export const getProductById = async (id: string, domain: string): Promise<Produc
         .from('profiles')
         .select('id')
         .eq('domain', domain)
-        .single();
+        .maybeSingle();
         
     if (!profile) {
         console.error(`Error fetching profile for domain: ${domain}`);
@@ -77,13 +77,10 @@ export const getProductById = async (id: string, domain: string): Promise<Produc
         .select('*')
         .eq('id', decodedId)
         .eq('site_id', profile.id)
-        .single();
+        .maybeSingle();
     
     if (error) {
-        // It's okay if no row is found, but log other errors.
-        if (error.code !== 'PGRST116') {
-             console.error("Error fetching product:", error);
-        }
+        console.error("Error fetching product:", error);
         return null;
     }
     

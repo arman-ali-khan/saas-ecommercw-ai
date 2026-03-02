@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
 
   const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
   
-  // Clean hostname (remove port and www prefix for easier matching)
+  // Clean hostname (remove port and handle www prefix)
   const hostWithoutPort = hostname.split(':')[0];
   const curHost = hostWithoutPort.replace('www.', '');
   
@@ -43,44 +43,40 @@ export async function middleware(request: NextRequest) {
   if (curHost.endsWith(`.${rootDomain}`)) {
     username = curHost.replace(`.${rootDomain}`, '');
   } 
-  // Case B: It's likely a custom domain (e.g., userdomain.com)
+  // Case B: It's likely a custom domain (e.g., mybrand.com)
   else {
     try {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        
-        // We look up the 'profiles' table to find which internal domain (slug) 
-        // is mapped to this external custom domain.
-        // We check both with and without 'www.' for maximum compatibility.
-        const { data } = await supabase
-            .from('profiles')
-            .select('domain')
-            .or(`custom_domain.eq.${curHost},custom_domain.eq.${hostWithoutPort}`)
-            .single();
-        
-        if (data) {
-            username = data.domain;
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (supabaseUrl && supabaseKey) {
+            const supabase = createClient(supabaseUrl, supabaseKey);
+            
+            // Lookup the 'profiles' table to find the store slug mapped to this custom domain
+            // We use maybeSingle() to avoid throwing errors if no match is found
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('domain')
+                .or(`custom_domain.eq.${curHost},custom_domain.eq.${hostWithoutPort}`)
+                .maybeSingle();
+            
+            if (data && !error) {
+                username = data.domain;
+            }
         }
     } catch (e) {
-        console.error('Custom domain lookup error:', e);
+        console.error('Custom domain resolution error in middleware:', e);
     }
   }
 
   // If no username/store-slug is resolved, serve the standard platform landing page
   if (!username || username === 'www') {
-    // If it's a dev host and not matching anything, just continue to root
     if (isDevHost) return NextResponse.next();
-    
-    // In production, we could redirect to root or show 404, 
-    // for now we let it fall through to root.
     return NextResponse.next();
   }
 
   // 3. Rewrite to dynamic route /[username]/...
-  // This effectively tells Next.js: "Treat this request as if it was for /username/path"
-  // This allows the App Router to use the files in src/app/[username]/...
+  // This tells Next.js to treat the request as if it was for the dynamic [username] folder
   const targetPath = `/${username}${url.pathname}${url.search}`;
   return NextResponse.rewrite(new URL(targetPath, request.url));
 }

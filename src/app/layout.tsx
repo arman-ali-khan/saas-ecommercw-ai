@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -15,9 +16,19 @@ import OfflineWarning from '@/components/offline-warning';
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return {
+      title: 'বাংলা ন্যাচারালস',
+      description: 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।'
+    };
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         get(name: string) {
@@ -31,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
     .from('saas_settings')
     .select('platform_name, platform_description, seo_title, seo_description, seo_keywords, favicon_url')
     .eq('id', 1)
-    .single();
+    .maybeSingle();
 
   const settings = data || {};
 
