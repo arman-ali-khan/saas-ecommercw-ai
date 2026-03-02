@@ -6,8 +6,8 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
  
-  // 1. SKIP REWRITES FOR SYSTEM PATHS AND STATIC ASSETS
-  const globalSystemFiles = ['/favicon.ico', '/firebase-messaging-sw.js', '/sw.js', '/manifest.json', '/logo.png'];
+  // 1. SKIP REWRITES FOR SYSTEM PATHS, STATIC ASSETS AND API
+  const globalSystemFiles = ['/favicon.ico', '/sw.js', '/manifest.json', '/robots.txt', '/sitemap.xml', '/logo.png'];
   
   if (
     url.pathname.startsWith('/api') || 
@@ -21,26 +21,26 @@ export async function middleware(request: NextRequest) {
 
   const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
   
-  // Clean hostname (remove port and handle www prefix)
-  const hostWithoutPort = hostname.split(':')[0];
-  const curHost = hostWithoutPort.replace('www.', '').toLowerCase();
+  // Clean hostname (strip port and handle www prefix)
+  const curHost = hostname.replace('www.', '').split(':')[0].toLowerCase();
   
   // Check if it's the root SaaS domain or a local/dev environment
-  const isRoot = curHost === rootDomain || hostWithoutPort.includes('workstation') || hostWithoutPort.includes('localhost');
+  const isRoot = curHost === rootDomain || curHost.includes('vercel.app') || curHost.includes('localhost') || curHost.includes('workstation');
 
-  // If it's the root domain and the path is not a store-specific rewrite, let it pass to landing page
+  // If it's exactly the root domain, serve the platform landing page
   if (curHost === rootDomain) {
       return NextResponse.next();
   }
 
-  // 2. Resolve Username (Slug)
   let username = '';
 
-  // Case A: Check if it's a subdomain of our root domain (e.g., user.schoolbd.top)
+  // 2. RESOLVE USERNAME (SLUG)
+  
+  // Case A: Subdomain of our root (e.g., store1.schoolbd.top)
   if (curHost.endsWith(`.${rootDomain}`)) {
     username = curHost.replace(`.${rootDomain}`, '');
   } 
-  // Case B: It's likely a custom domain (e.g., mybrand.com) or a direct domain slug
+  // Case B: Parked Custom Domain (e.g., mybrand.com)
   else {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -49,15 +49,14 @@ export async function middleware(request: NextRequest) {
         if (supabaseUrl && supabaseKey) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             
-            // Search for store by custom_domain or matching domain slug
-            // We use a broader check to ensure the custom domain is matched correctly
+            // Search for store by its assigned custom_domain
             const { data, error } = await supabase
                 .from('profiles')
                 .select('domain')
-                .or(`custom_domain.eq.${curHost},domain.eq.${curHost}`)
+                .eq('custom_domain', curHost)
                 .maybeSingle();
             
-            if (data && !error) {
+            if (data?.domain && !error) {
                 username = data.domain;
             }
         }
@@ -66,15 +65,16 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // If no username is resolved, serve the standard platform landing page or the current request
-  if (!username || username === 'www') {
-    return NextResponse.next();
+  // 3. REWRITE TO DYNAMIC ROUTE /[username]/...
+  // If we resolved a valid username, we rewrite the URL internally.
+  // The browser URL remains mybrand.com, but Next.js sees /[username]/...
+  if (username && username !== 'www') {
+    const targetPath = `/${username}${url.pathname}${url.search}`;
+    return NextResponse.rewrite(new URL(targetPath, request.url));
   }
 
-  // 3. Rewrite to dynamic route /[username]/...
-  // This ensures the URL in the browser remains the custom domain
-  const targetPath = `/${username}${url.pathname}${url.search}`;
-  return NextResponse.rewrite(new URL(targetPath, request.url));
+  // Fallback to landing page if no store is matched
+  return NextResponse.next();
 }
 
 export const config = {
