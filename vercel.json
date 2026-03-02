@@ -2,13 +2,11 @@
 {
   "version": 2,
   "functions": {
-    "src/app/api/products/ai/**/*": {
+    "api/products/ai/**": {
       "maxDuration": 60
     },
-    "src/app/api/pages/save": {
+    "api/pages/save": {
       "maxDuration": 60
     }
-  },
-  "cleanUrls": true,
-  "framework": "nextjs"
+  }
 }
