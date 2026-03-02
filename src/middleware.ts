@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -8,7 +7,7 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
  
   // 1. SKIP REWRITES FOR SYSTEM PATHS AND STATIC ASSETS
-  const globalSystemFiles = ['/favicon.ico', '/firebase-messaging-sw.js', '/sw.js', '/manifest.json'];
+  const globalSystemFiles = ['/favicon.ico', '/firebase-messaging-sw.js', '/sw.js', '/manifest.json', '/logo.png'];
   
   if (
     url.pathname.startsWith('/api') || 
@@ -26,14 +25,15 @@ export async function middleware(request: NextRequest) {
   const hostWithoutPort = hostname.split(':')[0];
   const curHost = hostWithoutPort.replace('www.', '');
   
-  // Detect if we are on a development environment or local host
-  const isDevHost = hostWithoutPort === 'localhost' || hostWithoutPort === '127.0.0.1' || hostWithoutPort.includes('workstation');
-  
   // Check if it's the root SaaS domain
-  const isRoot = curHost === rootDomain;
+  const isRoot = curHost === rootDomain || hostWithoutPort.includes('workstation');
 
-  if (isRoot) {
+  if (isRoot && !curHost.includes('.')) {
     return NextResponse.next();
+  }
+  
+  if (curHost === rootDomain) {
+      return NextResponse.next();
   }
 
   // 2. Resolve Username (Slug)
@@ -52,12 +52,11 @@ export async function middleware(request: NextRequest) {
         if (supabaseUrl && supabaseKey) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             
-            // Lookup the 'profiles' table to find the store slug mapped to this custom domain
-            // We use maybeSingle() to avoid throwing errors if no match is found
+            // Search for store by custom_domain or matching domain slug
             const { data, error } = await supabase
                 .from('profiles')
                 .select('domain')
-                .or(`custom_domain.eq.${curHost},custom_domain.eq.${hostWithoutPort}`)
+                .or(`custom_domain.eq.${curHost},domain.eq.${curHost}`)
                 .maybeSingle();
             
             if (data && !error) {
@@ -65,31 +64,22 @@ export async function middleware(request: NextRequest) {
             }
         }
     } catch (e) {
-        console.error('Custom domain resolution error in middleware:', e);
+        console.error('Custom domain resolution error:', e);
     }
   }
 
-  // If no username/store-slug is resolved, serve the standard platform landing page
+  // If no username is resolved, serve the standard platform landing page
   if (!username || username === 'www') {
-    if (isDevHost) return NextResponse.next();
     return NextResponse.next();
   }
 
   // 3. Rewrite to dynamic route /[username]/...
-  // This tells Next.js to treat the request as if it was for the dynamic [username] folder
   const targetPath = `/${username}${url.pathname}${url.search}`;
   return NextResponse.rewrite(new URL(targetPath, request.url));
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

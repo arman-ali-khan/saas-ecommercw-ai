@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { beautifyProductDetails } from '@/ai/flows/generate-product-description';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Increase timeout to 60 seconds
+export const maxDuration = 60; 
 
 export async function POST(request: Request) {
   try {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ success: false, error: 'Server configuration missing (OpenRouter API Key).' }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'Server configuration missing.' }, { status: 500 });
     }
 
     const result = await beautifyProductDetails({
