@@ -189,7 +189,7 @@ export default function CustomDomainsManagerPage() {
                 <TableRow key={req.id}>
                   <TableCell className="pl-6 py-4">
                     <div className="font-bold text-sm">{req.profiles?.site_name}</div>
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">@{req.profiles?.domain} • {req.profiles?.full_name}</div>
+                    <div className="text-[10px] w-12 truncate text-muted-foreground uppercase tracking-wider">@{req.profiles?.domain} • {req.profiles?.full_name}</div>
                   </TableCell>
                   <TableCell className="font-mono text-sm font-semibold text-primary">{req.custom_domain}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{format(new Date(req.created_at), 'PP')}</TableCell>
