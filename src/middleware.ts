@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -6,7 +7,7 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
  
-  // 1. SKIP REWRITES FOR SYSTEM PATHS, STATIC ASSETS AND API
+  // ১. সিস্টেম ফাইল এবং এপিআই এন্ডপয়েন্টের জন্য রিরাইট স্কিপ করা
   const globalSystemFiles = ['/favicon.ico', '/sw.js', '/manifest.json', '/robots.txt', '/sitemap.xml', '/logo.png'];
   
   if (
@@ -21,26 +22,26 @@ export async function middleware(request: NextRequest) {
 
   const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
   
-  // Clean hostname (strip port and handle www prefix)
+  // হোস্টনেম ক্লিন করা (www সরানো এবং ছোট হাতের অক্ষরে রূপান্তর)
+  // উদাহরণ: dokanbd.shop অথবা store1.schoolbd.top
   const curHost = hostname.replace('www.', '').split(':')[0].toLowerCase();
   
-  // Check if it's the root SaaS domain or a local/dev environment
+  // রুট ডোমেইন বা লোকালহোস্ট হলে প্ল্যাটফর্ম ল্যান্ডিং পেজ দেখানো
   const isRoot = curHost === rootDomain || curHost.includes('vercel.app') || curHost.includes('localhost') || curHost.includes('workstation');
-
-  // If it's exactly the root domain, serve the platform landing page
-  if (curHost === rootDomain) {
+  
+  if (isRoot) {
       return NextResponse.next();
   }
 
   let username = '';
 
-  // 2. RESOLVE USERNAME (SLUG)
+  // ২. ইউজারনেম (Slug) বের করা
   
-  // Case A: Subdomain of our root (e.g., store1.schoolbd.top)
+  // কেস এ: সাব-ডোমেইন (যেমন: store1.schoolbd.top)
   if (curHost.endsWith(`.${rootDomain}`)) {
     username = curHost.replace(`.${rootDomain}`, '');
   } 
-  // Case B: Parked Custom Domain (e.g., mybrand.com)
+  // কেস বি: কাস্টম ডোমেইন (যেমন: dokanbd.shop)
   else {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -49,7 +50,8 @@ export async function middleware(request: NextRequest) {
         if (supabaseUrl && supabaseKey) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             
-            // Search for store by its assigned custom_domain
+            // ডাটাবেস থেকে কাস্টম ডোমেইন দিয়ে স্টোর ইউজারনেম খোঁজা
+            // এটি আপনার ডাটাবেসে থাকা "dokanbd.shop" এর সাথে হুবহু মিলবে
             const { data, error } = await supabase
                 .from('profiles')
                 .select('domain')
@@ -65,15 +67,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 3. REWRITE TO DYNAMIC ROUTE /[username]/...
-  // If we resolved a valid username, we rewrite the URL internally.
-  // The browser URL remains mybrand.com, but Next.js sees /[username]/...
+  // ৩. ডাইনামিক রুটে ইন্টারনাল রিরাইট করা
   if (username && username !== 'www') {
     const targetPath = `/${username}${url.pathname}${url.search}`;
     return NextResponse.rewrite(new URL(targetPath, request.url));
   }
 
-  // Fallback to landing page if no store is matched
+  // কোনো স্টোর না পাওয়া গেলে ল্যান্ডিং পেজে ফেরত পাঠানো
   return NextResponse.next();
 }
 
