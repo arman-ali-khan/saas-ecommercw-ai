@@ -1,16 +1,17 @@
+
 'use client';
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
-import type { FormData } from "@/app/get-started/page";
+import type { FormData } from "@/components/get-started/GetStartedFlow";
 
 interface SuccessStepProps {
     formData: FormData;
 }
 
-const domain = process.env.NEXT_PUBLIC_BASE_DOMAIN
+const domain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
 
 export default function SuccessStep({ formData }: SuccessStepProps) {
     const registrationUrl = `/register?siteName=${encodeURIComponent(formData.siteName)}&domain=${encodeURIComponent(formData.domain)}&plan=${formData.plan}&siteDescription=${encodeURIComponent(formData.siteDescription)}&paymentMethod=${formData.paymentMethod || ''}&transactionId=${formData.transactionId || ''}`;

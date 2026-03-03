@@ -19,23 +19,70 @@ ALTER TABLE customer_profiles ADD COLUMN IF NOT EXISTS fcm_tokens text[] DEFAULT
 ```
 
 ### ২. লাইভ চ্যাট সিকিউরিটি ফিক্স (গুরুত্বপূর্ণ)
-লাইভ চ্যাট টেবিলের নিরাপত্তা নিশ্চিত করতে এবং অবৈধ মেসেজ ইনসার্ট বন্ধ করতে প্রকল্পের রুটে থাকা `supabase_live_chat_fixes.sql` ফাইলের কোডটি রান করুন। এটি নিশ্চিত করবে যে:
+লাইভ চ্যাট টেবিলের নিরাপত্তা নিশ্চিত করতে এবং অবৈধ মেসেজ ইনসার্ট বন্ধ করতে নিচের কোডটি রান করুন। এটি নিশ্চিত করবে যে:
 - শুধুমাত্র `customer` টাইপ মেসেজ পাবলিকলি ইনসার্ট করা যাবে (স্প্যাম রোধে)।
 - স্টোর অ্যাডমিনরা শুধু তাদের নিজস্ব স্টোরের মেসেজ দেখতে ও রিপ্লাই দিতে পারবেন।
 - SaaS অ্যাডমিনরা সব চ্যাটে পূর্ণ নিয়ন্ত্রণ পাবেন।
 
-### ৩. সাপোর্ট সিস্টেম সিকিউরিটি পলিসি
-সাপোর্ট টিকেট এবং মেসেজগুলোর নিরাপত্তা নিশ্চিত করতে প্রকল্পের রুটে থাকা `supabase_support_policies.sql` ফাইলের কোডটি রান করুন। এটি নিশ্চিত করবে যে:
-- স্টোর অ্যাডমিনরা শুধুমাত্র তাদের নিজস্ব টিকেট দেখতে ও তৈরি করতে পারবেন।
-- SaaS অ্যাডমিনরা সব টিকেটে পূর্ণ নিয়ন্ত্রণ পাবেন।
+```sql
+-- Live Chat Security Fix
+ALTER TABLE live_chat_messages ENABLE ROW LEVEL SECURITY;
 
-### ৪. ওটিপি (OTP) সিকিউরিটি পলিসি
-ওটিপি টেবিলের নিরাপত্তা নিশ্চিত করতে প্রকল্পের রুটে থাকা `supabase_otp_policies.sql` ফাইলের কোডটি রান করুন। এটি নিশ্চিত করবে যে:
-- যে কেউ ওটিপি রিকোয়েস্ট করতে পারবে (রেজিস্ট্রেশন/পাসওয়ার্ড রিসেটের জন্য)।
-- শুধুমাত্র স্টোর অ্যাডমিনরা তাদের স্টোরের ওটিপি ডেটা দেখতে বা মুছতে পারবে।
+DROP POLICY IF EXISTS "Public insert customer messages" ON live_chat_messages;
+CREATE POLICY "Public insert customer messages" ON live_chat_messages 
+FOR INSERT WITH CHECK (sender_type = 'customer');
+
+DROP POLICY IF EXISTS "Admins can view their site messages" ON live_chat_messages;
+CREATE POLICY "Admins can view their site messages" ON live_chat_messages 
+FOR SELECT USING (auth.uid() = site_id);
+
+DROP POLICY IF EXISTS "Admins can reply" ON live_chat_messages;
+CREATE POLICY "Admins can reply" ON live_chat_messages 
+FOR INSERT WITH CHECK (auth.uid() = site_id AND sender_type = 'agent');
+```
+
+### ৩. সাপোর্ট সিস্টেম সিকিউরিটি পলিসি
+সাপোর্ট টিকেট এবং মেসেজগুলোর নিরাপত্তা নিশ্চিত করতে নিচের কোডটি রান করুন:
+```sql
+ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE support_messages ENABLE ROW LEVEL SECURITY;
+
+-- Policies for tickets
+DROP POLICY IF EXISTS "Admins can manage their tickets" ON support_tickets;
+CREATE POLICY "Admins can manage their tickets" ON support_tickets 
+USING (auth.uid() = site_id);
+
+-- Policies for messages
+DROP POLICY IF EXISTS "Users can view ticket messages" ON support_messages;
+CREATE POLICY "Users can view ticket messages" ON support_messages 
+FOR SELECT USING (EXISTS (SELECT 1 FROM support_tickets WHERE id = ticket_id AND site_id = auth.uid()));
+```
+
+### ৪. ওটিপি (OTP) সিকিউরিটি ফিক্স (গুরুত্বপূর্ণ)
+আপনার ওটিপি টেবিলের সিকিউরিটি বর্তমানে অনেক শিথিল (Overly Permissive)। এটি ঠিক করতে এবং অবৈধ ইনসার্ট বন্ধ করতে নিচের কোডটি রান করুন:
+
+```sql
+-- ১. আরএলএস নিশ্চিত করা
+ALTER TABLE public.customer_otps ENABLE ROW LEVEL SECURITY;
+
+-- ২. পুরনো দুর্বল পলিসি মুছে ফেলা (যা সিকিউরিটি ইস্যু তৈরি করছে)
+DROP POLICY IF EXISTS "Anyone can create OTP for INSERT" ON public.customer_otps;
+DROP POLICY IF EXISTS "Anyone can create OTP" ON public.customer_otps;
+
+-- ৩. নিরাপদ পলিসি (শুধুমাত্র স্টোর অ্যাডমিনরা তাদের ওটিপি ডাটা দেখতে বা মুছতে পারবে)
+-- যেহেতু ওটিপি জেনারেশন সার্ভার সাইড এপিআই দিয়ে করা হয়, তাই পাবলিক ইনসার্ট পলিসি রাখা ঝুঁকিপূর্ণ।
+CREATE POLICY "Admins can view site OTPs" ON public.customer_otps 
+FOR SELECT USING (auth.uid() = site_id);
+
+CREATE POLICY "Admins can delete site OTPs" ON public.customer_otps 
+FOR DELETE USING (auth.uid() = site_id);
+```
 
 ### ৫. মেইন সিকিউরিটি এবং সাবস্কৃপশন ফিক্স
-(আপনার প্রকল্পের রুট ডিরেক্টরিতে থাকা `supabase_security_fixes.sql` ফাইলটি ব্যবহার করুন)
+কাস্টম ডোমেইন ফিচারটি চালু করতে এই কোডটি রান করুন:
+```sql
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS custom_domain TEXT UNIQUE;
+```
 
 ### ৬. কাস্টম স্টাইলিং আপডেট
 অ্যাপিয়ারেন্স ম্যানেজারের নতুন কালার অপশনগুলো চালু করতে এই কোডটি রান করুন:
@@ -71,6 +118,9 @@ ADD COLUMN IF NOT EXISTS pwa_logo_url text;
 - `NEXT_PUBLIC_SUPABASE_URL`: সুপাবেস প্রজেক্ট ইউআরএল।
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: সুপাবেস অ্যানন কি।
 - `SUPABASE_SERVICE_ROLE_KEY`: সুপাবেস সার্ভিস রোল কি (সিক্রেট)।
+
+### Domain
+- `NEXT_PUBLIC_BASE_DOMAIN`: `dokanbd.shop`
 
 ## শুরু করার নিয়ম
 

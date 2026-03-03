@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Enhanced Middleware for Multi-tenant Store Resolution.
- * Supports Subdomains (store.dokanbd.shop) and Custom Domains (arman.com).
+ * Supports Subdomains (store.dokanbd.shop) and Custom Domains (yourbrand.com).
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -16,12 +16,13 @@ export async function middleware(request: NextRequest) {
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/_next') || 
     url.pathname.startsWith('/_static') ||
-    url.pathname.startsWith('/_vercel')
+    url.pathname.startsWith('/_vercel') ||
+    url.pathname.includes('.') // Skip files like favicon.ico, etc.
   ) {
     return NextResponse.next();
   }
 
-  // Get base domain from env (e.g., dokanbd.shop)
+  // Get base domain from env or default to dokanbd.shop
   const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "dokanbd.shop";
   
   // Normalize host: lowercase and remove port if present
@@ -58,7 +59,7 @@ export async function middleware(request: NextRequest) {
         if (supabaseUrl && supabaseKey) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             
-            // Search database for a matching custom domain
+            // Search database for a matching custom domain (with and without www)
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('domain')
@@ -74,7 +75,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 4. Internal Rewrite
+  // 4. Internal Rewrite to [username] path
   if (username && username !== 'www') {
     const targetPath = `/${username}${url.pathname}${url.search}`;
     return NextResponse.rewrite(new URL(targetPath, request.url));
