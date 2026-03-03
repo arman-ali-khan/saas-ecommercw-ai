@@ -1,24 +1,22 @@
+
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/request';
+import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 /**
  * Enhanced Middleware for Multi-tenant Store Resolution.
- * Supports Subdomains (store.schoolbd.top) and Custom Domains (dokanbd.shop).
+ * Supports Subdomains (store.schoolbd.top) and Custom Domains (arman.com).
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
  
-  // 1. Skip system files, static assets, and API routes
-  const globalSystemFiles = ['/favicon.ico', '/sw.js', '/manifest.json', '/robots.txt', '/sitemap.xml', '/logo.png'];
-  
+  // 1. Skip core system paths and API routes
   if (
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/_next') || 
     url.pathname.startsWith('/_static') ||
-    url.pathname.startsWith('/_vercel') ||
-    globalSystemFiles.includes(url.pathname)
+    url.pathname.startsWith('/_vercel')
   ) {
     return NextResponse.next();
   }
@@ -38,6 +36,8 @@ export async function middleware(request: NextRequest) {
     host.includes('localhost') || 
     host.includes('workstation');
   
+  // If it's the root domain, allow standard routing unless it's a system file 
+  // that we specifically want to handle at the platform level.
   if (isRootDomain) {
       return NextResponse.next();
   }
@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
   if (host.endsWith(`.${baseDomain}`)) {
     username = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
   } 
-  // Case B: Custom Domain resolution (e.g., dokanbd.shop)
+  // Case B: Custom Domain resolution (e.g., arman.com, dokanbd.shop)
   else {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -59,12 +59,12 @@ export async function middleware(request: NextRequest) {
         if (supabaseUrl && supabaseKey) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             
-            // Check database for a matching custom domain
-            // We check both the full host and naked domain version
+            // Search database for a matching custom domain
+            // We check both the full host and the host without 'www.'
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('domain')
-                .or(`custom_domain.eq.${host},custom_domain.eq.${hostWithoutWww}`)
+                .or(`custom_domain.eq."${host}",custom_domain.eq."${hostWithoutWww}"`)
                 .maybeSingle();
             
             if (profile?.domain) {
@@ -72,7 +72,7 @@ export async function middleware(request: NextRequest) {
             }
         }
     } catch (e) {
-        console.error('Middleware domain resolution error:', e);
+        console.error('Middleware resolution error:', e);
     }
   }
 
@@ -80,12 +80,12 @@ export async function middleware(request: NextRequest) {
   // If we found a valid store username, rewrite the path internally
   if (username && username !== 'www') {
     // This allows /[username]/... routes to handle the request seamlessly
+    // even for sitemap.xml, robots.txt, and favicon.ico
     const targetPath = `/${username}${url.pathname}${url.search}`;
     return NextResponse.rewrite(new URL(targetPath, request.url));
   }
 
   // Fallback: If no username is resolved, proceed normally 
-  // (will likely hit SaaS root or 404 depending on the path)
   return NextResponse.next();
 }
 
@@ -99,5 +99,10 @@ export const config = {
      * 4. all root files inside /public (e.g. /favicon.ico)
      */
     '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
+    // Specifically include system files for potential rewriting
+    '/sitemap.xml',
+    '/robots.txt',
+    '/manifest.json',
+    '/sw.js'
   ],
 };
