@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -7,7 +6,7 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
  
-  // ১. সিস্টেম ফাইল এবং এপিআই এন্ডপয়েন্টের জন্য রিরাইট স্কিপ করা
+  // 1. Skip system files and API routes
   const globalSystemFiles = ['/favicon.ico', '/sw.js', '/manifest.json', '/robots.txt', '/sitemap.xml', '/logo.png'];
   
   if (
@@ -20,28 +19,36 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
+  // Get base domain from env
+  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
   
-  // হোস্টনেম ক্লিন করা (www সরানো এবং ছোট হাতের অক্ষরে রূপান্তর)
-  // উদাহরণ: dokanbd.shop অথবা store1.schoolbd.top
-  const curHost = hostname.replace('www.', '').split(':')[0].toLowerCase();
+  // Normalize host: split port and lowercase
+  const host = hostname.split(':')[0].toLowerCase();
+  const hostWithoutWww = host.replace(/^www\./, '');
   
-  // রুট ডোমেইন বা লোকালহোস্ট হলে প্ল্যাটফর্ম ল্যান্ডিং পেজ দেখানো
-  const isRoot = curHost === rootDomain || curHost.includes('vercel.app') || curHost.includes('localhost') || curHost.includes('workstation');
+  // 2. Check if this is the root domain (Platform Landing Page)
+  // We check against the base domain and its www version, plus development/vercel previews
+  const isRootDomain = 
+    host === baseDomain || 
+    host === `www.${baseDomain}` || 
+    host.includes('vercel.app') || 
+    host.includes('localhost') || 
+    host.includes('workstation');
   
-  if (isRoot) {
+  if (isRootDomain) {
       return NextResponse.next();
   }
 
   let username = '';
 
-  // ২. ইউজারনেম (Slug) বের করা
+  // 3. Resolve username (Store Slug)
   
-  // কেস এ: সাব-ডোমেইন (যেমন: store1.schoolbd.top)
-  if (curHost.endsWith(`.${rootDomain}`)) {
-    username = curHost.replace(`.${rootDomain}`, '');
+  // Case A: Subdomain resolution (e.g., store1.schoolbd.top)
+  if (host.endsWith(`.${baseDomain}`)) {
+    // Extract subdomain name (e.g., 'store1')
+    username = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
   } 
-  // কেস বি: কাস্টম ডোমেইন (যেমন: dokanbd.shop)
+  // Case B: Custom Domain resolution (e.g., dokanbd.shop or www.dokanbd.shop)
   else {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -50,16 +57,16 @@ export async function middleware(request: NextRequest) {
         if (supabaseUrl && supabaseKey) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             
-            // ডাটাবেস থেকে কাস্টম ডোমেইন দিয়ে স্টোর ইউজারনেম খোঁজা
-            // এটি আপনার ডাটাবেসে থাকা "dokanbd.shop" এর সাথে হুবহু মিলবে
-            const { data, error } = await supabase
+            // Search database for a profile where custom_domain matches the current host.
+            // We check both the naked domain and the provided host to handle 'www.' inconsistencies.
+            const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('domain')
-                .eq('custom_domain', curHost)
+                .or(`custom_domain.eq.${host},custom_domain.eq.${hostWithoutWww}`)
                 .maybeSingle();
             
-            if (data?.domain && !error) {
-                username = data.domain;
+            if (profile?.domain && !error) {
+                username = profile.domain;
             }
         }
     } catch (e) {
@@ -67,18 +74,26 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ৩. ডাইনামিক রুটে ইন্টারনাল রিরাইট করা
+  // 4. Internal Rewrite
+  // If we resolved a username and it's not 'www', rewrite the request internally to the dynamic route path
   if (username && username !== 'www') {
     const targetPath = `/${username}${url.pathname}${url.search}`;
     return NextResponse.rewrite(new URL(targetPath, request.url));
   }
 
-  // কোনো স্টোর না পাওয়া গেলে ল্যান্ডিং পেজে ফেরত পাঠানো
+  // Fallback to next (shows landing page or results in 404 if username not found)
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    /*
+     * Match all paths except for:
+     * 1. /api routes
+     * 2. /_next (Next.js internals)
+     * 3. /_static (inside /public)
+     * 4. all root files inside /public (e.g. /favicon.ico)
+     */
+    '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
   ],
 };
