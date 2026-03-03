@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/request';
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * Enhanced Middleware for Multi-tenant Store Resolution.
+ * Supports Subdomains (store.schoolbd.top) and Custom Domains (dokanbd.shop).
+ */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
  
-  // 1. Skip system files and API routes
+  // 1. Skip system files, static assets, and API routes
   const globalSystemFiles = ['/favicon.ico', '/sw.js', '/manifest.json', '/robots.txt', '/sitemap.xml', '/logo.png'];
   
   if (
@@ -19,15 +23,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get base domain from env
+  // Get base domain from env (e.g., schoolbd.top)
   const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
   
-  // Normalize host: split port and lowercase
+  // Normalize host: lowercase and remove port if present
   const host = hostname.split(':')[0].toLowerCase();
   const hostWithoutWww = host.replace(/^www\./, '');
   
-  // 2. Check if this is the root domain (Platform Landing Page)
-  // We check against the base domain and its www version, plus development/vercel previews
+  // 2. Identify if this is the Root Platform (SaaS Landing Page)
   const isRootDomain = 
     host === baseDomain || 
     host === `www.${baseDomain}` || 
@@ -41,14 +44,13 @@ export async function middleware(request: NextRequest) {
 
   let username = '';
 
-  // 3. Resolve username (Store Slug)
+  // 3. Resolve Store Username (Slug)
   
   // Case A: Subdomain resolution (e.g., store1.schoolbd.top)
   if (host.endsWith(`.${baseDomain}`)) {
-    // Extract subdomain name (e.g., 'store1')
     username = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
   } 
-  // Case B: Custom Domain resolution (e.g., dokanbd.shop or www.dokanbd.shop)
+  // Case B: Custom Domain resolution (e.g., dokanbd.shop)
   else {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -57,31 +59,33 @@ export async function middleware(request: NextRequest) {
         if (supabaseUrl && supabaseKey) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             
-            // Search database for a profile where custom_domain matches the current host.
-            // We check both the naked domain and the provided host to handle 'www.' inconsistencies.
-            const { data: profile, error } = await supabase
+            // Check database for a matching custom domain
+            // We check both the full host and naked domain version
+            const { data: profile } = await supabase
                 .from('profiles')
                 .select('domain')
                 .or(`custom_domain.eq.${host},custom_domain.eq.${hostWithoutWww}`)
                 .maybeSingle();
             
-            if (profile?.domain && !error) {
+            if (profile?.domain) {
                 username = profile.domain;
             }
         }
     } catch (e) {
-        console.error('Custom domain resolution error:', e);
+        console.error('Middleware domain resolution error:', e);
     }
   }
 
   // 4. Internal Rewrite
-  // If we resolved a username and it's not 'www', rewrite the request internally to the dynamic route path
+  // If we found a valid store username, rewrite the path internally
   if (username && username !== 'www') {
+    // This allows /[username]/... routes to handle the request seamlessly
     const targetPath = `/${username}${url.pathname}${url.search}`;
     return NextResponse.rewrite(new URL(targetPath, request.url));
   }
 
-  // Fallback to next (shows landing page or results in 404 if username not found)
+  // Fallback: If no username is resolved, proceed normally 
+  // (will likely hit SaaS root or 404 depending on the path)
   return NextResponse.next();
 }
 
