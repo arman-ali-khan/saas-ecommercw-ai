@@ -113,6 +113,7 @@ export default function UserDetailPage() {
 
   const { profile, stats } = data;
   const plan = Array.isArray(profile.plans) ? profile.plans[0] : profile.plans;
+  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
 
   return (
     <div className="space-y-6 pb-10">
@@ -152,8 +153,8 @@ export default function UserDetailPage() {
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                     <Globe className="h-4 w-4 text-muted-foreground" />
-                    <a href={`//${profile.domain}.schoolbd.top`} target="_blank" className="hover:underline text-primary flex items-center gap-1 font-mono">
-                        {profile.domain}.schoolbd.top <ExternalLink className="h-3 w-3" />
+                    <a href={`//${profile.domain}.${baseDomain}`} target="_blank" className="hover:underline text-primary flex items-center gap-1 font-mono">
+                        {profile.domain}.{baseDomain} <ExternalLink className="h-3 w-3" />
                     </a>
                 </div>
                 <div className="flex items-center gap-3 text-sm">

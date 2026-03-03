@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Enhanced Middleware for Multi-tenant Store Resolution.
- * Supports Subdomains (store.schoolbd.top) and Custom Domains (arman.com).
+ * Supports Subdomains (store.dokanbd.shop) and Custom Domains (arman.com).
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -21,8 +21,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get base domain from env (e.g., schoolbd.top)
-  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "schoolbd.top";
+  // Get base domain from env (e.g., dokanbd.shop)
+  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "dokanbd.shop";
   
   // Normalize host: lowercase and remove port if present
   const host = hostname.split(':')[0].toLowerCase();
@@ -36,8 +36,7 @@ export async function middleware(request: NextRequest) {
     host.includes('localhost') || 
     host.includes('workstation');
   
-  // If it's the root domain, allow standard routing unless it's a system file 
-  // that we specifically want to handle at the platform level.
+  // If it's the root domain, allow standard routing
   if (isRootDomain) {
       return NextResponse.next();
   }
@@ -46,11 +45,11 @@ export async function middleware(request: NextRequest) {
 
   // 3. Resolve Store Username (Slug)
   
-  // Case A: Subdomain resolution (e.g., store1.schoolbd.top)
+  // Case A: Subdomain resolution (e.g., store1.dokanbd.shop)
   if (host.endsWith(`.${baseDomain}`)) {
     username = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
   } 
-  // Case B: Custom Domain resolution (e.g., arman.com, dokanbd.shop)
+  // Case B: Custom Domain resolution (e.g., arman.com)
   else {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -60,7 +59,6 @@ export async function middleware(request: NextRequest) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             
             // Search database for a matching custom domain
-            // We check both the full host and the host without 'www.'
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('domain')
@@ -77,29 +75,17 @@ export async function middleware(request: NextRequest) {
   }
 
   // 4. Internal Rewrite
-  // If we found a valid store username, rewrite the path internally
   if (username && username !== 'www') {
-    // This allows /[username]/... routes to handle the request seamlessly
-    // even for sitemap.xml, robots.txt, and favicon.ico
     const targetPath = `/${username}${url.pathname}${url.search}`;
     return NextResponse.rewrite(new URL(targetPath, request.url));
   }
 
-  // Fallback: If no username is resolved, proceed normally 
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all paths except for:
-     * 1. /api routes
-     * 2. /_next (Next.js internals)
-     * 3. /_static (inside /public)
-     * 4. all root files inside /public (e.g. /favicon.ico)
-     */
     '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
-    // Specifically include system files for potential rewriting
     '/sitemap.xml',
     '/robots.txt',
     '/manifest.json',

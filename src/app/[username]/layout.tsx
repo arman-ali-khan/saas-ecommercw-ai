@@ -47,7 +47,6 @@ export async function generateMetadata({
 
   const settings = (Array.isArray(profile.store_settings) ? profile.store_settings[0] : profile.store_settings) || {};
   
-  // SEO optimization: unique titles to avoid duplicate heading text warnings
   const title = settings.seo_title || `${profile.site_name || 'Store'} - Pure Natural Products`;
   const description = settings.seo_description || profile.site_description || 'আপনার বাড়িতে বাংলাদেশের প্রাকৃতিক সম্পদের খাঁটি স্বাদ নিয়ে আসা।';
   const faviconUrl = settings.favicon_url;

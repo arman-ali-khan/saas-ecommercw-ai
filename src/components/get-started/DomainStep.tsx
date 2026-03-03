@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +23,7 @@ export default function DomainStep({ formData, updateFormData, onNext, onBack }:
     const [availabilityStatus, setAvailabilityStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short' | 'reserved'>('empty');
     const [debouncedDomain, setDebouncedDomain] = useState(domain);
     const [isNavigating, setIsNavigating] = useState(false);
-    const [baseDomain, setBaseDomain] = useState('banglanaturals.site');
+    const [baseDomain, setBaseDomain] = useState('dokanbd.shop');
     const [isLoadingDomain, setIsLoadingDomain] = useState(true);
 
     useEffect(() => {

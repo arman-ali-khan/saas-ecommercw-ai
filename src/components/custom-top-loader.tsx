@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,7 +11,7 @@ const CustomTopLoader = () => {
 
     useEffect(() => {
         const hostname = window.location.hostname;
-        const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
+        const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
         const domain = hostname.split('.')[0];
         const isStorePage = hostname !== rootDomain && hostname !== `www.${rootDomain}`;
 

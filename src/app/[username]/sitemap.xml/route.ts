@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     const { username } = await params;
     
     // Determine the base URL from request headers.
-    const host = request.headers.get('host') || `${username}.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top'}`;
+    const host = request.headers.get('host') || `${username}.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop'}`;
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
 
@@ -44,12 +44,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
         { loc: `${baseUrl}/track-order`, lastmod: siteLastMod, priority: '0.5' },
     ];
     
-    // Get products for the site - Increased limit to handle more products
+    // Get products for the site
     const { data: products } = await supabaseAdmin
         .from('products')
         .select('id, updated_at')
         .eq('site_id', siteId)
-        .limit(5000); // Support up to 5000 products per sitemap
+        .limit(5000); 
         
     (products || []).forEach((product: any) => {
         urls.push({
