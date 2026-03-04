@@ -489,3 +489,19 @@ export interface CustomerUser {
   role: string;
   site_id: string;
 }
+
+export interface Visitor {
+  id: string;
+  ip: string;
+  city: string;
+  region: string;
+  country: string;
+  country_code: string;
+  lat: number;
+  lon: number;
+  timezone: string;
+  isp: string;
+  user_agent: string;
+  referrer: string;
+  created_at: string;
+}

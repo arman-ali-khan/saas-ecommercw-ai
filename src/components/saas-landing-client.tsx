@@ -1,5 +1,7 @@
+
 'use client';
 
+import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -104,6 +106,27 @@ function PlatformShowcase({ items }: { items: SaasShowcaseItem[] }) {
 }
 
 export default function SaasLandingClient({ plans, features, reviews, showcaseItems, settings, sections }: SaasLandingClientProps) {
+  
+  // --- VISITOR TRACKING ---
+  useEffect(() => {
+    const trackVisitor = async () => {
+        // Only track once per session to respect rate limits and redundant data
+        if (sessionStorage.getItem('visitor_tracked')) return;
+
+        try {
+            const response = await fetch('/api/saas/tracking');
+            if (response.ok) {
+                sessionStorage.setItem('visitor_tracked', 'true');
+            }
+        } catch (err) {
+            console.error("Tracking error:", err);
+        }
+    };
+    
+    trackVisitor();
+  }, []);
+  // ------------------------
+
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }

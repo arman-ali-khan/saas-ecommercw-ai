@@ -21,6 +21,7 @@ import {
   Monitor,
   Globe,
   LifeBuoy,
+  Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -114,6 +115,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
   const adminNavLinks = [
     { href: `/dashboard`, label: 'Dashboard', icon: Home },
     { href: `/dashboard/users`, label: 'Stores', icon: Store },
+    { href: `/dashboard/visitors`, label: 'Visitor Logs', icon: Eye },
     { href: `/dashboard/custom-domains`, label: 'Custom Domains', icon: Globe, count: counts.pendingDomains },
     { href: `/dashboard/subscriptions`, label: 'Subscriptions', icon: CreditCard, count: counts.pendingSubscriptions },
     { href: `/dashboard/support`, label: 'Support Tickets', icon: LifeBuoy, count: counts.openSupportTickets },

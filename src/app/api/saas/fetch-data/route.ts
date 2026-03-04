@@ -72,6 +72,9 @@ export async function POST(request: Request) {
       case 'settings':
         query = supabaseAdmin.from('saas_settings').select('*').eq('id', 1).single();
         break;
+      case 'visitors':
+        query = supabaseAdmin.from('visitors').select('*').order('created_at', { ascending: false }).limit(500);
+        break;
       default:
         return NextResponse.json({ error: 'Invalid entity type requested.' }, { status: 400 });
     }
