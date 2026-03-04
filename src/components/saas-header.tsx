@@ -86,8 +86,8 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
     };
     window.addEventListener('scroll', handleScroll);
 
-    if (!initialSettings) {
-      const fetchInfo = async () => {
+    const fetchInfo = async () => {
+      if (!initialSettings) {
         setIsLoading(true);
         const { data } = await supabase
           .from('saas_settings')
@@ -102,15 +102,16 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
           });
         }
         setIsLoading(false);
-      };
-      fetchInfo();
-    } else {
-        // If initial settings exist but language changed, update name
-        setSiteInfo(prev => ({
-            ...prev!,
-            name: (lang === 'en' ? initialSettings.platform_name_en : initialSettings.platform_name) || initialSettings.platform_name
-        }));
-    }
+      } else {
+        // If initial settings exist but language changed, update state
+        setSiteInfo({
+            name: (lang === 'en' ? initialSettings.platform_name_en : initialSettings.platform_name) || initialSettings.platform_name,
+            logoUrl: initialSettings.logo_url
+        });
+      }
+    };
+    
+    fetchInfo();
     
     return () => window.removeEventListener('scroll', handleScroll);
   }, [initialSettings, lang]);

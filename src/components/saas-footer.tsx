@@ -80,46 +80,48 @@ export default function SaasFooter({ initialSettings, lang = 'bn' }: SaasFooterP
     name: string;
     description: string | null;
     logoUrl: string | null;
-  } | null>(initialSettings ? {
-    name: (lang === 'en' ? initialSettings.platform_name_en : initialSettings.platform_name) || initialSettings.platform_name,
-    description: (lang === 'en' ? initialSettings.platform_description_en : initialSettings.platform_description) || initialSettings.platform_description,
-    logoUrl: initialSettings.logo_url
-  } : null);
+  } | null>(null);
   
-  const [isLoading, setIsLoading] = useState(!initialSettings);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!initialSettings) {
-      const fetchData = async () => {
-          setIsLoading(true);
-          const { data } = await supabase
-              .from('saas_settings')
-              .select('platform_name, platform_name_en, platform_description, platform_description_en, social_facebook, social_twitter, social_tiktok, logo_url')
-              .eq('id', 1)
-              .single();
-          
-          if (data) {
-              setSocials({
-                facebook: data.social_facebook || '',
-                twitter: data.social_twitter || '',
-                tiktok: data.social_tiktok || '',
-              });
-              setSiteInfo({
-                name: (lang === 'en' ? data.platform_name_en : data.platform_name) || data.platform_name || 'eHut',
-                description: (lang === 'en' ? data.platform_description_en : data.platform_description) || data.platform_description || 'Your partner in building digital stores.',
-                logoUrl: data.logo_url || null,
-              });
-          }
-          setIsLoading(false);
-      };
-      fetchData();
-    } else {
-        setSiteInfo(prev => ({
-            ...prev!,
-            name: (lang === 'en' ? initialSettings.platform_name_en : initialSettings.platform_name) || initialSettings.platform_name,
-            description: (lang === 'en' ? initialSettings.platform_description_en : initialSettings.platform_description) || initialSettings.platform_description,
-        }));
-    }
+    const fetchData = async () => {
+        if (!initialSettings) {
+            setIsLoading(true);
+            const { data } = await supabase
+                .from('saas_settings')
+                .select('platform_name, platform_name_en, platform_description, platform_description_en, social_facebook, social_twitter, social_tiktok, logo_url')
+                .eq('id', 1)
+                .single();
+            
+            if (data) {
+                setSocials({
+                  facebook: data.social_facebook || '',
+                  twitter: data.social_twitter || '',
+                  tiktok: data.social_tiktok || '',
+                });
+                setSiteInfo({
+                  name: (lang === 'en' ? data.platform_name_en : data.platform_name) || data.platform_name || 'eHut',
+                  description: (lang === 'en' ? data.platform_description_en : data.platform_description) || data.platform_description || 'Your partner in building digital stores.',
+                  logoUrl: data.logo_url || null,
+                });
+            }
+            setIsLoading(false);
+        } else {
+            setSocials({
+                facebook: initialSettings.social_facebook || '',
+                twitter: initialSettings.social_twitter || '',
+                tiktok: initialSettings.social_tiktok || '',
+            });
+            setSiteInfo({
+                name: (lang === 'en' ? initialSettings.platform_name_en : initialSettings.platform_name) || initialSettings.platform_name,
+                description: (lang === 'en' ? initialSettings.platform_description_en : initialSettings.platform_description) || initialSettings.platform_description,
+                logoUrl: initialSettings.logo_url
+            });
+            setIsLoading(false);
+        }
+    };
+    fetchData();
   }, [initialSettings, lang]);
   
   const FooterLogo = () => (

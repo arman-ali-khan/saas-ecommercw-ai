@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import SaasLandingClient from '@/components/saas-landing-client';
 import { type Plan, type SaasFeature, type SaaSReview, type SaasShowcaseItem, type SaasSettings } from '@/types';
@@ -33,11 +34,14 @@ export default async function SaasLandingPage() {
     const settings = settingsRes.data as SaasSettings | null;
     const plans = (plansRes.data || []).map((plan: Plan) => ({
       name: plan.name,
+      name_en: plan.name_en,
       id: plan.id,
       price: plan.price === 0 ? 'Free' : `৳${plan.price}`,
       period: plan.period,
       description: plan.description,
+      description_en: plan.description_en,
       features: plan.features,
+      features_en: plan.features_en,
       cta:
         plan.id === 'enterprise'
           ? 'যোগাযোগ করুন'

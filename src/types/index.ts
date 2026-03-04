@@ -142,10 +142,13 @@ export interface User {
 export interface Plan {
   id: string;
   name: string;
+  name_en?: string;
   price: number;
   period: string | null;
   description: string;
+  description_en?: string;
   features: string[];
+  features_en?: string[];
   product_limit: number | null;
   customer_limit: number | null;
   order_limit: number | null;
@@ -287,7 +290,9 @@ export interface CarouselSlide {
 export interface SaasFeature {
   id: string;
   name: string;
+  name_en?: string;
   description: string | null;
+  description_en?: string;
   icon: string;
   created_at: string;
 }
@@ -330,6 +335,7 @@ export interface SaaSReview {
   name: string;
   company?: string;
   review_text: string;
+  review_text_en?: string;
   rating: number;
   is_approved: boolean;
   avatar_url?: string;
@@ -338,7 +344,9 @@ export interface SaaSReview {
 export interface SaasShowcaseItem {
   id: string;
   title: string;
+  title_en?: string;
   description: string | null;
+  description_en?: string;
   icon: string;
   image_url: string | null;
   order: number;
@@ -395,7 +403,9 @@ export interface SocialLink {
 export interface SaasSettings {
   id: number;
   platform_name: string;
+  platform_name_en?: string;
   platform_description: string | null;
+  platform_description_en?: string;
   logo_url: string | null;
   favicon_url: string | null;
   pwa_logo_url: string | null;
@@ -411,10 +421,14 @@ export interface SaasSettings {
   mobile_banking_type: 'personal' | 'agent' | 'merchant' | null;
   accepted_banking_methods: string[] | null;
   hero_title: string | null;
+  hero_title_en?: string;
   hero_description: string | null;
+  hero_description_en?: string;
   hero_image_url: string | null;
   cta_title: string | null;
+  cta_title_en?: string;
   cta_description: string | null;
+  cta_description_en?: string;
   cta_bg_color: string | null;
   homepage_sections: any[] | null;
   global_ai_api_key: string | null;
