@@ -493,15 +493,28 @@ export interface CustomerUser {
 export interface Visitor {
   id: string;
   ip: string;
-  city: string;
-  region: string;
-  country: string;
-  country_code: string;
-  lat: number;
-  lon: number;
-  timezone: string;
-  isp: string;
-  user_agent: string;
-  referrer: string;
+  continent?: string;
+  continent_code?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  country_code?: string;
+  district?: string;
+  zip?: string;
+  lat?: number;
+  lon?: number;
+  timezone?: string;
+  utc_offset?: number;
+  currency?: string;
+  isp?: string;
+  org?: string;
+  as_info?: string;
+  as_name?: string;
+  is_mobile?: boolean;
+  is_proxy?: boolean;
+  is_hosting?: boolean;
+  dns_info?: any;
+  user_agent?: string;
+  referrer?: string;
   created_at: string;
 }
