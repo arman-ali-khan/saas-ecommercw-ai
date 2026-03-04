@@ -1,14 +1,13 @@
-
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import SaasAdminSidebar from '@/components/saas-admin-sidebar';
+import SaasBottomNav from '@/components/saas-bottom-nav';
 import { useAuth } from '@/stores/auth';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PanelLeft, Loader2, Bell, X, Info } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
+import { Loader2, Bell, X } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -47,12 +46,12 @@ export default function DashboardLayout({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           recipientType: 'admin',
-          limit: 10
+          limit: 10,
+          platformView: true
         }),
       });
       const result = await response.json();
       if (response.ok) {
-        // Show only the unread ones in the sticky bar
         const notifications = result.notifications || [];
         setUnreadNotifications(notifications.filter((n: Notification) => !n.is_read));
       }
@@ -90,7 +89,6 @@ export default function DashboardLayout({
     if (user?.isSaaSAdmin) {
         fetchInfo();
         fetchUnreadNotifications();
-        // Poll for new notifications every minute
         const interval = setInterval(fetchUnreadNotifications, 60000);
         return () => clearInterval(interval);
     }
@@ -155,33 +153,12 @@ export default function DashboardLayout({
       <FCMTokenManager userId={user?.id} userType="admin" />
       <SaasAdminSidebar />
       <div className="flex flex-col max-h-screen overflow-hidden">
-        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 md:hidden sticky top-0 bg-background z-10">
-            <Sheet>
-                <SheetTrigger asChild>
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="shrink-0 md:hidden"
-                >
-                    <PanelLeft className="h-5 w-5" />
-                    <span className="sr-only">Toggle navigation menu</span>
-                </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="flex flex-col p-0">
-                    <SheetHeader className="p-4 border-b">
-                        <SheetTitle className='sr-only'>SaaS Admin Menu</SheetTitle>
-                    </SheetHeader>
-                    <div className="flex h-20 items-center border-b px-6">
-                        <SheetClose asChild>
-                            <HeaderLogo />
-                        </SheetClose>
-                    </div>
-                    <SaasAdminSidebar isMobile />
-                </SheetContent>
-            </Sheet>
+        {/* Desktop Header Hidden, Handled by Sidebar. Mobile Header Simplified */}
+        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden sticky top-0 z-30">
+            <HeaderLogo />
         </header>
         
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main className="flex-1 p-4 lg:p-6 overflow-auto pb-24 md:pb-6">
           {/* Sticky Notification Alerts */}
           <div className="max-w-5xl mx-auto space-y-3 mb-6">
             {unreadNotifications.map((notif) => (
@@ -216,6 +193,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+      <SaasBottomNav />
     </div>
   );
 }
