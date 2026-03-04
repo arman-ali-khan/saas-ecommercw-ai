@@ -1,76 +1,38 @@
 
-# Firebase Studio - eHut E-commerce Platform
+# eHut (দোকানবিডি) - Modern Multi-tenant E-commerce SaaS
 
-এটি একটি আধুনিক মাল্টি-টিন্যান্ট ই-কমার্স প্ল্যাটফর্ম।
+**eHut** হলো একটি উচ্চ-ক্ষমতাসম্পন্ন মাল্টি-টিন্যান্ট ই-কমার্স প্ল্যাটফর্ম, যা উদ্যোক্তাদের কোনো কোডিং জ্ঞান ছাড়াই নিজস্ব অনলাইন স্টোর তৈরি করতে সাহায্য করে। এটি Next.js 15, Supabase, Tailwind CSS এবং Genkit AI দিয়ে তৈরি।
 
-## ডাটাবেস সেটআপ ও সিকিউরিটি ফিক্স (Supabase)
+## মূল ফিচারসমূহ (Main Features)
 
-আপনার প্রজেক্টটি সঠিকভাবে কাজ করার জন্য এবং নিরাপত্তা নিশ্চিত করতে নিচের ধাপগুলো অনুসরণ করুন:
-   
-১. আপনার **Supabase Dashboard**-এ যান।
-২. বাম পাশের মেনু থেকে **SQL Editor** সেকশনে যান।
-৩. নিচের ফাইলগুলোর কোড কপি করে সুপাবেস এডিটরে পেস্ট করুন এবং **Run** বাটনে ক্লিক করুন।
+### ১. প্ল্যাটফর্ম অ্যাডমিন (SaaS Admin)
+*   **সাবস্ক্রিপশন ম্যানেজমেন্ট:** ইউজারদের প্ল্যান (Free, Pro, Enterprise) এবং পেমেন্ট ভেরিফিকেশন।
+*   **কাস্টম ডোমেইন রিভিউ:** ডোমেইন রিকোয়েস্ট চেক করা এবং DNS কনফিগারেশন ইনস্ট্রাকশন প্রদান।
+*   **প্ল্যাটফর্ম কাস্টমাইজেশন:** মেইন ল্যান্ডিং পেজের ফিচার, রিভিউ এবং সেকশন ম্যানেজমেন্ট।
 
-### ১. পুশ নোটিফিকেশন সেটআপ (FCM)
-Firebase Cloud Messaging টোকেন সংরক্ষণের জন্য নিচের কোডটি রান করুন:
+### ২. স্টোর অ্যাডমিন (Store Admin)
+*   **এআই টুলস:** এআই ব্যবহার করে পণ্যের ডেসক্রিপশন এবং সোশ্যাল মিডিয়া পোস্ট জেনারেশন।
+*   **ইনভেন্টরি:** স্টক ম্যানেজমেন্ট এবং ভেরিয়েন্ট (যেমন: ওজন বা সাইজ) ভিত্তিক আলাদা প্রাইসিং।
+*   **অর্ডার প্রসেসিং:** পেন্ডিং থেকে ডেলিভারি পর্যন্ত অর্ডারের পূর্ণ লাইফসাইকেল ম্যানেজমেন্ট।
+*   **বাল্ক আপলোড:** WooCommerce CSV ইম্পোর্ট সিস্টেম।
+*   **লাইভ চ্যাট:** গ্রাহকদের সাথে সরাসরি যোগাযোগের সুবিধা।
+
+### ৩. গ্রাহক অভিজ্ঞতা (Customer Experience)
+*   **PWA সাপোর্ট:** স্টোরটি মোবাইলে অ্যাপ হিসেবে ইনস্টল করার সুবিধা।
+*   **অর্ডার ট্র্যাকিং:** ট্রানজেকশন আইডি বা অর্ডার নম্বর দিয়ে সরাসরি ট্র্যাকিং।
+*   **ফ্ল্যাশ ডিল:** সময়াবদ্ধ অফার এবং ডিসকাউন্ট।
+*   **প্রোফাইল:** অর্ডার হিস্ট্রি এবং সেভ করা অ্যাড্রেস ম্যানেজমেন্ট।
+
+## ডাটাবেস সেটআপ ও সিকিউরিটি (Supabase)
+
+আপনার সুপাবেস ড্যাশবোর্ডের **SQL Editor**-এ নিচের কুয়েরিগুলো রান করুন:
+
+### ১. ওটিপি সিকিউরিটি ফিক্স (গুরুত্বপূর্ণ)
 ```sql
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS fcm_tokens text[] DEFAULT '{}';
-ALTER TABLE customer_profiles ADD COLUMN IF NOT EXISTS fcm_tokens text[] DEFAULT '{}';
-```
-
-### ২. লাইভ চ্যাট সিকিউরিটি ফিক্স (গুরুত্বপূর্ণ)
-লাইভ চ্যাট টেবিলের নিরাপত্তা নিশ্চিত করতে এবং অবৈধ মেসেজ ইনসার্ট বন্ধ করতে নিচের কোডটি রান করুন। এটি নিশ্চিত করবে যে:
-- শুধুমাত্র `customer` টাইপ মেসেজ পাবলিকলি ইনসার্ট করা যাবে (স্প্যাম রোধে)।
-- স্টোর অ্যাডমিনরা শুধু তাদের নিজস্ব স্টোরের মেসেজ দেখতে ও রিপ্লাই দিতে পারবেন।
-- SaaS অ্যাডমিনরা সব চ্যাটে পূর্ণ নিয়ন্ত্রণ পাবেন।
-
-```sql
--- Live Chat Security Fix
-ALTER TABLE live_chat_messages ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Public insert customer messages" ON live_chat_messages;
-CREATE POLICY "Public insert customer messages" ON live_chat_messages 
-FOR INSERT WITH CHECK (sender_type = 'customer');
-
-DROP POLICY IF EXISTS "Admins can view their site messages" ON live_chat_messages;
-CREATE POLICY "Admins can view their site messages" ON live_chat_messages 
-FOR SELECT USING (auth.uid() = site_id);
-
-DROP POLICY IF EXISTS "Admins can reply" ON live_chat_messages;
-CREATE POLICY "Admins can reply" ON live_chat_messages 
-FOR INSERT WITH CHECK (auth.uid() = site_id AND sender_type = 'agent');
-```
-
-### ৩. সাপোর্ট সিস্টেম সিকিউরিটি পলিসি
-সাপোর্ট টিকেট এবং মেসেজগুলোর নিরাপত্তা নিশ্চিত করতে নিচের কোডটি রান করুন:
-```sql
-ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE support_messages ENABLE ROW LEVEL SECURITY;
-
--- Policies for tickets
-DROP POLICY IF EXISTS "Admins can manage their tickets" ON support_tickets;
-CREATE POLICY "Admins can manage their tickets" ON support_tickets 
-USING (auth.uid() = site_id);
-
--- Policies for messages
-DROP POLICY IF EXISTS "Users can view ticket messages" ON support_messages;
-CREATE POLICY "Users can view ticket messages" ON support_messages 
-FOR SELECT USING (EXISTS (SELECT 1 FROM support_tickets WHERE id = ticket_id AND site_id = auth.uid()));
-```
-
-### ৪. ওটিপি (OTP) সিকিউরিটি ফিক্স (গুরুত্বপূর্ণ)
-আপনার ওটিপি টেবিলের সিকিউরিটি বর্তমানে অনেক শিথিল (Overly Permissive)। এটি ঠিক করতে এবং অবৈধ ইনসার্ট বন্ধ করতে নিচের কোডটি রান করুন:
-
-```sql
--- ১. আরএলএস নিশ্চিত করা
 ALTER TABLE public.customer_otps ENABLE ROW LEVEL SECURITY;
-
--- ২. পুরনো দুর্বল পলিসি মুছে ফেলা (যা সিকিউরিটি ইস্যু তৈরি করছে)
 DROP POLICY IF EXISTS "Anyone can create OTP for INSERT" ON public.customer_otps;
 DROP POLICY IF EXISTS "Anyone can create OTP" ON public.customer_otps;
 
--- ৩. নিরাপদ পলিসি (শুধুমাত্র স্টোর অ্যাডমিনরা তাদের ওটিপি ডাটা দেখতে বা মুছতে পারবে)
--- যেহেতু ওটিপি জেনারেশন সার্ভার সাইড এপিআই দিয়ে করা হয়, তাই পাবলিক ইনসার্ট পলিসি রাখা ঝুঁকিপূর্ণ।
 CREATE POLICY "Admins can view site OTPs" ON public.customer_otps 
 FOR SELECT USING (auth.uid() = site_id);
 
@@ -78,50 +40,22 @@ CREATE POLICY "Admins can delete site OTPs" ON public.customer_otps
 FOR DELETE USING (auth.uid() = site_id);
 ```
 
-### ৫. মেইন সিকিউরিটি এবং সাবস্কৃপশন ফিক্স
-কাস্টম ডোমেইন ফিচারটি চালু করতে এই কোডটি রান করুন:
+### ২. কাস্টম ডোমেইন এবং প্রোফাইল আপডেট
 ```sql
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS custom_domain TEXT UNIQUE;
+ALTER TABLE custom_domain_requests ADD COLUMN IF NOT EXISTS dns_info JSONB;
 ```
 
-### ৬. কাস্টম স্টাইলিং আপডেট
-অ্যাপিয়ারেন্স ম্যানেজারের নতুন কালার অপশনগুলো চালু করতে এই কোডটি রান করুন:
-```sql
-ALTER TABLE store_settings 
-ADD COLUMN IF NOT EXISTS theme_primary_foreground text,
-ADD COLUMN IF NOT EXISTS theme_secondary text,
-ADD COLUMN IF NOT EXISTS theme_secondary_foreground text,
-ADD COLUMN IF NOT EXISTS theme_accent text,
-ADD COLUMN IF NOT EXISTS theme_accent_foreground text,
-ADD COLUMN IF NOT EXISTS theme_foreground text,
-ADD COLUMN IF NOT EXISTS theme_card text,
-ADD COLUMN IF NOT EXISTS theme_card_foreground text,
-ADD COLUMN IF NOT EXISTS theme_muted text,
-ADD COLUMN IF NOT EXISTS theme_muted_foreground text,
-ADD COLUMN IF NOT EXISTS theme_border text,
-ADD COLUMN IF NOT EXISTS theme_input text,
-ADD COLUMN IF NOT EXISTS theme_destructive text,
-ADD COLUMN IF NOT EXISTS pwa_logo_url text;
-```
-
-## এনভায়রনমেন্ট ভেরিয়েবল (Environment Variables)
-
-আপনার প্রজেক্টটি ডেপলয় করার সময় নিচের ভেরিয়েবলগুলো সেট করা নিশ্চিত করুন:
-
-### Cloudinary (ছবি আপলোড এর জন্য)
-- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`: আপনার ক্লাউডিনারি ক্লাউড নেম।
-- `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`: একটি "Unsigned" আপলোড প্রিসেট।
-- `CLOUDINARY_API_KEY`: আপনার এপিআই কি।
-- `CLOUDINARY_API_SECRET`: আপনার এপিআই সিক্রেট।
-
-### Supabase
-- `NEXT_PUBLIC_SUPABASE_URL`: সুপাবেস প্রজেক্ট ইউআরএল।
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: সুপাবেস অ্যানন কি।
-- `SUPABASE_SERVICE_ROLE_KEY`: সুপাবেস সার্ভিস রোল কি (সিক্রেট)।
-
-### Domain
-- `NEXT_PUBLIC_BASE_DOMAIN`: `dokanbd.shop`
+## এনভায়রনমেন্ট ভেরিয়েবল (Vercel/Local)
+*   `NEXT_PUBLIC_BASE_DOMAIN`: `dokanbd.shop`
+*   `NEXT_PUBLIC_SUPABASE_URL`: আপনার সুপাবেস ইউআরএল।
+*   `NEXT_PUBLIC_SUPABASE_ANON_KEY`: সুপাবেস অ্যানন কি।
+*   `SUPABASE_SERVICE_ROLE_KEY`: সুপাবেস সার্ভিস রোল কি (সিক্রেট)।
+*   `OPENROUTER_API_KEY`: এআই ফিচারের জন্য এপিআই কি।
 
 ## শুরু করার নিয়ম
+অ্যাপটি লোকাল মেশিনে রান করতে:
+1. `npm install`
+2. `npm run dev`
 
-অ্যাপটি ডেভেলপমেন্ট মোডে রান করতে `npm run dev` কমান্ডটি ব্যবহার করুন। মূল কোড দেখতে `src/app/page.tsx` ফাইলটি দেখুন।
+আপনার স্টোর ড্যাশবোর্ড দেখতে `localhost:3000/admin` ভিজিট করুন।
