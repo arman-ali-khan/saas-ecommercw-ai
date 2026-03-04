@@ -51,8 +51,20 @@ export default function AboutPage() {
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
 
   useEffect(() => {
-    const country = sessionStorage.getItem('visitor_country');
-    if (country && country !== 'BD') setLang('en');
+    const trackVisitor = async () => {
+        try {
+            const response = await fetch('/api/saas/tracking');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.countryCode && data.countryCode !== 'BD') {
+                    setLang('en');
+                }
+            }
+        } catch (err) {
+            console.error("Tracking error:", err);
+        }
+    };
+    trackVisitor();
   }, []);
 
   const t = translations[lang];
@@ -79,11 +91,11 @@ export default function AboutPage() {
             </div>
             <div className="pt-4 grid grid-cols-2 gap-6">
                 <div className="space-y-1">
-                    <p className="text-3xl font-black text-primary">১০০০+</p>
+                    <p className="text-3xl font-black text-primary">{lang === 'bn' ? '১০০০+' : '1000+'}</p>
                     <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t.statActive}</p>
                 </div>
                 <div className="space-y-1">
-                    <p className="text-3xl font-black text-primary">৯৯.৯%</p>
+                    <p className="text-3xl font-black text-primary">{lang === 'bn' ? '৯৯.৯%' : '99.9%'}</p>
                     <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t.statSuccess}</p>
                 </div>
             </div>

@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, KeyRound, Mail } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
 
 const translations = {
   bn: {
@@ -54,8 +53,18 @@ export default function LoginPage() {
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
 
   useEffect(() => {
-    const country = sessionStorage.getItem('visitor_country');
-    if (country && country !== 'BD') setLang('en');
+    const trackVisitor = async () => {
+        try {
+            const response = await fetch('/api/saas/tracking');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.countryCode && data.countryCode !== 'BD') {
+                    setLang('en');
+                }
+            }
+        } catch (err) { console.error(err); }
+    };
+    trackVisitor();
   }, []);
 
   const t = translations[lang];
@@ -92,7 +101,7 @@ export default function LoginPage() {
   if (loading || user) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
+    <div className="min-h-[80vh] flex items-center justify-center px-4 pt-32">
       <Card className="w-full max-w-md border-2 shadow-2xl rounded-[2.5rem] overflow-hidden">
         <CardHeader className="text-center bg-muted/30 pt-10 pb-8 border-b">
           <div className="mx-auto w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-4"><KeyRound className="h-7 w-7 text-primary" /></div>

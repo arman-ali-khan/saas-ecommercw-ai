@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -31,22 +30,20 @@ export default function GetStartedFlow() {
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const [lang, setLang] = useState<'bn' | 'en'>('bn');
   const [formData, setFormData] = useState<FormData>({
     plan: null,
     domain: '',
     siteName: '',
     siteDescription: '',
-    paymentMethod: 'aamarpay',
+    paymentMethod: 'sslcommerz',
     transactionId: '',
   });
 
   useEffect(() => {
     const fetchPlans = async () => {
       setIsLoadingPlans(true);
-      const { data } = await supabase
-        .from('plans')
-        .select('*');
-
+      const { data } = await supabase.from('plans').select('*');
       if (data) {
         const planOrder = ['free', 'pro', 'enterprise'];
         data.sort((a, b) => planOrder.indexOf(a.id) - planOrder.indexOf(b.id));
@@ -54,18 +51,29 @@ export default function GetStartedFlow() {
       }
       setIsLoadingPlans(false);
     };
+    
+    const trackVisitor = async () => {
+        try {
+            const response = await fetch('/api/saas/tracking');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.countryCode && data.countryCode !== 'BD') setLang('en');
+            }
+        } catch (e) { console.error(e); }
+    };
+
     fetchPlans();
+    trackVisitor();
   }, []);
 
   const updateFormData = useCallback((data: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
   }, []);
 
-  // Sync plan and payment info from URL (essential after redirects from Stripe/aamarPay)
   useEffect(() => {
     const planFromQuery = searchParams.get('plan');
     const stripeId = searchParams.get('stripe_session_id');
-    const aamarPayTrxId = searchParams.get('aamarpay_trx_id');
+    const sslTrxId = searchParams.get('ssl_trx_id');
 
     if (planFromQuery && plans.length > 0) {
         if (plans.some(p => p.id === planFromQuery) && formData.plan !== planFromQuery) {
@@ -75,8 +83,8 @@ export default function GetStartedFlow() {
 
     if (stripeId && formData.transactionId !== stripeId) {
         updateFormData({ transactionId: stripeId, paymentMethod: 'credit_card' });
-    } else if (aamarPayTrxId && formData.transactionId !== aamarPayTrxId) {
-        updateFormData({ transactionId: aamarPayTrxId, paymentMethod: 'aamarpay' });
+    } else if (sslTrxId && formData.transactionId !== sslTrxId) {
+        updateFormData({ transactionId: sslTrxId, paymentMethod: 'sslcommerz' });
     }
   }, [searchParams, plans, formData.plan, formData.transactionId, updateFormData]);
 
@@ -84,12 +92,10 @@ export default function GetStartedFlow() {
 
   const goToNextStep = () => {
     const currentIndex = STEPS.indexOf(currentStep);
-
     if (currentStep === 'subscription' && formData.plan === 'free') {
       router.push(`/get-started?step=domain&plan=free`);
       return;
     }
-
     if (currentIndex < STEPS.length - 1) {
       const nextStep = STEPS[currentIndex + 1];
       router.push(`/get-started?step=${nextStep}${formData.plan ? `&plan=${formData.plan}` : ''}`);
@@ -98,17 +104,11 @@ export default function GetStartedFlow() {
 
   const goToPreviousStep = () => {
     const currentIndex = STEPS.indexOf(currentStep);
-    
-    if (currentIndex <= 0) {
-        router.push('/');
-        return;
-    }
-
+    if (currentIndex <= 0) { router.push('/'); return; }
     if (currentStep === 'domain' && formData.plan === 'free') {
         router.push(`/get-started?step=subscription&plan=free`);
         return;
     }
-
     const prevStep = STEPS[currentIndex - 1];
     router.push(`/get-started?step=${prevStep}${formData.plan ? `&plan=${formData.plan}` : ''}`);
   };
@@ -116,7 +116,7 @@ export default function GetStartedFlow() {
   const currentStepIndex = STEPS.indexOf(currentStep);
 
   return (
-    <div className="container mx-auto py-12">
+    <div className="container mx-auto py-12 pt-32">
       <div className="max-w-4xl mx-auto">
         {currentStep !== 'success' && (
           <StepTracker currentStep={currentStepIndex} steps={STEPS.slice(0, -1)} />
@@ -131,6 +131,7 @@ export default function GetStartedFlow() {
               updateFormData={updateFormData}
               onNext={goToNextStep}
               onBack={goToPreviousStep}
+              lang={lang}
             />
           )}
           {currentStep === 'payment' && (
@@ -140,6 +141,7 @@ export default function GetStartedFlow() {
               updateFormData={updateFormData}
               onNext={goToNextStep}
               onBack={goToPreviousStep}
+              lang={lang}
             />
           )}
           {currentStep === 'domain' && (
@@ -148,6 +150,7 @@ export default function GetStartedFlow() {
               updateFormData={updateFormData}
               onNext={goToNextStep}
               onBack={goToPreviousStep}
+              lang={lang}
             />
           )}
           {currentStep === 'site-info' && (
@@ -156,9 +159,10 @@ export default function GetStartedFlow() {
               updateFormData={updateFormData}
               onNext={goToNextStep}
               onBack={goToPreviousStep}
+              lang={lang}
             />
           )}
-          {currentStep === 'success' && <SuccessStep formData={formData} />}
+          {currentStep === 'success' && <SuccessStep formData={formData} lang={lang} />}
         </div>
       </div>
     </div>

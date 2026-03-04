@@ -1,4 +1,3 @@
-
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,6 @@ import type { FormData } from "@/components/get-started/GetStartedFlow";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2, ArrowLeft, Globe, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface DomainStepProps {
@@ -15,92 +13,70 @@ interface DomainStepProps {
     updateFormData: (data: Partial<FormData>) => void;
     onNext: () => void;
     onBack: () => void;
+    lang: 'en' | 'bn';
 }
 
-const RESERVED_DOMAINS = ['admin', 'dashboard', 'profile', 'products', 'about', 'checkout', 'login', 'register', 'get-started', 'api', 'www', 'store', 'shop', 'mail', 'ftp', 'test', 'dev'];
+const translations = {
+    bn: {
+        title: "আপনার ডোমেইন বেছে নিন",
+        desc: "আপনার দোকানের জন্য একটি অনন্য ইউআরএল (URL) তৈরি করুন।",
+        checking: "চেক করা হচ্ছে...",
+        unavailable: "এই ডোমেইনটি ইতিমধ্যে ব্যবহৃত হয়েছে।",
+        reserved: "এই ডোমেইনটি সংরক্ষিত। অন্য একটি বেছে নিন।",
+        available: "এই ডোমেইনটি উপলব্ধ!",
+        tooShort: "ডোমেইন কমপক্ষে ৩ অক্ষরের হতে হবে।",
+        back: "পিছে ফিরে যান",
+        next: "পরবর্তী ধাপ",
+        processing: "প্রসেসিং..."
+    },
+    en: {
+        title: "Choose Your Domain",
+        desc: "Create a unique URL for your online store.",
+        checking: "Checking availability...",
+        unavailable: "This domain is already taken.",
+        reserved: "This domain is reserved. Please choose another.",
+        available: "This domain is available!",
+        tooShort: "Domain must be at least 3 characters.",
+        back: "Go Back",
+        next: "Next Step",
+        processing: "Processing..."
+    }
+};
 
-export default function DomainStep({ formData, updateFormData, onNext, onBack }: DomainStepProps) {
+const RESERVED_DOMAINS = ['admin', 'dashboard', 'profile', 'api', 'www', 'store', 'shop'];
+
+export default function DomainStep({ formData, updateFormData, onNext, onBack, lang }: DomainStepProps) {
     const [domain, setDomain] = useState(formData.domain);
-    const [availabilityStatus, setAvailabilityStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short' | 'reserved'>('empty');
-    const [debouncedDomain, setDebouncedDomain] = useState(domain);
+    const [status, setStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short' | 'reserved'>('empty');
+    const [debounced, setDebounced] = useState(domain);
     const [isNavigating, setIsNavigating] = useState(false);
     const [baseDomain, setBaseDomain] = useState('dokanbd.shop');
-    const [isLoadingDomain, setIsLoadingDomain] = useState(true);
+    const t = translations[lang];
 
     useEffect(() => {
-        const fetchBaseDomain = async () => {
-            setIsLoadingDomain(true);
-            const { data } = await supabase
-                .from('saas_settings')
-                .select('base_domain')
-                .eq('id', 1)
-                .single();
-            if (data && data.base_domain) {
-                setBaseDomain(data.base_domain);
-            }
-            setIsLoadingDomain(false);
+        const fetchBase = async () => {
+            const { data } = await supabase.from('saas_settings').select('base_domain').eq('id', 1).single();
+            if (data?.base_domain) setBaseDomain(data.base_domain);
         };
-        fetchBaseDomain();
+        fetchBase();
     }, []);
 
     useEffect(() => {
-        if(formData.domain) {
-            setDebouncedDomain(formData.domain);
-        }
-    }, [formData.domain]);
-
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedDomain(domain);
-        }, 500);
-
-        return () => {
-            clearTimeout(handler);
-        };
+        const h = setTimeout(() => setDebounced(domain), 500);
+        return () => clearTimeout(h);
     }, [domain]);
 
     useEffect(() => {
-        const checkDomainAvailability = async () => {
-            if (!debouncedDomain) {
-                setAvailabilityStatus('empty');
-                return;
-            }
-            if (debouncedDomain.length < 3) {
-                setAvailabilityStatus('too_short');
-                return;
-            }
-            if (RESERVED_DOMAINS.includes(debouncedDomain)) {
-                setAvailabilityStatus('reserved');
-                return;
-            }
-
-            setAvailabilityStatus('checking');
-
-            try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('domain')
-                    .eq('domain', debouncedDomain)
-                    .single();
-
-                if (error && error.code !== 'PGRST116') {
-                    setAvailabilityStatus('unavailable');
-                    return;
-                }
-
-                if (data) {
-                    setAvailabilityStatus('unavailable');
-                } else {
-                    setAvailabilityStatus('available');
-                }
-            } catch (err) {
-                 setAvailabilityStatus('unavailable');
-            }
+        const check = async () => {
+            if (!debounced) { setStatus('empty'); return; }
+            if (debounced.length < 3) { setStatus('too_short'); return; }
+            if (RESERVED_DOMAINS.includes(debounced)) { setStatus('reserved'); return; }
+            setStatus('checking');
+            const { data } = await supabase.from('profiles').select('domain').eq('domain', debounced).maybeSingle();
+            setStatus(data ? 'unavailable' : 'available');
         };
-
-        checkDomainAvailability();
-    }, [debouncedDomain]);
-
+        check();
+    }, [debounced]);
 
     const handleNext = () => {
         setIsNavigating(true);
@@ -108,70 +84,36 @@ export default function DomainStep({ formData, updateFormData, onNext, onBack }:
         onNext();
     }
     
-    const handleDomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-        setDomain(value);
-    }
-    
-    const StatusMessage = () => {
-        switch (availabilityStatus) {
-            case 'checking':
-                return <p className="text-sm text-muted-foreground flex items-center px-4 py-2 bg-muted/30 rounded-xl"><Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" /> চেক করা হচ্ছে...</p>;
-            case 'unavailable':
-                return <p className="text-sm text-destructive flex items-center px-4 py-2 bg-destructive/5 rounded-xl border border-destructive/10"><AlertCircle className="mr-2 h-4 w-4" /> এই ডোমেইনটি ইতিমধ্যে ব্যবহৃত হয়েছে।</p>;
-            case 'reserved':
-                return <p className="text-sm text-destructive flex items-center px-4 py-2 bg-destructive/5 rounded-xl border border-destructive/10"><AlertCircle className="mr-2 h-4 w-4" /> এই ডোমেইনটি সংরক্ষিত। অন্য একটি বেছে নিন।</p>;
-            case 'available':
-                return <p className="text-sm text-green-500 flex items-center px-4 py-2 bg-green-500/5 rounded-xl border border-green-500/10"><CheckCircle2 className="mr-2 h-4 w-4" /> এই ডোমেইনটি উপলব্ধ!</p>;
-            case 'too_short':
-                return <p className="text-sm text-amber-500 flex items-center px-4 py-2 bg-amber-500/5 rounded-xl border border-amber-500/10">ডোমেইন কমপক্ষে ৩ অক্ষরের হতে হবে।</p>
-            case 'empty':
-            default:
-                return <div className="h-9" />;
-        }
-    }
-    
-    const isNextDisabled = availabilityStatus !== 'available';
-
     return (
         <Card className="max-w-lg mx-auto border-2 shadow-2xl rounded-[2.5rem] overflow-hidden animate-in zoom-in-95 duration-500">
             <CardHeader className="text-center bg-muted/30 p-8 pb-10 border-b">
-                <div className="mx-auto w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-                    <Globe className="h-7 w-7 text-primary" />
-                </div>
-                <CardTitle className="text-2xl font-black font-headline">আপনার ডোমেইন বেছে নিন</CardTitle>
-                <CardDescription className="text-base mt-2">আপনার দোকানের জন্য একটি অনন্য ইউআরএল (URL) তৈরি করুন।</CardDescription>
+                <div className="mx-auto w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-4"><Globe className="h-7 w-7 text-primary" /></div>
+                <CardTitle className="text-2xl font-bold">{t.title}</CardTitle>
+                <CardDescription className="text-base mt-2">{t.desc}</CardDescription>
             </CardHeader>
             <CardContent className="p-8 space-y-8">
                 <div className="space-y-4">
                     <div className="relative group">
                         <Input
-                            id="domain"
                             placeholder="your-store"
                             value={domain}
-                            onChange={handleDomainChange}
-                            className={cn(
-                                "h-16 text-2xl font-bold rounded-2xl border-2 pl-6 pr-32 transition-all",
-                                availabilityStatus === 'available' ? "border-green-500 focus:ring-green-500/20" : 
-                                availabilityStatus === 'unavailable' || availabilityStatus === 'reserved' ? "border-destructive focus:ring-destructive/20" : "focus:border-primary"
-                            )}
-                            autoComplete="off"
+                            onChange={(e) => setDomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                            className={cn("h-16 text-2xl font-bold rounded-2xl border-2 pl-6 pr-32", status === 'available' ? "border-green-500" : (status === 'unavailable' || status === 'reserved' ? "border-destructive" : ""))}
                         />
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-muted px-4 h-12 flex items-center rounded-xl border-2 border-border/50 text-muted-foreground font-mono text-sm font-bold shadow-inner">
-                            {isLoadingDomain ? <Loader2 className="h-4 w-4 animate-spin" /> : `.${baseDomain}`}
-                        </div>
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-muted px-4 h-12 flex items-center rounded-xl font-bold shadow-inner">.{baseDomain}</div>
                     </div>
                     <div className="min-h-[40px]">
-                        <StatusMessage />
+                        {status === 'checking' && <p className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t.checking}</p>}
+                        {status === 'unavailable' && <p className="text-sm text-destructive flex items-center"><AlertCircle className="mr-2 h-4 w-4" /> {t.unavailable}</p>}
+                        {status === 'reserved' && <p className="text-sm text-destructive flex items-center"><AlertCircle className="mr-2 h-4 w-4" /> {t.reserved}</p>}
+                        {status === 'available' && <p className="text-sm text-green-500 flex items-center"><CheckCircle2 className="mr-2 h-4 w-4" /> {t.available}</p>}
+                        {status === 'too_short' && <p className="text-sm text-amber-500">{t.tooShort}</p>}
                     </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4">
-                    <Button variant="outline" onClick={onBack} disabled={isNavigating} className="h-14 rounded-2xl flex-1 font-bold">
-                        <ArrowLeft className="mr-2 h-4 w-4" /> পিছে ফিরে যান
-                    </Button>
-                    <Button onClick={handleNext} className="h-14 rounded-2xl flex-1 font-bold shadow-xl shadow-primary/20" disabled={isNextDisabled || isNavigating}>
-                        {isNavigating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        পরবর্তী ধাপ
+                    <Button variant="outline" onClick={onBack} disabled={isNavigating} className="h-14 rounded-2xl flex-1 font-bold"><ArrowLeft className="mr-2 h-4 w-4" /> {t.back}</Button>
+                    <Button onClick={handleNext} className="h-14 rounded-2xl flex-1 font-bold shadow-xl" disabled={status !== 'available' || isNavigating}>
+                        {isNavigating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t.processing}</> : t.next}
                     </Button>
                 </div>
             </CardContent>
