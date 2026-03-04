@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, X, CheckCircle2, ShieldAlert, Globe, Filter, Save, Plus, Trash2, Store, User, Calendar, MoreHorizontal } from 'lucide-react';
+import { Loader2, Search, X, CheckCircle2, ShieldAlert, Globe, Filter, Save, Plus, Trash2, Store, User, Calendar, MoreHorizontal, Settings } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/stores/auth';
 import { Label } from '@/components/ui/label';
