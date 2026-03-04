@@ -77,6 +77,18 @@ export default async function RootLayout({
         <OfflineWarning />
         <Toaster />
         
+        {/* Handle ChunkLoadError globally by refreshing the page */}
+        <Script id="chunk-error-handler" strategy="beforeInteractive">
+          {`
+            window.addEventListener('error', function(event) {
+              if (event.message && (event.message.indexOf('ChunkLoadError') !== -1 || event.message.indexOf('Loading chunk') !== -1)) {
+                console.warn('ChunkLoadError detected, reloading page...');
+                window.location.reload();
+              }
+            }, true);
+          `}
+        </Script>
+
         {/* Service Worker Registration for PWA and FCM */}
         <Script id="register-sw" strategy="afterInteractive">
           {`
