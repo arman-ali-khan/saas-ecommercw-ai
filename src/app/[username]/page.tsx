@@ -368,7 +368,6 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       case 'hero':
         const allCategories = (categoriesResult.data as Category[]) || [];
         const rootCategories = allCategories.filter(c => !c.parent_id);
-        const childCategories = allCategories.filter(c => c.parent_id);
         
         return (
           <section key={section.id} className="space-y-16">
@@ -383,60 +382,25 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                       </div>
                       <ScrollArea className="flex-1 max-h-[400px]">
                           <div className="p-2 space-y-1">
-                              <Accordion type="single" collapsible className="w-full space-y-1 border-none">
-                                  {rootCategories.slice(0, 10).map(cat => {
-                                      const children = childCategories.filter(child => child.parent_id === cat.id);
-                                      if (children.length > 0) {
-                                          return (
-                                              <AccordionItem value={cat.id.toString()} key={cat.id} className="border-none">
-                                                  <AccordionTrigger className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary/5 transition-colors group hover:no-underline py-2 [&>svg]:h-3 [&>svg]:w-3">
-                                                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                          <div className="relative h-6 w-6 rounded-md overflow-hidden bg-muted shrink-0 border">
-                                                              {cat.image_url ? (
-                                                                  <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
-                                                              ) : (
-                                                                  <div className="flex h-full w-full items-center justify-center">
-                                                                      <DynamicIcon name={cat.icon || 'Package'} className="h-3 w-3 text-muted-foreground" />
-                                                                  </div>
-                                                              )}
-                                                          </div>
-                                                          <span className="text-sm font-medium group-hover:text-primary truncate">{cat.name}</span>
-                                                      </div>
-                                                  </AccordionTrigger>
-                                                  <AccordionContent className="pt-1 pb-2 pl-9 space-y-1">
-                                                      <Link href={`/products?category=${encodeURIComponent(cat.name)}`} className="block py-1 text-[10px] font-black uppercase text-primary hover:underline">
-                                                          সবগুলো {cat.name}
-                                                      </Link>
-                                                      {children.map(child => (
-                                                          <Link 
-                                                              key={child.id} 
-                                                              href={`/products?category=${encodeURIComponent(child.name)}`}
-                                                              className="block py-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-                                                          >
-                                                              {child.name}
-                                                          </Link>
-                                                      ))}
-                                                  </AccordionContent>
-                                              </AccordionItem>
-                                          );
-                                      }
-                                      return (
-                                          <Link key={cat.id} href={`/products?category=${encodeURIComponent(cat.name)}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary/5 transition-colors group">
-                                              <div className="relative h-6 w-6 rounded-md overflow-hidden bg-muted shrink-0 border">
-                                                  {cat.image_url ? (
-                                                      <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
-                                                  ) : (
-                                                      <div className="flex h-full w-full items-center justify-center">
-                                                          <DynamicIcon name={cat.icon || 'Package'} className="h-3 w-3 text-muted-foreground" />
-                                                      </div>
-                                                  )}
+                              {rootCategories.slice(0, 10).map(cat => (
+                                  <Link 
+                                      key={cat.id} 
+                                      href={`/products?category=${encodeURIComponent(cat.name)}`}
+                                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary/5 transition-colors group"
+                                  >
+                                      <div className="relative h-6 w-6 rounded-md overflow-hidden bg-muted shrink-0 border">
+                                          {cat.image_url ? (
+                                              <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
+                                          ) : (
+                                              <div className="flex h-full w-full items-center justify-center">
+                                                  <DynamicIcon name={cat.icon || 'Package'} className="h-3 w-3 text-muted-foreground" />
                                               </div>
-                                              <span className="text-sm font-medium group-hover:text-primary truncate">{cat.name}</span>
-                                              <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                                          </Link>
-                                      );
-                                  })}
-                              </Accordion>
+                                          )}
+                                      </div>
+                                      <span className="text-sm font-medium group-hover:text-primary truncate">{cat.name}</span>
+                                      <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </Link>
+                              ))}
                               {rootCategories.length > 10 && (
                                   <Link href="/products" className="block text-center p-2 text-xs font-bold text-primary hover:underline">সবগুলো দেখুন</Link>
                               )}
