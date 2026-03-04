@@ -181,7 +181,7 @@ export default function RegisterForm() {
           <CardDescription>
             {siteName
               ? 'আপনার নতুন দোকান পরিচালনা করতে একটি অ্যাডমিন অ্যাকাউন্ট তৈরি করুন।'
-              : 'আমাদের সাথে আপনার যাত্রা শুরু করতে বাংলা ন্যাচারালস-এ যোগ দিন।'}
+              : 'আমাদের সাথে আপনার যাত্রা শুরু করতে দোকানবিডি-এ যোগ দিন।'}
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   if (!supabaseUrl || !supabaseKey) {
     return {
-      title: 'বাংলা ন্যাচারালস',
+      title: 'দোকানবিডি',
       description: 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।'
     };
   }
@@ -46,7 +46,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const settings = data || {};
 
-  const title = settings.seo_title || settings.platform_name || 'বাংলা ন্যাচারালস';
+  const title = settings.seo_title || settings.platform_name || 'দোকানবিডি';
   const description = settings.seo_description || settings.platform_description || 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।';
 
   return {

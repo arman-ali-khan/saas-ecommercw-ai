@@ -97,7 +97,7 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
         
         if (data) {
           setSiteInfo({
-            name: (lang === 'en' ? data.platform_name_en : data.platform_name) || data.platform_name || 'eHut',
+            name: (lang === 'en' ? data.platform_name_en : data.platform_name) || data.platform_name || 'DokanBD',
             logoUrl: data.logo_url || null,
           });
         }
@@ -178,7 +178,7 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
               <Button variant="ghost" asChild className="rounded-full hover:bg-primary/10">
                 <Link href="/login">{t.login}</Link>
               </Button>
-              <Button asChild className="rounded-full px-6 shadow-lg shadow-primary/10">
+              <Button asChild className="rounded-full px-6 shadow-lg shadow-primary/20">
                 <Link href="/get-started">{t.getStarted}</Link>
               </Button>
             </div>

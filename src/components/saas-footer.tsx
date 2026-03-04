@@ -101,7 +101,7 @@ export default function SaasFooter({ initialSettings, lang = 'bn' }: SaasFooterP
                   tiktok: data.social_tiktok || '',
                 });
                 setSiteInfo({
-                  name: (lang === 'en' ? data.platform_name_en : data.platform_name) || data.platform_name || 'eHut',
+                  name: (lang === 'en' ? data.platform_name_en : data.platform_name) || data.platform_name || 'DokanBD',
                   description: (lang === 'en' ? data.platform_description_en : data.platform_description) || data.platform_description || 'Your partner in building digital stores.',
                   logoUrl: data.logo_url || null,
                 });
@@ -201,7 +201,7 @@ export default function SaasFooter({ initialSettings, lang = 'bn' }: SaasFooterP
 
         <div className="pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-muted-foreground text-sm">
-            &copy; {new Date().getFullYear()} {siteInfo?.name || 'eHut'}। {t.rights}
+            &copy; {new Date().getFullYear()} {siteInfo?.name || 'DokanBD'}। {t.rights}
           </p>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5"><Shield className="w-4 h-4" /> {t.securePayment}</span>

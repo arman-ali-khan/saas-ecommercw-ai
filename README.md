@@ -1,7 +1,7 @@
 
-# eHut (দোকানবিডি) - Modern Multi-tenant E-commerce SaaS
+# DokanBD (দোকানবিডি) - Modern Multi-tenant E-commerce SaaS
 
-**eHut** হলো একটি উচ্চ-ক্ষমতাসম্পন্ন মাল্টি-টিন্যান্ট ই-কমার্স প্ল্যাটফর্ম, যা উদ্যোক্তাদের কোনো কোডিং জ্ঞান ছাড়াই নিজস্ব অনলাইন স্টোর তৈরি করতে সাহায্য করে। এটি Next.js 15, Supabase, Tailwind CSS এবং Genkit AI দিয়ে তৈরি।
+**DokanBD** হলো একটি উচ্চ-ক্ষমতাসম্পন্ন মাল্টি-টিন্যান্ট ই-কমার্স প্ল্যাটফর্ম, যা উদ্যোক্তাদের কোনো কোডিং জ্ঞান ছাড়াই নিজস্ব অনলাইন স্টোর তৈরি করতে সাহায্য করে। এটি Next.js 15, Supabase, Tailwind CSS এবং Genkit AI দিয়ে তৈরি।
 
 ## মূল ফিচারসমূহ (Main Features)
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Users, Zap, ShieldCheck, Smartphone, Globe, ArrowLeft, ArrowRight, Heart } from 'lucide-react';
@@ -9,9 +10,9 @@ import { useEffect, useState } from 'react';
 const translations = {
   bn: {
     heroTitle: "আপনার ব্যবসাকে অনলাইনে আনুন সহজে",
-    heroDesc: "eHut উদ্যোক্তাদের ক্ষমতায়ন করতে এবং ই-কমার্সকে প্রত্যেকের জন্য সহজলভ্য করতে প্রতিশ্রুতিবদ্ধ। আমাদের প্ল্যাটফর্মটি আপনাকে একটি সফল অনলাইন স্টোর তৈরি করার জন্য প্রয়োজনীয় সকল টুলস সরবরাহ করে।",
+    heroDesc: "দোকানবিডি উদ্যোক্তাদের ক্ষমতায়ন করতে এবং ই-কমার্সকে প্রত্যেকের জন্য সহজলভ্য করতে প্রতিশ্রুতিবদ্ধ। আমাদের প্ল্যাটফর্মটি আপনাকে একটি সফল অনলাইন স্টোর তৈরি করার জন্য প্রয়োজনীয় সকল টুলস সরবরাহ করে।",
     storyTitle: "আমাদের গল্প",
-    storyP1: "eHut-এর যাত্রা শুরু হয়েছিল একটি সাধারণ লক্ষ্য নিয়ে: বাংলাদেশের ক্ষুদ্র ও মাঝারি উদ্যোক্তাদের জন্য প্রযুক্তিগত জটিলতা ছাড়াই অনলাইনে পণ্য বিক্রি করার সুযোগ করে দেওয়া।",
+    storyP1: "দোকানবিডি-এর যাত্রা শুরু হয়েছিল একটি সাধারণ লক্ষ্য নিয়ে: বাংলাদেশের ক্ষুদ্র ও মাঝারি উদ্যোক্তাদের জন্য প্রযুক্তিগত জটিলতা ছাড়াই অনলাইনে পণ্য বিক্রি করার সুযোগ করে দেওয়া।",
     storyP2: "আমরা এমন একটি প্ল্যাটফর্ম তৈরি করেছি যা অত্যন্ত শক্তিশালী হওয়া সত্ত্বেও ব্যবহার করা সহজ। আমাদের লক্ষ্য হলো আপনাকে আপনার সৃজনশীল কাজে মনোনিবেশ করার সুযোগ দেওয়া।",
     statActive: "সক্রিয় উদ্যোক্তা",
     statSuccess: "সফল ডেলিভারি",
@@ -28,9 +29,9 @@ const translations = {
   },
   en: {
     heroTitle: "Bring Your Business Online Easily",
-    heroDesc: "eHut is committed to empowering entrepreneurs and making e-commerce accessible to everyone. Our platform provides all the tools needed to build a successful online store.",
+    heroDesc: "DokanBD is committed to empowering entrepreneurs and making e-commerce accessible to everyone. Our platform provides all the tools needed to build a successful online store.",
     storyTitle: "Our Story",
-    storyP1: "The journey of eHut started with a simple goal: to provide small and medium entrepreneurs in Bangladesh the opportunity to sell products online without technical complexities.",
+    storyP1: "The journey of DokanBD started with a simple goal: to provide small and medium entrepreneurs in Bangladesh the opportunity to sell products online without technical complexities.",
     storyP2: "We have built a platform that is extremely powerful yet easy to use. Our goal is to give you the chance to focus on your creative work.",
     statActive: "Active Entrepreneurs",
     statSuccess: "Successful Deliveries",
