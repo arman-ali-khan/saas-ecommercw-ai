@@ -77,6 +77,12 @@ export async function middleware(request: NextRequest) {
 
   // 4. Internal Rewrite to [username] path
   if (username && username !== 'www') {
+    // CRITICAL FIX: Prevent infinite rewrite loops
+    // If the pathname already starts with the resolved username segment, we stop further rewriting.
+    if (url.pathname === `/${username}` || url.pathname.startsWith(`/${username}/`)) {
+        return NextResponse.next();
+    }
+
     const targetPath = `/${username}${url.pathname}${url.search}`;
     return NextResponse.rewrite(new URL(targetPath, request.url));
   }
