@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import ProductCard from '@/components/product-card';
-import { ArrowRight, SearchX, List, ChevronRight } from 'lucide-react';
+import { ArrowRight, SearchX, List, ChevronRight, Layers } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -368,6 +368,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       case 'hero':
         const allCategories = (categoriesResult.data as Category[]) || [];
         const rootCategories = allCategories.filter(c => !c.parent_id);
+        const subCategories = allCategories.filter(c => c.parent_id);
         
         return (
           <section key={section.id} className="space-y-16">
@@ -381,29 +382,71 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                           <h3 className="font-bold flex items-center gap-2"><List className="h-4 w-4" /> সকল ক্যাটাগরি</h3>
                       </div>
                       <ScrollArea className="flex-1 max-h-[400px]">
-                          <div className="p-2 space-y-1">
-                              {rootCategories.slice(0, 10).map(cat => (
-                                  <Link 
-                                      key={cat.id} 
-                                      href={`/products?category=${encodeURIComponent(cat.name)}`}
-                                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary/5 transition-colors group"
-                                  >
-                                      <div className="relative h-6 w-6 rounded-md overflow-hidden bg-muted shrink-0 border">
-                                          {cat.image_url ? (
-                                              <Image src={cat.image_url} alt={cat.name} fill className="object-cover" />
-                                          ) : (
-                                              <div className="flex h-full w-full items-center justify-center">
-                                                  <DynamicIcon name={cat.icon || 'Package'} className="h-3 w-3 text-muted-foreground" />
-                                              </div>
-                                          )}
-                                      </div>
-                                      <span className="text-sm font-medium group-hover:text-primary truncate">{cat.name}</span>
-                                      <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                                  </Link>
-                              ))}
-                              {rootCategories.length > 10 && (
-                                  <Link href="/products" className="block text-center p-2 text-xs font-bold text-primary hover:underline">সবগুলো দেখুন</Link>
-                              )}
+                          <div className="p-2">
+                              <Accordion type="single" collapsible className="w-full">
+                                  {rootCategories.map(root => {
+                                      const children = subCategories.filter(sub => sub.parent_id === root.id);
+                                      if (children.length === 0) {
+                                          return (
+                                              <Link 
+                                                  key={root.id} 
+                                                  href={`/products?category=${encodeURIComponent(root.name)}`}
+                                                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary/5 transition-colors group mb-1"
+                                              >
+                                                  <div className="relative h-6 w-6 rounded-md overflow-hidden bg-muted shrink-0 border">
+                                                      {root.image_url ? (
+                                                          <Image src={root.image_url} alt={root.name} fill className="object-cover" />
+                                                      ) : (
+                                                          <div className="flex h-full w-full items-center justify-center">
+                                                              <DynamicIcon name={root.icon || 'Package'} className="h-3 w-3 text-muted-foreground" />
+                                                          </div>
+                                                      )}
+                                                  </div>
+                                                  <span className="text-sm font-medium group-hover:text-primary truncate">{root.name}</span>
+                                                  <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                              </Link>
+                                          );
+                                      }
+
+                                      return (
+                                          <AccordionItem value={root.id.toString()} key={root.id} className="border-none mb-1">
+                                              <AccordionTrigger className="p-2 hover:bg-primary/5 hover:no-underline rounded-lg group text-sm font-medium">
+                                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                      <div className="relative h-6 w-6 rounded-md overflow-hidden bg-muted shrink-0 border">
+                                                          {root.image_url ? (
+                                                              <Image src={root.image_url} alt={root.name} fill className="object-cover" />
+                                                          ) : (
+                                                              <div className="flex h-full w-full items-center justify-center">
+                                                                  <DynamicIcon name={root.icon || 'Package'} className="h-3 w-3 text-muted-foreground" />
+                                                              </div>
+                                                          )}
+                                                      </div>
+                                                      <span className="truncate group-hover:text-primary">{root.name}</span>
+                                                  </div>
+                                              </AccordionTrigger>
+                                              <AccordionContent className="pb-1 pt-1 pl-9">
+                                                  <div className="space-y-1">
+                                                      <Link 
+                                                          href={`/products?category=${encodeURIComponent(root.name)}`}
+                                                          className="flex items-center gap-2 p-1.5 rounded-md hover:text-primary text-xs font-bold text-muted-foreground"
+                                                      >
+                                                          <Layers className="h-3 w-3" /> সবগুলো দেখুন
+                                                      </Link>
+                                                      {children.map(child => (
+                                                          <Link 
+                                                              key={child.id}
+                                                              href={`/products?category=${encodeURIComponent(child.name)}`}
+                                                              className="block p-1.5 rounded-md hover:text-primary text-xs text-muted-foreground transition-colors"
+                                                          >
+                                                              {child.name}
+                                                          </Link>
+                                                      ))}
+                                                  </div>
+                                              </AccordionContent>
+                                          </AccordionItem>
+                                      );
+                                  })}
+                              </Accordion>
                           </div>
                       </ScrollArea>
                   </div>
