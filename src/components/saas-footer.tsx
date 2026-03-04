@@ -31,9 +31,45 @@ const TikTokIcon = () => (
 
 interface SaasFooterProps {
   initialSettings?: SaasSettings | null;
+  lang?: 'en' | 'bn';
 }
 
-export default function SaasFooter({ initialSettings }: SaasFooterProps) {
+const translations = {
+  bn: {
+    platform: 'প্ল্যাটফর্ম',
+    company: 'কোম্পানি',
+    features: 'ফিচারসমূহ',
+    pricing: 'প্ল্যান ও মূল্য',
+    freeAccount: 'ফ্রি অ্যাকাউন্ট',
+    login: 'লগ ইন',
+    story: 'আমাদের গল্প',
+    leaveReview: 'রিভিউ দিন',
+    privacy: 'প্রাইভেসি পলিসি',
+    terms: 'শর্তাবলি',
+    securePayment: 'সুরক্ষিত পেমেন্ট',
+    madeInBD: 'বাংলাদেশে তৈরি',
+    rights: 'সর্বস্বত্ব সংরক্ষিত।'
+  },
+  en: {
+    platform: 'Platform',
+    company: 'Company',
+    features: 'Features',
+    pricing: 'Pricing',
+    freeAccount: 'Free Account',
+    login: 'Log In',
+    story: 'Our Story',
+    leaveReview: 'Leave a Review',
+    privacy: 'Privacy Policy',
+    terms: 'Terms & Conditions',
+    securePayment: 'Secure Payment',
+    madeInBD: 'Made in Bangladesh',
+    rights: 'All rights reserved.'
+  }
+};
+
+export default function SaasFooter({ initialSettings, lang = 'bn' }: SaasFooterProps) {
+  const t = translations[lang];
+  
   const [socials, setSocials] = useState({
     facebook: initialSettings?.social_facebook || '',
     twitter: initialSettings?.social_twitter || '',
@@ -69,8 +105,8 @@ export default function SaasFooter({ initialSettings }: SaasFooterProps) {
                 tiktok: data.social_tiktok || '',
               });
               setSiteInfo({
-                name: data.platform_name || 'Your SaaS',
-                description: data.platform_description || 'আপনার স্বপ্নের অনলাইন স্টোর তৈরির ডিজিটাল কারিগর।',
+                name: data.platform_name || 'eHut',
+                description: data.platform_description || 'Your partner in building digital stores.',
                 logoUrl: data.logo_url || null,
               });
           }
@@ -106,8 +142,8 @@ export default function SaasFooter({ initialSettings }: SaasFooterProps) {
           <div className="md:col-span-5 lg:col-span-4">
             <FooterLogo />
              {isLoading ? <Skeleton className="h-12 w-full max-w-xs" /> : (
-                <p className="text-muted-foreground text-lg leading-relaxed max-w-sm">
-                  {siteInfo?.description || 'আমরা আপনাকে সাহায্য করছি আপনার স্টোরকে ডিজিটাল করার জন্য। আজই শুরু করুন নতুন পথচলা।'}
+                <p className="text-muted-foreground text-lg leading-relaxed max-sm">
+                  {siteInfo?.description || 'Build your dream store in minutes with our powerful SaaS platform.'}
                 </p>
             )}
             <div className="mt-8 flex space-x-4">
@@ -135,21 +171,21 @@ export default function SaasFooter({ initialSettings }: SaasFooterProps) {
 
           <div className="grid grid-cols-2 gap-8 md:col-span-7 lg:col-span-8">
             <div className="lg:col-start-3">
-              <h3 className="font-bold text-lg mb-6 uppercase tracking-wider text-primary">প্ল্যাটফর্ম</h3>
+              <h3 className="font-bold text-lg mb-6 uppercase tracking-wider text-primary">{t.platform}</h3>
               <ul className="space-y-4">
-                <li><Link href="/#features" className="text-muted-foreground hover:text-foreground transition-colors">ফিচারসমূহ</Link></li>
-                <li><Link href="/#pricing" className="text-muted-foreground hover:text-foreground transition-colors">প্ল্যান ও মূল্য</Link></li>
-                <li><Link href="/get-started" className="text-muted-foreground hover:text-foreground transition-colors">ফ্রি অ্যাকাউন্ট</Link></li>
-                <li><Link href="/login" className="text-muted-foreground hover:text-foreground transition-colors">লগ ইন</Link></li>
+                <li><Link href="/#features" className="text-muted-foreground hover:text-foreground transition-colors">{t.features}</Link></li>
+                <li><Link href="/#pricing" className="text-muted-foreground hover:text-foreground transition-colors">{t.pricing}</Link></li>
+                <li><Link href="/get-started" className="text-muted-foreground hover:text-foreground transition-colors">{t.freeAccount}</Link></li>
+                <li><Link href="/login" className="text-muted-foreground hover:text-foreground transition-colors">{t.login}</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-bold text-lg mb-6 uppercase tracking-wider text-primary">কোম্পানি</h3>
+              <h3 className="font-bold text-lg mb-6 uppercase tracking-wider text-primary">{t.company}</h3>
               <ul className="space-y-4">
-                <li><Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">আমাদের গল্প</Link></li>
-                <li><Link href="/leave-a-review" className="text-muted-foreground hover:text-foreground transition-colors">রিভিউ দিন</Link></li>
-                <li><Link href="/p/privacy" className="text-muted-foreground hover:text-foreground transition-colors">প্রাইভেসি পলিসি</Link></li>
-                <li><Link href="/p/terms" className="text-muted-foreground hover:text-foreground transition-colors">শর্তাবলি</Link></li>
+                <li><Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">{t.story}</Link></li>
+                <li><Link href="/leave-a-review" className="text-muted-foreground hover:text-foreground transition-colors">{t.leaveReview}</Link></li>
+                <li><Link href="/p/privacy" className="text-muted-foreground hover:text-foreground transition-colors">{t.privacy}</Link></li>
+                <li><Link href="/p/terms" className="text-muted-foreground hover:text-foreground transition-colors">{t.terms}</Link></li>
               </ul>
             </div>
           </div>
@@ -157,11 +193,11 @@ export default function SaasFooter({ initialSettings }: SaasFooterProps) {
 
         <div className="pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-muted-foreground text-sm">
-            &copy; {new Date().getFullYear()} {siteInfo?.name || 'বাংলা ন্যাচারালস'}। সর্বস্বত্ব সংরক্ষিত।
+            &copy; {new Date().getFullYear()} {siteInfo?.name || 'eHut'}। {t.rights}
           </p>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5"><Shield className="w-4 h-4" /> সুরক্ষিত পেমেন্ট</span>
-            <span className="flex items-center gap-1.5"><Heart className="w-4 h-4 text-red-500" /> বাংলাদেশে তৈরি</span>
+            <span className="flex items-center gap-1.5"><Shield className="w-4 h-4" /> {t.securePayment}</span>
+            <span className="flex items-center gap-1.5"><Heart className="w-4 h-4 text-red-500" /> {t.madeInBD}</span>
           </div>
         </div>
       </div>

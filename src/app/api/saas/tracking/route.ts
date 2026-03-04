@@ -17,7 +17,6 @@ export async function GET(request: Request) {
     const ip = forwarded ? forwarded.split(',')[0] : '127.0.0.1';
 
     // 1. Fetch Comprehensive Geolocation Data
-    // Fields mapping to requested JSON structure
     const fields = 'status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,offset,currency,isp,org,as,asname,mobile,proxy,hosting,query';
     
     const geoResponse = await fetch(`http://ip-api.com/json/${ip}?fields=${fields}`);
@@ -33,7 +32,7 @@ export async function GET(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 2. Store in Database with full mapping
+    // 2. Store in Database
     const { data, error } = await supabaseAdmin
       .from('visitors')
       .insert({
@@ -60,14 +59,19 @@ export async function GET(request: Request) {
         is_hosting: geoData.hosting,
         user_agent: userAgent,
         referrer: referrer,
-        dns_info: { geo: `${geoData.country} - ${geoData.org}`, ip: geoData.query } // Simplified DNS mock based on your example
+        dns_info: { geo: `${geoData.country} - ${geoData.org}`, ip: geoData.query }
       })
       .select()
       .single();
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, visitorId: data.id });
+    // Return countryCode to client for language switching
+    return NextResponse.json({ 
+      success: true, 
+      visitorId: data.id, 
+      countryCode: geoData.countryCode 
+    });
 
   } catch (err: any) {
     console.error('Visitor Tracking Error:', err);

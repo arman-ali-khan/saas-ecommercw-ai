@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -46,76 +46,82 @@ interface SaasLandingClientProps {
   sections: any[];
 }
 
-function PlatformShowcase({ items }: { items: SaasShowcaseItem[] }) {
-  if (items.length === 0) return null;
-
-  return (
-    <section id="showcase" className="relative">
-      <div className="text-center mb-16">
-        <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4 text-foreground">প্ল্যাটফর্ম শোকেস</h2>
-        <p className="text-muted-foreground text-lg">আমাদের শক্তিশালী ড্যাশবোর্ড এবং ফিচারগুলোর এক ঝলক দেখে নিন।</p>
-      </div>
-
-      <div className="px-4 relative group">
-        <div className="max-w-5xl mx-auto">
-          <Carousel
-            opts={{ align: 'start', loop: true }}
-            className="w-full relative"
-          >
-            <CarouselContent>
-              {items.map((item) => (
-                <CarouselItem key={item.id} className="basis-full">
-                  <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden border-2 border-border/50 shadow-2xl group/item">
-                    {item.image_url ? (
-                      <Image 
-                        src={item.image_url} 
-                        alt={item.title} 
-                        fill 
-                        className="object-cover transition-transform duration-700 group-hover/item:scale-105" 
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <DynamicIcon name={item.icon} className="w-20 h-20 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-12 text-white">
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <h3 className="text-2xl md:text-4xl font-bold font-headline mb-3">{item.title}</h3>
-                        <p className="text-white/80 text-sm md:text-lg max-w-3xl line-clamp-2 md:line-clamp-none leading-relaxed">
-                          {item.description}
-                        </p>
-                      </motion.div>
-                    </div>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <div className="hidden md:block">
-              <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 bg-background/80 backdrop-blur-md border-primary/20 hover:bg-primary hover:text-primary-foreground shadow-xl transition-all" />
-              <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 bg-background/80 backdrop-blur-md border-primary/20 hover:bg-primary hover:text-primary-foreground shadow-xl transition-all" />
-            </div>
-          </Carousel>
-        </div>
-      </div>
-    </section>
-  );
-}
+const landingTranslations = {
+  bn: {
+    heroBadge: "নতুন: এআই প্রোডাক্ট ডেসক্রিপশন জেনারেটর এখন লাইভ!",
+    heroTitle: "আপনার স্বপ্নের স্টোর এখন বাস্তবের পথে",
+    heroDesc: "বাংলা ন্যাচারালস-এর মাধ্যমে কয়েক মিনিটের মধ্যেই শুরু করুন আপনার নিজস্ব ই-কমার্স প্ল্যাটফর্ম। এআই-চালিত টুলস এবং কাস্টমাইজযোগ্য ডিজাইন নিয়ে আজই আপনার ব্র্যান্ড চালু করুন।",
+    startBtn: "ফ্রি ট্রায়াল শুরু করুন",
+    plansBtn: "প্ল্যানগুলো দেখুন",
+    featuresTitle: "সবকিছু যা আপনার প্রয়োজন",
+    featuresDesc: "আধুনিক ই-কমার্স ব্যবসার জন্য প্রয়োজনীয় সকল ফিচার এখন এক জায়গায়।",
+    showcaseTitle: "প্ল্যাটফর্ম শোকেস",
+    showcaseDesc: "আমাদের শক্তিশালী ড্যাশবোর্ড এবং ফিচারগুলোর এক ঝলক দেখে নিন।",
+    statsStores: "সক্রিয় স্টোর",
+    statsUptime: "আপটাইম",
+    statsSetup: "সেটআপ টাইম",
+    statsSupport: "সাপোর্ট",
+    pricingTitle: "স্বচ্ছ এবং সহজ প্রাইসিং",
+    pricingDesc: "আপনার ব্যবসার আকার অনুযায়ী সেরা প্ল্যানটি বেছে নিন। কোনো লুকানো চার্জ নেই।",
+    testimonialTitle: "ইউজাররা যা বলছেন",
+    ctaTitle: "আপনার অনলাইন যাত্রা আজই শুরু হোক",
+    ctaDesc: "হাজার হাজার উদ্যোক্তার সাথে যোগ দিন যারা বাংলা ন্যাচারালস ব্যবহার করে তাদের ব্র্যান্ডকে সফলভাবে গড়ে তুলছেন।",
+    ctaNoCredit: "ক্রেডিট কার্ড লাগবে না",
+    ctaMobile: "মোবাইল অ্যাপ এক্সপেরিয়েন্স",
+    ctaDomain: "কাস্টম ডোমেইন",
+    mostPopular: "জনপ্রিয় প্ল্যান",
+    viewAll: "সব দেখুন",
+    free: "ফ্রি",
+    contactUs: "যোগাযোগ করুন",
+    choosePro: "প্রো বেছে নিন",
+    startNow: "এখনই শুরু করুন"
+  },
+  en: {
+    heroBadge: "NEW: AI Product Description Generator is now live!",
+    heroTitle: "Your Dream Store is Now a Reality",
+    heroDesc: "Launch your own e-commerce platform in minutes with DokanBD. Start your brand today with AI-powered tools and customizable designs.",
+    startBtn: "Start Free Trial",
+    plansBtn: "View Plans",
+    featuresTitle: "Everything You Need",
+    featuresDesc: "All the features required for a modern e-commerce business, all in one place.",
+    showcaseTitle: "Platform Showcase",
+    showcaseDesc: "A quick glimpse of our powerful dashboard and features.",
+    statsStores: "Active Stores",
+    statsUptime: "Uptime",
+    statsSetup: "Setup Time",
+    statsSupport: "Support",
+    pricingTitle: "Transparent & Easy Pricing",
+    pricingDesc: "Choose the best plan based on your business size. No hidden charges.",
+    testimonialTitle: "What Our Users Say",
+    ctaTitle: "Start Your Online Journey Today",
+    ctaDesc: "Join thousands of entrepreneurs who are successfully building their brands using DokanBD.",
+    ctaNoCredit: "No Credit Card Required",
+    ctaMobile: "Mobile App Experience",
+    ctaDomain: "Custom Domain",
+    mostPopular: "Most Popular",
+    viewAll: "View All",
+    free: "Free",
+    contactUs: "Contact Us",
+    choosePro: "Choose Pro",
+    startNow: "Start Now"
+  }
+};
 
 export default function SaasLandingClient({ plans, features, reviews, showcaseItems, settings, sections }: SaasLandingClientProps) {
-  
-  // --- VISITOR TRACKING ---
+  const [lang, setLang] = useState<'bn' | 'en'>('bn');
+  const t = landingTranslations[lang];
+
+  // --- VISITOR TRACKING & LANGUAGE DETECTION ---
   useEffect(() => {
     const trackVisitor = async () => {
-        // Only track once per session to respect rate limits and redundant data
-        if (sessionStorage.getItem('visitor_tracked')) return;
-
         try {
             const response = await fetch('/api/saas/tracking');
             if (response.ok) {
+                const data = await response.json();
+                // Set language based on country code
+                if (data.countryCode && data.countryCode !== 'BD') {
+                    setLang('en');
+                }
                 sessionStorage.setItem('visitor_tracked', 'true');
             }
         } catch (err) {
@@ -123,9 +129,35 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
         }
     };
     
-    trackVisitor();
+    // Check cache first to avoid layout shift on navigation
+    const cachedCountry = sessionStorage.getItem('visitor_country');
+    if (cachedCountry) {
+        if (cachedCountry !== 'BD') setLang('en');
+    } else {
+        trackVisitor();
+    }
   }, []);
-  // ------------------------
+  // ---------------------------------------------
+
+  const translatedPlans = useMemo(() => {
+    return plans.map(plan => {
+        let ctaText = plan.cta;
+        let priceText = plan.price;
+
+        if (lang === 'en') {
+            if (plan.id === 'free') {
+                ctaText = t.startNow;
+                priceText = "Free";
+            } else if (plan.id === 'pro') {
+                ctaText = t.choosePro;
+            } else if (plan.id === 'enterprise') {
+                ctaText = t.contactUs;
+            }
+        }
+
+        return { ...plan, cta: ctaText, price: priceText };
+    });
+  }, [plans, lang, t]);
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -158,25 +190,25 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-6 animate-pulse">
               <Zap className="w-3 h-3" />
-              <span>নতুন: এআই প্রোডাক্ট ডেসক্রিপশন জেনারেটর এখন লাইভ!</span>
+              <span>{t.heroBadge}</span>
             </div>
             
             <h1 className="text-5xl md:text-7xl font-headline font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 mb-6">
-              {settings?.hero_title || 'আপনার স্বপ্নের স্টোর এখন বাস্তবের পথে'}
+              {settings?.hero_title || t.heroTitle}
             </h1>
             
             <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground leading-relaxed">
-              {settings?.hero_description || 'বাংলা ন্যাচারালস-এর মাধ্যমে কয়েক মিনিটের মধ্যেই শুরু করুন আপনার নিজস্ব ই-কমার্স প্ল্যাটফর্ম। এআই-চালিত টুলস এবং কাস্টমাইজযোগ্য ডিজাইন নিয়ে আজই আপনার ব্র্যান্ড চালু করুন।'}
+              {settings?.hero_description || t.heroDesc}
             </p>
             
             <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4 px-4 sm:px-0">
               <Button asChild size="lg" className="h-12 px-8 rounded-full text-lg shadow-lg shadow-primary/20 transition-transform hover:scale-105 active:scale-95">
                 <Link href="/get-started">
-                  ফ্রি ট্রায়াল শুরু করুন <ArrowRight className="ml-2 w-5 h-5" />
+                  {t.startBtn} <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-12 px-8 rounded-full text-lg backdrop-blur-sm bg-background/50 transition-transform hover:scale-105 active:scale-95">
-                <Link href="#pricing">প্ল্যানগুলো দেখুন</Link>
+                <Link href="#pricing">{t.plansBtn}</Link>
               </Button>
             </div>
 
@@ -211,8 +243,8 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
         return (
           <section key="features" id="features" className="relative">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4 text-foreground">সবকিছু যা আপনার প্রয়োজন</h2>
-              <p className="text-muted-foreground text-lg">আধুনিক ই-কমার্স ব্যবসার জন্য প্রয়োজনীয় সকল ফিচার এখন এক জায়গায়।</p>
+              <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4 text-foreground">{t.featuresTitle}</h2>
+              <p className="text-muted-foreground text-lg">{t.featuresDesc}</p>
             </div>
             
             <motion.div 
@@ -241,25 +273,64 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
           </section>
         );
       case 'showcase':
-        return <PlatformShowcase key="showcase" items={showcaseItems} />;
+        return (
+            <section key="showcase" id="showcase" className="relative">
+                <div className="text-center mb-16">
+                    <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4 text-foreground">{t.showcaseTitle}</h2>
+                    <p className="text-muted-foreground text-lg">{t.showcaseDesc}</p>
+                </div>
+
+                <div className="px-4 relative group">
+                    <div className="max-w-5xl mx-auto">
+                    <Carousel opts={{ align: 'start', loop: true }} className="w-full relative">
+                        <CarouselContent>
+                        {showcaseItems.map((item) => (
+                            <CarouselItem key={item.id} className="basis-full">
+                            <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden border-2 border-border/50 shadow-2xl group/item">
+                                {item.image_url ? (
+                                <Image src={item.image_url} alt={item.title} fill className="object-cover transition-transform duration-700 group-hover/item:scale-105" />
+                                ) : (
+                                <div className="w-full h-full bg-muted flex items-center justify-center">
+                                    <DynamicIcon name={item.icon} className="w-20 h-20 text-muted-foreground" />
+                                </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-12 text-white">
+                                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                                    <h3 className="text-2xl md:text-4xl font-bold font-headline mb-3">{item.title}</h3>
+                                    <p className="text-white/80 text-sm md:text-lg max-w-3xl line-clamp-2 md:line-clamp-none leading-relaxed">{item.description}</p>
+                                </motion.div>
+                                </div>
+                            </div>
+                            </CarouselItem>
+                        ))}
+                        </CarouselContent>
+                        <div className="hidden md:block">
+                        <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 bg-background/80 backdrop-blur-md border-primary/20 hover:bg-primary hover:text-primary-foreground shadow-xl transition-all" />
+                        <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 bg-background/80 backdrop-blur-md border-primary/20 hover:bg-primary hover:text-primary-foreground shadow-xl transition-all" />
+                        </div>
+                    </Carousel>
+                    </div>
+                </div>
+            </section>
+        );
       case 'stats':
         return (
           <section key="stats" className="grid grid-cols-2 md:grid-cols-4 gap-8 py-12 border-y border-border/50">
             <div className="text-center">
-              <div className="text-4xl font-bold font-headline mb-2 text-foreground">১০০০+</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-widest">সক্রিয় স্টোর</div>
+              <div className="text-4xl font-bold font-headline mb-2 text-foreground">1000+</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-widest">{t.statsStores}</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold font-headline mb-2 text-foreground">৯৯.৯%</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-widest">আপটাইম</div>
+              <div className="text-4xl font-bold font-headline mb-2 text-foreground">99.9%</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-widest">{t.statsUptime}</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold font-headline mb-2 text-foreground">৫মিনিট</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-widest">সেটআপ টাইম</div>
+              <div className="text-4xl font-bold font-headline mb-2 text-foreground">5 Min</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-widest">{t.statsSetup}</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold font-headline mb-2 text-foreground">২৪/৭</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-widest">সাপোর্ট</div>
+              <div className="text-4xl font-bold font-headline mb-2 text-foreground">24/7</div>
+              <div className="text-sm text-muted-foreground uppercase tracking-widest">{t.statsSupport}</div>
             </div>
           </section>
         );
@@ -267,12 +338,12 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
         return (
           <section key="pricing" id="pricing" className="relative scroll-mt-24">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4 text-foreground">স্বচ্ছ এবং সহজ প্রাইসিং</h2>
-              <p className="text-muted-foreground text-lg">আপনার ব্যবসার আকার অনুযায়ী সেরা প্ল্যানটি বেছে নিন। কোনো লুকানো চার্জ নেই।</p>
+              <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4 text-foreground">{t.pricingTitle}</h2>
+              <p className="text-muted-foreground text-lg">{t.pricingDesc}</p>
             </div>
             
             <div className="grid md:grid-cols-3 gap-8 items-stretch">
-              {plans.map((tier) => (
+              {translatedPlans.map((tier) => (
                 <motion.div 
                   key={tier.id}
                   whileHover={{ y: -10 }}
@@ -288,7 +359,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                   >
                     {tier.isFeatured && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold tracking-widest uppercase">
-                        Most Popular
+                        {t.mostPopular}
                       </div>
                     )}
                     <CardHeader className="p-8 pb-0">
@@ -339,7 +410,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
             <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.02] pointer-events-none" />
             
             <div className="text-center mb-16 relative z-10">
-              <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4 text-foreground">ইউজাররা যা বলছেন</h2>
+              <h2 className="text-3xl md:text-5xl font-headline font-bold mb-4 text-foreground">{t.testimonialTitle}</h2>
               <div className="flex justify-center gap-1 mb-2">
                 {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
               </div>
@@ -377,10 +448,13 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
               ) : (
                 <div className="max-w-3xl mx-auto text-center">
                     <blockquote className="text-2xl md:text-3xl font-light italic leading-relaxed text-foreground">
-                    "এই প্ল্যাটফর্মটি আমাদের ব্যবসাকে অবিশ্বাস্যভাবে সহজ করে দিয়েছে। এআই টুলস ব্যবহার করে আমরা মাত্র কয়েক ঘন্টায় আমাদের পুরো ইনভেন্টরি রেডি করতে পেরেছি।"
+                    {lang === 'bn' 
+                        ? "এই প্ল্যাটফর্মটি আমাদের ব্যবসাকে অবিশ্বাস্যভাবে সহজ করে দিয়েছে। এআই টুলস ব্যবহার করে আমরা মাত্র কয়েক ঘন্টায় আমাদের পুরো ইনভেন্টরি রেডি করতে পেরেছি।"
+                        : "This platform has made our business incredibly easy. Using AI tools, we were able to get our entire inventory ready in just a few hours."
+                    }
                     </blockquote>
                     <div className="mt-8">
-                      <p className="text-xl font-bold text-primary">একজন সফল উদ্যোক্তা</p>
+                      <p className="text-xl font-bold text-primary">{lang === 'bn' ? "একজন সফল উদ্যোক্তা" : "A Successful Entrepreneur"}</p>
                     </div>
                 </div>
               )}
@@ -402,20 +476,20 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
             
             <div className="relative z-10">
               <h2 className="text-4xl md:text-6xl font-headline font-bold mb-6">
-                {settings?.cta_title || 'আপনার অনলাইন যাত্রা আজই শুরু হোক'}
+                {settings?.cta_title || t.ctaTitle}
               </h2>
               <p className="max-w-2xl mx-auto text-lg md:text-xl opacity-90 mb-10 leading-relaxed">
-                {settings?.cta_description || 'হাজার হাজার উদ্যোক্তার সাথে যোগ দিন যারা বাংলা ন্যাচারালস ব্যবহার করে তাদের ব্র্যান্ডকে সফলভাবে গড়ে তুলছেন।'}
+                {settings?.cta_description || t.ctaDesc}
               </p>
               <Button asChild size="lg" variant="secondary" className="h-14 px-10 rounded-full text-lg shadow-xl transition-transform hover:scale-105 active:scale-95">
                 <Link href="/get-started">
-                  এখনই শুরু করুন (সম্পূর্ণ ফ্রি)
+                  {lang === 'bn' ? "এখনই শুরু করুন (সম্পূর্ণ ফ্রি)" : "Start Now (Completely Free)"}
                 </Link>
               </Button>
               <p className="mt-6 text-sm opacity-70 flex items-center justify-center gap-4">
-                <span className="flex items-center gap-1"><ShieldCheck className="w-4 h-4" /> ক্রেডিট কার্ড লাগবে না</span>
-                <span className="flex items-center gap-1"><Smartphone className="w-4 h-4" /> মোবাইল অ্যাপ এক্সপেরিয়েন্স</span>
-                <span className="flex items-center gap-1"><Globe className="w-4 h-4" /> কাস্টম ডোমেইন</span>
+                <span className="flex items-center gap-1"><ShieldCheck className="w-4 h-4" /> {t.ctaNoCredit}</span>
+                <span className="flex items-center gap-1"><Smartphone className="w-4 h-4" /> {t.ctaMobile}</span>
+                <span className="flex items-center gap-1"><Globe className="w-4 h-4" /> {t.ctaDomain}</span>
               </p>
             </div>
           </motion.section>
@@ -427,7 +501,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
 
   return (
     <div id="root-main" className="min-h-screen bg-background selection:bg-primary/30">
-      <SaasHeader initialSettings={settings} />
+      <SaasHeader initialSettings={settings} lang={lang} />
       
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
@@ -439,7 +513,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
           {sections.map(renderSection)}
         </div>
       </main>
-      <SaasFooter initialSettings={settings} />
+      <SaasFooter initialSettings={settings} lang={lang} />
     </div>
   );
 }

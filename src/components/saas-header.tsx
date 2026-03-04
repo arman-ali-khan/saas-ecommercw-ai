@@ -22,18 +22,43 @@ import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
 import { type SaasSettings } from '@/types';
 
-const navLinks = [
-  { href: '#features', label: 'ফিচারসমূহ' },
-  { href: '#pricing', label: 'প্ল্যান' },
-  { href: '#testimonial', label: 'রিভিউ' },
-];
-
 interface SaasHeaderProps {
   initialSettings?: SaasSettings | null;
+  lang?: 'en' | 'bn';
 }
 
-export default function SaasHeader({ initialSettings }: SaasHeaderProps) {
+const translations = {
+  bn: {
+    features: 'ফিচারসমূহ',
+    plans: 'প্ল্যান',
+    reviews: 'রিভিউ',
+    dashboard: 'SaaS ড্যাশবোর্ড',
+    adminDashboard: 'ড্যাশবোর্ড',
+    login: 'লগ ইন',
+    getStarted: 'শুরু করুন',
+    menu: 'মেনু',
+    menuDesc: 'প্রধান নেভিগেশন মেনু',
+    register: 'ফ্রি অ্যাকাউন্ট তৈরি করুন',
+    enterDashboard: 'ড্যাশবোর্ডে প্রবেশ করুন'
+  },
+  en: {
+    features: 'Features',
+    plans: 'Pricing',
+    reviews: 'Reviews',
+    dashboard: 'SaaS Dashboard',
+    adminDashboard: 'Dashboard',
+    login: 'Log In',
+    getStarted: 'Get Started',
+    menu: 'Menu',
+    menuDesc: 'Main navigation menu',
+    register: 'Create Free Account',
+    enterDashboard: 'Enter Dashboard'
+  }
+};
+
+export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderProps) {
   const user = useAuth((state) => state.user);
+  const t = translations[lang];
   
   const [isHydrated, setIsHydrated] = useState(false);
   const [siteInfo, setSiteInfo] = useState<{
@@ -43,6 +68,12 @@ export default function SaasHeader({ initialSettings }: SaasHeaderProps) {
   const [isLoading, setIsLoading] = useState(!initialSettings);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  const navLinks = [
+    { href: '#features', label: t.features },
+    { href: '#pricing', label: t.plans },
+    { href: '#testimonial', label: t.reviews },
+  ];
 
   useEffect(() => {
     setIsHydrated(true);
@@ -63,7 +94,7 @@ export default function SaasHeader({ initialSettings }: SaasHeaderProps) {
         
         if (data) {
           setSiteInfo({
-            name: data.platform_name || 'Your SaaS',
+            name: data.platform_name || 'eHut',
             logoUrl: data.logo_url || null,
           });
         }
@@ -123,22 +154,22 @@ export default function SaasHeader({ initialSettings }: SaasHeaderProps) {
              <Button asChild className="rounded-full shadow-lg shadow-primary/10">
                 <Link href="/dashboard">
                   <LayoutDashboard className="mr-2 h-4 w-4" />
-                  SaaS ড্যাশবোর্ড
+                  {t.dashboard}
                 </Link>
               </Button>
           ) : user && user.domain ? (
             <Button asChild className="rounded-full shadow-lg shadow-primary/10">
               <Link href={`/${user.domain}/admin`}>
-                ড্যাশবোর্ড
+                {t.adminDashboard}
               </Link>
             </Button>
           ) : (
             <div className="hidden md:flex items-center gap-3">
               <Button variant="ghost" asChild className="rounded-full hover:bg-primary/10">
-                <Link href="/login">লগ ইন</Link>
+                <Link href="/login">{t.login}</Link>
               </Button>
               <Button asChild className="rounded-full px-6 shadow-lg shadow-primary/10">
-                <Link href="/get-started">শুরু করুন</Link>
+                <Link href="/get-started">{t.getStarted}</Link>
               </Button>
             </div>
           )}
@@ -159,7 +190,7 @@ export default function SaasHeader({ initialSettings }: SaasHeaderProps) {
                        </div>
                        {siteInfo?.name}
                     </SheetTitle>
-                    <SheetDescription>আপনার অনলাইন স্টোর ম্যানেজমেন্ট হাব</SheetDescription>
+                    <SheetDescription>{t.menuDesc}</SheetDescription>
                   </SheetHeader>
                   
                   <nav className="flex flex-col gap-2">
@@ -181,19 +212,19 @@ export default function SaasHeader({ initialSettings }: SaasHeaderProps) {
                       <>
                         <SheetClose asChild>
                           <Button asChild variant="outline" className="w-full h-14 rounded-2xl text-lg">
-                            <Link href="/login">লগ ইন</Link>
+                            <Link href="/login">{t.login}</Link>
                           </Button>
                         </SheetClose>
                         <SheetClose asChild>
                           <Button asChild className="w-full h-14 rounded-2xl text-lg shadow-lg shadow-primary/20">
-                            <Link href="/get-started">ফ্রি অ্যাকাউন্ট তৈরি করুন</Link>
+                            <Link href="/get-started">{t.register}</Link>
                           </Button>
                         </SheetClose>
                       </>
                     ) : (
                       <SheetClose asChild>
                         <Button asChild className="w-full h-14 rounded-2xl text-lg">
-                          <Link href={user.isSaaSAdmin ? "/dashboard" : `/${user.domain}/admin`}>ড্যাশবোর্ডে প্রবেশ করুন</Link>
+                          <Link href={user.isSaaSAdmin ? "/dashboard" : `/${user.domain}/admin`}>{t.enterDashboard}</Link>
                         </Button>
                       </SheetClose>
                     )}
