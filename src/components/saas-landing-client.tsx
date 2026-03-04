@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -74,6 +73,7 @@ const landingTranslations = {
     free: "ফ্রি",
     contactUs: "যোগাযোগ করুন",
     choosePro: "প্রো বেছে নিন",
+    chooseUnlimited: "আনলিমিটেড বেছে নিন",
     startNow: "এখনই শুরু করুন"
   },
   en: {
@@ -103,6 +103,7 @@ const landingTranslations = {
     free: "Free",
     contactUs: "Contact Us",
     choosePro: "Choose Pro",
+    chooseUnlimited: "Select Unlimited",
     startNow: "Start Now"
   }
 };
@@ -142,8 +143,15 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                 priceText = "Free";
             } else if (plan.id === 'pro') {
                 ctaText = t.choosePro;
+            } else if (plan.id === 'Unlimited') {
+                ctaText = t.chooseUnlimited;
             } else if (plan.id === 'enterprise') {
                 ctaText = t.contactUs;
+            }
+        } else {
+            // BN Overrides
+            if (plan.id === 'Unlimited') {
+                ctaText = t.chooseUnlimited;
             }
         }
 
@@ -460,7 +468,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
               <p className="max-w-2xl mx-auto text-lg md:text-xl opacity-90 mb-10 leading-relaxed">
                 {(lang === 'en' ? settings?.cta_description_en : settings?.cta_description) || t.ctaDesc}
               </p>
-              <Button asChild size="lg" variant="secondary" className="h-14 px-10 rounded-full text-lg shadow-xl transition-transform hover:scale-105 active:scale-95">
+              <Button asChild size="lg" variant="secondary" className="h-14 px-10 rounded-full text-lg font-bold shadow-xl transition-transform hover:scale-105 active:scale-95">
                 <Link href="/get-started">
                   {lang === 'bn' ? "এখনই শুরু করুন (সম্পূর্ণ ফ্রি)" : "Start Now (Completely Free)"}
                 </Link>
