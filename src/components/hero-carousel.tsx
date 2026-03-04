@@ -45,7 +45,7 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
       <CarouselContent>
         {slides.map((slide, index) => (
           <CarouselItem key={slide.id}>
-            <div className="relative aspect-[16/9] sm:aspect-video">
+            <div className="relative aspect-[16/9] sm:aspect-video rounded-lg overflow-hidden">
               {slide.image && (
                 <Image
                   src={slide.image.imageUrl}

@@ -373,7 +373,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
         return (
           <section key={section.id} className="space-y-16">
             <div className={cn(
-                "w-full rounded-lg overflow-hidden",
+                "w-full",
                 section.showSideCategories && "md:grid md:grid-cols-[280px_1fr] md:gap-4 md:bg-transparent"
             )}>
               {section.showSideCategories && (
