@@ -7,17 +7,28 @@ import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Loader2, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, X, AlertTriangle } from 'lucide-react';
 import { type SaasFeature } from '@/types';
 import IconPicker from '@/components/icon-picker';
 import DynamicIcon from '@/components/dynamic-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/stores/auth';
 import { useSaasStore } from '@/stores/useSaasStore';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
 const featureSchema = z.object({
   name: z.string().min(1, "Name required"),
@@ -34,7 +45,9 @@ export default function FeaturesAdminPage() {
   const { features, setFeatures } = useSaasStore();
   const [isLoading, setIsLoading] = useState(!features.length);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<SaasFeature | null>(null);
   const { toast } = useToast();
 
@@ -98,6 +111,31 @@ export default function FeaturesAdminPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!selectedFeature) return;
+    setIsActionLoading(true);
+    try {
+      const response = await fetch('/api/saas/features/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedFeature.id }),
+      });
+      if (response.ok) {
+        toast({ title: 'Feature Deleted' });
+        await fetchFeatures();
+        setIsDeleteAlertOpen(false);
+        setSelectedFeature(null);
+      } else {
+        const result = await response.json();
+        throw new Error(result.error || 'Failed to delete');
+      }
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: e.message });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   if (isLoading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
@@ -119,7 +157,10 @@ export default function FeaturesAdminPage() {
                     <div className="text-xs text-muted-foreground">{(f as any).name_en || 'No EN Name'}</div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => { setSelectedFeature(f); setIsFormOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                    <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => { setSelectedFeature(f); setIsFormOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => { setSelectedFeature(f); setIsDeleteAlertOpen(true); }}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -161,6 +202,32 @@ export default function FeaturesAdminPage() {
             </div>
         </div>
       )}
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Are you sure?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the feature <span className="font-bold text-foreground">"{selectedFeature?.name}"</span>. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              disabled={isActionLoading}
+              className={cn(buttonVariants({ variant: "destructive" }))}
+            >
+              {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Delete Feature
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
