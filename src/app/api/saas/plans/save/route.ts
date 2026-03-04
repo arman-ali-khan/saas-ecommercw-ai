@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
@@ -32,13 +31,15 @@ export async function POST(request: Request) {
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
     if (profile?.role !== 'saas_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    // Prepare payload
     const payload = {
         name: data.name,
+        name_en: data.name_en,
         price: data.price,
         period: data.period,
         description: data.description,
+        description_en: data.description_en,
         features: data.features,
+        features_en: data.features_en,
         product_limit: data.product_limit,
         customer_limit: data.customer_limit,
         order_limit: data.order_limit,
@@ -48,21 +49,10 @@ export async function POST(request: Request) {
 
     let result;
     if (id && id.trim() !== '') {
-      // UPDATE existing (Check if plan exists with this ID)
-      const { data: checkPlan } = await supabaseAdmin.from('plans').select('id').eq('id', id).maybeSingle();
-      
-      if (checkPlan) {
-          const { data: updated, error } = await supabaseAdmin.from('plans').update(payload).eq('id', id).select().single();
-          if (error) throw error;
-          result = updated;
-      } else {
-          // INSERT if ID provided but doesn't exist (edge case)
-          const { data: inserted, error } = await supabaseAdmin.from('plans').insert({ ...payload, id }).select().single();
-          if (error) throw error;
-          result = inserted;
-      }
+      const { data: updated, error } = await supabaseAdmin.from('plans').update(payload).eq('id', id).select().single();
+      if (error) throw error;
+      result = updated;
     } else {
-      // CREATE NEW
       const newId = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const { data: inserted, error } = await supabaseAdmin.from('plans').insert({ ...payload, id: newId }).select().single();
       if (error) throw error;

@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
@@ -32,10 +31,11 @@ export async function POST(request: Request) {
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
     if (profile?.role !== 'saas_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    // Map incoming data to DB column names
     const payload = {
         platform_name: data.platform_name || data.platformName,
+        platform_name_en: data.platform_name_en,
         platform_description: data.platform_description || data.platformDescription,
+        platform_description_en: data.platform_description_en,
         logo_url: data.logo_url,
         favicon_url: data.favicon_url,
         base_domain: data.base_domain,
@@ -48,23 +48,22 @@ export async function POST(request: Request) {
         mobile_banking_enabled: data.mobile_banking_enabled || data.mobileBankingEnabled,
         mobile_banking_number: data.mobile_banking_number || data.mobileBankingNumber,
         accepted_banking_methods: data.accepted_banking_methods || data.acceptedBankingMethods,
-        // New Landing Page Fields
         hero_title: data.hero_title,
+        hero_title_en: data.hero_title_en,
         hero_description: data.hero_description,
+        hero_description_en: data.hero_description_en,
         hero_image_url: data.hero_image_url,
         cta_title: data.cta_title,
+        cta_title_en: data.cta_title_en,
         cta_description: data.cta_description,
+        cta_description_en: data.cta_description_en,
         cta_bg_color: data.cta_bg_color,
         global_ai_api_key: data.global_ai_api_key,
-        // Advanced SEO Fields
         google_analytics_id: data.google_analytics_id || data.googleAnalyticsId,
         facebook_pixel_id: data.facebook_pixel_id || data.facebookPixelId,
         google_search_console_tag: data.google_search_console_tag || data.googleSearchConsoleTag,
         robots_txt_content: data.robots_txt_content || data.robotsTxtContent,
     };
-
-    // Remove undefined values
-    Object.keys(payload).forEach(key => (payload as any)[key] === undefined && delete (payload as any)[key]);
 
     const { error } = await supabaseAdmin
       .from('saas_settings')

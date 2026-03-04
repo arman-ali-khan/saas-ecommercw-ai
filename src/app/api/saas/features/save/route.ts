@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
@@ -32,13 +31,21 @@ export async function POST(request: Request) {
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
     if (profile?.role !== 'saas_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    const payload = {
+        name: data.name,
+        name_en: data.name_en,
+        description: data.description,
+        description_en: data.description_en,
+        icon: data.icon
+    };
+
     let result;
     if (id) {
-      const { data: updated, error } = await supabaseAdmin.from('saas_features').update(data).eq('id', id).select().single();
+      const { data: updated, error } = await supabaseAdmin.from('saas_features').update(payload).eq('id', id).select().single();
       if (error) throw error;
       result = updated;
     } else {
-      const { data: inserted, error } = await supabaseAdmin.from('saas_features').insert(data).select().single();
+      const { data: inserted, error } = await supabaseAdmin.from('saas_features').insert(payload).select().single();
       if (error) throw error;
       result = inserted;
     }
