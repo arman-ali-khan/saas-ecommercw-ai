@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -22,10 +23,13 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/stores/auth';
 import { useSaasStore } from '@/stores/useSaasStore';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const showcaseSchema = z.object({
     title: z.string().min(1, 'Title is required.'),
+    title_en: z.string().optional(),
     description: z.string().optional(),
+    description_en: z.string().optional(),
     icon: z.string().min(1, 'An icon is required.'),
     image_url: z.string().url().optional().or(z.literal('')),
     is_enabled: z.boolean().default(true),
@@ -45,7 +49,7 @@ export default function ShowcaseAdminPage() {
 
     const form = useForm<ShowcaseFormData>({
         resolver: zodResolver(showcaseSchema),
-        defaultValues: { title: '', description: '', icon: 'Sparkles', image_url: '', is_enabled: true },
+        defaultValues: { title: '', title_en: '', description: '', description_en: '', icon: 'Sparkles', image_url: '', is_enabled: true },
     });
 
     const fetchItems = useCallback(async (force = false) => {
@@ -70,7 +74,7 @@ export default function ShowcaseAdminPage() {
                 throw new Error(result.error || 'Failed to fetch showcase items');
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error fetching showcase items', description: error.message });
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
         } finally {
             setIsLoading(false);
         }
@@ -87,13 +91,15 @@ export default function ShowcaseAdminPage() {
             if (selectedItem) {
                 form.reset({ 
                     title: selectedItem.title, 
+                    title_en: (selectedItem as any).title_en || '',
                     description: selectedItem.description || '', 
+                    description_en: (selectedItem as any).description_en || '',
                     icon: selectedItem.icon || 'Sparkles',
                     image_url: selectedItem.image_url || '',
                     is_enabled: selectedItem.is_enabled,
                 });
             } else {
-                form.reset({ title: '', description: '', icon: 'Sparkles', image_url: '', is_enabled: true });
+                form.reset({ title: '', title_en: '', description: '', description_en: '', icon: 'Sparkles', image_url: '', is_enabled: true });
             }
         }
     }, [isFormOpen, selectedItem, form]);
@@ -267,8 +273,21 @@ export default function ShowcaseAdminPage() {
                         <div className="p-6 overflow-y-auto">
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                    <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., Secure Payments" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <Tabs defaultValue="bn">
+                                        <TabsList className="mb-4">
+                                            <TabsTrigger value="bn">BN</TabsTrigger>
+                                            <TabsTrigger value="en">EN</TabsTrigger>
+                                        </TabsList>
+                                        <TabsContent value="bn" className="space-y-4">
+                                            <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title (BN)</FormLabel><FormControl><Input placeholder="যেমন: সিকিউর পেমেন্ট" {...field} /></FormControl></FormItem>)} />
+                                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description (BN)</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
+                                        </TabsContent>
+                                        <TabsContent value="en" className="space-y-4">
+                                            <FormField control={form.control} name="title_en" render={({ field }) => (<FormItem><FormLabel>Title (EN)</FormLabel><FormControl><Input placeholder="e.g., Secure Payments" {...field} /></FormControl></FormItem>)} />
+                                            <FormField control={form.control} name="description_en" render={({ field }) => (<FormItem><FormLabel>Description (EN)</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>)} />
+                                        </TabsContent>
+                                    </Tabs>
+
                                     <FormField control={form.control} name="image_url" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Image (Optional)</FormLabel>

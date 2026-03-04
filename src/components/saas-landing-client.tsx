@@ -111,38 +111,30 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
   const t = landingTranslations[lang];
 
-  // --- VISITOR TRACKING & LANGUAGE DETECTION ---
   useEffect(() => {
     const trackVisitor = async () => {
         try {
             const response = await fetch('/api/saas/tracking');
             if (response.ok) {
                 const data = await response.json();
-                // Set language based on country code
                 if (data.countryCode && data.countryCode !== 'BD') {
                     setLang('en');
                 }
-                sessionStorage.setItem('visitor_tracked', 'true');
             }
         } catch (err) {
             console.error("Tracking error:", err);
         }
     };
-    
-    // Check cache first to avoid layout shift on navigation
-    const cachedCountry = sessionStorage.getItem('visitor_country');
-    if (cachedCountry) {
-        if (cachedCountry !== 'BD') setLang('en');
-    } else {
-        trackVisitor();
-    }
+    trackVisitor();
   }, []);
-  // ---------------------------------------------
 
   const translatedPlans = useMemo(() => {
     return plans.map(plan => {
         let ctaText = plan.cta;
         let priceText = plan.price;
+        const name = lang === 'en' ? (plan.name_en || plan.name) : plan.name;
+        const description = lang === 'en' ? (plan.description_en || plan.description) : plan.description;
+        const featuresList = lang === 'en' ? (plan.features_en || plan.features) : plan.features;
 
         if (lang === 'en') {
             if (plan.id === 'free') {
@@ -155,7 +147,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
             }
         }
 
-        return { ...plan, cta: ctaText, price: priceText };
+        return { ...plan, name, description, features: featuresList, cta: ctaText, price: priceText };
     });
   }, [plans, lang, t]);
 
@@ -194,11 +186,11 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
             </div>
             
             <h1 className="text-5xl md:text-7xl font-headline font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 mb-6">
-              {settings?.hero_title || t.heroTitle}
+              {(lang === 'en' ? settings?.hero_title_en : settings?.hero_title) || t.heroTitle}
             </h1>
             
             <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground leading-relaxed">
-              {settings?.hero_description || t.heroDesc}
+              {(lang === 'en' ? settings?.hero_description_en : settings?.hero_description) || t.heroDesc}
             </p>
             
             <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4 px-4 sm:px-0">
@@ -261,10 +253,14 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                       <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                         <DynamicIcon name={feature.icon} className="w-6 h-6 text-primary" />
                       </div>
-                      <CardTitle className="text-xl font-bold">{feature.name}</CardTitle>
+                      <CardTitle className="text-xl font-bold">
+                        {(lang === 'en' ? (feature as any).name_en : feature.name) || feature.name}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {(lang === 'en' ? (feature as any).description_en : feature.description) || feature.description}
+                      </p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -296,8 +292,12 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-12 text-white">
                                 <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                                    <h3 className="text-2xl md:text-4xl font-bold font-headline mb-3">{item.title}</h3>
-                                    <p className="text-white/80 text-sm md:text-lg max-w-3xl line-clamp-2 md:line-clamp-none leading-relaxed">{item.description}</p>
+                                    <h3 className="text-2xl md:text-4xl font-bold font-headline mb-3">
+                                        {(lang === 'en' ? (item as any).title_en : item.title) || item.title}
+                                    </h3>
+                                    <p className="text-white/80 text-sm md:text-lg max-w-3xl line-clamp-2 md:line-clamp-none leading-relaxed">
+                                        {(lang === 'en' ? (item as any).description_en : item.description) || item.description}
+                                    </p>
                                 </motion.div>
                                 </div>
                             </div>
@@ -312,27 +312,6 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                     </div>
                 </div>
             </section>
-        );
-      case 'stats':
-        return (
-          <section key="stats" className="grid grid-cols-2 md:grid-cols-4 gap-8 py-12 border-y border-border/50">
-            <div className="text-center">
-              <div className="text-4xl font-bold font-headline mb-2 text-foreground">1000+</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-widest">{t.statsStores}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold font-headline mb-2 text-foreground">99.9%</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-widest">{t.statsUptime}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold font-headline mb-2 text-foreground">5 Min</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-widest">{t.statsSetup}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold font-headline mb-2 text-foreground">24/7</div>
-              <div className="text-sm text-muted-foreground uppercase tracking-widest">{t.statsSupport}</div>
-            </div>
-          </section>
         );
       case 'pricing':
         return (
@@ -430,7 +409,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                                   <AvatarFallback className="text-2xl">{review.name.charAt(0)}</AvatarFallback>
                               </Avatar>
                               <blockquote className="text-2xl md:text-3xl font-light italic leading-relaxed text-foreground">
-                              "{review.review_text}"
+                              "{(lang === 'en' ? (review as any).review_text_en : review.review_text) || review.review_text}"
                               </blockquote>
                               <div className="mt-8">
                                 <p className="text-xl font-bold text-primary">{review.name}</p>
@@ -476,10 +455,10 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
             
             <div className="relative z-10">
               <h2 className="text-4xl md:text-6xl font-headline font-bold mb-6">
-                {settings?.cta_title || t.ctaTitle}
+                {(lang === 'en' ? settings?.cta_title_en : settings?.cta_title) || t.ctaTitle}
               </h2>
               <p className="max-w-2xl mx-auto text-lg md:text-xl opacity-90 mb-10 leading-relaxed">
-                {settings?.cta_description || t.ctaDesc}
+                {(lang === 'en' ? settings?.cta_description_en : settings?.cta_description) || t.ctaDesc}
               </p>
               <Button asChild size="lg" variant="secondary" className="h-14 px-10 rounded-full text-lg shadow-xl transition-transform hover:scale-105 active:scale-95">
                 <Link href="/get-started">

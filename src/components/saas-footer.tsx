@@ -81,8 +81,8 @@ export default function SaasFooter({ initialSettings, lang = 'bn' }: SaasFooterP
     description: string | null;
     logoUrl: string | null;
   } | null>(initialSettings ? {
-    name: initialSettings.platform_name,
-    description: initialSettings.platform_description,
+    name: (lang === 'en' ? initialSettings.platform_name_en : initialSettings.platform_name) || initialSettings.platform_name,
+    description: (lang === 'en' ? initialSettings.platform_description_en : initialSettings.platform_description) || initialSettings.platform_description,
     logoUrl: initialSettings.logo_url
   } : null);
   
@@ -94,7 +94,7 @@ export default function SaasFooter({ initialSettings, lang = 'bn' }: SaasFooterP
           setIsLoading(true);
           const { data } = await supabase
               .from('saas_settings')
-              .select('platform_name, platform_description, social_facebook, social_twitter, social_tiktok, logo_url')
+              .select('platform_name, platform_name_en, platform_description, platform_description_en, social_facebook, social_twitter, social_tiktok, logo_url')
               .eq('id', 1)
               .single();
           
@@ -105,16 +105,22 @@ export default function SaasFooter({ initialSettings, lang = 'bn' }: SaasFooterP
                 tiktok: data.social_tiktok || '',
               });
               setSiteInfo({
-                name: data.platform_name || 'eHut',
-                description: data.platform_description || 'Your partner in building digital stores.',
+                name: (lang === 'en' ? data.platform_name_en : data.platform_name) || data.platform_name || 'eHut',
+                description: (lang === 'en' ? data.platform_description_en : data.platform_description) || data.platform_description || 'Your partner in building digital stores.',
                 logoUrl: data.logo_url || null,
               });
           }
           setIsLoading(false);
       };
       fetchData();
+    } else {
+        setSiteInfo(prev => ({
+            ...prev!,
+            name: (lang === 'en' ? initialSettings.platform_name_en : initialSettings.platform_name) || initialSettings.platform_name,
+            description: (lang === 'en' ? initialSettings.platform_description_en : initialSettings.platform_description) || initialSettings.platform_description,
+        }));
     }
-  }, [initialSettings]);
+  }, [initialSettings, lang]);
   
   const FooterLogo = () => (
     isLoading || !siteInfo ? (

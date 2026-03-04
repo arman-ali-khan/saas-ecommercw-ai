@@ -48,12 +48,23 @@ export async function POST(request: Request) {
     }
 
     // 3. Perform Save Operation
+    const payload = {
+        title: data.title,
+        title_en: data.title_en,
+        description: data.description,
+        description_en: data.description_en,
+        icon: data.icon,
+        image_url: data.image_url,
+        order: data.order,
+        is_enabled: data.is_enabled,
+    };
+
     let result;
     if (id) {
       // Update existing item
       const { data: updated, error } = await supabaseAdmin
         .from('saas_showcase')
-        .update(data)
+        .update(payload)
         .eq('id', id)
         .select()
         .single();
@@ -64,7 +75,7 @@ export async function POST(request: Request) {
       // Create new item
       const { data: inserted, error } = await supabaseAdmin
         .from('saas_showcase')
-        .insert(data)
+        .insert(payload)
         .select()
         .single();
       

@@ -64,7 +64,10 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
   const [siteInfo, setSiteInfo] = useState<{
     name: string;
     logoUrl: string | null;
-  } | null>(initialSettings ? { name: initialSettings.platform_name, logoUrl: initialSettings.logo_url } : null);
+  } | null>(initialSettings ? { 
+    name: (lang === 'en' ? initialSettings.platform_name_en : initialSettings.platform_name) || initialSettings.platform_name, 
+    logoUrl: initialSettings.logo_url 
+  } : null);
   const [isLoading, setIsLoading] = useState(!initialSettings);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -88,23 +91,29 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
         setIsLoading(true);
         const { data } = await supabase
           .from('saas_settings')
-          .select('platform_name, logo_url')
+          .select('platform_name, platform_name_en, logo_url')
           .eq('id', 1)
           .single();
         
         if (data) {
           setSiteInfo({
-            name: data.platform_name || 'eHut',
+            name: (lang === 'en' ? data.platform_name_en : data.platform_name) || data.platform_name || 'eHut',
             logoUrl: data.logo_url || null,
           });
         }
         setIsLoading(false);
       };
       fetchInfo();
+    } else {
+        // If initial settings exist but language changed, update name
+        setSiteInfo(prev => ({
+            ...prev!,
+            name: (lang === 'en' ? initialSettings.platform_name_en : initialSettings.platform_name) || initialSettings.platform_name
+        }));
     }
     
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [initialSettings]);
+  }, [initialSettings, lang]);
 
   const HeaderLogo = () => (
     isLoading || !siteInfo ? (
@@ -186,7 +195,7 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
                   <SheetHeader className="mb-10 text-left">
                     <SheetTitle className="text-3xl font-headline font-bold flex items-center gap-3">
                        <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center font-bold text-primary-foreground">
-                          {siteInfo?.name.charAt(0)}
+                          {siteInfo?.name.charAt(0) || 'S'}
                        </div>
                        {siteInfo?.name}
                     </SheetTitle>
