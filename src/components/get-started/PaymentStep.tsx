@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { type Plan } from "@/types";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, ArrowLeft, CreditCard, Wallet, CheckCircle2, ShieldCheck, ShoppingBag } from "lucide-react";
+import { Loader2, ArrowLeft, CreditCard, Wallet, CheckCircle2, ShieldCheck, ShoppingBag, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -156,29 +157,29 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
 
     if (isLoading || !plan) {
         return (
-            <Card className="max-w-lg mx-auto">
+            <Card className="max-w-lg mx-auto border-2 rounded-[2.5rem]">
                 <CardHeader className="text-center">
                     <Skeleton className="h-8 w-3/4 mx-auto" />
                     <Skeleton className="h-4 w-full mx-auto mt-2" />
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-10 w-full" />
+                <CardContent className="space-y-6 p-8">
+                    <Skeleton className="h-24 w-full rounded-2xl" />
+                    <Skeleton className="h-48 w-full rounded-2xl" />
+                    <Skeleton className="h-14 w-full rounded-xl" />
                 </CardContent>
             </Card>
         )
     }
 
     return (
-        <Card className="max-w-lg mx-auto border-2 shadow-xl rounded-[2rem]">
-            <CardHeader className="text-center pt-8">
-                <CardTitle className="text-2xl font-black">পেমেন্ট পদ্ধতি বেছে নিন</CardTitle>
+        <Card className="max-w-lg mx-auto border-2 shadow-2xl rounded-[2.5rem] overflow-hidden">
+            <CardHeader className="text-center bg-muted/30 p-8 pb-10 border-b">
+                <CardTitle className="text-2xl font-black font-headline">পেমেন্ট পদ্ধতি বেছে নিন</CardTitle>
                 <CardDescription className="text-base mt-2">
-                    আপনি <span className="font-bold text-primary">{plan.name}</span> প্ল্যানটি বেছে নিয়েছেন (৳{priceText})।
+                    আপনি <span className="font-bold text-primary">{plan.name}</span> প্ল্যানটি বেছে নিয়েছেন। সাবস্ক্রিপশন মূল্য: <span className="font-black text-foreground">৳{priceText}</span>
                 </CardDescription>
             </CardHeader>
-            <CardContent className="p-8 pt-4">
+            <CardContent className="p-8">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                         <FormField
@@ -195,17 +196,17 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                             <Label 
                                                 htmlFor="sslcommerz" 
                                                 className={cn(
-                                                    "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
-                                                    field.value === 'sslcommerz' ? "border-primary bg-[#060b16] shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/30"
+                                                    "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all duration-300",
+                                                    field.value === 'sslcommerz' ? "border-primary bg-primary/[0.03] shadow-md ring-4 ring-primary/5" : "border-border/50 hover:border-primary/20 hover:bg-muted/30"
                                                 )}
                                             >
                                                 <RadioGroupItem value="sslcommerz" id="sslcommerz" className="sr-only" />
-                                                <div className="bg-primary rounded-xl px-3 py-2 text-primary-foreground font-black text-xs shadow-sm">
-                                                    SSLCommerz
+                                                <div className="bg-primary/10 p-3 rounded-xl">
+                                                    <ShoppingBag className="h-6 w-6 text-primary" />
                                                 </div>
                                                 <div className="flex-grow">
                                                     <p className="text-lg font-bold">অনলাইন পেমেন্ট</p>
-                                                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Cards, Mobile Banking, Net Banking</p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Cards, bKash, Nagad, Net Banking</p>
                                                 </div>
                                                 {field.value === 'sslcommerz' && <CheckCircle2 className="h-5 w-5 text-primary" />}
                                             </Label>
@@ -213,8 +214,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                             <Label 
                                                 htmlFor="credit_card" 
                                                 className={cn(
-                                                    "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
-                                                    field.value === 'credit_card' ? "border-blue-600 bg-[#060b16] shadow-md ring-2 ring-blue-600/20" : "border-muted hover:border-blue-600/30"
+                                                    "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all duration-300",
+                                                    field.value === 'credit_card' ? "border-blue-600 bg-blue-600/[0.03] shadow-md ring-4 ring-blue-600/5" : "border-border/50 hover:border-blue-600/20 hover:bg-muted/30"
                                                 )}
                                             >
                                                 <RadioGroupItem value="credit_card" id="credit_card" className="sr-only" />
@@ -231,8 +232,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                             <Label 
                                                 htmlFor="mobile_banking" 
                                                 className={cn(
-                                                    "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
-                                                    field.value === 'mobile_banking' ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/30"
+                                                    "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all duration-300",
+                                                    field.value === 'mobile_banking' ? "border-primary bg-primary/[0.03] shadow-md ring-4 ring-primary/5" : "border-border/50 hover:border-primary/20 hover:bg-muted/30"
                                                 )}
                                             >
                                                 <RadioGroupItem value="mobile_banking" id="mobile_banking" className="sr-only" />
@@ -240,8 +241,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                                     <Wallet className="h-6 w-6 text-primary" />
                                                 </div>
                                                 <div className="flex-grow">
-                                                    <p className="text-lg font-bold">অন্যান্য ম্যানুয়াল পেমেন্ট</p>
-                                                    <p className="text-xs text-muted-foreground">নগদ বা রকেটের মাধ্যমে (ম্যানুয়াল ভেরিফিকেশন)</p>
+                                                    <p className="text-lg font-bold">অন্যান্য পেমেন্ট</p>
+                                                    <p className="text-xs text-muted-foreground">ম্যানুয়াল ভেরিফিকেশন</p>
                                                 </div>
                                                 {field.value === 'mobile_banking' && <CheckCircle2 className="h-5 w-5 text-primary" />}
                                             </Label>
@@ -254,16 +255,16 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                         
                         {paymentMethod === 'mobile_banking' && (
                              <div className="space-y-4 pt-4 border-t animate-in slide-in-from-top-4 duration-500">
-                                <div className="text-sm text-muted-foreground bg-muted/50 p-5 rounded-2xl border-2 border-dashed">
-                                    <h3 className="font-bold mb-3 text-foreground flex items-center gap-2">
-                                        <InfoIcon className="h-4 w-4 text-primary" /> মোবাইল ব্যাংকিং নির্দেশনা
+                                <div className="text-sm text-muted-foreground bg-muted/50 p-6 rounded-[2rem] border-2 border-dashed">
+                                    <h3 className="font-bold mb-4 text-foreground flex items-center gap-2">
+                                        <Info className="h-4 w-4 text-primary" /> মোবাইল ব্যাংকিং নির্দেশনা
                                     </h3>
-                                    <ol className="list-decimal list-inside space-y-2 leading-relaxed">
-                                        <li>আপনার পছন্দের মোবাইল ব্যাংকিং অ্যাপ (নগদ, রকেট ইত্যাদি) খুলুন।</li>
-                                        <li>"সেন্ড মানি" অথবা "পেমেন্ট" অপশন নির্বাচন করুন।</li>
-                                        <li>মার্চেন্ট নম্বর হিসেবে <strong>{merchantNumber}</strong> দিন।</li>
-                                        <li>টাকার পরিমাণ হিসেবে <strong>৳{priceText}</strong> লিখুন।</li>
-                                        <li>পেমেন্ট সম্পন্ন করে নিচের বক্সে ট্রানজেকশন আইডি দিন।</li>
+                                    <ol className="space-y-3 leading-relaxed font-medium">
+                                        <li className="flex gap-2"><span>১.</span> আপনার মোবাইল ব্যাংকিং অ্যাপটি খুলুন।</li>
+                                        <li className="flex gap-2"><span>২.</span> "পেমেন্ট" অপশন নির্বাচন করুন।</li>
+                                        <li className="flex gap-2"><span>৩.</span> নম্বর হিসেবে <strong className="text-primary font-black">{merchantNumber}</strong> দিন।</li>
+                                        <li className="flex gap-2"><span>৪.</span> টাকার পরিমাণ হিসেবে <strong className="text-primary font-black">৳{priceText}</strong> লিখুন।</li>
+                                        <li className="flex gap-2"><span>৫.</span> পেমেন্ট শেষে ট্রানজেকশন আইডি নিচের বক্সে দিন।</li>
                                     </ol>
                                 </div>
                                 <FormField
@@ -271,9 +272,9 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                     name="transactionId"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="font-bold">ট্রানজেকশন আইডি (TxnID)</FormLabel>
+                                            <FormLabel className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground ml-1">Transaction ID</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="যেমন: 8N7F6G5H4J" {...field} className="h-12 rounded-xl border-2 focus:border-primary text-lg font-mono font-bold" />
+                                                <Input placeholder="e.g. 8N7F6G5H4J" {...field} className="h-14 rounded-xl border-2 focus:border-primary text-xl font-mono font-bold tracking-tight" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -282,12 +283,12 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                              </div>
                         )}
 
-                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                            <Button type="button" variant="outline" onClick={onBack} disabled={isNavigating} className="h-12 rounded-xl flex-1 font-bold">
-                                <ArrowLeft className="mr-2 h-4 w-4" /> আগের ধাপ
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <Button type="button" variant="outline" onClick={onBack} disabled={isNavigating} className="h-14 rounded-2xl flex-1 font-bold">
+                                <ArrowLeft className="mr-2 h-4 w-4" /> পিছে ফিরে যান
                             </Button>
-                            <Button type="submit" className="h-12 rounded-xl flex-1 font-bold shadow-lg shadow-primary/20" disabled={isNavigating}>
-                                {isNavigating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> প্রসেসিং...</> : 'পরবর্তী ধাপ'}
+                            <Button type="submit" className="h-14 rounded-2xl flex-1 font-bold shadow-xl shadow-primary/20" disabled={isNavigating}>
+                                {isNavigating ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> প্রসেসিং...</> : 'পরবর্তী ধাপ'}
                             </Button>
                         </div>
                     </form>
@@ -296,7 +297,3 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
         </Card>
     );
 }
-
-const InfoIcon = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-);
