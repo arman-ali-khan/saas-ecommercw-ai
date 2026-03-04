@@ -117,7 +117,7 @@ export default function VisitorLogsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4 px-1">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Advanced Visitor Logs</h1>
             <p className="text-muted-foreground text-sm mt-1">Real-time network, geolocation, and security analysis of platform visitors.</p>
@@ -140,7 +140,7 @@ export default function VisitorLogsPage() {
             </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="hidden md:block">
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow>
@@ -192,14 +192,51 @@ export default function VisitorLogsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredVisitors.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">No visitor logs found matching your query.</TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           </div>
+
+          {/* Mobile Card View */}
+          <div className="grid gap-4 md:hidden p-4">
+            {paginatedVisitors.map((visitor) => (
+                <Card key={visitor.id} className="border shadow-sm overflow-hidden" onClick={() => setSelectedVisitor(visitor)}>
+                    <CardHeader className="p-4 bg-muted/10 border-b">
+                        <div className="flex justify-between items-center">
+                            <code className="text-sm font-black text-primary">{visitor.ip}</code>
+                            <Badge variant="outline" className="text-[8px] h-4 font-black">
+                                {visitor.country_code}
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs font-bold">{visitor.city}, {visitor.country}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Network className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">{visitor.isp}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 pt-1">
+                            {visitor.is_proxy && <Badge variant="destructive" className="h-4 text-[8px] px-1 font-black">PROXY</Badge>}
+                            {visitor.is_hosting && <Badge variant="destructive" className="h-4 text-[8px] px-1 font-black">HOSTING</Badge>}
+                            {visitor.is_mobile && <Badge variant="secondary" className="h-4 text-[8px] px-1 font-black">MOBILE</Badge>}
+                        </div>
+                    </CardContent>
+                    <CardFooter className="p-4 pt-2 flex justify-between items-center bg-muted/5 border-t">
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-bold">
+                            <Clock className="h-3 w-3" />
+                            {format(new Date(visitor.created_at), 'MMM d, p')}
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-7 text-[10px] font-black uppercase text-primary">Details</Button>
+                    </CardFooter>
+                </Card>
+            ))}
+          </div>
+
+          {filteredVisitors.length === 0 && (
+            <div className="h-32 flex items-center justify-center text-muted-foreground italic">No visitor logs found matching your query.</div>
+          )}
         </CardContent>
         {totalPages > 1 && (
             <CardFooter className="justify-center border-t py-6 bg-muted/10">

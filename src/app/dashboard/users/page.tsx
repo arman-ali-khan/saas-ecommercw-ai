@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X, AlertTriangle, Eye, Search, Filter } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Globe, Loader2, ShieldOff, ShieldCheck, Plus, X, AlertTriangle, Eye, Search, Filter, Store, User as UserIcon } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -255,12 +255,12 @@ export default function UsersAdminPage() {
     
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between px-1">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Store Management</h1>
                     <p className="text-muted-foreground">View and manage all registered user stores.</p>
                 </div>
-                <Button onClick={() => setIsCreateOpen(true)}><Plus className="mr-2 h-4 w-4" /> Add New Store</Button>
+                <Button onClick={() => setIsCreateOpen(true)} className="rounded-full shadow-lg"><Plus className="mr-2 h-4 w-4" /> Add Store</Button>
             </div>
 
             <Card>
@@ -270,17 +270,17 @@ export default function UsersAdminPage() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input 
                                 placeholder="Search by name, site, or domain..." 
-                                className="pl-10"
+                                className="pl-10 h-11 rounded-xl"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-44">
+                            <SelectTrigger className="w-44 h-11 rounded-xl">
                                 <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
                                 <SelectValue placeholder="All Statuses" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="z-[110]">
                                 <SelectItem value="all">All Statuses</SelectItem>
                                 <SelectItem value="active">Active</SelectItem>
                                 <SelectItem value="pending_verification">Pending</SelectItem>
@@ -288,8 +288,8 @@ export default function UsersAdminPage() {
                             </SelectContent>
                         </Select>
                         {(searchQuery || statusFilter !== 'all') && (
-                            <Button variant="ghost" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
-                                <X className="h-4 w-4 mr-2" /> Clear
+                            <Button variant="ghost" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} className="h-11 w-11 rounded-xl">
+                                <X className="h-4 w-4" />
                             </Button>
                         )}
                     </div>
@@ -299,62 +299,64 @@ export default function UsersAdminPage() {
                         <>
                             <div className="hidden md:block">
                                 <Table>
-                                    <TableHeader>
+                                    <TableHeader className="bg-muted/30">
                                         <TableRow>
-                                            <TableHead>User</TableHead>
+                                            <TableHead className="pl-6">User</TableHead>
                                             <TableHead>Site</TableHead>
                                             <TableHead>Status</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
+                                            <TableHead className="text-right pr-6">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {paginatedUsers.map(userItem => (
-                                            <TableRow key={userItem.id}>
-                                                <TableCell className="font-medium">
+                                            <TableRow key={userItem.id} className="hover:bg-muted/10">
+                                                <TableCell className="font-medium pl-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <Avatar><AvatarFallback>{userItem.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar>
+                                                        <Avatar><AvatarFallback className="font-bold">{userItem.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar>
                                                         <div>
-                                                            <p className="font-semibold">{userItem.full_name}</p>
-                                                            <p className="text-sm text-muted-foreground">@{userItem.username}</p>
+                                                            <p className="font-bold text-sm">{userItem.full_name}</p>
+                                                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">@{userItem.username}</p>
                                                         </div>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <p className="font-semibold">{userItem.site_name}</p>
-                                                    <p className="text-sm text-muted-foreground">{userItem.domain}.{baseDomain}</p>
+                                                    <p className="font-bold text-sm">{userItem.site_name}</p>
+                                                    <p className="text-[10px] font-mono text-muted-foreground">{userItem.domain}.{baseDomain}</p>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant={getStatusBadgeVariant(userItem.subscription_status)}>{userItem.subscription_status || 'N/A'}</Badge>
+                                                    <Badge variant={getStatusBadgeVariant(userItem.subscription_status)} className="capitalize text-[10px] px-2 h-5">
+                                                        {userItem.subscription_status?.replace('_', ' ') || 'N/A'}
+                                                    </Badge>
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right pr-6">
                                                     <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="rounded-full"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-2xl border-2">
+                                                            <DropdownMenuLabel className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Management</DropdownMenuLabel>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem asChild>
                                                                 <Link href={`/dashboard/users/${userItem.id}`} className="cursor-pointer">
-                                                                    <Eye className="mr-2 h-4 w-4" /> View Profile
+                                                                    <Eye className="mr-2 h-4 w-4" /> View Full Activity
                                                                 </Link>
                                                             </DropdownMenuItem>
                                                              <DropdownMenuItem asChild>
                                                                 <a href={`//${userItem.domain}.${baseDomain}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-                                                                    <Globe className="mr-2 h-4 w-4" /> Visit Site
+                                                                    <Globe className="mr-2 h-4 w-4" /> Visit Public Site
                                                                 </a>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem asChild>
-                                                                <Link href={`/dashboard/users/${userItem.id}/edit`} className="cursor-pointer w-full"><Edit className="mr-2 h-4 w-4" /> Edit</Link>
+                                                                <Link href={`/dashboard/users/${userItem.id}/edit`} className="cursor-pointer w-full"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Link>
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem className="cursor-pointer" onClick={() => handleBlockClick(userItem)}>
-                                                                {userItem.subscription_status === 'active' ? (
-                                                                    <><ShieldOff className="mr-2 h-4 w-4" /> Block</>
+                                                                {userItem.subscription_status === 'inactive' ? (
+                                                                    <><ShieldCheck className="mr-2 h-4 w-4 text-green-500" /> Unblock Store</>
                                                                 ) : (
-                                                                    <><ShieldCheck className="mr-2 h-4 w-4" /> Unblock</>
+                                                                    <><ShieldOff className="mr-2 h-4 w-4 text-destructive" /> Block Store</>
                                                                 )}
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => handleDeleteClick(userItem)}>
-                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                            <DropdownMenuItem className="text-destructive cursor-pointer font-bold" onClick={() => handleDeleteClick(userItem)}>
+                                                                <Trash2 className="mr-2 h-4 w-4" /> Permanent Delete
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
@@ -367,29 +369,62 @@ export default function UsersAdminPage() {
                             
                             <div className="grid gap-4 md:hidden p-4">
                                 {paginatedUsers.map(userItem => (
-                                    <Card key={userItem.id}>
-                                        <CardHeader className="pb-2">
+                                    <Card key={userItem.id} className="border shadow-sm overflow-hidden group">
+                                        <CardHeader className="p-4 pb-2 bg-muted/10 border-b">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <Avatar className="h-10 w-10"><AvatarFallback>{userItem.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar>
-                                                    <div>
-                                                        <CardTitle className="text-lg">{userItem.full_name}</CardTitle>
-                                                        <CardDescription>@{userItem.username}</CardDescription>
+                                                    <Avatar className="h-10 w-10 ring-2 ring-background"><AvatarFallback className="font-bold">{userItem.full_name?.charAt(0) || 'U'}</AvatarFallback></Avatar>
+                                                    <div className="min-w-0">
+                                                        <CardTitle className="text-sm font-bold truncate">{userItem.full_name}</CardTitle>
+                                                        <CardDescription className="text-[10px] font-black uppercase tracking-widest">@{userItem.username}</CardDescription>
                                                     </div>
                                                 </div>
-                                                <Badge variant={getStatusBadgeVariant(userItem.subscription_status)}>{userItem.subscription_status || 'N/A'}</Badge>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant={getStatusBadgeVariant(userItem.subscription_status)} className="capitalize text-[8px] h-4">
+                                                        {userItem.subscription_status?.replace('_', ' ') || 'N/A'}
+                                                    </Badge>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full"><MoreHorizontal className="h-4 w-4" /></Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" className="w-56 rounded-xl border-2">
+                                                            <DropdownMenuItem asChild><Link href={`/dashboard/users/${userItem.id}`}><Eye className="mr-2 h-4 w-4" /> View Activity</Link></DropdownMenuItem>
+                                                            <DropdownMenuItem asChild><Link href={`/dashboard/users/${userItem.id}/edit`}><Edit className="mr-2 h-4 w-4" /> Edit Profile</Link></DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleBlockClick(userItem)}>
+                                                                {userItem.subscription_status === 'inactive' ? (
+                                                                    <><ShieldCheck className="mr-2 h-4 w-4 text-green-500" /> Unblock</>
+                                                                ) : (
+                                                                    <><ShieldOff className="mr-2 h-4 w-4 text-destructive" /> Block</>
+                                                                )}
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem className="text-destructive font-bold" onClick={() => handleDeleteClick(userItem)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
                                             </div>
                                         </CardHeader>
-                                        <CardContent className="pb-4">
-                                            <div className="space-y-1 text-sm">
-                                                <p><span className="font-medium text-foreground">Site:</span> {userItem.site_name}</p>
-                                                <p className="text-muted-foreground"><span className="font-medium text-foreground">Domain:</span> {userItem.domain}.{baseDomain}</p>
+                                        <CardContent className="p-4 space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <Store className="h-3 w-3 text-muted-foreground" />
+                                                <span className="text-xs font-bold text-foreground">{userItem.site_name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Globe className="h-3 w-3 text-muted-foreground" />
+                                                <span className="text-[10px] font-mono text-muted-foreground truncate">{userItem.domain}.{baseDomain}</span>
                                             </div>
                                         </CardContent>
-                                        <CardFooter className="flex justify-end gap-2 border-t pt-4">
-                                            <Button variant="outline" size="sm" asChild><Link href={`/dashboard/users/${userItem.id}`}>View</Link></Button>
-                                            <Button variant="outline" size="sm" asChild><Link href={`/dashboard/users/${userItem.id}/edit`}>Edit</Link></Button>
-                                            <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(userItem)}>Delete</Button>
+                                        <CardFooter className="p-4 pt-2 flex flex-wrap gap-2 border-t mt-2 bg-muted/5">
+                                            <Button variant="secondary" size="sm" asChild className="h-8 rounded-lg text-[10px] font-black uppercase flex-grow"><Link href={`/dashboard/users/${userItem.id}`}>View Profile</Link></Button>
+                                            <Button 
+                                                variant={userItem.subscription_status === 'inactive' ? "outline" : "ghost"} 
+                                                size="sm" 
+                                                onClick={() => handleBlockClick(userItem)}
+                                                className={cn("h-8 rounded-lg text-[10px] font-black uppercase flex-grow", userItem.subscription_status === 'inactive' ? "text-green-600 border-green-200 bg-green-50" : "text-destructive hover:bg-destructive/10")}
+                                            >
+                                                {userItem.subscription_status === 'inactive' ? 'Unblock' : 'Block'}
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive rounded-lg ml-auto" onClick={() => handleDeleteClick(userItem)}><Trash2 className="h-4 w-4" /></Button>
                                         </CardFooter>
                                     </Card>
                                 ))}
@@ -400,11 +435,11 @@ export default function UsersAdminPage() {
                     )}
                 </CardContent>
                  {filteredUsers.length > USERS_PER_PAGE && (
-                  <CardFooter className="justify-center border-t py-4">
-                      <div className="flex items-center gap-4 text-sm">
-                          <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1}>Previous</Button>
-                          <span className="text-muted-foreground">Page {currentPage} of {totalPages}</span>
-                          <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))} disabled={currentPage === totalPages}>Next</Button>
+                  <CardFooter className="justify-center border-t py-6 bg-muted/10">
+                      <div className="flex items-center gap-4 text-xs sm:text-sm">
+                          <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))} disabled={currentPage === 1} className="h-9 px-3 rounded-lg">Prev</Button>
+                          <span className="text-muted-foreground font-black uppercase tracking-tighter">Page {currentPage} of {totalPages}</span>
+                          <Button variant="outline" size="sm" onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))} disabled={currentPage === totalPages} className="h-9 px-3 rounded-lg">Next</Button>
                       </div>
                   </CardFooter>
                 )}
@@ -414,15 +449,21 @@ export default function UsersAdminPage() {
             {isDeleteOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isDeleting && setIsDeleteOpen(false)} />
-                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
-                        <div className="flex items-center gap-3 mb-4 text-destructive">
-                            <div className="p-2 bg-destructive/10 rounded-full"><AlertTriangle className="h-6 w-6" /></div>
-                            <h3 className="text-xl font-bold text-foreground">Delete User?</h3>
+                    <div className="relative w-full max-w-md bg-background rounded-2xl shadow-2xl border-2 p-8 animate-in zoom-in-95 duration-300">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className="p-4 bg-destructive/10 rounded-full text-destructive animate-bounce">
+                                <AlertTriangle className="h-10 w-10" />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black text-foreground">Delete Store?</h3>
+                                <p className="text-sm text-muted-foreground leading-relaxed">This will permanently delete <strong>"{selectedUser?.full_name}"</strong> and their store data. This action is irreversible.</p>
+                            </div>
                         </div>
-                        <div className="mb-8"><p className="text-muted-foreground leading-relaxed">This will permanently delete <strong>"{selectedUser?.full_name}"</strong> and their store data. This action cannot be undone.</p></div>
-                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
-                            <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>Cancel</Button>
-                            <Button variant="destructive" onClick={performDelete} disabled={isDeleting}>{isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete User</Button>
+                        <div className="flex flex-col gap-3 mt-8">
+                            <Button variant="destructive" onClick={performDelete} disabled={isDeleting} className="h-12 rounded-xl font-black text-lg shadow-lg shadow-destructive/20">
+                                {isDeleting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "DELETE PERMANENTLY"}
+                            </Button>
+                            <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting} className="h-12 rounded-xl font-bold">Cancel</Button>
                         </div>
                     </div>
                 </div>
@@ -432,25 +473,24 @@ export default function UsersAdminPage() {
             {isBlockOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isBlocking && setIsBlockOpen(false)} />
-                    <div className="relative w-full max-w-md bg-background rounded-xl shadow-2xl border p-6 animate-in zoom-in-95 duration-300">
-                        <div className="flex items-center gap-3 mb-4 text-primary">
-                            <div className="p-2 bg-primary/10 rounded-full">
-                                {selectedUser?.subscription_status === 'active' ? <ShieldOff className="h-6 w-6" /> : <ShieldCheck className="h-6 w-6" />}
+                    <div className="relative w-full max-w-md bg-background rounded-2xl shadow-2xl border-2 p-8 animate-in zoom-in-95 duration-300">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className={cn("p-4 rounded-full", selectedUser?.subscription_status === 'inactive' ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary")}>
+                                {selectedUser?.subscription_status === 'inactive' ? <ShieldCheck className="h-10 w-10" /> : <ShieldOff className="h-10 w-10" />}
                             </div>
-                            <h3 className="text-xl font-bold text-foreground">{selectedUser?.subscription_status === 'active' ? 'Block Store?' : 'Unblock Store?'}</h3>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black text-foreground">{selectedUser?.subscription_status === 'inactive' ? 'Unblock Store?' : 'Block Store?'}</h3>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                    Are you sure you want to {selectedUser?.subscription_status === 'inactive' ? 'unblock' : 'block'} access for <strong>"{selectedUser?.site_name}"</strong>? 
+                                    {selectedUser?.subscription_status === 'inactive' ? ' Access will be restored immediately.' : ' The admin will lose dashboard access immediately.'}
+                                </p>
+                            </div>
                         </div>
-                        <div className="mb-8">
-                            <p className="text-muted-foreground leading-relaxed">
-                                Are you sure you want to {selectedUser?.subscription_status === 'active' ? 'block' : 'unblock'} the store for <strong>"{selectedUser?.site_name}"</strong>? 
-                                {selectedUser?.subscription_status === 'active' ? ' The admin will no longer be able to access the dashboard.' : ' The admin will regain full access.'}
-                            </p>
-                        </div>
-                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
-                            <Button variant="outline" onClick={() => setIsBlockOpen(false)} disabled={isBlocking}>Cancel</Button>
-                            <Button onClick={performBlock} disabled={isBlocking}>
-                                {isBlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Confirm {selectedUser?.subscription_status === 'active' ? 'Block' : 'Unblock'}
+                        <div className="flex flex-col gap-3 mt-8">
+                            <Button onClick={performBlock} disabled={isBlocking} className="h-12 rounded-xl font-black text-lg shadow-lg shadow-primary/20">
+                                {isBlocking ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : (selectedUser?.subscription_status === 'inactive' ? "UNBLOCK STORE" : "BLOCK STORE")}
                             </Button>
+                            <Button variant="ghost" onClick={() => setIsBlockOpen(false)} disabled={isBlocking} className="h-12 rounded-xl font-bold">Cancel</Button>
                         </div>
                     </div>
                 </div>
@@ -458,34 +498,36 @@ export default function UsersAdminPage() {
 
             {/* Create Modal */}
             {isCreateOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSubmitting && setIsCreateOpen(false)} />
-                    <div className="relative w-full max-w-xl bg-background rounded-xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
-                        <div className="p-6 border-b flex justify-between items-center shrink-0">
-                            <h2 className="text-xl font-bold">Add New Store Owner</h2>
+                    <div className="relative w-full max-w-xl bg-background rounded-t-[2.5rem] sm:rounded-2xl shadow-2xl border-2 flex flex-col max-h-[90vh] animate-in slide-in-from-bottom sm:zoom-in-95 duration-300">
+                        <div className="p-6 border-b flex justify-between items-center bg-muted/30 shrink-0">
+                            <h2 className="text-xl font-black uppercase tracking-widest">Add New Store</h2>
                             <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}><X className="h-5 w-5" /></Button>
                         </div>
                         <div className="p-6 overflow-y-auto">
                             <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmitCreate)} className="space-y-4">
+                                <form onSubmit={form.handleSubmit(onSubmitCreate)} className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="fullName" render={({ field: nameField }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...nameField} /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={form.control} name="username" render={({ field: userField }) => (<FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="johndoe" {...userField} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="fullName" render={({ field: nameField }) => (<FormItem><FormLabel className="font-bold">Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...nameField} className="h-11 rounded-xl" /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="username" render={({ field: userField }) => (<FormItem><FormLabel className="font-bold">Username</FormLabel><FormControl><Input placeholder="johndoe" {...userField} className="h-11 rounded-xl" /></FormControl><FormMessage /></FormItem>)} />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="email" render={({ field: emailField }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...emailField} /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={form.control} name="password" render={({ field: passField }) => (<FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" placeholder="••••••" {...passField} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="email" render={({ field: emailField }) => (<FormItem><FormLabel className="font-bold">Email Address</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...emailField} className="h-11 rounded-xl" /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="password" render={({ field: passField }) => (<FormItem><FormLabel className="font-bold">Initial Password</FormLabel><FormControl><Input type="password" placeholder="••••••" {...passField} className="h-11 rounded-xl" /></FormControl><FormMessage /></FormItem>)} />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="siteName" render={({ field: siteField }) => (<FormItem><FormLabel>Store Name</FormLabel><FormControl><Input placeholder="My Nature Shop" {...siteField} /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={form.control} name="domain" render={({ field: domField }) => (<FormItem><FormLabel>Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="nature-shop" className="rounded-r-none" {...domField} /></FormControl><span className="bg-muted px-3 h-10 flex items-center border border-l-0 rounded-r-md text-xs text-muted-foreground">.{baseDomain}</span></div><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="siteName" render={({ field: siteField }) => (<FormItem><FormLabel className="font-bold">Public Store Name</FormLabel><FormControl><Input placeholder="Organic Farm" {...siteField} className="h-11 rounded-xl" /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="domain" render={({ field: domField }) => (<FormItem><FormLabel className="font-bold">Store Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="farm" className="rounded-r-none h-11 rounded-l-xl" {...domField} /></FormControl><span className="bg-muted px-3 h-11 flex items-center border border-l-0 rounded-r-xl text-[10px] font-black text-muted-foreground">.{baseDomain}</span></div><FormMessage /></FormItem>)} />
                                     </div>
                                 </form>
                             </Form>
                         </div>
-                        <div className="p-6 border-t flex justify-end gap-3 shrink-0">
-                            <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Cancel</Button>
-                            <Button onClick={form.handleSubmit(onSubmitCreate)} disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create Account</Button>
+                        <div className="p-6 border-t flex flex-col sm:flex-row justify-end gap-3 shrink-0 bg-muted/30 pb-10 sm:pb-6">
+                            <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting} className="h-12 rounded-xl px-8 font-bold order-2 sm:order-1">Cancel</Button>
+                            <Button onClick={form.handleSubmit(onSubmitCreate)} disabled={isSubmitting} className="h-12 rounded-xl px-10 font-black shadow-lg shadow-primary/20 order-1 sm:order-2">
+                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</> : "CREATE STORE"}
+                            </Button>
                         </div>
                     </div>
                 </div>

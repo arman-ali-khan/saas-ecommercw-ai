@@ -10,12 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, X, CheckCircle2, ShieldAlert, Globe, Filter, Save, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Search, X, CheckCircle2, ShieldAlert, Globe, Filter, Save, Plus, Trash2, Store, User, Calendar, MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/stores/auth';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 type DNSRecord = {
     type: 'A' | 'CNAME' | 'TXT' | string;
@@ -140,7 +141,7 @@ export default function CustomDomainsManagerPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-1">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Domain Management</h1>
           <p className="text-muted-foreground text-sm">Review custom domain requests and provide DNS setup info.</p>
@@ -181,7 +182,7 @@ export default function CustomDomainsManagerPage() {
             </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="hidden md:block">
             <Table>
                 <TableHeader className="bg-muted/30">
                 <TableRow>
@@ -211,12 +212,64 @@ export default function CustomDomainsManagerPage() {
                     </TableCell>
                     </TableRow>
                 ))}
-                {filteredRequests.length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">No requests found.</TableCell></TableRow>
-                )}
                 </TableBody>
             </Table>
           </div>
+
+          {/* Mobile Card View */}
+          <div className="grid gap-4 md:hidden p-4">
+            {filteredRequests.map(req => (
+                <Card key={req.id} className="border shadow-sm">
+                    <CardHeader className="p-4 pb-2">
+                        <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-lg">
+                                    <Globe className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="min-w-0">
+                                    <CardTitle className="text-sm font-black text-primary truncate max-w-[180px]">{req.custom_domain}</CardTitle>
+                                    <Badge variant={req.status === 'active' ? 'default' : (req.status === 'approved' ? 'secondary' : 'outline')} className="mt-1 h-4 text-[8px] uppercase font-black">
+                                        {req.status.replace('_', ' ')}
+                                    </Badge>
+                                </div>
+                            </div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="-mt-2 -mr-2"><MoreHorizontal className="h-4 w-4" /></Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleReview(req)}>
+                                        <Settings className="mr-2 h-4 w-4" /> Configure
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-2 pb-2">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Store className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs font-bold">{req.profiles?.site_name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <User className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-[10px] text-muted-foreground">{req.profiles?.full_name} (@{req.profiles?.domain})</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="p-4 pt-2 flex justify-between items-center border-t mt-2">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold">
+                            <Calendar className="h-3 w-3" /> {format(new Date(req.created_at), 'PP')}
+                        </div>
+                        <Button variant="secondary" size="sm" className="h-8 text-[10px] font-black uppercase px-4 rounded-full" onClick={() => handleReview(req)}>Configure</Button>
+                    </CardFooter>
+                </Card>
+            ))}
+          </div>
+
+          {filteredRequests.length === 0 && (
+            <div className="h-32 flex items-center justify-center text-muted-foreground italic">No requests found.</div>
+          )}
         </CardContent>
       </Card>
 
