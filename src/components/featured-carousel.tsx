@@ -50,7 +50,7 @@ export default function FeaturedCarousel({ products, section }: FeaturedCarousel
   return (
     <Carousel
       opts={{ align: 'start', slidesToScroll: 1, loop: true }}
-      className="w-full"
+      className="w-full relative group"
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
@@ -91,10 +91,8 @@ export default function FeaturedCarousel({ products, section }: FeaturedCarousel
           ))
         )}
       </CarouselContent>
-      <div className="hidden md:block">
-        <CarouselPrevious className="absolute -left-12 top-1/2 -translate-y-1/2" />
-        <CarouselNext className="absolute -right-12 top-1/2 -translate-y-1/2" />
-      </div>
+      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground opacity-0 group-hover:opacity-100 transition-all" />
+      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground opacity-0 group-hover:opacity-100 transition-all" />
     </Carousel>
   );
 }

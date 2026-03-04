@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRef } from 'react';
@@ -16,7 +17,7 @@ export default function CategoryCarousel({ categories }: { categories: Category[
   return (
     <Carousel
       opts={{ align: 'start', loop: true }}
-      className="w-full relative px-0"
+      className="w-full relative px-0 group"
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
@@ -49,8 +50,8 @@ export default function CategoryCarousel({ categories }: { categories: Category[
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
-      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all" />
+      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground opacity-0 group-hover:opacity-100 transition-all" />
+      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground opacity-0 group-hover:opacity-100 transition-all" />
     </Carousel>
   );
 }

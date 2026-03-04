@@ -50,7 +50,7 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
   return (
     <Carousel
       opts={{ align: 'start', slidesToScroll: 1, loop: true }}
-      className="w-full relative px-0"
+      className="w-full relative px-0 group"
       plugins={[plugin.current]}
       onMouseEnter={plugin.current.stop}
       onMouseLeave={plugin.current.reset}
@@ -93,8 +93,8 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
           ))
         )}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-transparent sm:bg-background/80 backdrop-blur-sm border-primary/20 sm:hover:bg-primary sm:hover:text-primary-foreground transition-all" />
-      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-transparent sm:bg-background/80 backdrop-blur-sm border-primary/20 sm:hover:bg-primary sm:hover:text-primary-foreground transition-all" />
+      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground opacity-0 group-hover:opacity-100 transition-all" />
+      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full z-20 bg-background/80 backdrop-blur-sm border-primary/20 hover:bg-primary hover:text-primary-foreground opacity-0 group-hover:opacity-100 transition-all" />
     </Carousel>
   );
 }
