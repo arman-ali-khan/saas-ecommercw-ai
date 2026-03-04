@@ -1,4 +1,3 @@
-
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +13,7 @@ import { type Plan } from "@/types";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, ArrowLeft, CreditCard, Wallet, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Loader2, ArrowLeft, CreditCard, Wallet, CheckCircle2, ShieldCheck, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -54,7 +53,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
     const form = useForm<z.infer<typeof paymentSchema>>({
         resolver: zodResolver(paymentSchema),
         defaultValues: {
-            paymentMethod: formData.paymentMethod || 'aamarpay',
+            paymentMethod: formData.paymentMethod || 'sslcommerz',
             transactionId: formData.transactionId || '',
         }
     });
@@ -109,13 +108,13 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
         }
     }
 
-    async function handleAamarPayCheckout() {
+    async function handleSSLCommerzCheckout() {
         if (!plan) return;
         setIsNavigating(true);
         
         try {
             const origin = typeof window !== 'undefined' ? window.location.origin : '';
-            const response = await fetch('/api/saas/payments/aamarpay/create', {
+            const response = await fetch('/api/saas/payments/sslcommerz/init', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -126,13 +125,13 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
             });
 
             const result = await response.json();
-            if (response.ok && result.paymentURL) {
-                window.location.href = result.paymentURL;
+            if (response.ok && result.url) {
+                window.location.replace(result.url);
             } else {
-                throw new Error(result.error || 'aamarPay initialization failed');
+                throw new Error(result.error || 'SSLCommerz initialization failed');
             }
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'aamarPay Error', description: e.message });
+            toast({ variant: 'destructive', title: 'SSLCommerz Error', description: e.message });
             setIsNavigating(false);
         }
     }
@@ -142,8 +141,8 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
             handleStripeCheckout();
             return;
         }
-        if (values.paymentMethod === 'aamarpay') {
-            handleAamarPayCheckout();
+        if (values.paymentMethod === 'sslcommerz') {
+            handleSSLCommerzCheckout();
             return;
         }
 
@@ -194,21 +193,21 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                                             className="grid grid-cols-1 gap-4"
                                         >
                                             <Label 
-                                                htmlFor="aamarpay" 
+                                                htmlFor="sslcommerz" 
                                                 className={cn(
                                                     "flex items-center gap-4 rounded-2xl border-2 p-5 cursor-pointer transition-all",
-                                                    field.value === 'aamarpay' ? "border-orange-500 bg-[#060b16] shadow-md ring-2 ring-orange-500/20" : "border-muted hover:border-orange-500/30"
+                                                    field.value === 'sslcommerz' ? "border-primary bg-[#060b16] shadow-md ring-2 ring-primary/20" : "border-muted hover:border-primary/30"
                                                 )}
                                             >
-                                                <RadioGroupItem value="aamarpay" id="aamarpay" className="sr-only" />
-                                                <div className="bg-orange-500 rounded-xl px-3 py-2 text-white font-black text-xs shadow-sm">
-                                                    aamarPay
+                                                <RadioGroupItem value="sslcommerz" id="sslcommerz" className="sr-only" />
+                                                <div className="bg-primary rounded-xl px-3 py-2 text-primary-foreground font-black text-xs shadow-sm">
+                                                    SSLCommerz
                                                 </div>
                                                 <div className="flex-grow">
                                                     <p className="text-lg font-bold">অনলাইন পেমেন্ট</p>
                                                     <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Cards, Mobile Banking, Net Banking</p>
                                                 </div>
-                                                {field.value === 'aamarpay' && <CheckCircle2 className="h-5 w-5 text-orange-500" />}
+                                                {field.value === 'sslcommerz' && <CheckCircle2 className="h-5 w-5 text-primary" />}
                                             </Label>
 
                                             <Label 

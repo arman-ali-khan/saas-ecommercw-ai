@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -53,13 +52,6 @@ import { Badge } from '@/components/ui/badge';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 
-const availableBankingMethods = [
-  { id: 'bkash', label: 'বিকাশ' },
-  { id: 'nagad', label: 'নগদ' },
-  { id: 'rocket', label: 'রকেট' },
-  { id: 'upay', label: 'উপায়' },
-];
-
 const settingsSchema = z.object({
   siteName: z.string().min(2, { message: 'সাইটের নাম কমপক্ষে ২ অক্ষরের হতে হবে।' }),
   siteDescription: z.string().min(10, { message: 'সাইটের বিবরণ কমপক্ষে ১০ অক্ষরের হতে হবে।' }),
@@ -91,7 +83,7 @@ const brandingSchema = z.object({
 });
 
 const subscriptionChangeSchema = z.object({
-  paymentMethod: z.enum(['credit_card', 'mobile_banking', 'aamarpay']).default('aamarpay'),
+  paymentMethod: z.enum(['credit_card', 'mobile_banking', 'sslcommerz']).default('sslcommerz'),
   transactionId: z.string().optional(),
 }).refine(data => {
     if (data.paymentMethod === 'mobile_banking') {
@@ -161,7 +153,7 @@ function SettingsContent() {
   
   const subscriptionChangeForm = useForm<SubscriptionChangeFormData>({
     resolver: zodResolver(subscriptionChangeSchema),
-    defaultValues: { paymentMethod: 'aamarpay', transactionId: '' },
+    defaultValues: { paymentMethod: 'sslcommerz', transactionId: '' },
   });
 
   const watchedSubMethod = subscriptionChangeForm.watch('paymentMethod');
@@ -229,7 +221,7 @@ function SettingsContent() {
   useEffect(() => {
     if (user) {
         const protocol = window.location.protocol;
-        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
         setSitemapUrl(`${protocol}//${user.domain}.${baseDomain}/sitemap.xml`);
         setRobotsUrl(`${protocol}//${user.domain}.${baseDomain}/robots.txt`);
         fetchSettingsData();
@@ -336,8 +328,8 @@ function SettingsContent() {
     if (!user || !planToChange) return;
     setIsSubmitting(true);
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    if (data.paymentMethod === 'credit_card' || data.paymentMethod === 'aamarpay') {
-        const endpoint = data.paymentMethod === 'credit_card' ? '/api/saas/payments/stripe/checkout' : '/api/saas/payments/aamarpay/create';
+    if (data.paymentMethod === 'credit_card' || data.paymentMethod === 'sslcommerz') {
+        const endpoint = data.paymentMethod === 'credit_card' ? '/api/saas/payments/stripe/checkout' : '/api/saas/payments/sslcommerz/init';
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
@@ -354,7 +346,7 @@ function SettingsContent() {
                 }),
             });
             const result = await response.json();
-            if (result.url || result.paymentURL) window.location.href = result.url || result.paymentURL;
+            if (result.url) window.location.href = result.url;
             else throw new Error(result.error || 'Checkout failed');
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
@@ -589,7 +581,7 @@ function SettingsContent() {
         </CardContent>
       </Card>
 
-      <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}><DialogContent className="max-w-2xl rounded-[2rem] p-0 overflow-hidden border-2 shadow-2xl"><DialogHeader className="bg-primary p-8 text-primary-foreground"><div className="flex items-center gap-3"><div className="p-3 bg-white/20 rounded-2xl"><CreditCard className="h-8 w-8" /></div><div><DialogTitle className="text-2xl font-black">Upgrade Plan</DialogTitle></div></div></DialogHeader><div className="p-8 space-y-8"><Form {...subscriptionChangeForm}><form onSubmit={subscriptionChangeForm.handleSubmit(onSubscriptionChangeSubmit)} className="space-y-8"><FormField control={subscriptionChangeForm.control} name="paymentMethod" render={({ field }) => ( <FormItem><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-1 sm:grid-cols-3 gap-4"><Label htmlFor="up-pm-aamarpay" className={cn("flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer", field.value === 'aamarpay' ? "border-orange-500 bg-orange-500/5" : "border-muted")}><RadioGroupItem value="aamarpay" id="up-pm-aamarpay" className="sr-only" /><ShoppingBag className="h-8 w-8 mb-3" /><p className="font-bold text-xs">Online</p></Label><Label htmlFor="up-pm-stripe" className={cn("flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer", field.value === 'credit_card' ? "border-primary bg-primary/5" : "border-muted")}><RadioGroupItem value="credit_card" id="up-pm-stripe" className="sr-only" /><CreditCard className="h-8 w-8 mb-3" /><p className="font-bold text-xs">Cards</p></Label><Label htmlFor="up-pm-mobile" className={cn("flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer", field.value === 'mobile_banking' ? "border-primary bg-primary/5" : "border-muted")}><RadioGroupItem value="mobile_banking" id="up-pm-mobile" className="sr-only" /><Wallet className="h-8 w-8 mb-3" /><p className="font-bold text-xs">Manual</p></Label></RadioGroup></FormControl></FormItem> )} />{watchedSubMethod === 'mobile_banking' && ( <div className="space-y-4 p-5 bg-muted/50 rounded-2xl border-2 border-dashed"><FormField control={subscriptionChangeForm.control} name="transactionId" render={({ field }) => ( <FormItem><FormLabel className="font-bold">Transaction ID</FormLabel><FormControl><Input placeholder="8N7F6..." {...field} /></FormControl><FormMessage /></FormItem> )} /></div> )}<DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full">{isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : 'Pay & Activate'}</Button></DialogFooter></form></Form></div></DialogContent></Dialog>
+      <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}><DialogContent className="max-w-2xl rounded-[2rem] p-0 overflow-hidden border-2 shadow-2xl"><DialogHeader className="bg-primary p-8 text-primary-foreground"><div className="flex items-center gap-3"><div className="p-3 bg-white/20 rounded-2xl"><CreditCard className="h-8 w-8" /></div><div><DialogTitle className="text-2xl font-black">Upgrade Plan</DialogTitle></div></div></DialogHeader><div className="p-8 space-y-8"><Form {...subscriptionChangeForm}><form onSubmit={subscriptionChangeForm.handleSubmit(onSubscriptionChangeSubmit)} className="space-y-8"><FormField control={subscriptionChangeForm.control} name="paymentMethod" render={({ field }) => ( <FormItem><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-1 sm:grid-cols-3 gap-4"><Label htmlFor="up-pm-sslcommerz" className={cn("flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer", field.value === 'sslcommerz' ? "border-primary bg-primary/5" : "border-muted")}><RadioGroupItem value="sslcommerz" id="up-pm-sslcommerz" className="sr-only" /><ShoppingBag className="h-8 w-8 mb-3" /><p className="font-bold text-xs text-center">SSLCommerz (Online)</p></Label><Label htmlFor="up-pm-stripe" className={cn("flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer", field.value === 'credit_card' ? "border-blue-600 bg-blue-600/5" : "border-muted")}><RadioGroupItem value="credit_card" id="up-pm-stripe" className="sr-only" /><CreditCard className="h-8 w-8 mb-3" /><p className="font-bold text-xs text-center">Stripe (Cards)</p></Label><Label htmlFor="up-pm-mobile" className={cn("flex flex-col items-center justify-center rounded-2xl border-2 p-4 cursor-pointer", field.value === 'mobile_banking' ? "border-primary bg-primary/5" : "border-muted")}><RadioGroupItem value="mobile_banking" id="up-pm-mobile" className="sr-only" /><Wallet className="h-8 w-8 mb-3" /><p className="font-bold text-xs text-center">Manual Payment</p></Label></RadioGroup></FormControl></FormItem> )} />{watchedSubMethod === 'mobile_banking' && ( <div className="space-y-4 p-5 bg-muted/50 rounded-2xl border-2 border-dashed"><FormField control={subscriptionChangeForm.control} name="transactionId" render={({ field }) => ( <FormItem><FormLabel className="font-bold">Transaction ID</FormLabel><FormControl><Input placeholder="8N7F6..." {...field} /></FormControl><FormMessage /></FormItem> )} /></div> )}<DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full">{isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : 'Pay & Activate'}</Button></DialogFooter></form></Form></div></DialogContent></Dialog>
     </div>
   );
 }
