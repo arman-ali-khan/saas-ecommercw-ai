@@ -20,6 +20,11 @@ interface SaasDashboardData {
     };
     recentPendingPayments: SubscriptionPaymentWithDetails[];
     unreadNotifications: any[];
+    weeklyTrends: {
+        revenue: { date: string; amount: number }[];
+        visitors: { date: string; count: number }[];
+        subscriptions: { date: string; count: number }[];
+    };
 }
 
 interface SaasState {
