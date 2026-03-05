@@ -26,6 +26,7 @@ import {
   HelpCircle,
   MessageSquare,
   ImageIcon,
+  Wand2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -138,6 +139,7 @@ export default function AdminSidebar() {
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: sidebarCounts.unviewedUncompleted },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
+    { href: `/admin/advance-pages`, label: 'Visual Builder', icon: Wand2 },
     { href: `/admin/support`, label: 'Support Forum', icon: HelpCircle },
   ];
 
