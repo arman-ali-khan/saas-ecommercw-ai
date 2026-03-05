@@ -11,10 +11,14 @@ import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 
 export const Topbar = ({ title, setTitle, slug, setSlug, isPublished, setIsPublished, pageId, siteId }: any) => {
-  const { actions, query, canUndo, canRedo } = useEditor((state, query) => ({
-    canUndo: query.history().canUndo(),
-    canRedo: query.history().canRedo(),
-  }));
+  const { actions, query, canUndo, canRedo } = useEditor((state, query) => {
+    // Defensive check for history API which might vary by initialization state or version
+    const historyApi = (query as any).history && typeof (query as any).history === 'function' ? (query as any).history() : null;
+    return {
+      canUndo: historyApi ? historyApi.canUndo() : false,
+      canRedo: historyApi ? historyApi.canRedo() : false,
+    };
+  });
   
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -76,8 +80,22 @@ export const Topbar = ({ title, setTitle, slug, setSlug, isPublished, setIsPubli
 
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1 border-r pr-4 mr-2">
-            <Button variant="ghost" size="icon" disabled={!canUndo} onClick={() => actions.history.undo()}><Undo className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" disabled={!canRedo} onClick={() => actions.history.redo()}><Redo className="h-4 w-4" /></Button>
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                disabled={!canUndo} 
+                onClick={() => (actions as any).history && (actions as any).history.undo()}
+            >
+                <Undo className="h-4 w-4" />
+            </Button>
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                disabled={!canRedo} 
+                onClick={() => (actions as any).history && (actions as any).history.redo()}
+            >
+                <Redo className="h-4 w-4" />
+            </Button>
         </div>
 
         <div className="flex items-center gap-3 bg-muted/30 px-4 py-1.5 rounded-full border">

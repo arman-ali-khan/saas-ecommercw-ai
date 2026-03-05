@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -82,8 +81,8 @@ export default function CustomerLoginPage() {
 
   useEffect(() => {
     const getSiteId = async () => {
-        if (username) {
-            const { data } = await supabase.from('profiles').select('id').eq('domain', username).single();
+        if (username && username !== 'www') {
+            const { data } = await supabase.from('profiles').select('id').eq('domain', username).maybeSingle();
             if (data) setSiteId(data.id);
         }
     }
