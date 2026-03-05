@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,7 +12,7 @@ const CustomTopLoader = () => {
         const hostname = window.location.hostname;
         const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
         const domain = hostname.split('.')[0];
-        const isStorePage = hostname !== rootDomain && hostname !== `www.${rootDomain}`;
+        const isStorePage = hostname !== rootDomain && hostname !== `www.${rootDomain}` && domain !== 'www';
 
         async function fetchLogo() {
             if (isStorePage && domain) {

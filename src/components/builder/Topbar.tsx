@@ -1,19 +1,19 @@
-
 'use client';
 import { useEditor } from '@craftjs/core';
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Loader2, ArrowLeft, Globe, Eye, Undo, Redo } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, Undo, Redo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import Link from 'next/link';
 
 export const Topbar = ({ title, setTitle, slug, setSlug, isPublished, setIsPublished, pageId, siteId }: any) => {
   const { actions, query, canUndo, canRedo } = useEditor((state, query) => ({
-    canUndo: query.history(state).canUndo(),
-    canRedo: query.history(state).canRedo(),
+    canUndo: query.history().canUndo(),
+    canRedo: query.history().canRedo(),
   }));
   
   const [isSaving, setIsSaving] = useState(false);
