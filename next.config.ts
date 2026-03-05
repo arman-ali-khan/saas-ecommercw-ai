@@ -29,6 +29,12 @@ const nextConfig: NextConfig = {
         hostname: 'res.cloudinary.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'woocommercecore.mystagingwebsite.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

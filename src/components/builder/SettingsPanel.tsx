@@ -1,11 +1,10 @@
-
 'use client';
 import { useEditor } from '@craftjs/core';
 import React from 'react';
 import { Settings, Info } from 'lucide-react';
 
 export const SettingsPanel = () => {
-  const { actions, selected, isEnabled } = useEditor((state) => {
+  const { selected, isEnabled } = useEditor((state, query) => {
     const [currentNodeId] = state.events.selected;
     let selected;
 
@@ -14,7 +13,7 @@ export const SettingsPanel = () => {
         id: currentNodeId,
         name: state.nodes[currentNodeId].data.name,
         settings: state.nodes[currentNodeId].related && state.nodes[currentNodeId].related.settings,
-        isDeletable: actions.history(state).canDeletable(currentNodeId)
+        isDeletable: query.node(currentNodeId).isDeletable()
       };
     }
 
@@ -36,12 +35,7 @@ export const SettingsPanel = () => {
       </div>
 
       <div className="pt-6 mt-6 border-t">
-        <button 
-            onClick={() => actions.deserialize(JSON.stringify({}))}
-            className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1"
-        >
-            Clear Canvas
-        </button>
+        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-2">Node ID: {selected.id}</p>
       </div>
     </div>
   ) : (
