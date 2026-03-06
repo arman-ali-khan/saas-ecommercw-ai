@@ -25,9 +25,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get base domain from env or default to dokanbd.shop
+  // Get base domains from env or defaults
   const primaryBaseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "dokanbd.shop";
-  const secondaryTenantBaseDomain = 'e-bd.shop'; // New addon domain for tenants
+  const secondaryTenantBaseDomain = 'e-bd.shop';
   
   // Normalize host: lowercase and remove port if present
   const host = hostname.split(':')[0].toLowerCase();
@@ -36,10 +36,12 @@ export async function middleware(request: NextRequest) {
   const isRootDomain = 
     host === primaryBaseDomain || 
     host === `www.${primaryBaseDomain}` || 
+    host === secondaryTenantBaseDomain || 
+    host === `www.${secondaryTenantBaseDomain}` || 
     host.endsWith('.vercel.app') || 
     host === 'localhost' || 
     host.includes('workstation') ||
-    host.includes('aic6jbiihrhmyrqafasatvzbwe'); // Cloud Workstation specific
+    host.includes('aic6jbiihrhmyrqafasatvzbwe'); 
   
   // If it's the root domain, allow standard routing
   if (isRootDomain) {
@@ -50,7 +52,7 @@ export async function middleware(request: NextRequest) {
 
   // 3. Resolve Store Username (Slug)
   
-  // Case A: Subdomain resolution (e.g., store1.dokanbd.shop or newstore.e-bd.shop)
+  // Case A: Subdomain resolution (e.g., store1.dokanbd.shop or dada.e-bd.shop)
   if (host.endsWith(`.${primaryBaseDomain}`)) {
     username = host.replace(`.${primaryBaseDomain}`, '');
   } else if (host.endsWith(`.${secondaryTenantBaseDomain}`)) {
@@ -82,11 +84,11 @@ export async function middleware(request: NextRequest) {
   }
   
   if (username) {
-    username = username.replace(/^www\./, '');
+    username = username.replace(/^www\./, '').trim();
   }
 
   // 4. Internal Rewrite to [username] path
-  if (username && username !== 'www') {
+  if (username && username !== 'www' && username !== '') {
     // Prevent infinite rewrite loops
     if (url.pathname.startsWith(`/${username}`)) {
         return NextResponse.next();
