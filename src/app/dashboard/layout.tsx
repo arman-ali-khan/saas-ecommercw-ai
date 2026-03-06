@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -149,49 +150,51 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+    <div className="fixed inset-0 bg-background overflow-hidden">
       <FCMTokenManager userId={user?.id} userType="admin" />
-      <SaasAdminSidebar />
-      <div className="flex flex-col max-h-screen overflow-hidden">
-        {/* Desktop Header Hidden, Handled by Sidebar. Mobile Header Simplified */}
-        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden sticky top-0 z-30">
-            <HeaderLogo />
-        </header>
-        
-        <main className="flex-1 p-4 lg:p-6 overflow-auto pb-24 md:pb-6">
-          {/* Sticky Notification Alerts */}
-          <div className="max-w-5xl mx-auto space-y-3 mb-6">
-            {unreadNotifications.map((notif) => (
-              <Alert key={notif.id} className="border-primary/30 bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500 shadow-sm">
-                <Bell className="h-4 w-4 text-primary" />
-                <AlertTitle className="font-bold flex items-center justify-between text-xs sm:text-sm">
-                    সিস্টেম আপডেট
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6 rounded-full hover:bg-primary/10 -mt-1 -mr-2" 
-                        onClick={() => dismissNotification(notif.id)}
-                    >
-                        <X className="h-3 w-3" />
-                    </Button>
-                </AlertTitle>
-                <AlertDescription className="mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <span className="text-foreground/90 font-medium">{notif.message}</span>
-                    <p className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: bn })}</p>
-                  </div>
-                  {notif.link && (
-                    <Button asChild variant="secondary" size="sm" className="h-8 shrink-0 rounded-full font-bold">
-                      <Link href={notif.link} onClick={() => dismissNotification(notif.id)}>অ্যাকশন নিন</Link>
-                    </Button>
-                  )}
-                </AlertDescription>
-              </Alert>
-            ))}
-          </div>
+      <div className="grid h-full w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+        <SaasAdminSidebar />
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Mobile Header */}
+          <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden shrink-0">
+              <HeaderLogo />
+          </header>
+          
+          <main className="flex-1 p-4 lg:p-6 overflow-y-auto pb-24 md:pb-6">
+            {/* Sticky Notification Alerts */}
+            <div className="max-w-5xl mx-auto space-y-3 mb-6">
+              {unreadNotifications.map((notif) => (
+                <Alert key={notif.id} className="border-primary/30 bg-primary/5 animate-in fade-in slide-in-from-top-4 duration-500 shadow-sm">
+                  <Bell className="h-4 w-4 text-primary" />
+                  <AlertTitle className="font-bold flex items-center justify-between text-xs sm:text-sm">
+                      সিস্টেম আপডেট
+                      <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 rounded-full hover:bg-primary/10 -mt-1 -mr-2" 
+                          onClick={() => dismissNotification(notif.id)}
+                      >
+                          <X className="h-3 w-3" />
+                      </Button>
+                  </AlertTitle>
+                  <AlertDescription className="mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <span className="text-foreground/90 font-medium">{notif.message}</span>
+                      <p className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: bn })}</p>
+                    </div>
+                    {notif.link && (
+                      <Button asChild variant="secondary" size="sm" className="h-8 shrink-0 rounded-full font-bold">
+                        <Link href={notif.link} onClick={() => dismissNotification(notif.id)}>অ্যাকশন নিন</Link>
+                      </Button>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              ))}
+            </div>
 
-          {children}
-        </main>
+            {children}
+          </main>
+        </div>
       </div>
       <SaasBottomNav />
     </div>
