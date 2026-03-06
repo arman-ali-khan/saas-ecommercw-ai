@@ -11,7 +11,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const [isStorePage, setIsStorePage] = useState(false);
 
   useEffect(() => {
-    // This check is reliable on the client side for determining if we're on a tenant subdomain or custom domain
+    // This check determines if we are on a tenant subdomain or custom domain
     const h = window.location.hostname.toLowerCase();
     const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
     const addonDomain = 'e-bd.shop';
@@ -25,6 +25,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
                    h.includes('cloudworkstations.dev') ||
                    h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
     
+    // If it's not root, it's either a subdomain store or a custom domain store
     setIsStorePage(!isRoot);
   }, []);
   
@@ -34,19 +35,19 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   }
 
   // If it's a store page, we defer to the layout in `src/app/[username]/layout.tsx`
+  // We return only children to avoid wrapping store pages in SaaS headers/footers
   if (isStorePage) {
     return <>{children}</>;
   }
   
-  // The root landing page has its own built-in header/footer inside the component
-  if (pathname === '/') {
-      return <>{children}</>
-  }
-  
-  // For auth pages on the main domain (/login, /register, /get-started)
+  // The root landing page and other platform pages get the default SaaS layout
+  const isHomePage = pathname === '/';
   const isAuthPage = ['/login', '/register', '/get-started'].some(p => pathname.startsWith(p));
 
-  // All other pages on the main domain get the default SaaS layout.
+  if (isHomePage) {
+      return <>{children}</>
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
         <SaasHeader />

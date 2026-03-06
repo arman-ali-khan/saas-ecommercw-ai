@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/request';
+import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -48,16 +48,16 @@ export async function middleware(request: NextRequest) {
   let username = '';
 
   // 3. Resolve Store Username from Subdomains
-  // Priority 1: e-bd.shop subdomains
+  // Check for e-bd.shop subdomains
   if (host.endsWith('.e-bd.shop')) {
     username = host.replace('.e-bd.shop', '').split('.').pop() || '';
   } 
-  // Priority 2: dokanbd.shop subdomains
+  // Check for dokanbd.shop subdomains
   else if (host.endsWith('.dokanbd.shop')) {
     username = host.replace('.dokanbd.shop', '').split('.').pop() || '';
   }
   
-  // Clean up 'www' if it was part of the subdomain (e.g., www.store.dokanbd.shop)
+  // Clean up 'www' if it was part of the subdomain (e.g., www.sam.dokanbd.shop)
   if (username === 'www') {
       username = '';
   }
@@ -72,7 +72,7 @@ export async function middleware(request: NextRequest) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             const hostWithoutWww = host.replace(/^www\./, '');
             
-            // Query for custom domain matches (Check both www and non-www versions)
+            // Query for custom domain matches
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('domain')
@@ -84,23 +84,18 @@ export async function middleware(request: NextRequest) {
             }
         }
     } catch (e) {
-        console.error('Middleware Custom Domain Resolution Error:', e);
+        console.error('Middleware Domain Resolution Error:', e);
     }
   }
   
-  // Clean up resolved username
-  if (username) {
-    username = username.trim();
-  }
-
   // 5. Internal Rewrite to Tenant Path [username]
-  if (username && username !== 'www' && username !== '') {
-    // Prevent recursive rewrites if the path already starts with the tenant slug
+  if (username && username !== '') {
+    // Prevent double rewrites
     if (url.pathname.startsWith(`/${username}/`) || url.pathname === `/${username}`) {
         return NextResponse.next();
     }
 
-    const targetPath = `/${username}${url.pathname}${url.search}`;
+    const targetPath = `/${username}${url.pathname}${url.search || ''}`;
     return NextResponse.rewrite(new URL(targetPath, request.url));
   }
 
