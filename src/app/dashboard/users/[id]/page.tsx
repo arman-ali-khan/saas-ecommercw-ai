@@ -113,7 +113,7 @@ export default function UserDetailPage() {
 
   const { profile, stats } = data;
   const plan = Array.isArray(profile.plans) ? profile.plans[0] : profile.plans;
-  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
+  const baseDomain = profile.base_domain || process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
 
   return (
     <div className="space-y-6 pb-10">

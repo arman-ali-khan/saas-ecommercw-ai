@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -68,7 +69,7 @@ export default function UsersAdminPage() {
     const [isBlocking, setIsBlocking] = useState(false);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [baseDomain, setBaseDomain] = useState('schoolbd.top');
+    const [baseDomain, setBaseDomain] = useState('dokanbd.shop');
     const [currentPage, setCurrentPage] = useState(1);
 
     // Search and Filter State
@@ -321,7 +322,7 @@ export default function UsersAdminPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <p className="font-bold text-sm">{userItem.site_name}</p>
-                                                    <p className="text-[10px] font-mono text-muted-foreground">{userItem.domain}.{baseDomain}</p>
+                                                    <p className="text-[10px] font-mono text-muted-foreground">{userItem.domain}.{userItem.base_domain || baseDomain}</p>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge variant={getStatusBadgeVariant(userItem.subscription_status)} className="capitalize text-[10px] px-2 h-5">
@@ -340,7 +341,7 @@ export default function UsersAdminPage() {
                                                                 </Link>
                                                             </DropdownMenuItem>
                                                              <DropdownMenuItem asChild>
-                                                                <a href={`//${userItem.domain}.${baseDomain}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                                                                <a href={`//${userItem.domain}.${userItem.base_domain || baseDomain}`} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
                                                                     <Globe className="mr-2 h-4 w-4" /> Visit Public Site
                                                                 </a>
                                                             </DropdownMenuItem>
@@ -411,7 +412,7 @@ export default function UsersAdminPage() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Globe className="h-3 w-3 text-muted-foreground" />
-                                                <span className="text-[10px] font-mono text-muted-foreground truncate">{userItem.domain}.{baseDomain}</span>
+                                                <span className="text-[10px] font-mono text-muted-foreground truncate">{userItem.domain}.{userItem.base_domain || baseDomain}</span>
                                             </div>
                                         </CardContent>
                                         <CardFooter className="p-4 pt-2 flex flex-wrap gap-2 border-t mt-2 bg-muted/5">
@@ -518,7 +519,7 @@ export default function UsersAdminPage() {
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="siteName" render={({ field: siteField }) => (<FormItem><FormLabel className="font-bold">Public Store Name</FormLabel><FormControl><Input placeholder="Organic Farm" {...siteField} className="h-11 rounded-xl" /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={form.control} name="domain" render={({ field: domField }) => (<FormItem><FormLabel className="font-bold">Store Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="farm" className="rounded-r-none h-11 rounded-l-xl" {...domField} /></FormControl><span className="bg-muted px-3 h-11 flex items-center border border-l-0 rounded-r-xl text-[10px] font-black text-muted-foreground">.{baseDomain}</span></div><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="domain" render={({ field: domField }) => (<FormItem><FormLabel className="font-bold">Store Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="farm" className="rounded-r-none h-11 rounded-l-xl" {...domField} /></FormControl><span className="bg-muted px-3 h-11 flex items-center border border-l-0 rounded-r-xl text-[10px] font-black text-muted-foreground">.{'e-bd.shop'}</span></div><FormMessage /></FormItem>)} />
                                     </div>
                                 </form>
                             </Form>

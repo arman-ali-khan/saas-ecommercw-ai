@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,16 +51,8 @@ export default function DomainStep({ formData, updateFormData, onNext, onBack, l
     const [status, setStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short' | 'reserved'>('empty');
     const [debounced, setDebounced] = useState(domain);
     const [isNavigating, setIsNavigating] = useState(false);
-    const [baseDomain, setBaseDomain] = useState('dokanbd.shop');
+    const baseDomain = 'e-bd.shop'; // Use the new domain for creation
     const t = translations[lang];
-
-    useEffect(() => {
-        const fetchBase = async () => {
-            const { data } = await supabase.from('saas_settings').select('base_domain').eq('id', 1).single();
-            if (data?.base_domain) setBaseDomain(data.base_domain);
-        };
-        fetchBase();
-    }, []);
 
     useEffect(() => {
         const h = setTimeout(() => setDebounced(domain), 500);

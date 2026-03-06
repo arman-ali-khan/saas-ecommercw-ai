@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
@@ -95,6 +96,7 @@ export async function POST(request: Request) {
         full_name: encrypt(fullName),
         email: encrypt(email),
         domain,
+        base_domain: 'e-bd.shop', // Set the new base domain for all new stores
         site_name: siteName,
         site_description: siteDescription,
         subscription_plan: finalPlanId,

@@ -12,7 +12,6 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
  
   // 1. Skip core system paths, API routes, and static assets
-  // Static assets are usually under /_next, /images, /favicon.ico etc.
   if (
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/_next') || 
@@ -27,17 +26,16 @@ export async function middleware(request: NextRequest) {
   }
 
   // Get base domain from env or default to dokanbd.shop
-  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "dokanbd.shop";
+  const primaryBaseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "dokanbd.shop";
+  const secondaryTenantBaseDomain = 'e-bd.shop'; // New addon domain for tenants
   
   // Normalize host: lowercase and remove port if present
   const host = hostname.split(':')[0].toLowerCase();
-  const hostWithoutWww = host.replace(/^www\./, '');
   
   // 2. Identify if this is the Root Platform (SaaS Landing Page)
-  // We check baseDomain and common dev/preview domains
   const isRootDomain = 
-    host === baseDomain || 
-    host === `www.${baseDomain}` || 
+    host === primaryBaseDomain || 
+    host === `www.${primaryBaseDomain}` || 
     host.endsWith('.vercel.app') || 
     host === 'localhost' || 
     host.includes('workstation') ||
@@ -52,10 +50,12 @@ export async function middleware(request: NextRequest) {
 
   // 3. Resolve Store Username (Slug)
   
-  // Case A: Subdomain resolution (e.g., store1.dokanbd.shop)
-  if (host.endsWith(`.${baseDomain}`)) {
-    username = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
-  } 
+  // Case A: Subdomain resolution (e.g., store1.dokanbd.shop or newstore.e-bd.shop)
+  if (host.endsWith(`.${primaryBaseDomain}`)) {
+    username = host.replace(`.${primaryBaseDomain}`, '');
+  } else if (host.endsWith(`.${secondaryTenantBaseDomain}`)) {
+    username = host.replace(`.${secondaryTenantBaseDomain}`, '');
+  }
   // Case B: Custom Domain resolution (e.g., arman.com)
   else {
     try {
@@ -64,9 +64,8 @@ export async function middleware(request: NextRequest) {
 
         if (supabaseUrl && supabaseKey) {
             const supabase = createClient(supabaseUrl, supabaseKey);
+            const hostWithoutWww = host.replace(/^www\./, '');
             
-            // Search database for a matching custom domain (with and without www)
-            // We optimize by querying only once
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('domain')
@@ -80,6 +79,10 @@ export async function middleware(request: NextRequest) {
     } catch (e) {
         console.error('Middleware resolution error:', e);
     }
+  }
+  
+  if (username) {
+    username = username.replace(/^www\./, '');
   }
 
   // 4. Internal Rewrite to [username] path
