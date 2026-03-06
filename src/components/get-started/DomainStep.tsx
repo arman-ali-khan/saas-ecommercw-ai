@@ -51,7 +51,7 @@ export default function DomainStep({ formData, updateFormData, onNext, onBack, l
     const [status, setStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short' | 'reserved'>('empty');
     const [debounced, setDebounced] = useState(domain);
     const [isNavigating, setIsNavigating] = useState(false);
-    const baseDomain = 'e-bd.shop'; // Use the new domain for creation
+    const baseDomain = 'e-bd.shop'; // New addon domain for subdomains
     const t = translations[lang];
 
     useEffect(() => {

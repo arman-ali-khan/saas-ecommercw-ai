@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Enhanced Middleware for Multi-tenant Store Resolution.
- * Supports Subdomains (store.dokanbd.shop) and Custom Domains (yourbrand.com).
+ * Supports Subdomains (store.dokanbd.shop and store.e-bd.shop) and Custom Domains.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -25,26 +25,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get base domains from env or defaults
-  const primaryBaseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "dokanbd.shop";
-  const secondaryTenantBaseDomain = 'e-bd.shop';
-  
   // Normalize host: lowercase and remove port if present
   const host = hostname.split(':')[0].toLowerCase();
   
-  // 2. Identify if this is the Root Platform (SaaS Landing Page)
-  const isRootDomain = 
-    host === primaryBaseDomain || 
-    host === `www.${primaryBaseDomain}` || 
-    host === secondaryTenantBaseDomain || 
-    host === `www.${secondaryTenantBaseDomain}` || 
-    host.endsWith('.vercel.app') || 
-    host === 'localhost' || 
-    host.includes('workstation') ||
-    host.includes('aic6jbiihrhmyrqafasatvzbwe'); 
+  // 2. Define Root Domains (Platform Landing Pages)
+  const rootDomains = [
+    'dokanbd.shop',
+    'www.dokanbd.shop',
+    'e-bd.shop',
+    'www.e-bd.shop',
+    'localhost',
+  ];
+
+  // Check if current host is a root platform domain
+  const isRoot = rootDomains.includes(host) || 
+                 host.endsWith('.vercel.app') || 
+                 host.includes('cloudworkstations.dev') ||
+                 host.includes('cluster-aic6jbiihrhmyrqafasatvzbwe'); 
   
-  // If it's the root domain, allow standard routing
-  if (isRootDomain) {
+  if (isRoot) {
       return NextResponse.next();
   }
 
@@ -52,13 +51,15 @@ export async function middleware(request: NextRequest) {
 
   // 3. Resolve Store Username (Slug)
   
-  // Case A: Subdomain resolution (e.g., store1.dokanbd.shop or dada.e-bd.shop)
-  if (host.endsWith(`.${primaryBaseDomain}`)) {
-    username = host.replace(`.${primaryBaseDomain}`, '');
-  } else if (host.endsWith(`.${secondaryTenantBaseDomain}`)) {
-    username = host.replace(`.${secondaryTenantBaseDomain}`, '');
+  // Case A: Subdomain resolution for primary domain
+  if (host.endsWith('.dokanbd.shop')) {
+    username = host.replace('.dokanbd.shop', '');
+  } 
+  // Case B: Subdomain resolution for new addon domain
+  else if (host.endsWith('.e-bd.shop')) {
+    username = host.replace('.e-bd.shop', '');
   }
-  // Case B: Custom Domain resolution (e.g., arman.com)
+  // Case C: Custom Domain resolution
   else {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -83,6 +84,7 @@ export async function middleware(request: NextRequest) {
     }
   }
   
+  // Clean up username (remove www. if present in subdomain)
   if (username) {
     username = username.replace(/^www\./, '').trim();
   }

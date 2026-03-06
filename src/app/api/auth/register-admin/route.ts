@@ -58,9 +58,6 @@ export async function POST(request: Request) {
 
     // 2. SSLCOMMERZ VERIFICATION
     if (paymentMethod === 'sslcommerz' && transactionId) {
-        // In SSLCommerz new registration flow, we trust the secure redirect from success route
-        // which appends the ssl_trx_id to the URL.
-        // For production, you'd call SSLCommerz validation API here with the val_id.
         finalSubscriptionStatus = 'active';
         finalPaymentStatus = 'completed';
     }
@@ -96,7 +93,7 @@ export async function POST(request: Request) {
         full_name: encrypt(fullName),
         email: encrypt(email),
         domain,
-        base_domain: 'e-bd.shop', // Set the new base domain for all new stores
+        base_domain: 'e-bd.shop', // Ensure new stores use the e-bd.shop domain
         site_name: siteName,
         site_description: siteDescription,
         subscription_plan: finalPlanId,
