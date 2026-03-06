@@ -28,39 +28,35 @@ export async function middleware(request: NextRequest) {
   // Normalize host: lowercase and remove port if present
   const host = hostname.split(':')[0].toLowerCase();
   
-  // 2. Define Root Domains (Platform Landing Pages)
-  const rootDomains = [
+  // 2. Identify Platform Root Domains
+  const platformRootDomains = [
     'dokanbd.shop',
-    'www.dokanbd.shop',
     'e-bd.shop',
-    'www.e-bd.shop',
     'localhost',
   ];
 
-  // Check if current host is a root platform domain
-  const isRoot = rootDomains.includes(host) || 
-                 host.endsWith('.vercel.app') || 
-                 host.includes('cloudworkstations.dev') ||
-                 host.includes('cluster-aic6jbiihrhmyrqafasatvzbwe'); 
+  // Check if current host is a root platform domain or development environment
+  const isPlatformRoot = platformRootDomains.some(d => host === d || host === `www.${d}`) ||
+                         host.endsWith('.vercel.app') || 
+                         host.includes('cloudworkstations.dev') ||
+                         host.includes('cluster-aic6jbiihrhmyrqafasatvzbwe'); 
   
-  if (isRoot) {
+  if (isPlatformRoot) {
       return NextResponse.next();
   }
 
   let username = '';
 
-  // 3. Resolve Store Username (Slug)
-  
-  // Case A: Subdomain resolution for primary domain
+  // 3. Resolve Store Username from Subdomains
   if (host.endsWith('.dokanbd.shop')) {
-    username = host.replace('.dokanbd.shop', '');
+    username = host.replace('.dokanbd.shop', '').replace(/^www\./, '');
   } 
-  // Case B: Subdomain resolution for new addon domain
   else if (host.endsWith('.e-bd.shop')) {
-    username = host.replace('.e-bd.shop', '');
+    username = host.replace('.e-bd.shop', '').replace(/^www\./, '');
   }
-  // Case C: Custom Domain resolution
-  else {
+  
+  // 4. Fallback: Resolve Store Username from Custom Domains via Database
+  if (!username) {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -69,10 +65,11 @@ export async function middleware(request: NextRequest) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             const hostWithoutWww = host.replace(/^www\./, '');
             
+            // Query for custom domain matches (Check both www and non-www versions)
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('domain')
-                .or(`custom_domain.eq."${host}",custom_domain.eq."${hostWithoutWww}"`)
+                .or(`custom_domain.eq.${host},custom_domain.eq.${hostWithoutWww}`)
                 .maybeSingle();
             
             if (profile?.domain) {
@@ -80,19 +77,19 @@ export async function middleware(request: NextRequest) {
             }
         }
     } catch (e) {
-        console.error('Middleware resolution error:', e);
+        console.error('Middleware Custom Domain Resolution Error:', e);
     }
   }
   
-  // Clean up username (remove www. if present in subdomain)
+  // Clean up resolved username
   if (username) {
-    username = username.replace(/^www\./, '').trim();
+    username = username.trim();
   }
 
-  // 4. Internal Rewrite to [username] path
+  // 5. Internal Rewrite to Tenant Path [username]
   if (username && username !== 'www' && username !== '') {
-    // Prevent infinite rewrite loops
-    if (url.pathname.startsWith(`/${username}`)) {
+    // Prevent recursive rewrites if the path already starts with the tenant slug
+    if (url.pathname.startsWith(`/${username}/`) || url.pathname === `/${username}`) {
         return NextResponse.next();
     }
 

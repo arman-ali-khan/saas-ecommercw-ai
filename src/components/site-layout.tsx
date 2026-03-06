@@ -11,15 +11,17 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const [isStorePage, setIsStorePage] = useState(false);
 
   useEffect(() => {
-    // This check is reliable on the client side for determining if we're on a subdomain
-    const h = window.location.hostname;
-    const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'schoolbd.top';
-    const storePage = h && h !== rootDomain && h !== `www.${rootDomain}`;
-    setIsStorePage(storePage);
+    // This check is reliable on the client side for determining if we're on a tenant subdomain or custom domain
+    const h = window.location.hostname.toLowerCase();
+    const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
+    const addonDomain = 'e-bd.shop';
+    
+    const isRoot = h === rootDomain || h === `www.${rootDomain}` || h === addonDomain || h === `www.${addonDomain}` || h === 'localhost' || h.includes('cloudworkstations.dev');
+    
+    setIsStorePage(!isRoot);
   }, []);
   
   // Admin and dashboard pages have their own specific layouts
-  // However, we might want to show a base layout for the login page if it's on the main domain
   if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
     return <>{children}</>;
   }
