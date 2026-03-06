@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/request';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -48,13 +48,20 @@ export async function middleware(request: NextRequest) {
   let username = '';
 
   // 3. Resolve Store Username from Subdomains
-  if (host.endsWith('.dokanbd.shop')) {
-    username = host.replace('.dokanbd.shop', '').replace(/^www\./, '');
+  // Priority 1: e-bd.shop subdomains
+  if (host.endsWith('.e-bd.shop')) {
+    username = host.replace('.e-bd.shop', '').split('.').pop() || '';
   } 
-  else if (host.endsWith('.e-bd.shop')) {
-    username = host.replace('.e-bd.shop', '').replace(/^www\./, '');
+  // Priority 2: dokanbd.shop subdomains
+  else if (host.endsWith('.dokanbd.shop')) {
+    username = host.replace('.dokanbd.shop', '').split('.').pop() || '';
   }
   
+  // Clean up 'www' if it was part of the subdomain (e.g., www.store.dokanbd.shop)
+  if (username === 'www') {
+      username = '';
+  }
+
   // 4. Fallback: Resolve Store Username from Custom Domains via Database
   if (!username) {
     try {

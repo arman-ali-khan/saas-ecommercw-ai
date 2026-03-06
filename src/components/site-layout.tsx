@@ -16,7 +16,14 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
     const addonDomain = 'e-bd.shop';
     
-    const isRoot = h === rootDomain || h === `www.${rootDomain}` || h === addonDomain || h === `www.${addonDomain}` || h === 'localhost' || h.includes('cloudworkstations.dev');
+    // Check if the current host is a root platform domain
+    const isRoot = h === rootDomain || 
+                   h === `www.${rootDomain}` || 
+                   h === addonDomain || 
+                   h === `www.${addonDomain}` || 
+                   h === 'localhost' || 
+                   h.includes('cloudworkstations.dev') ||
+                   h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
     
     setIsStorePage(!isRoot);
   }, []);
