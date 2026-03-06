@@ -42,16 +42,23 @@ FOR DELETE USING (auth.uid() = site_id);
 
 ### ২. কাস্টম ডোমেইন এবং প্রোফাইল আপডেট
 ```sql
+-- For custom domain management
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS custom_domain TEXT UNIQUE;
 ALTER TABLE custom_domain_requests ADD COLUMN IF NOT EXISTS dns_info JSONB;
+
+-- For addon subdomain management
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS base_domain TEXT;
+UPDATE public.profiles SET base_domain = 'dokanbd.shop' WHERE base_domain IS NULL AND role = 'admin';
 ```
 
 ## এনভায়রনমেন্ট ভেরিয়েবল (Vercel/Local)
-*   `NEXT_PUBLIC_BASE_DOMAIN`: `dokanbd.shop`
+*   `NEXT_PUBLIC_BASE_DOMAIN`: `dokanbd.shop` (The primary SaaS platform domain)
 *   `NEXT_PUBLIC_SUPABASE_URL`: আপনার সুপাবেস ইউআরএল।
 *   `NEXT_PUBLIC_SUPABASE_ANON_KEY`: সুপাবেস অ্যানন কি।
 *   `SUPABASE_SERVICE_ROLE_KEY`: সুপাবেস সার্ভিস রোল কি (সিক্রেট)।
 *   `OPENROUTER_API_KEY`: এআই ফিচারের জন্য এপিআই কি।
+
+**নোট:** নতুন স্টোরগুলো ডিফল্টভাবে `*.e-bd.shop` সাবডোমেইনে তৈরি হবে। পুরোনো স্টোরগুলো `*.dokanbd.shop`-এ কাজ করবে।
 
 ## শুরু করার নিয়ম
 অ্যাপটি লোকাল মেশিনে রান করতে:

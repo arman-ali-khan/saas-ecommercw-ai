@@ -5,14 +5,13 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Enhanced Middleware for Multi-tenant Store Resolution.
- * Supports Subdomains (store.dokanbd.shop) and Custom Domains (yourbrand.com).
+ * Supports Subdomains (store.dokanbd.shop and store.e-bd.shop) and Custom Domains.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
  
   // 1. Skip core system paths, API routes, and static assets
-  // Static assets are usually under /_next, /images, /favicon.ico etc.
   if (
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/_next') || 
@@ -26,25 +25,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get base domain from env or default to dokanbd.shop
-  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "dokanbd.shop";
-  
   // Normalize host: lowercase and remove port if present
   const host = hostname.split(':')[0].toLowerCase();
-  const hostWithoutWww = host.replace(/^www\./, '');
   
-  // 2. Identify if this is the Root Platform (SaaS Landing Page)
-  // We check baseDomain and common dev/preview domains
-  const isRootDomain = 
-    host === baseDomain || 
-    host === `www.${baseDomain}` || 
-    host.endsWith('.vercel.app') || 
-    host === 'localhost' || 
-    host.includes('workstation') ||
-    host.includes('aic6jbiihrhmyrqafasatvzbwe'); // Cloud Workstation specific
+  // 2. Define Root Domains (Platform Landing Pages)
+  const rootDomains = [
+    'dokanbd.shop',
+    'www.dokanbd.shop',
+    'e-bd.shop',
+    'www.e-bd.shop',
+    'localhost',
+  ];
+
+  // Check if current host is a root platform domain
+  const isRoot = rootDomains.includes(host) || 
+                 host.endsWith('.vercel.app') || 
+                 host.includes('cloudworkstations.dev') ||
+                 host.includes('cluster-aic6jbiihrhmyrqafasatvzbwe'); 
   
-  // If it's the root domain, allow standard routing
-  if (isRootDomain) {
+  if (isRoot) {
       return NextResponse.next();
   }
 
@@ -52,11 +51,15 @@ export async function middleware(request: NextRequest) {
 
   // 3. Resolve Store Username (Slug)
   
-  // Case A: Subdomain resolution (e.g., store1.dokanbd.shop)
-  if (host.endsWith(`.${baseDomain}`)) {
-    username = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
+  // Case A: Subdomain resolution for primary domain
+  if (host.endsWith('.dokanbd.shop')) {
+    username = host.replace('.dokanbd.shop', '');
   } 
-  // Case B: Custom Domain resolution (e.g., arman.com)
+  // Case B: Subdomain resolution for new addon domain
+  else if (host.endsWith('.e-bd.shop')) {
+    username = host.replace('.e-bd.shop', '');
+  }
+  // Case C: Custom Domain resolution
   else {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -64,9 +67,8 @@ export async function middleware(request: NextRequest) {
 
         if (supabaseUrl && supabaseKey) {
             const supabase = createClient(supabaseUrl, supabaseKey);
+            const hostWithoutWww = host.replace(/^www\./, '');
             
-            // Search database for a matching custom domain (with and without www)
-            // We optimize by querying only once
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('domain')
@@ -81,9 +83,14 @@ export async function middleware(request: NextRequest) {
         console.error('Middleware resolution error:', e);
     }
   }
+  
+  // Clean up username (remove www. if present in subdomain)
+  if (username) {
+    username = username.replace(/^www\./, '').trim();
+  }
 
   // 4. Internal Rewrite to [username] path
-  if (username && username !== 'www') {
+  if (username && username !== 'www' && username !== '') {
     // Prevent infinite rewrite loops
     if (url.pathname.startsWith(`/${username}`)) {
         return NextResponse.next();

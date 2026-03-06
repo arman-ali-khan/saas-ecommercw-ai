@@ -13,11 +13,6 @@ export const revalidate = 3600; // Cache sitemap for 1 hour
 export async function GET(request: Request, { params }: { params: Promise<{ username: string }> }) {
     const { username } = await params;
     
-    // Determine the base URL from request headers.
-    const host = request.headers.get('host') || `${username}.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop'}`;
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const baseUrl = `${protocol}://${host}`;
-
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -26,13 +21,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     // Get site id from domain
     const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('id, updated_at')
+        .select('id, updated_at, base_domain')
         .eq('domain', username)
         .single();
     
     if (!profile) {
         return new NextResponse('Store Not Found', { status: 404 });
     }
+
+    // Determine the base URL from profile or fallback
+    const host = request.headers.get('host') || `${username}.${profile.base_domain || process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop'}`;
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${host}`;
 
     const siteId = profile.id;
     const siteLastMod = new Date(profile.updated_at).toISOString();
