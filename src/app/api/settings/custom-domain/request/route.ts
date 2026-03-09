@@ -21,29 +21,36 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Custom domain is only available for Pro and Enterprise plans.' }, { status: 403 });
     }
 
-    // 2. Check if already exists
-    const { data: existing } = await supabaseAdmin.from('custom_domain_requests').select('id').eq('site_id', siteId).maybeSingle();
-    
-    if (existing) {
-        return NextResponse.json({ error: 'You already have an active request.' }, { status: 409 });
-    }
-
-    // 3. Insert Request
+    // 2. Upsert Request (Allow changing even if one exists)
     const { error } = await supabaseAdmin
       .from('custom_domain_requests')
-      .insert({ site_id: siteId, custom_domain: domain, status: 'pending' });
+      .upsert({ 
+          site_id: siteId, 
+          custom_domain: domain, 
+          status: 'pending',
+          updated_at: new Date().toISOString()
+      }, { onConflict: 'site_id' });
 
     if (error) {
         if (error.code === '23505') return NextResponse.json({ error: 'This domain is already requested by another store.' }, { status: 409 });
         throw error;
     }
 
+    // 3. Clear from profile if it was active (resetting to pending)
+    await supabaseAdmin.from('profiles').update({ custom_domain: null }).eq('id', siteId);
+
     // 4. Notify SaaS Admins
-    await supabaseAdmin.from('notifications').insert({
-        recipient_type: 'admin', // System admins track all notifications
-        message: `New custom domain request for: ${domain}`,
-        link: '/dashboard/custom-domains'
-    });
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${request.headers.get('host')}`;
+    await fetch(`${baseUrl}/api/notifications/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            recipientType: 'admin',
+            siteId: siteId,
+            message: `New/Updated custom domain request for: ${domain}`,
+            link: '/dashboard/custom-domains'
+        }),
+    }).catch(e => console.error("Domain notification failed", e));
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err: any) {

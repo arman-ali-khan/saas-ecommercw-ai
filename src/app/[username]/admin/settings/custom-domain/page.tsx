@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Globe, Loader2, CheckCircle2, AlertTriangle, ExternalLink, Copy, Check, Info } from 'lucide-react';
+import { Globe, Loader2, CheckCircle2, AlertTriangle, ExternalLink, Copy, Check, Info, RefreshCw, Trash2, X } from 'lucide-react';
 import type { CustomDomainRequest } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const domainSchema = z.object({
   domain: z.string().min(3, "Domain name is too short").regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "Please enter a valid domain (e.g., example.com)"),
@@ -34,7 +36,9 @@ export default function CustomDomainAdminPage() {
   const [request, setRequest] = useState<CustomDomainRequest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [copiedField, setCopiedField] = useState<number | null>(null);
+  const [showConfirmCancel, setShowConfirmCancel] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(domainSchema),
@@ -88,6 +92,31 @@ export default function CustomDomainAdminPage() {
     }
   };
 
+  const handleCancelDomain = async () => {
+    if (!user) return;
+    setIsCancelling(true);
+    try {
+        const response = await fetch('/api/settings/custom-domain/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ siteId: user.id }),
+        });
+        if (response.ok) {
+            toast({ title: 'Custom domain removed' });
+            setRequest(null);
+            setShowConfirmCancel(false);
+            form.reset({ domain: '' });
+        } else {
+            const res = await response.json();
+            throw new Error(res.error);
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Action failed', description: e.message });
+    } finally {
+        setIsCancelling(false);
+    }
+  }
+
   const copyToClipboard = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
     setCopiedField(index);
@@ -119,9 +148,16 @@ export default function CustomDomainAdminPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight">Custom Domain</h1>
-        <p className="text-muted-foreground">Connect your own domain name to your store for a professional look.</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-bold tracking-tight">Custom Domain</h1>
+            <p className="text-muted-foreground">Connect your own domain name to your store for a professional look.</p>
+        </div>
+        {request && (
+            <Button variant="outline" size="sm" className="rounded-full gap-2 font-bold" onClick={() => setShowConfirmCancel(true)}>
+                <RefreshCw className="h-4 w-4" /> Change Domain
+            </Button>
+        )}
       </div>
 
       {request ? (
@@ -173,7 +209,7 @@ export default function CustomDomainAdminPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {request.dns_info.map((record: any, idx: number) => (
+                        {(request.dns_info as any[]).map((record: any, idx: number) => (
                             <TableRow key={idx}>
                                 <TableCell className="font-black text-primary pl-6">{record.type}</TableCell>
                                 <TableCell>
@@ -218,9 +254,9 @@ export default function CustomDomainAdminPage() {
                 <Button variant="outline" className="flex-1 sm:flex-none rounded-xl h-11" asChild>
                     <a href={`//${request.custom_domain}`} target="_blank" className="gap-2 font-bold">Visit Site <ExternalLink className="h-3 w-3" /></a>
                 </Button>
-                {request.status === 'pending' && (
-                    <Button variant="ghost" className="text-destructive hover:bg-destructive/5 rounded-xl h-11">Cancel Request</Button>
-                )}
+                <Button variant="ghost" onClick={() => setShowConfirmCancel(true)} className="text-destructive hover:bg-destructive/5 rounded-xl h-11">
+                    Remove/Change
+                </Button>
              </div>
           </CardFooter>
         </Card>
@@ -274,6 +310,34 @@ export default function CustomDomainAdminPage() {
             </Form>
           </CardContent>
         </Card>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmCancel && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isCancelling && setShowConfirmCancel(false)} />
+            <div className="relative w-full max-w-md bg-background rounded-3xl shadow-2xl border-2 p-8 animate-in zoom-in-95 duration-300">
+                <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="p-4 bg-destructive/10 rounded-full text-destructive">
+                        <AlertTriangle className="h-10 w-10" />
+                    </div>
+                    <h3 className="text-2xl font-black">Change/Remove Domain?</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        If you remove or change the custom domain, your store will <span className="font-bold text-foreground">immediately stop working</span> on the current address (<span className="font-mono text-xs">{request?.custom_domain}</span>). 
+                        It will still be available on your subdomain.
+                    </p>
+                </div>
+                <div className="flex flex-col gap-3 mt-8">
+                    <Button variant="destructive" onClick={handleCancelDomain} disabled={isCancelling} className="h-12 rounded-xl font-bold shadow-lg shadow-destructive/20">
+                        {isCancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                        Confirm Removal
+                    </Button>
+                    <Button variant="ghost" onClick={() => setShowConfirmCancel(false)} disabled={isCancelling} className="h-12 rounded-xl">
+                        Cancel
+                    </Button>
+                </div>
+            </div>
+        </div>
       )}
     </div>
   );
