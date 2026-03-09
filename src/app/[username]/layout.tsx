@@ -172,7 +172,7 @@ export default async function UsernameLayout({
   }
 
   return (
-    LanguageProvider translations={translationsToUse}>
+    <LanguageProvider translations={translationsToUse}>
       <ThemeInitializer defaultMode={settingsData?.theme_mode || 'light'} />
       {themeStyles && <style dangerouslySetInnerHTML={{ __html: themeStyles }} />}
       <div className="flex flex-col min-h-screen">
