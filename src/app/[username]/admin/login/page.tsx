@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -43,8 +44,9 @@ export default function AdminLoginPage() {
   const [hostname, setHostname] = useState('');
 
   useEffect(() => {
-    // This runs on the client, so window is available.
-    setHostname(window.location.hostname);
+    if (typeof window !== 'undefined') {
+      setHostname(window.location.hostname);
+    }
   }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -52,21 +54,26 @@ export default function AdminLoginPage() {
     defaultValues: { email: '', password: '' },
   });
 
-  // If user is already logged in as the correct admin, redirect them away from login.
   useEffect(() => {
     if (!authLoading && loggedInUser?.domain === username) {
-      // Use a full page navigation to prevent a race condition with the layout's auth check.
-      window.location.pathname = '/admin';
+      // Use local redirect to /admin within the store context
+      router.replace('/admin');
     } else if (!authLoading && loggedInUser && loggedInUser.domain !== username) {
-      // If logged in as a *different* admin, redirect to their correct dashboard
+      // Logged in as a different store's admin
       toast({
         title: 'Redirecting...',
-        description: `You are logged in as an admin for '${loggedInUser.domain}'. Redirecting you now.`,
+        description: `You are an admin for '${loggedInUser.domain}'. Switching to your store.`,
       });
       if (hostname) {
-        // Correctly parse root domain, even on localhost with a port.
-        const rootDomain = hostname.split('.').slice(-2).join('.').split(':')[0];
-        window.location.href = `${window.location.protocol}//${loggedInUser.domain}.${rootDomain}/admin`;
+        // Detect if we are on a platform root or a custom domain
+        const isLocalhost = hostname.includes('localhost');
+        const rootDomain = hostname.split('.').slice(-2).join('.');
+        
+        if (isLocalhost) {
+            router.push(`/admin/login`); // Fallback or handle localhost subdomains if needed
+        } else {
+            window.location.href = `${window.location.protocol}//${loggedInUser.domain}.${rootDomain}/admin`;
+        }
       }
     }
   }, [authLoading, loggedInUser, username, router, toast, hostname]);
@@ -87,13 +94,12 @@ export default function AdminLoginPage() {
     
     toast({
       title: 'Login Successful!',
-      description: 'Redirecting to your dashboard...',
+      description: 'Opening your dashboard...',
     });
-    // Use a full page reload to ensure auth state is fully propagated.
-    window.location.pathname = '/admin';
+    // Ensure state is fully sync'd
+    window.location.href = '/admin';
   }
 
-  // Show a full-screen loader while we are verifying if a user is already logged in or needs redirecting.
   if (authLoading || loggedInUser) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">

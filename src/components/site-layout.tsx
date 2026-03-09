@@ -26,33 +26,30 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
                    h.includes('cloudworkstations.dev') ||
                    h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
     
-    // Check if we are inside a reserved system path
-    const isSystemPath = pathname.startsWith('/admin') || pathname.startsWith('/dashboard') || pathname.startsWith('/profile');
+    // Check if we are inside a reserved system path ON THE ROOT DOMAIN
+    const isSystemPath = pathname.startsWith('/dashboard');
 
-    // It's a store page if it's not the root platform domain, OR if it's a subdomain of the root
-    // But we also need to exclude cases where the path is /admin or /dashboard on a subdomain
-    const isActuallySubdomain = (h.endsWith(`.${rootDomain}`) || h.endsWith(`.${addonDomain}`)) && !isRoot;
-    const isCustomDomain = !isRoot && !isActuallySubdomain;
-
-    setIsStorePage((isActuallySubdomain || isCustomDomain) && !isSystemPath);
+    // It's a store page if it's not the platform root
+    // Even if the path is /admin or /profile, if we are on a custom domain, it's a store context
+    setIsStorePage(!isRoot && !isSystemPath);
   }, [pathname]);
   
-  // Admin and dashboard pages have their own specific layouts
-  if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
+  // Platform dashboard has its own specific layout
+  if (pathname.startsWith('/dashboard')) {
     return <>{children}</>;
   }
 
-  // If it's a store page, we return only children to avoid wrapping in SaaS layouts
-  // The /[username]/layout.tsx will handle the store-specific design
+  // If it's a store page (subdomain or custom domain), we return only children
+  // The /[username]/layout.tsx will handle the store-specific design and its nested /admin layout
   if (isStorePage) {
     return <>{children}</>;
   }
   
-  // The root landing page and other platform pages get the default SaaS layout
+  // The root landing page and platform pages (like /about, /login) get the SaaS layout
   const isHomePage = pathname === '/';
   const isAuthPage = ['/login', '/register', '/get-started'].some(p => pathname.startsWith(p));
 
-  // If it's the home page, it already handles its own layout (SaasLandingClient)
+  // Homepage handles its own layout via SaasLandingClient
   if (isHomePage) {
       return <>{children}</>
   }

@@ -115,6 +115,7 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (!loading && pathname !== `/admin/login`) {
+        // If not logged in, or the logged-in user doesn't own this store slug
         if (!user || user.domain !== username) {
             router.replace(`/admin/login`);
         }
@@ -136,6 +137,7 @@ export default function AdminLayout({
     );
   }
 
+  // Ensure double check for correct store access
   if (!user || user.domain !== username) {
       return null;
   }

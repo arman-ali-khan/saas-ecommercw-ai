@@ -5,13 +5,13 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Vercel-Optimized Middleware for Multi-tenant Store Resolution.
- * Priority: 1. System Paths, 2. Root Domains, 3. Custom Domain Lookup, 4. Subdomain parsing.
+ * Priority: 1. System Paths, 2. Custom Domain Lookup, 3. Subdomain parsing.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
  
-  // 1. Skip core system paths, API routes, and static assets
+  // 1. Skip core internal paths, API, and static assets
   if (
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/_next') || 
@@ -21,14 +21,12 @@ export async function middleware(request: NextRequest) {
     url.pathname === '/favicon.ico' ||
     url.pathname === '/robots.txt' ||
     url.pathname === '/sitemap.xml' ||
-    url.pathname.startsWith('/admin') || // Block root admin paths
-    url.pathname.startsWith('/dashboard') ||
-    url.pathname.startsWith('/profile')
+    url.pathname.startsWith('/dashboard') // SaaS Dashboard is protected
   ) {
     return NextResponse.next();
   }
 
-  // Normalize host: lowercase and remove port if present
+  // Normalize host: lowercase and remove port
   const host = hostname.split(':')[0].toLowerCase();
   const hostWithoutWww = host.replace(/^www\./, '');
   
@@ -44,7 +42,7 @@ export async function middleware(request: NextRequest) {
                          host.includes('cloudworkstations.dev') ||
                          host.includes('cluster-aic6jbiihrhmyrqafasatvzbwe'); 
   
-  // If it's the root platform domain but not a subdomain, let it pass
+  // If it's exactly the root platform domain (not a subdomain), don't rewrite
   if (isPlatformRoot && !platformRootDomains.some(d => hostWithoutWww.endsWith(`.${d}`))) {
       return NextResponse.next();
   }
@@ -52,8 +50,10 @@ export async function middleware(request: NextRequest) {
   let username = '';
 
   // 3. PRIORITIZE: Check Database for Custom Domain
-  // If the host is NOT one of the base platform domains directly, it might be a custom domain
-  if (!platformRootDomains.some(d => hostWithoutWww.endsWith(d))) {
+  // If the host is NOT one of our base platform domains directly, it might be a custom domain
+  const isBaseSubdomain = platformRootDomains.some(d => hostWithoutWww.endsWith(`.${d}`));
+  
+  if (!isBaseSubdomain && !isPlatformRoot) {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -61,7 +61,7 @@ export async function middleware(request: NextRequest) {
         if (supabaseUrl && supabaseKey) {
             const supabase = createClient(supabaseUrl, supabaseKey);
             
-            // Check for exact match or non-www match
+            // Check for exact match in custom_domain column
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('domain')
@@ -77,20 +77,21 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 4. FALLBACK: Resolve from Subdomains if not resolved via Custom Domain
+  // 4. FALLBACK: Resolve from Subdomains
   if (!username) {
     const rootMatch = platformRootDomains.find(d => host.endsWith(`.${d}`));
     if (rootMatch) {
         const subdomainPart = host.replace(`.${rootMatch}`, '').replace(/^www\./, '');
+        // Exclude reserved system subdomains
         if (subdomainPart && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomainPart)) {
             username = subdomainPart;
         }
     }
   }
   
-  // 5. Final check and Internal Rewrite
+  // 5. Perform Internal Rewrite to the dynamic [username] folder
   if (username) {
-      // Prevent recursion if already rewritten
+      // Prevent recursion
       if (url.pathname.startsWith(`/${username}/`) || url.pathname === `/${username}`) {
           return NextResponse.next();
       }
