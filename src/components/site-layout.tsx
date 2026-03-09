@@ -16,18 +16,23 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
     const addonDomain = 'e-bd.shop';
     
-    // Check if the current host is a root platform domain
+    // Check if the current host is a root platform domain or development environment
     const isRoot = h === rootDomain || 
                    h === `www.${rootDomain}` || 
                    h === addonDomain || 
                    h === `www.${addonDomain}` || 
                    h === 'localhost' || 
+                   h.endsWith('.vercel.app') ||
                    h.includes('cloudworkstations.dev') ||
                    h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
     
-    // If it's not root, it's either a subdomain store or a custom domain store
-    setIsStorePage(!isRoot);
-  }, []);
+    // Check if we are inside a reserved system path but on a potential store domain
+    // This handles cases where the middleware rewrote the path but we're in admin/dashboard
+    const isSystemPath = pathname.startsWith('/admin') || pathname.startsWith('/dashboard');
+
+    // If it's not a root platform domain, it's a store page
+    setIsStorePage(!isRoot && !isSystemPath);
+  }, [pathname]);
   
   // Admin and dashboard pages have their own specific layouts
   if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {

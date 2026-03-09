@@ -4,8 +4,8 @@ import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Enhanced Middleware for Multi-tenant Store Resolution.
- * Supports Subdomains (store.dokanbd.shop and store.e-bd.shop) and Custom Domains.
+ * Vercel-Optimized Middleware for Multi-tenant Store Resolution.
+ * Supports Subdomains (*.dokanbd.shop and *.e-bd.shop) and Custom Domains.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -50,16 +50,18 @@ export async function middleware(request: NextRequest) {
   // 3. Resolve Store Username from Subdomains
   // Check for e-bd.shop subdomains
   if (host.endsWith('.e-bd.shop')) {
-    username = host.replace('.e-bd.shop', '').split('.').pop() || '';
+    const parts = host.replace('.e-bd.shop', '').split('.');
+    username = parts[parts.length - 1];
   } 
   // Check for dokanbd.shop subdomains
   else if (host.endsWith('.dokanbd.shop')) {
-    username = host.replace('.dokanbd.shop', '').split('.').pop() || '';
+    const parts = host.replace('.dokanbd.shop', '').split('.');
+    username = parts[parts.length - 1];
   }
   
-  // Clean up 'www' if it was part of the subdomain (e.g., www.sam.dokanbd.shop)
-  if (username === 'www') {
-      username = '';
+  // Clean up if username is platform-reserved
+  if (['www', 'api', 'admin', 'dashboard', 'profile'].includes(username)) {
+      return NextResponse.next();
   }
 
   // 4. Fallback: Resolve Store Username from Custom Domains via Database
@@ -89,8 +91,8 @@ export async function middleware(request: NextRequest) {
   }
   
   // 5. Internal Rewrite to Tenant Path [username]
-  if (username && username !== '') {
-    // Prevent double rewrites
+  if (username) {
+    // Prevent double rewrites or recursion
     if (url.pathname.startsWith(`/${username}/`) || url.pathname === `/${username}`) {
         return NextResponse.next();
     }
