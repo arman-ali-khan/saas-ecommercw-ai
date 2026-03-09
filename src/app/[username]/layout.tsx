@@ -37,7 +37,7 @@ export async function generateMetadata({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, site_name, site_description, store_settings(seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url)')
+    .select('id, site_name, site_description, store_settings(seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url, pwa_logo_url, logo_image_url)')
     .eq('domain', username)
     .maybeSingle();
 
@@ -50,19 +50,29 @@ export async function generateMetadata({
   const title = settings.seo_title || `${profile.site_name || 'Store'} - Pure Natural Products`;
   const description = settings.seo_description || profile.site_description || 'আপনার বাড়িতে বাংলাদেশের প্রাকৃতিক সম্পদের খাঁটি স্বাদ নিয়ে আসা।';
   const faviconUrl = settings.favicon_url;
+  const pwaIconUrl = settings.pwa_logo_url || settings.logo_image_url;
   const socialShareImageUrl = settings.social_share_image_url;
 
   return {
     title,
     description,
     keywords: settings.seo_keywords || '',
-    icons: faviconUrl ? [{ rel: 'icon', url: faviconUrl }] : null,
+    icons: {
+      icon: faviconUrl || '/favicon.ico',
+      shortcut: faviconUrl || '/favicon.ico',
+      apple: pwaIconUrl || faviconUrl || '/logo.png',
+    },
     manifest: '/manifest.json',
     openGraph: {
         title: title,
         description: description,
         images: socialShareImageUrl ? [{ url: socialShareImageUrl, width: 1200, height: 630, alt: title }] : undefined,
-    }
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: title,
+    },
   };
 }
 
@@ -162,7 +172,7 @@ export default async function UsernameLayout({
   }
 
   return (
-    <LanguageProvider translations={translationsToUse}>
+    LanguageProvider translations={translationsToUse}>
       <ThemeInitializer defaultMode={settingsData?.theme_mode || 'light'} />
       {themeStyles && <style dangerouslySetInnerHTML={{ __html: themeStyles }} />}
       <div className="flex flex-col min-h-screen">

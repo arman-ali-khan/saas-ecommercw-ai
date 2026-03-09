@@ -1,7 +1,9 @@
 
 import { NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request, { params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
@@ -21,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, site_name, site_description')
+    .select('id, site_name, site_description, updated_at')
     .eq('domain', username)
     .single();
 
@@ -35,14 +37,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     .eq('site_id', profile.id)
     .single();
     
-  const logoUrl = settings?.pwa_logo_url || settings?.logo_image_url;
-  const faviconUrl = settings?.favicon_url;
-  const themeColor = settings?.theme_primary ? `hsl(${settings.theme_primary})` : '#ffffff';
+  // Use updated_at timestamp to bypass cache if icons change
+  const cacheBuster = profile.updated_at ? new Date(profile.updated_at).getTime() : Date.now();
+  const rawIconUrl = settings?.pwa_logo_url || settings?.logo_image_url || settings?.favicon_url;
   
-  // Browsers require a high-res icon for PWA installation (ideally PNG).
-  // We prioritize the new PWA Logo, then fallback to Store Logo, then placeholder.
   const siteInitial = (profile.site_name || 'S').charAt(0).toUpperCase();
-  const pwaIconUrl = logoUrl || `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`;
+  const pwaIconUrl = rawIconUrl 
+    ? `${rawIconUrl}${rawIconUrl.includes('?') ? '&' : '?'}v=${cacheBuster}`
+    : `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`;
+
+  const themeColor = settings?.theme_primary ? `hsl(${settings.theme_primary})` : '#ffffff';
 
   const manifest = {
     name: profile.site_name || 'Store',
