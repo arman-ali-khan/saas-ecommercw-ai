@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Vercel-Optimized Middleware for Multi-tenant Store Resolution.
- * Prioritizes Custom Domain Database Lookup then Subdomain resolution.
+ * Priority: 1. System Paths, 2. Root Domains, 3. Custom Domain Lookup, 4. Subdomain parsing.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -20,7 +20,10 @@ export async function middleware(request: NextRequest) {
     url.pathname.includes('.') ||
     url.pathname === '/favicon.ico' ||
     url.pathname === '/robots.txt' ||
-    url.pathname === '/sitemap.xml'
+    url.pathname === '/sitemap.xml' ||
+    url.pathname.startsWith('/admin') || // Block root admin paths
+    url.pathname.startsWith('/dashboard') ||
+    url.pathname.startsWith('/profile')
   ) {
     return NextResponse.next();
   }
@@ -36,66 +39,66 @@ export async function middleware(request: NextRequest) {
     'localhost',
   ];
 
-  // Check if current host is a root platform domain or development environment
   const isPlatformRoot = platformRootDomains.some(d => host === d || host === `www.${d}`) ||
                          host.endsWith('.vercel.app') || 
                          host.includes('cloudworkstations.dev') ||
                          host.includes('cluster-aic6jbiihrhmyrqafasatvzbwe'); 
   
-  if (isPlatformRoot) {
+  // If it's the root platform domain but not a subdomain, let it pass
+  if (isPlatformRoot && !platformRootDomains.some(d => hostWithoutWww.endsWith(`.${d}`))) {
       return NextResponse.next();
   }
 
   let username = '';
 
   // 3. PRIORITIZE: Check Database for Custom Domain
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // If the host is NOT one of the base platform domains directly, it might be a custom domain
+  if (!platformRootDomains.some(d => hostWithoutWww.endsWith(d))) {
+    try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        
-        // Query for custom domain matches in profiles table
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('domain')
-            .or(`custom_domain.eq.${host},custom_domain.eq.${hostWithoutWww}`)
-            .maybeSingle();
-        
-        if (profile?.domain) {
-            username = profile.domain;
+        if (supabaseUrl && supabaseKey) {
+            const supabase = createClient(supabaseUrl, supabaseKey);
+            
+            // Check for exact match or non-www match
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('domain')
+                .or(`custom_domain.eq.${host},custom_domain.eq.${hostWithoutWww}`)
+                .maybeSingle();
+            
+            if (profile?.domain) {
+                username = profile.domain;
+            }
         }
+    } catch (e) {
+        console.error('Middleware Custom Domain Resolution Error:', e);
     }
-  } catch (e) {
-    console.error('Middleware Custom Domain Resolution Error:', e);
   }
 
-  // 4. FALLBACK: Resolve from Subdomains if not found via Custom Domain
+  // 4. FALLBACK: Resolve from Subdomains if not resolved via Custom Domain
   if (!username) {
-    if (host.endsWith('.e-bd.shop')) {
-      const parts = host.replace('.e-bd.shop', '').split('.');
-      username = parts[parts.length - 1];
-    } 
-    else if (host.endsWith('.dokanbd.shop')) {
-      const parts = host.replace('.dokanbd.shop', '').split('.');
-      username = parts[parts.length - 1];
+    const rootMatch = platformRootDomains.find(d => host.endsWith(`.${d}`));
+    if (rootMatch) {
+        const subdomainPart = host.replace(`.${rootMatch}`, '').replace(/^www\./, '');
+        if (subdomainPart && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomainPart)) {
+            username = subdomainPart;
+        }
     }
   }
   
-  // Clean up if username is platform-reserved or empty
-  if (!username || ['www', 'api', 'admin', 'dashboard', 'profile'].includes(username)) {
-      return NextResponse.next();
+  // 5. Final check and Internal Rewrite
+  if (username) {
+      // Prevent recursion if already rewritten
+      if (url.pathname.startsWith(`/${username}/`) || url.pathname === `/${username}`) {
+          return NextResponse.next();
+      }
+      const targetPath = `/${username}${url.pathname}${url.search || ''}`;
+      return NextResponse.rewrite(new URL(targetPath, request.url));
   }
 
-  // 5. Internal Rewrite to Tenant Path [username]
-  // Prevent double rewrites or recursion
-  if (url.pathname.startsWith(`/${username}/`) || url.pathname === `/${username}`) {
-      return NextResponse.next();
-  }
-
-  const targetPath = `/${username}${url.pathname}${url.search || ''}`;
-  return NextResponse.rewrite(new URL(targetPath, request.url));
+  return NextResponse.next();
 }
 
 export const config = {

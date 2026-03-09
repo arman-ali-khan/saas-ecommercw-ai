@@ -16,7 +16,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
     const addonDomain = 'e-bd.shop';
     
-    // Check if the current host is a root platform domain or development environment
+    // Check if the current host is a root platform domain
     const isRoot = h === rootDomain || 
                    h === `www.${rootDomain}` || 
                    h === addonDomain || 
@@ -27,10 +27,14 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
                    h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
     
     // Check if we are inside a reserved system path
-    const isSystemPath = pathname.startsWith('/admin') || pathname.startsWith('/dashboard');
+    const isSystemPath = pathname.startsWith('/admin') || pathname.startsWith('/dashboard') || pathname.startsWith('/profile');
 
-    // If it's not a root platform domain, it's definitely a store page (subdomain or custom)
-    setIsStorePage(!isRoot && !isSystemPath);
+    // It's a store page if it's not the root platform domain, OR if it's a subdomain of the root
+    // But we also need to exclude cases where the path is /admin or /dashboard on a subdomain
+    const isActuallySubdomain = (h.endsWith(`.${rootDomain}`) || h.endsWith(`.${addonDomain}`)) && !isRoot;
+    const isCustomDomain = !isRoot && !isActuallySubdomain;
+
+    setIsStorePage((isActuallySubdomain || isCustomDomain) && !isSystemPath);
   }, [pathname]);
   
   // Admin and dashboard pages have their own specific layouts
@@ -48,6 +52,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const isHomePage = pathname === '/';
   const isAuthPage = ['/login', '/register', '/get-started'].some(p => pathname.startsWith(p));
 
+  // If it's the home page, it already handles its own layout (SaasLandingClient)
   if (isHomePage) {
       return <>{children}</>
   }
