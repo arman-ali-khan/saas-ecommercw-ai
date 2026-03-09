@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Vercel-Optimized Middleware for Multi-tenant Store Resolution.
- * Supports Subdomains (*.dokanbd.shop and *.e-bd.shop) and Custom Domains.
+ * Prioritizes Custom Domain Database Lookup then Subdomain resolution.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -27,6 +27,7 @@ export async function middleware(request: NextRequest) {
 
   // Normalize host: lowercase and remove port if present
   const host = hostname.split(':')[0].toLowerCase();
+  const hostWithoutWww = host.replace(/^www\./, '');
   
   // 2. Identify Platform Root Domains
   const platformRootDomains = [
@@ -47,61 +48,54 @@ export async function middleware(request: NextRequest) {
 
   let username = '';
 
-  // 3. Resolve Store Username from Subdomains
-  // Check for e-bd.shop subdomains
-  if (host.endsWith('.e-bd.shop')) {
-    const parts = host.replace('.e-bd.shop', '').split('.');
-    username = parts[parts.length - 1];
-  } 
-  // Check for dokanbd.shop subdomains
-  else if (host.endsWith('.dokanbd.shop')) {
-    const parts = host.replace('.dokanbd.shop', '').split('.');
-    username = parts[parts.length - 1];
+  // 3. PRIORITIZE: Check Database for Custom Domain
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (supabaseUrl && supabaseKey) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Query for custom domain matches in profiles table
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('domain')
+            .or(`custom_domain.eq.${host},custom_domain.eq.${hostWithoutWww}`)
+            .maybeSingle();
+        
+        if (profile?.domain) {
+            username = profile.domain;
+        }
+    }
+  } catch (e) {
+    console.error('Middleware Custom Domain Resolution Error:', e);
+  }
+
+  // 4. FALLBACK: Resolve from Subdomains if not found via Custom Domain
+  if (!username) {
+    if (host.endsWith('.e-bd.shop')) {
+      const parts = host.replace('.e-bd.shop', '').split('.');
+      username = parts[parts.length - 1];
+    } 
+    else if (host.endsWith('.dokanbd.shop')) {
+      const parts = host.replace('.dokanbd.shop', '').split('.');
+      username = parts[parts.length - 1];
+    }
   }
   
-  // Clean up if username is platform-reserved
-  if (['www', 'api', 'admin', 'dashboard', 'profile'].includes(username)) {
+  // Clean up if username is platform-reserved or empty
+  if (!username || ['www', 'api', 'admin', 'dashboard', 'profile'].includes(username)) {
       return NextResponse.next();
   }
 
-  // 4. Fallback: Resolve Store Username from Custom Domains via Database
-  if (!username) {
-    try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (supabaseUrl && supabaseKey) {
-            const supabase = createClient(supabaseUrl, supabaseKey);
-            const hostWithoutWww = host.replace(/^www\./, '');
-            
-            // Query for custom domain matches
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('domain')
-                .or(`custom_domain.eq.${host},custom_domain.eq.${hostWithoutWww}`)
-                .maybeSingle();
-            
-            if (profile?.domain) {
-                username = profile.domain;
-            }
-        }
-    } catch (e) {
-        console.error('Middleware Domain Resolution Error:', e);
-    }
-  }
-  
   // 5. Internal Rewrite to Tenant Path [username]
-  if (username) {
-    // Prevent double rewrites or recursion
-    if (url.pathname.startsWith(`/${username}/`) || url.pathname === `/${username}`) {
-        return NextResponse.next();
-    }
-
-    const targetPath = `/${username}${url.pathname}${url.search || ''}`;
-    return NextResponse.rewrite(new URL(targetPath, request.url));
+  // Prevent double rewrites or recursion
+  if (url.pathname.startsWith(`/${username}/`) || url.pathname === `/${username}`) {
+      return NextResponse.next();
   }
 
-  return NextResponse.next();
+  const targetPath = `/${username}${url.pathname}${url.search || ''}`;
+  return NextResponse.rewrite(new URL(targetPath, request.url));
 }
 
 export const config = {
