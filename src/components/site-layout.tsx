@@ -22,7 +22,6 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
                           h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
     
     // It's a store page if it's NOT the platform root AND not a system dashboard path
-    // Also, if the path itself starts with /[username] internal rewrite, it's a store page
     const isSystemPath = pathname.startsWith('/dashboard');
     setIsStorePage(!isPlatformRoot && !isSystemPath);
   }, [pathname]);

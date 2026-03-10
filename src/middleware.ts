@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
   }
 
-  let username = '';
+  let storeUsername = '';
 
   // 3. Check if it's a Subdomain of a Platform Root (e.g., sam.e-bd.shop)
   const rootMatch = platformRootDomains.find(d => host.endsWith(`.${d}`));
@@ -48,12 +48,12 @@ export async function middleware(request: NextRequest) {
     
     // Check if it's a valid store subdomain (not a system reserved one)
     if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {
-      username = subdomain;
+      storeUsername = subdomain;
     }
   } 
   
   // 4. If not a platform subdomain, check if it's a Custom Domain (e.g., mybrand.com)
-  if (!username) {
+  if (!storeUsername) {
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -62,7 +62,7 @@ export async function middleware(request: NextRequest) {
         const supabase = createClient(supabaseUrl, supabaseKey);
         const cleanHost = host.replace(/^www\./, '');
         
-        // Search for this domain in profiles table
+        // Search for this domain in profiles table under custom_domain
         const { data: profile } = await supabase
           .from('profiles')
           .select('domain')
@@ -70,7 +70,7 @@ export async function middleware(request: NextRequest) {
           .maybeSingle();
         
         if (profile?.domain) {
-          username = profile.domain;
+          storeUsername = profile.domain;
         }
       }
     } catch (e) {
@@ -79,14 +79,14 @@ export async function middleware(request: NextRequest) {
   }
   
   // 5. Perform Internal Rewrite to the dynamic [username] folder
-  if (username) {
+  if (storeUsername) {
     // Avoid double rewrite if the URL already has the rewritten path
-    if (url.pathname.startsWith(`/${username}/`) || url.pathname === `/${username}`) {
+    if (url.pathname.startsWith(`/${storeUsername}/`) || url.pathname === `/${storeUsername}`) {
       return NextResponse.next();
     }
     
     // Target path is inside the dynamic [username] route
-    const targetPath = `/${username}${url.pathname}${url.search || ''}`;
+    const targetPath = `/${storeUsername}${url.pathname}${url.search || ''}`;
     return NextResponse.rewrite(new URL(targetPath, request.url));
   }
 
