@@ -13,24 +13,18 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     // Determine if we are on a tenant subdomain or custom domain
     const h = window.location.hostname.toLowerCase();
-    const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
-    const addonDomain = 'e-bd.shop';
+    const platformDomains = ['dokanbd.shop', 'e-bd.shop', 'localhost'];
     
     // Check if the current host is a root platform domain
-    const isRoot = h === rootDomain || 
-                   h === `www.${rootDomain}` || 
-                   h === addonDomain || 
-                   h === `www.${addonDomain}` || 
-                   h === 'localhost' || 
+    const isRoot = platformDomains.some(d => h === d || h === `www.${d}`) || 
                    h.endsWith('.vercel.app') ||
                    h.includes('cloudworkstations.dev') ||
                    h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
     
-    // Check if we are inside a reserved system path ON THE ROOT DOMAIN
+    // Check if we are inside a system dashboard path
     const isSystemPath = pathname.startsWith('/dashboard');
 
     // It's a store page if it's not the platform root
-    // Even if the path is /admin or /profile, if we are on a custom domain, it's a store context
     setIsStorePage(!isRoot && !isSystemPath);
   }, [pathname]);
   
@@ -40,16 +34,14 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   }
 
   // If it's a store page (subdomain or custom domain), we return only children
-  // The /[username]/layout.tsx will handle the store-specific design and its nested /admin layout
+  // The /[username]/layout.tsx will handle the store-specific design
   if (isStorePage) {
     return <>{children}</>;
   }
   
   // The root landing page and platform pages (like /about, /login) get the SaaS layout
   const isHomePage = pathname === '/';
-  const isAuthPage = ['/login', '/register', '/get-started'].some(p => pathname.startsWith(p));
 
-  // Homepage handles its own layout via SaasLandingClient
   if (isHomePage) {
       return <>{children}</>
   }
@@ -57,7 +49,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex flex-col min-h-screen">
         <SaasHeader />
-        <main className={`flex-grow container mx-auto px-4 sm:px-6 lg:px-8 pb-16 ${isAuthPage ? 'pt-32' : 'py-8'}`}>
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
           {children}
         </main>
         <SaasFooter />
