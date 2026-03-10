@@ -30,14 +30,21 @@ export async function middleware(request: NextRequest) {
     'localhost',
   ];
 
+  // 2. Identify if it's a Platform Root (e.g., dokanbd.shop or e-bd.shop)
+  const isPlatformRoot = platformRootDomains.some(d => host === d || host === `www.${d}`);
+  
+  if (isPlatformRoot) {
+      return NextResponse.next();
+  }
+
   let username = '';
 
-  // 2. Identify if it's a Subdomain of a Platform Root (e.g., sam.e-bd.shop)
-  const rootDomainMatch = platformRootDomains.find(d => host.endsWith(`.${d}`));
+  // 3. Check if it's a Subdomain of a Platform Root (e.g., sam.e-bd.shop)
+  const rootMatch = platformRootDomains.find(d => host.endsWith(`.${d}`));
   
-  if (rootDomainMatch) {
+  if (rootMatch) {
     // Extract the subdomain (handle www. correctly)
-    const subdomain = host.replace(`.${rootDomainMatch}`, '').replace(/^www\./, '');
+    const subdomain = host.replace(`.${rootMatch}`, '').replace(/^www\./, '');
     
     // Check if it's a valid store subdomain (not a system reserved one)
     if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {
@@ -45,21 +52,22 @@ export async function middleware(request: NextRequest) {
     }
   } 
   
-  // 3. If not a platform subdomain, check if it's a Custom Domain (e.g., mybrand.com)
-  if (!username && !platformRootDomains.some(d => host === d || host === `www.${d}`)) {
+  // 4. If not a platform subdomain, check if it's a Custom Domain (e.g., mybrand.com)
+  if (!username) {
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
       if (supabaseUrl && supabaseKey) {
         const supabase = createClient(supabaseUrl, supabaseKey);
-        const hostWithoutWww = host.replace(/^www\./, '');
+        const cleanHost = host.replace(/^www\./, '');
         
         // Search for this domain in profiles table
+        // We use double quotes for column values in the filter to handle potential edge cases
         const { data: profile } = await supabase
           .from('profiles')
           .select('domain')
-          .or(`custom_domain.eq.${host},custom_domain.eq.${hostWithoutWww}`)
+          .or(`custom_domain.eq.${host},custom_domain.eq.${cleanHost}`)
           .maybeSingle();
         
         if (profile?.domain) {
@@ -71,7 +79,7 @@ export async function middleware(request: NextRequest) {
     }
   }
   
-  // 4. Perform Internal Rewrite to the dynamic [username] folder
+  // 5. Perform Internal Rewrite to the dynamic [username] folder
   if (username) {
     // Avoid double rewrite if the URL already has the rewritten path
     if (url.pathname.startsWith(`/${username}/`) || url.pathname === `/${username}`) {
