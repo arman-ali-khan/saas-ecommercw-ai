@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Enhanced Middleware for Multi-tenant Store Resolution (Subdomains & Custom Domains).
- * Supports dokanbd.shop, e-bd.shop and external custom domains.
+ * Optimized for Vercel deployment.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;

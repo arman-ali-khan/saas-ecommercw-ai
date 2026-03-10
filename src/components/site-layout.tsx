@@ -15,13 +15,14 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     const h = window.location.hostname.toLowerCase();
     const platformRootDomains = ['dokanbd.shop', 'e-bd.shop', 'localhost'];
     
-    // It's a platform root if it matches exactly or is a dev environment
+    // It's a platform root if it matches exactly or is a dev/preview environment
     const isPlatformRoot = platformRootDomains.some(d => h === d || h === `www.${d}`) || 
                           h.endsWith('.vercel.app') ||
                           h.includes('cloudworkstations.dev') ||
                           h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
     
     // It's a store page if it's NOT the platform root AND not a system dashboard path
+    // Also, if the path itself starts with /[username] internal rewrite, it's a store page
     const isSystemPath = pathname.startsWith('/dashboard');
     setIsStorePage(!isPlatformRoot && !isSystemPath);
   }, [pathname]);
@@ -38,11 +39,6 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   }
   
   // Platform homepage and root pages (About, Login etc) get the SaaS layout
-  const isHomePage = pathname === '/';
-  if (isHomePage) {
-      return <>{children}</>;
-  }
-
   return (
     <div className="flex flex-col min-h-screen">
         <SaasHeader />
