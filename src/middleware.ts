@@ -4,8 +4,8 @@ import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Enhanced Middleware for Multi-tenant Store Resolution (Subdomains & Custom Domains).
- * Optimized for Vercel deployment.
+ * Enhanced Middleware for Multi-tenant Store Resolution.
+ * Prioritizes custom_domain from profiles table, then falls back to subdomain.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -39,43 +39,43 @@ export async function middleware(request: NextRequest) {
 
   let storeUsername = '';
 
-  // 3. Check if it's a Subdomain of a Platform Root (e.g., sam.e-bd.shop)
-  const rootMatch = platformRootDomains.find(d => host.endsWith(`.${d}`));
-  
-  if (rootMatch) {
-    // Extract the subdomain (handle www. correctly)
-    const subdomain = host.replace(`.${rootMatch}`, '').replace(/^www\./, '');
-    
-    // Check if it's a valid store subdomain (not a system reserved one)
-    if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {
-      storeUsername = subdomain;
-    }
-  } 
-  
-  // 4. If not a platform subdomain, check if it's a Custom Domain (e.g., mybrand.com)
-  if (!storeUsername) {
-    try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // 3. CHECK CUSTOM DOMAIN FIRST (Search profiles table)
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const cleanHost = host.replace(/^www\./, '');
-        
-        // Search for this domain in profiles table under custom_domain
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('domain')
-          .or(`custom_domain.eq.${host},custom_domain.eq.${cleanHost}`)
-          .maybeSingle();
-        
-        if (profile?.domain) {
-          storeUsername = profile.domain;
-        }
+    if (supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const cleanHost = host.replace(/^www\./, '');
+      
+      // Query profiles for custom_domain match
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('domain')
+        .or(`custom_domain.eq.${host},custom_domain.eq.${cleanHost}`)
+        .maybeSingle();
+      
+      if (profile?.domain) {
+        storeUsername = profile.domain;
       }
-    } catch (e) {
-      console.error('Middleware Custom Domain Resolution Error:', e);
     }
+  } catch (e) {
+    console.error('Middleware Custom Domain Resolution Error:', e);
+  }
+
+  // 4. FALLBACK TO SUBDOMAIN (if not a custom domain match)
+  if (!storeUsername) {
+    const rootMatch = platformRootDomains.find(d => host.endsWith(`.${d}`));
+    
+    if (rootMatch) {
+      // Extract the subdomain (handle www. correctly)
+      const subdomain = host.replace(`.${rootMatch}`, '').replace(/^www\./, '');
+      
+      // Check if it's a valid store subdomain (not a system reserved one)
+      if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {
+        storeUsername = subdomain;
+      }
+    } 
   }
   
   // 5. Perform Internal Rewrite to the dynamic [username] folder
