@@ -4,11 +4,11 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import SiteLayout from '@/components/site-layout';
 import AuthProvider from '@/components/auth-provider';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
+import { cookies, headers } from 'next/headers';
 import CustomTopLoader from '@/components/custom-top-loader';
 import { allFontVariables } from '@/lib/fonts';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/next";
 import Script from 'next/script';
 import SaasPreloader from '@/components/saas-preloader';
 import OfflineWarning from '@/components/offline-warning';
@@ -26,36 +26,19 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   }
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseKey,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: { get: (name) => cookieStore.get(name)?.value }
+  });
 
-  const { data } = await supabase
-    .from('saas_settings')
-    .select('platform_name, platform_description, seo_title, seo_description, seo_keywords, favicon_url')
-    .eq('id', 1)
-    .maybeSingle();
-
+  const { data } = await supabase.from('saas_settings').select('*').eq('id', 1).maybeSingle();
   const settings = data || {};
 
-  const title = settings.seo_title || settings.platform_name || 'দোকানবিডি';
-  const description = settings.seo_description || settings.platform_description || 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।';
-
   return {
-    title: title,
-    description: description,
-    keywords: settings.seo_keywords || '',
+    title: settings.seo_title || settings.platform_name || 'দোকানবিডি',
+    description: settings.seo_description || settings.platform_description || 'প্রাকৃতিক বাংলাদেশী পণ্যের জন্য একটি প্রাণবন্ত ই-কমার্স।',
     icons: settings.favicon_url ? [{ rel: 'icon', url: settings.favicon_url }] : null,
     manifest: '/manifest.json',
-  }
+  };
 }
 
 export default async function RootLayout({
@@ -63,6 +46,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headerList = await headers();
+  const host = (headerList.get('host') || '').toLowerCase();
+  const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop').toLowerCase().trim();
+  
+  // Detect store page context on the server to prevent hydration mismatch
+  const isPlatformRoot = 
+    host === baseDomain || 
+    host === `www.${baseDomain}` || 
+    host === 'localhost' || 
+    host.includes('cloudworkstations.dev') ||
+    (host.endsWith('.vercel.app') && !host.includes(baseDomain));
+
+  const isStorePage = !isPlatformRoot || host.endsWith(`.${baseDomain}`);
 
   return (
     <html lang="en" className={`${allFontVariables} dark`} suppressHydrationWarning>
@@ -72,33 +68,26 @@ export default async function RootLayout({
         <CustomTopLoader />
         <Analytics/>
         <AuthProvider>
-          <SiteLayout>{children}</SiteLayout>
+          <SiteLayout isStorePage={isStorePage}>{children}</SiteLayout>
         </AuthProvider>
         <OfflineWarning />
         <Toaster />
         
-        {/* Handle ChunkLoadError globally by refreshing the page */}
         <Script id="chunk-error-handler" strategy="beforeInteractive">
           {`
             window.addEventListener('error', function(event) {
               if (event.message && (event.message.indexOf('ChunkLoadError') !== -1 || event.message.indexOf('Loading chunk') !== -1)) {
-                console.warn('ChunkLoadError detected, reloading page...');
                 window.location.reload();
               }
             }, true);
           `}
         </Script>
 
-        {/* Service Worker Registration for PWA and FCM */}
         <Script id="register-sw" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                  console.log('PWA ServiceWorker registered with scope: ', registration.scope);
-                }, function(err) {
-                  console.log('PWA ServiceWorker registration failed: ', err);
-                });
+                navigator.serviceWorker.register('/sw.js');
               });
             }
           `}

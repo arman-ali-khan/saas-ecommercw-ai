@@ -4,22 +4,26 @@ import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Robust Middleware for Multi-tenant Store Resolution.
- * - Prioritizes subdomains of e-bd.shop.
- * - Supports custom domains mapped in the profiles table.
- * - Integrated with NEXT_PUBLIC_BASE_DOMAIN environment variable.
+ * Enhanced Middleware for Multi-tenant Store Resolution.
+ * - Prioritizes e-bd.shop subdomains and custom domains.
+ * - Includes robust environment variable cleaning.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
   
-  // Clean hostname (remove port if any and convert to lowercase)
+  // Clean hostname (remove port and convert to lowercase)
   const host = hostname.split(':')[0].toLowerCase();
   
-  // Get base domain from env (e.g. e-bd.shop)
-  const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop').toLowerCase().trim();
+  // Robust base domain cleaning (removes https://, www., and trailing slashes)
+  const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop')
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .split('/')[0]
+    .toLowerCase()
+    .trim();
   
-  // 1. Skip core internal paths, common static assets and API
+  // 1. Skip core internal paths and static assets
   if (
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/_next') || 
@@ -31,34 +35,31 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Identify Platform Root (e.g., e-bd.shop or www.e-bd.shop)
-  const platformRootDomains = [baseDomain, `www.${baseDomain}`, 'localhost', 'www.localhost'];
-  
-  // Check if we are on the main platform landing pages
-  if (platformRootDomains.includes(host) || host.includes('cloudworkstations.dev')) {
-      // If it's specifically one of our root domains, it's definitely the landing page
-      if (host === baseDomain || host === `www.${baseDomain}` || host === 'localhost' || host === 'www.localhost') {
-          return NextResponse.next();
-      }
-      
-      // Fallback: If host doesn't contain baseDomain at all, treat as landing/development root
-      if (!host.includes(baseDomain) && !host.includes('localhost')) {
-          return NextResponse.next();
-      }
+  // 2. Identify if we are on the platform root (e-bd.shop, www.e-bd.shop, localhost)
+  const isPlatformRoot = 
+    host === baseDomain || 
+    host === `www.${baseDomain}` || 
+    host === 'localhost' || 
+    host.includes('cloudworkstations.dev') ||
+    (host.endsWith('.vercel.app') && !host.includes(baseDomain));
+
+  if (isPlatformRoot && !host.endsWith(`.${baseDomain}`)) {
+    return NextResponse.next();
   }
 
   let storeUsername = '';
 
-  // 3. STEP 1: CHECK SUBDOMAIN (e.g., sam.e-bd.shop)
-  // Highest priority for wildcard setup on Vercel
+  // 3. Resolve Store Username
+  
+  // A. Check for e-bd.shop subdomain (e.g. sam.e-bd.shop)
   if (host.endsWith(`.${baseDomain}`)) {
-      const subdomain = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
-      if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {
-          storeUsername = subdomain;
-      }
+    const subdomain = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
+    if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {
+      storeUsername = subdomain;
+    }
   }
 
-  // 4. STEP 2: CHECK CUSTOM DOMAIN (If not a subdomain match)
+  // B. Check for Custom Domain if not a subdomain
   if (!storeUsername) {
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -68,7 +69,6 @@ export async function middleware(request: NextRequest) {
         const supabase = createClient(supabaseUrl, supabaseKey);
         const cleanHost = host.replace(/^www\./, '');
         
-        // Query profiles for custom_domain match
         const { data: profile } = await supabase
           .from('profiles')
           .select('domain')
@@ -80,24 +80,22 @@ export async function middleware(request: NextRequest) {
         }
       }
     } catch (e) {
-      console.error('Middleware Resolution Error:', e);
+      console.error('Middleware DB Error:', e);
     }
   }
 
-  // 5. STEP 3: LOCALHOST FALLBACK (e.g. sam.localhost:3000)
+  // C. Localhost testing fallback (e.g. sam.localhost:3000)
   if (!storeUsername && host.includes('localhost')) {
-      const parts = host.split('.');
-      if (parts.length > 1) {
-          const subdomain = parts[0];
-          if (subdomain !== 'www' && subdomain !== 'localhost') {
-              storeUsername = subdomain;
-          }
-      }
+    const parts = host.split('.');
+    if (parts.length > 1) {
+      const sub = parts[0];
+      if (sub !== 'www' && sub !== 'localhost') storeUsername = sub;
+    }
   }
   
-  // 6. Rewrite to the internal [username] folder
+  // 4. Perform Rewrite
   if (storeUsername) {
-    // If path already starts with the username (e.g. internal nav), avoid double prefix
+    // Avoid double prefixing
     if (url.pathname.startsWith(`/${storeUsername}/`) || url.pathname === `/${storeUsername}`) {
       return NextResponse.next();
     }

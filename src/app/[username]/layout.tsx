@@ -12,6 +12,7 @@ import LanguageProvider from '@/components/language-provider';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 import ThemeInitializer from '@/components/theme-initializer';
+import { notFound } from 'next/navigation';
 
 const translations = { en, bn };
 
@@ -28,46 +29,28 @@ export async function generateMetadata({
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,
-      },
-    }
+    { cookies: { get: (name) => cookieStore.get(name)?.value } }
   );
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, site_name, site_description, updated_at, store_settings(seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url, pwa_logo_url, logo_image_url)')
+    .select('id, site_name, site_description, store_settings(seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url, pwa_logo_url, logo_image_url)')
     .eq('domain', username)
     .maybeSingle();
 
-  if (!profile) {
-    return { title: 'Store Not Found' };
-  }
+  if (!profile) return { title: 'Store Not Found' };
 
   const settings = (Array.isArray(profile.store_settings) ? profile.store_settings[0] : profile.store_settings) || {};
-  
   const title = settings.seo_title || `${profile.site_name || 'Store'} - Pure Natural Products`;
-  const description = settings.seo_description || profile.site_description || 'Natural products from Bangladesh.';
-  const faviconUrl = settings.favicon_url;
-  const pwaIconUrl = settings.pwa_logo_url || settings.logo_image_url || faviconUrl;
-  const socialShareImageUrl = settings.social_share_image_url;
 
   return {
     title,
-    description,
-    keywords: settings.seo_keywords || '',
+    description: settings.seo_description || profile.site_description || 'Natural products.',
     icons: {
-      icon: faviconUrl || '/favicon.ico',
-      shortcut: faviconUrl || '/favicon.ico',
-      apple: pwaIconUrl || faviconUrl || '/logo.png',
+      icon: settings.favicon_url || '/favicon.ico',
+      apple: settings.pwa_logo_url || settings.logo_image_url || '/logo.png',
     },
     manifest: '/manifest.json',
-    openGraph: {
-        title: title,
-        description: description,
-        images: socialShareImageUrl ? [{ url: socialShareImageUrl, width: 1200, height: 630, alt: title }] : undefined,
-    },
   };
 }
 
@@ -83,17 +66,18 @@ export default async function UsernameLayout({
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
+    { cookies: { get: (name) => cookieStore.get(name)?.value } }
   );
 
-  const { data: profile } = await supabase.from('profiles').select('id, site_name, site_description').eq('domain', username).maybeSingle();
-  const siteId = profile?.id;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, site_name, site_description')
+    .eq('domain', username)
+    .maybeSingle();
+
+  if (!profile) notFound();
+
+  const siteId = profile.id;
 
   const [
     { data: settingsData },
@@ -101,22 +85,22 @@ export default async function UsernameLayout({
     { data: footerCatData },
     { data: socialData }
   ] = await Promise.all([
-    siteId ? supabase.from('store_settings').select('*').eq('site_id', siteId).maybeSingle() : Promise.resolve({ data: null }),
-    siteId ? supabase.from('header_links').select('*').eq('site_id', siteId).order('order') : Promise.resolve({ data: [] }),
-    siteId ? supabase.from('footer_link_categories').select('*, footer_links(*)').eq('site_id', siteId).order('order') : Promise.resolve({ data: [] }),
-    siteId ? supabase.from('social_links').select('*').eq('site_id', siteId) : Promise.resolve({ data: [] })
+    supabase.from('store_settings').select('*').eq('site_id', siteId).maybeSingle(),
+    supabase.from('header_links').select('*').eq('site_id', siteId).order('order'),
+    supabase.from('footer_link_categories').select('*, footer_links(*)').eq('site_id', siteId).order('order'),
+    supabase.from('social_links').select('*').eq('site_id', siteId)
   ]);
 
-  const siteInfo = profile ? {
+  const siteInfo = {
     id: profile.id,
     name: profile.site_name || username,
     description: profile.site_description,
     logoType: (settingsData?.logo_type as 'icon' | 'image') || 'icon',
     logoIcon: settingsData?.logo_icon || 'Leaf',
     logoImageUrl: settingsData?.logo_image_url || null,
-  } : null;
+  };
 
-  const headerLinks = (headerLinksData && headerLinksData.length > 0) ? headerLinksData as HeaderLink[] : [
+  const headerLinks = (headerLinksData && headerLinksData.length > 0) ? (headerLinksData as HeaderLink[]) : [
       { id: '1', site_id: '', label: 'হোম', href: '/', order: 0 },
       { id: '2', site_id: '', label: 'পণ্য', href: `/products`, order: 1 },
       { id: '3', site_id: '', label: 'Flash Deals', href: `/flash-deals`, order: 2 },
@@ -129,7 +113,6 @@ export default async function UsernameLayout({
       links: (cat.footer_links || []).sort((a: any, b: any) => a.order - b.order)
   })).sort((a,b) => a.order - b.order) as FooterLinkCategory[];
 
-  const socialLinks = (socialData || []) as SocialLink[];
   const lang = settingsData?.language || 'bn';
   const translationsToUse = translations[lang as keyof typeof translations] || bn;
 
@@ -161,7 +144,7 @@ export default async function UsernameLayout({
         <main className="flex-grow container mx-auto px-1 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
           {children}
         </main>
-        <Footer siteInfo={siteInfo} footerCategories={footerCategories} socialLinks={socialLinks} isLoading={false} />
+        <Footer siteInfo={siteInfo} footerCategories={footerCategories} socialLinks={(socialData || []) as SocialLink[]} isLoading={false} />
         <BottomNav />
         <div className="hidden md:block">
           <FixedCartButton />
