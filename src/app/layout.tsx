@@ -47,14 +47,16 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const headerList = await headers();
-  const host = (headerList.get('host') || '').toLowerCase();
+  const host = (headerList.get('host') || '').toLowerCase().split(':')[0];
   const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop').toLowerCase().trim();
   
-  // Detect store page context on the server to prevent hydration mismatch
+  // Server-side identification of store vs platform
   const isPlatformRoot = 
     host === baseDomain || 
     host === `www.${baseDomain}` || 
     host === 'localhost' || 
+    host === 'dokanbd.shop' ||
+    host === 'www.dokanbd.shop' ||
     host.includes('cloudworkstations.dev') ||
     (host.endsWith('.vercel.app') && !host.includes(baseDomain));
 

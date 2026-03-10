@@ -13,6 +13,7 @@ import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
 import ThemeInitializer from '@/components/theme-initializer';
 import { notFound } from 'next/navigation';
+import FloatingChatButton from '@/components/floating-chat-button';
 
 const translations = { en, bn };
 
@@ -149,6 +150,7 @@ export default async function UsernameLayout({
         <div className="hidden md:block">
           <FixedCartButton />
         </div>
+        <FloatingChatButton />
       </div>
     </LanguageProvider>
   );

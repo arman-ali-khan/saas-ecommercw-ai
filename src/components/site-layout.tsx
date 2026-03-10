@@ -13,18 +13,18 @@ interface SiteLayoutProps {
 export default function SiteLayout({ children, isStorePage }: SiteLayoutProps) {
   const pathname = usePathname();
   
-  // Force simple layout for platform dashboard
+  // Platform Admin Dashboard gets no SaaS landing layout
   if (pathname.startsWith('/dashboard')) {
     return <>{children}</>;
   }
 
-  // If we are on a store domain (subdomain or custom), return only children.
-  // The [username]/layout.tsx will provide the store-specific header/footer.
+  // If identified as a store domain, return children directly.
+  // The store-specific header/footer will be handled in src/app/[username]/layout.tsx
   if (isStorePage) {
     return <>{children}</>;
   }
   
-  // Platform root pages (Landing, About, Login etc) get the SaaS layout
+  // Main SaaS Landing Page & Platform-level Pages
   return (
     <div className="flex flex-col min-h-screen">
         <SaasHeader />

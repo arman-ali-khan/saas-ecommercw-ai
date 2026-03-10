@@ -5,8 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Enhanced Middleware for Multi-tenant Store Resolution.
- * - Prioritizes e-bd.shop subdomains and custom domains.
- * - Includes robust environment variable cleaning.
+ * Optimized for Vercel wildcard subdomains and custom domains.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -15,7 +14,7 @@ export async function middleware(request: NextRequest) {
   // Clean hostname (remove port and convert to lowercase)
   const host = hostname.split(':')[0].toLowerCase();
   
-  // Robust base domain cleaning (removes https://, www., and trailing slashes)
+  // Clean base domain from environment variable
   const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop')
     .replace(/^https?:\/\//, '')
     .replace(/^www\./, '')
@@ -23,7 +22,7 @@ export async function middleware(request: NextRequest) {
     .toLowerCase()
     .trim();
   
-  // 1. Skip core internal paths and static assets
+  // 1. Skip internal paths and assets
   if (
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/_next') || 
@@ -35,23 +34,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Identify if we are on the platform root (e-bd.shop, www.e-bd.shop, localhost)
-  const isPlatformRoot = 
-    host === baseDomain || 
-    host === `www.${baseDomain}` || 
-    host === 'localhost' || 
-    host.includes('cloudworkstations.dev') ||
-    (host.endsWith('.vercel.app') && !host.includes(baseDomain));
+  // 2. Platform Root Identification
+  const platformRootDomains = [
+    baseDomain,
+    `www.${baseDomain}`,
+    'dokan-bd.vercel.app',
+    'localhost',
+    'dokanbd.shop',
+    'www.dokanbd.shop'
+  ];
 
+  const isPlatformRoot = platformRootDomains.includes(host) || host.includes('cloudworkstations.dev');
+
+  // If it's the platform root, don't rewrite (just handle standard routing)
   if (isPlatformRoot && !host.endsWith(`.${baseDomain}`)) {
     return NextResponse.next();
   }
 
   let storeUsername = '';
 
-  // 3. Resolve Store Username
-  
-  // A. Check for e-bd.shop subdomain (e.g. sam.e-bd.shop)
+  // 3. Subdomain Resolution (e.g., sam.e-bd.shop)
   if (host.endsWith(`.${baseDomain}`)) {
     const subdomain = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
     if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {
@@ -59,7 +61,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // B. Check for Custom Domain if not a subdomain
+  // 4. Custom Domain Resolution (e.g., schoolbd.top)
   if (!storeUsername) {
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -69,10 +71,11 @@ export async function middleware(request: NextRequest) {
         const supabase = createClient(supabaseUrl, supabaseKey);
         const cleanHost = host.replace(/^www\./, '');
         
+        // Search in profiles table for custom_domain match
         const { data: profile } = await supabase
           .from('profiles')
           .select('domain')
-          .or(`custom_domain.eq.${host},custom_domain.eq.${cleanHost},domain.eq.${cleanHost}`)
+          .or(`custom_domain.eq.${host},custom_domain.eq.${cleanHost}`)
           .maybeSingle();
         
         if (profile?.domain) {
@@ -83,19 +86,10 @@ export async function middleware(request: NextRequest) {
       console.error('Middleware DB Error:', e);
     }
   }
-
-  // C. Localhost testing fallback (e.g. sam.localhost:3000)
-  if (!storeUsername && host.includes('localhost')) {
-    const parts = host.split('.');
-    if (parts.length > 1) {
-      const sub = parts[0];
-      if (sub !== 'www' && sub !== 'localhost') storeUsername = sub;
-    }
-  }
   
-  // 4. Perform Rewrite
+  // 5. Perform Rewrite to Tenant Path
   if (storeUsername) {
-    // Avoid double prefixing
+    // Prevent double prefixing
     if (url.pathname.startsWith(`/${storeUsername}/`) || url.pathname === `/${storeUsername}`) {
       return NextResponse.next();
     }
