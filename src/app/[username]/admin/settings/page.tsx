@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -14,7 +15,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
@@ -30,7 +30,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
-import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle, Wallet, ShoppingBag, Smartphone, Image as ImageIcon, SearchCode, Activity, Share2 } from 'lucide-react';
+import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart, CreditCard, ShieldCheck, AlertTriangle, Wallet, ShoppingBag, Smartphone, Image as ImageIcon, SearchCode, Activity, Share2, Facebook } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
@@ -63,6 +63,7 @@ const seoSchema = z.object({
     seoKeywords: z.string().optional(),
     google_analytics_id: z.string().optional(),
     facebook_pixel_id: z.string().optional(),
+    facebook_meta_tag: z.string().optional(),
     google_search_console_tag: z.string().optional(),
 });
 
@@ -137,6 +138,7 @@ function SettingsContent() {
         seoKeywords: '',
         google_analytics_id: '',
         facebook_pixel_id: '',
+        facebook_meta_tag: '',
         google_search_console_tag: '',
     },
   });
@@ -185,6 +187,7 @@ function SettingsContent() {
                 seoKeywords: settings.seo_keywords || '',
                 google_analytics_id: settings.google_analytics_id || '',
                 facebook_pixel_id: settings.facebook_pixel_id || '',
+                facebook_meta_tag: settings.facebook_meta_tag || '',
                 google_search_console_tag: settings.google_search_console_tag || '',
             });
 
@@ -517,8 +520,21 @@ function SettingsContent() {
                                 <FormField control={seoForm.control} name="facebook_pixel_id" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Facebook Pixel ID</FormLabel>
-                                        <FormControl><Input placeholder="1234567890" {...field} /></FormControl>
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
+                                                <Facebook className="h-5 w-5 text-blue-600" />
+                                            </div>
+                                            <FormControl><Input placeholder="1234567890" {...field} /></FormControl>
+                                        </div>
                                         <FormDescription className="text-[10px]">ফেসবুক অ্যাডস ট্র্যাকিং এর জন্য পিক্সেল আইডি দিন।</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={seoForm.control} name="facebook_meta_tag" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Facebook Domain Verification Meta Tag</FormLabel>
+                                        <FormControl><Input placeholder="xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" {...field} /></FormControl>
+                                        <FormDescription className="text-[10px]">ফেসবুক ডোমেইন ভেরিফিকেশন কোডটি এখানে দিন।</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )} />

@@ -36,6 +36,7 @@ export async function POST(request: Request) {
         seo_keywords: seoData.seoKeywords,
         google_analytics_id: seoData.google_analytics_id,
         facebook_pixel_id: seoData.facebook_pixel_id,
+        facebook_meta_tag: seoData.facebook_meta_tag,
         google_search_console_tag: seoData.google_search_console_tag
       }, { onConflict: 'site_id' });
 

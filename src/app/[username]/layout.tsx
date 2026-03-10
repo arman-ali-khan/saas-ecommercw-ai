@@ -35,7 +35,7 @@ export async function generateMetadata({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, site_name, site_description, store_settings(seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url, pwa_logo_url, logo_image_url)')
+    .select('id, site_name, site_description, store_settings(seo_title, seo_description, seo_keywords, favicon_url, social_share_image_url, pwa_logo_url, logo_image_url, facebook_meta_tag)')
     .eq('domain', username)
     .maybeSingle();
 
@@ -44,15 +44,25 @@ export async function generateMetadata({
   const settings = (Array.isArray(profile.store_settings) ? profile.store_settings[0] : profile.store_settings) || {};
   const title = settings.seo_title || `${profile.site_name || 'Store'} - Pure Natural Products`;
 
-  return {
+  const metadata: Metadata = {
     title,
     description: settings.seo_description || profile.site_description || 'Natural products.',
+    keywords: settings.seo_keywords || '',
     icons: {
       icon: settings.favicon_url || '/favicon.ico',
       apple: settings.pwa_logo_url || settings.logo_image_url || '/logo.png',
     },
     manifest: '/manifest.json',
+    verification: {
+        other: {}
+    }
   };
+
+  if (settings.facebook_meta_tag) {
+      metadata.verification!.other!['facebook-domain-verification'] = [settings.facebook_meta_tag];
+  }
+
+  return metadata;
 }
 
 export default async function UsernameLayout({
