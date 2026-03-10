@@ -5,6 +5,19 @@ import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Helper to transform Cloudinary URLs for PWA Icons.
+ * Ensures the icon is square and in PNG format.
+ */
+function getTransformedIcon(url: string | null | undefined, size: number) {
+    if (!url) return null;
+    if (url.includes('res.cloudinary.com')) {
+        // Force square cropping and PNG format
+        return url.replace('/upload/', `/upload/w_${size},h_${size},c_pad,b_white,f_png/`);
+    }
+    return url;
+}
+
 export async function GET(request: Request, { params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
   const cookieStore = await cookies();
@@ -41,10 +54,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
   const cacheBuster = profile.updated_at ? new Date(profile.updated_at).getTime() : Date.now();
   const rawIconUrl = settings?.pwa_logo_url || settings?.logo_image_url || settings?.favicon_url;
   
-  const siteInitial = (profile.site_name || 'S').charAt(0).toUpperCase();
-  const pwaIconUrl = rawIconUrl 
-    ? `${rawIconUrl}${rawIconUrl.includes('?') ? '&' : '?'}v=${cacheBuster}`
-    : `https://placehold.co/512/FFFFFF/000000?text=${siteInitial}`;
+  const icon192 = getTransformedIcon(rawIconUrl, 192) || `https://placehold.co/192/FFFFFF/000000?text=${(profile.site_name || 'S').charAt(0)}`;
+  const icon512 = getTransformedIcon(rawIconUrl, 512) || `https://placehold.co/512/FFFFFF/000000?text=${(profile.site_name || 'S').charAt(0)}`;
 
   const themeColor = settings?.theme_primary ? `hsl(${settings.theme_primary})` : '#ffffff';
 
@@ -60,19 +71,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     orientation: 'portrait',
     icons: [
       {
-        src: pwaIconUrl,
+        src: `${icon192}${icon192.includes('?') ? '&' : '?'}v=${cacheBuster}`,
         sizes: '192x192',
         type: 'image/png',
         purpose: 'any'
       },
       {
-        src: pwaIconUrl,
+        src: `${icon512}${icon512.includes('?') ? '&' : '?'}v=${cacheBuster}`,
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any'
       },
        {
-        src: pwaIconUrl,
+        src: `${icon512}${icon512.includes('?') ? '&' : '?'}v=${cacheBuster}`,
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable'

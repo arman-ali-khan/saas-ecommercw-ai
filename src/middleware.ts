@@ -5,23 +5,23 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Vercel-Optimized Middleware for Multi-tenant Store Resolution.
- * Priority: 1. System Paths, 2. Custom Domain Lookup, 3. Subdomain parsing.
+ * Handles Root, Subdomains, and Custom Domains.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
  
-  // 1. Skip core internal paths, API, and static assets
+  // 1. Skip core internal paths and static assets (except store-specific config files)
+  const isStaticFile = url.pathname.includes('.') && 
+                       !['/manifest.json', '/robots.txt', '/sitemap.xml', '/sw.js'].includes(url.pathname);
+
   if (
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/_next') || 
     url.pathname.startsWith('/_static') ||
     url.pathname.startsWith('/_vercel') ||
-    url.pathname.includes('.') ||
-    url.pathname === '/favicon.ico' ||
-    url.pathname === '/robots.txt' ||
-    url.pathname === '/sitemap.xml' ||
-    url.pathname.startsWith('/dashboard') // SaaS Dashboard is protected
+    isStaticFile ||
+    url.pathname.startsWith('/dashboard')
   ) {
     return NextResponse.next();
   }
@@ -50,7 +50,6 @@ export async function middleware(request: NextRequest) {
   let username = '';
 
   // 3. PRIORITIZE: Check Database for Custom Domain
-  // If the host is NOT one of our base platform domains directly, it might be a custom domain
   const isBaseSubdomain = platformRootDomains.some(d => hostWithoutWww.endsWith(`.${d}`));
   
   if (!isBaseSubdomain && !isPlatformRoot) {
@@ -104,13 +103,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all paths except for:
-     * 1. /api routes
-     * 2. /_next (Next.js internals)
-     * 3. /_static (inside /public)
-     * 4. all root files inside /public (e.g. /favicon.ico)
-     */
     '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
+    '/manifest.json',
+    '/robots.txt',
+    '/sitemap.xml',
+    '/sw.js'
   ],
 };
