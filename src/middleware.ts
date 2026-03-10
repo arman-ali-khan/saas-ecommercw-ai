@@ -63,7 +63,6 @@ export async function middleware(request: NextRequest) {
         const cleanHost = host.replace(/^www\./, '');
         
         // Search for this domain in profiles table
-        // We use double quotes for column values in the filter to handle potential edge cases
         const { data: profile } = await supabase
           .from('profiles')
           .select('domain')
