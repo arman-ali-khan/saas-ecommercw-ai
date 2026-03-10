@@ -56,23 +56,30 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     if (!authLoading && loggedInUser?.domain === username) {
-      // Use local redirect to /admin within the store context
+      // Correct admin for this store
       router.replace('/admin');
     } else if (!authLoading && loggedInUser && loggedInUser.domain !== username) {
-      // Logged in as a different store's admin
+      // Logged in as a different store's admin, redirect to their own domain
       toast({
         title: 'Redirecting...',
         description: `You are an admin for '${loggedInUser.domain}'. Switching to your store.`,
       });
       if (hostname) {
-        // Detect if we are on a platform root or a custom domain
         const isLocalhost = hostname.includes('localhost');
-        const rootDomain = hostname.split('.').slice(-2).join('.');
+        const platformRootDomains = ['dokanbd.shop', 'e-bd.shop'];
+        const rootDomain = platformRootDomains.find(d => hostname.endsWith(d)) || hostname.split('.').slice(-2).join('.');
         
         if (isLocalhost) {
-            router.push(`/admin/login`); // Fallback or handle localhost subdomains if needed
+            router.push(`/admin/login`); 
         } else {
-            window.location.href = `${window.location.protocol}//${loggedInUser.domain}.${rootDomain}/admin`;
+            // Check if current hostname is a platform subdomain
+            const isSubdomain = platformRootDomains.some(d => hostname.endsWith(`.${d}`));
+            if (isSubdomain) {
+                window.location.href = `${window.location.protocol}//${loggedInUser.domain}.${rootDomain}/admin`;
+            } else {
+                // If they are on a custom domain, we might need to fallback to their subdomain for dashboard access
+                window.location.href = `${window.location.protocol}//${loggedInUser.domain}.e-bd.shop/admin`;
+            }
         }
       }
     }
@@ -96,7 +103,7 @@ export default function AdminLoginPage() {
       title: 'Login Successful!',
       description: 'Opening your dashboard...',
     });
-    // Ensure state is fully sync'd
+    // Ensure full page reload to sync all stores
     window.location.href = '/admin';
   }
 

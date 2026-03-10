@@ -11,39 +11,36 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const [isStorePage, setIsStorePage] = useState(false);
 
   useEffect(() => {
-    // Determine if we are on a tenant subdomain or custom domain
+    // Detect if we are on a tenant subdomain or custom domain
     const h = window.location.hostname.toLowerCase();
-    const platformDomains = ['dokanbd.shop', 'e-bd.shop', 'localhost'];
+    const platformRootDomains = ['dokanbd.shop', 'e-bd.shop', 'localhost'];
     
-    // Check if the current host is a root platform domain
-    const isRoot = platformDomains.some(d => h === d || h === `www.${d}`) || 
-                   h.endsWith('.vercel.app') ||
-                   h.includes('cloudworkstations.dev') ||
-                   h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
+    // It's a platform root if it matches exactly or is a dev environment
+    const isPlatformRoot = platformRootDomains.some(d => h === d || h === `www.${d}`) || 
+                          h.endsWith('.vercel.app') ||
+                          h.includes('cloudworkstations.dev') ||
+                          h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
     
-    // Check if we are inside a system dashboard path
+    // It's a store page if it's NOT the platform root AND not a system dashboard path
     const isSystemPath = pathname.startsWith('/dashboard');
-
-    // It's a store page if it's not the platform root
-    setIsStorePage(!isRoot && !isSystemPath);
+    setIsStorePage(!isPlatformRoot && !isSystemPath);
   }, [pathname]);
   
-  // Platform dashboard has its own specific layout
+  // Platform dashboard has its own fixed layout
   if (pathname.startsWith('/dashboard')) {
     return <>{children}</>;
   }
 
-  // If it's a store page (subdomain or custom domain), we return only children
-  // The /[username]/layout.tsx will handle the store-specific design
+  // If it's a store page, we only return children. 
+  // Store-specific layout is handled in src/app/[username]/layout.tsx
   if (isStorePage) {
     return <>{children}</>;
   }
   
-  // The root landing page and platform pages (like /about, /login) get the SaaS layout
+  // Platform homepage and root pages (About, Login etc) get the SaaS layout
   const isHomePage = pathname === '/';
-
   if (isHomePage) {
-      return <>{children}</>
+      return <>{children}</>;
   }
 
   return (
