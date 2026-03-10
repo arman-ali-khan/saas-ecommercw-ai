@@ -48,7 +48,7 @@ export async function generateMetadata({
   const settings = (Array.isArray(profile.store_settings) ? profile.store_settings[0] : profile.store_settings) || {};
   
   const title = settings.seo_title || `${profile.site_name || 'Store'} - Pure Natural Products`;
-  const description = settings.seo_description || profile.site_description || 'আপনার বাড়িতে বাংলাদেশের প্রাকৃতিক সম্পদের খাঁটি স্বাদ নিয়ে আসা।';
+  const description = settings.seo_description || profile.site_description || 'Natural products from Bangladesh.';
   const faviconUrl = settings.favicon_url;
   const pwaIconUrl = settings.pwa_logo_url || settings.logo_image_url || faviconUrl;
   const socialShareImageUrl = settings.social_share_image_url;
@@ -67,11 +67,6 @@ export async function generateMetadata({
         title: title,
         description: description,
         images: socialShareImageUrl ? [{ url: socialShareImageUrl, width: 1200, height: 630, alt: title }] : undefined,
-    },
-    appleWebApp: {
-      capable: true,
-      statusBarStyle: 'default',
-      title: title,
     },
   };
 }
@@ -100,17 +95,17 @@ export default async function UsernameLayout({
   const { data: profile } = await supabase.from('profiles').select('id, site_name, site_description').eq('domain', username).maybeSingle();
   const siteId = profile?.id;
 
-  const settingsPromise = siteId ? supabase.from('store_settings').select('*').eq('site_id', siteId).maybeSingle() : Promise.resolve({ data: null });
-  const headerLinksPromise = siteId ? supabase.from('header_links').select('*').eq('site_id', siteId).order('order') : Promise.resolve({ data: [] });
-  const footerCatPromise = siteId ? supabase.from('footer_link_categories').select('*, footer_links(*)').eq('site_id', siteId).order('order') : Promise.resolve({ data: [] });
-  const socialLinksPromise = siteId ? supabase.from('social_links').select('*').eq('site_id', siteId) : Promise.resolve({ data: [] });
-
   const [
     { data: settingsData },
     { data: headerLinksData },
     { data: footerCatData },
     { data: socialData }
-  ] = await Promise.all([settingsPromise, headerLinksPromise, footerCatPromise, socialLinksPromise]);
+  ] = await Promise.all([
+    siteId ? supabase.from('store_settings').select('*').eq('site_id', siteId).maybeSingle() : Promise.resolve({ data: null }),
+    siteId ? supabase.from('header_links').select('*').eq('site_id', siteId).order('order') : Promise.resolve({ data: [] }),
+    siteId ? supabase.from('footer_link_categories').select('*, footer_links(*)').eq('site_id', siteId).order('order') : Promise.resolve({ data: [] }),
+    siteId ? supabase.from('social_links').select('*').eq('site_id', siteId) : Promise.resolve({ data: [] })
+  ]);
 
   const siteInfo = profile ? {
     id: profile.id,
@@ -146,28 +141,14 @@ export default async function UsernameLayout({
     const styleVars = [
       settingsData.theme_primary && `--primary: ${settingsData.theme_primary};`,
       settingsData.theme_primary_foreground && `--primary-foreground: ${settingsData.theme_primary_foreground};`,
-      settingsData.theme_secondary && `--secondary: ${settingsData.theme_secondary};`,
-      settingsData.theme_secondary_foreground && `--secondary-foreground: ${settingsData.theme_secondary_foreground};`,
-      settingsData.theme_accent && `--accent: ${settingsData.theme_accent};`,
-      settingsData.theme_accent_foreground && `--accent-foreground: ${settingsData.theme_accent_foreground};`,
       settingsData.theme_background && `--background: ${settingsData.theme_background};`,
       settingsData.theme_foreground && `--foreground: ${settingsData.theme_foreground};`,
-      settingsData.theme_card && `--card: ${settingsData.theme_card};`,
-      settingsData.theme_card_foreground && `--card-foreground: ${settingsData.theme_card_foreground};`,
-      settingsData.theme_card && `--popover: ${settingsData.theme_card};`,
-      settingsData.theme_card_foreground && `--popover-foreground: ${settingsData.theme_card_foreground};`,
-      settingsData.theme_muted && `--muted: ${settingsData.theme_muted};`,
-      settingsData.theme_muted_foreground && `--muted-foreground: ${settingsData.theme_muted_foreground};`,
-      settingsData.theme_border && `--border: ${settingsData.theme_border};`,
-      settingsData.theme_input && `--input: ${settingsData.theme_input};`,
-      settingsData.theme_destructive && `--destructive: ${settingsData.theme_destructive};`,
-      settingsData.theme_primary && `--ring: ${settingsData.theme_primary};`,
       primaryFontVar && `--font-body: var(${primaryFontVar});`,
       secondaryFontVar && `--font-headline: var(${secondaryFontVar});`,
     ].filter(Boolean).join(' ');
 
     if (styleVars) {
-      themeStyles = `html:not(.dark) { ${styleVars} } html.dark { ${settingsData.theme_primary ? `--primary: ${settingsData.theme_primary};` : ''} ${settingsData.theme_accent ? `--accent: ${settingsData.theme_accent};` : ''} }`;
+      themeStyles = `html:not(.dark) { ${styleVars} }`;
     }
   }
 

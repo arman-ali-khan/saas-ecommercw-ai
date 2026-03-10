@@ -12,25 +12,26 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const h = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
+    const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
+    
     // Platform roots
-    const platformRootDomains = ['e-bd.shop', 'localhost'];
+    const platformRootDomains = [baseDomain, 'localhost'];
     
     const isPlatformRoot = platformRootDomains.some(d => h === d || h === `www.${d}`) || 
                           h.endsWith('.vercel.app') ||
                           h.includes('cloudworkstations.dev');
     
-    // It's a store page if it's on a custom domain OR a subdomain of e-bd.shop
-    // and it's NOT the platform root dashboard
+    // It's a store page if it's NOT the platform root domain
     const isSystemPath = pathname.startsWith('/dashboard');
     setIsStorePage(!isPlatformRoot && !isSystemPath);
   }, [pathname]);
   
-  // Platform dashboard has its own fixed layout
+  // Platform dashboard layout
   if (pathname.startsWith('/dashboard')) {
     return <>{children}</>;
   }
 
-  // individual store pages (subdomain or custom domain)
+  // Individual store pages (subdomain or custom domain)
   if (isStorePage) {
     return <>{children}</>;
   }

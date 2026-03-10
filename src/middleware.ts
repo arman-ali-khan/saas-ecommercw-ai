@@ -6,13 +6,13 @@ import { createClient } from '@supabase/supabase-js';
 /**
  * Robust Middleware for Multi-tenant Store Resolution.
  * - Prioritizes custom_domain from profiles table.
- * - Fallback to sam.e-bd.shop subdomain style.
- * - Removed dokanbd.shop from subdomain logic.
+ * - Fallback to subdomain style based on NEXT_PUBLIC_BASE_DOMAIN.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
   const host = hostname.split(':')[0].toLowerCase();
+  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
   
   // 1. Skip core internal paths and common static assets
   if (
@@ -26,9 +26,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Identify Platform Root (e-bd.shop)
-  // localhost is kept for development purposes
-  const platformRootDomains = ['e-bd.shop', 'localhost'];
+  // 2. Identify Platform Root (e.g., e-bd.shop or localhost)
+  const platformRootDomains = [baseDomain, 'localhost'];
   const isPlatformRoot = platformRootDomains.some(d => host === d || host === `www.${d}`);
   
   if (isPlatformRoot) {
@@ -47,11 +46,10 @@ export async function middleware(request: NextRequest) {
       const cleanHost = host.replace(/^www\./, '');
       
       // Query profiles for custom_domain match
-      // We look for both with and without www
       const { data: profile } = await supabase
         .from('profiles')
         .select('domain')
-        .or(`custom_domain.eq.${host},custom_domain.eq.${cleanHost}`)
+        .or(`custom_domain.eq."${host}",custom_domain.eq."${cleanHost}"`)
         .maybeSingle();
       
       if (profile?.domain) {
@@ -64,14 +62,12 @@ export async function middleware(request: NextRequest) {
 
   // 4. STEP 2: CHECK SUBDOMAIN (Fallback if not a custom domain)
   if (!storeUsername) {
-    // Only check for sam.e-bd.shop (dokanbd.shop is removed)
-    if (host.endsWith('.e-bd.shop')) {
-        const subdomain = host.replace('.e-bd.shop', '').replace(/^www\./, '');
+    if (host.endsWith(`.${baseDomain}`)) {
+        const subdomain = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
         if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {
             storeUsername = subdomain;
         }
     } else if (host.includes('localhost') && host.split('.').length > 1) {
-        // Handle sam.localhost for local dev
         const subdomain = host.split('.')[0];
         if (subdomain !== 'www' && subdomain !== 'localhost') {
             storeUsername = subdomain;
@@ -81,7 +77,6 @@ export async function middleware(request: NextRequest) {
   
   // 5. Rewrite to the internal [username] folder
   if (storeUsername) {
-    // Avoid infinite rewrite loop
     if (url.pathname.startsWith(`/${storeUsername}/`) || url.pathname === `/${storeUsername}`) {
       return NextResponse.next();
     }

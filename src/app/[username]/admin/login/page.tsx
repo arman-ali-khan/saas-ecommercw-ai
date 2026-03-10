@@ -59,27 +59,20 @@ export default function AdminLoginPage() {
       // Correct admin for this store
       router.replace('/admin');
     } else if (!authLoading && loggedInUser && loggedInUser.domain !== username) {
-      // Logged in as a different store's admin, redirect to their own domain
+      // Logged in as a different store's admin
       toast({
         title: 'Redirecting...',
         description: `You are an admin for '${loggedInUser.domain}'. Switching to your store.`,
       });
       if (hostname) {
         const isLocalhost = hostname.includes('localhost');
-        const platformRootDomains = ['dokanbd.shop', 'e-bd.shop'];
-        const rootDomain = platformRootDomains.find(d => hostname.endsWith(d)) || hostname.split('.').slice(-2).join('.');
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
         
         if (isLocalhost) {
             router.push(`/admin/login`); 
         } else {
-            // Check if current hostname is a platform subdomain
-            const isSubdomain = platformRootDomains.some(d => hostname.endsWith(`.${d}`));
-            if (isSubdomain) {
-                window.location.href = `${window.location.protocol}//${loggedInUser.domain}.${rootDomain}/admin`;
-            } else {
-                // If they are on a custom domain, we might need to fallback to their subdomain for dashboard access
-                window.location.href = `${window.location.protocol}//${loggedInUser.domain}.e-bd.shop/admin`;
-            }
+            // Force redirect to store's primary subdomain or their custom domain if we had it cached
+            window.location.href = `${window.location.protocol}//${loggedInUser.domain}.${baseDomain}/admin`;
         }
       }
     }
@@ -103,7 +96,7 @@ export default function AdminLoginPage() {
       title: 'Login Successful!',
       description: 'Opening your dashboard...',
     });
-    // Ensure full page reload to sync all stores
+    // Ensure full page reload to sync sessions
     window.location.href = '/admin';
   }
 
