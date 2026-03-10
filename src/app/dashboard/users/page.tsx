@@ -69,7 +69,7 @@ export default function UsersAdminPage() {
     const [isBlocking, setIsBlocking] = useState(false);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [baseDomain, setBaseDomain] = useState('dokanbd.shop');
+    const [baseDomain, setBaseDomain] = useState('e-bd.shop');
     const [currentPage, setCurrentPage] = useState(1);
 
     // Search and Filter State

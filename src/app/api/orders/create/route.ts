@@ -97,7 +97,7 @@ export async function POST(request: Request) {
               orderId: newOrder.id,
               paymentType: dbOrderData.payment_method === 'cod' ? 'cod' : 'paid',
               paymentMethod: dbOrderData.payment_method,
-              domain: `${domain}.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop'}`
+              domain: `${domain}.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop'}`
             }),
           }).catch(err => console.error("External SMS API Error:", err));
         }

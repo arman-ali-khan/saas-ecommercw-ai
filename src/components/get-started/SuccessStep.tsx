@@ -36,7 +36,7 @@ const translations = {
     }
 };
 
-const domainSuffix = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'dokanbd.shop';
+const domainSuffix = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
 
 export default function SuccessStep({ formData, lang }: SuccessStepProps) {
     const t = translations[lang];
@@ -51,7 +51,7 @@ export default function SuccessStep({ formData, lang }: SuccessStepProps) {
 
             <Card className="text-center border-2 shadow-2xl rounded-[3rem] overflow-hidden">
                 <CardHeader className="bg-muted/30 p-10 border-b"><CardTitle className="text-4xl font-black font-headline">{t.title}</CardTitle><CardDescription className="text-lg mt-2">{t.desc}</CardDescription></CardHeader>
-                <CardContent className="p-10 space-y-10">
+                <CardContent className="!p-2 sm:p-10 space-y-10">
                     <div className="grid gap-4 max-w-sm mx-auto">
                         <div className="flex justify-between items-center p-4 bg-primary/5 rounded-2xl border-2 border-primary/10"><span className="text-xs font-black uppercase text-muted-foreground">{t.store}</span><span className="font-bold text-primary">{formData.siteName}</span></div>
                         <div className="flex justify-between items-center p-4 bg-muted/20 rounded-2xl border-2 border-border/50"><span className="text-xs font-black uppercase text-muted-foreground">{t.url}</span><span className="font-mono text-xs font-black">{formData.domain}.{domainSuffix}</span></div>

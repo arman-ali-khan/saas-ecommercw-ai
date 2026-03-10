@@ -116,7 +116,7 @@ export default function GetStartedFlow() {
   const currentStepIndex = STEPS.indexOf(currentStep);
 
   return (
-    <div className="container mx-auto py-12 pt-32">
+    <div className="container px-1 mx-auto py-12 pt-32">
       <div className="max-w-4xl mx-auto">
         {currentStep !== 'success' && (
           <StepTracker currentStep={currentStepIndex} steps={STEPS.slice(0, -1)} />
