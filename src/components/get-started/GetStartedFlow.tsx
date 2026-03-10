@@ -114,7 +114,7 @@ export default function GetStartedFlow() {
   };
 
   const currentStepIndex = STEPS.indexOf(currentStep);
-
+// git
   return (
     <div className="container px-1 mx-auto py-12 pt-32">
       <div className="max-w-4xl mx-auto">
