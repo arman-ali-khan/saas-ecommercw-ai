@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
@@ -49,36 +50,50 @@ export async function GET(request: Request) {
 
     const lastWeekDate = startOfDay(subDays(new Date(), 7));
 
-    // Fetch Stats and Recent Lists in Parallel
+    // Fetch Base Data in Parallel
     const [
         profilesRes,
         paymentsRes,
         notificationsRes,
         pendingReviewsRes,
-        visitorsRes
+        visitorsRes,
+        plansRes
     ] = await Promise.all([
-        supabaseAdmin.from('profiles').select('id, subscription_status'),
-        supabaseAdmin.from('subscription_payments').select('*, profiles(full_name, username, email), plans(name)').order('created_at', { ascending: false }),
+        supabaseAdmin.from('profiles').select('id, subscription_status, full_name, username, email, site_name'),
+        supabaseAdmin.from('subscription_payments').select('*').order('created_at', { ascending: false }),
         supabaseAdmin.from('notifications')
-            .select('*, profiles:site_id(full_name, username, email, site_name)')
+            .select('*')
             .eq('is_read', false)
             .eq('recipient_type', 'admin')
             .is('recipient_id', null) 
             .order('created_at', { ascending: false })
-            .limit(5),
+            .limit(10),
         supabaseAdmin.from('saas_reviews').select('id', { count: 'exact', head: true }).eq('is_approved', false),
-        supabaseAdmin.from('visitors').select('created_at').gte('created_at', lastWeekDate.toISOString())
+        supabaseAdmin.from('visitors').select('created_at').gte('created_at', lastWeekDate.toISOString()),
+        supabaseAdmin.from('plans').select('id, name')
     ]);
 
     const allProfiles = profilesRes.data || [];
     const allPayments = paymentsRes.data || [];
+    const allPlans = plansRes.data || [];
     const recentNotifications = notificationsRes.data || [];
     const weekVisitors = visitorsRes.data || [];
     
-    // Calculate Stats
-    const totalRevenue = allPayments.filter(p => p.status === 'completed').reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    // Maps for manual joining
+    const profilesMap = new Map(allProfiles.map(p => [p.id, p]));
+    const plansMap = new Map(allPlans.map(p => [p.id, p]));
+
+    // 1. Total Revenue Calculation (Completed only)
+    const totalRevenue = allPayments
+        .filter(p => p.status === 'completed')
+        .reduce((sum, p) => sum + (parseFloat(String(p.amount)) || 0), 0);
+
+    // 2. Active Subscriptions Count
     const activeSubscriptions = allProfiles.filter(p => p.subscription_status === 'active').length;
-    const pendingSubscriptionsCount = allPayments.filter(p => p.status === 'pending' || p.status === 'pending_verification').length;
+
+    // 3. Pending Subscriptions Count
+    const pendingPaymentsList = allPayments.filter(p => p.status === 'pending' || p.status === 'pending_verification');
+    const pendingSubscriptionsCount = pendingPaymentsList.length;
 
     // --- Generate Weekly Trends ---
     const days = Array.from({ length: 7 }, (_, i) => startOfDay(subDays(new Date(), 6 - i)));
@@ -87,7 +102,7 @@ export async function GET(request: Request) {
         revenue: days.map(day => {
             const amount = allPayments
                 .filter(p => p.status === 'completed' && isSameDay(new Date(p.created_at), day))
-                .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                .reduce((sum, p) => sum + (parseFloat(String(p.amount)) || 0), 0);
             return { date: format(day, 'MMM d'), amount };
         }),
         visitors: days.map(day => {
@@ -100,9 +115,21 @@ export async function GET(request: Request) {
         })
     };
 
-    // Decrypt everything recursively
-    const processedPayments = decryptObject(allPayments.filter(p => p.status === 'pending' || p.status === 'pending_verification').slice(0, 5));
-    const processedNotifications = decryptObject(recentNotifications);
+    // Prepare recent data with manual joins
+    const recentPendingPaymentsJoined = pendingPaymentsList.slice(0, 5).map(p => ({
+        ...p,
+        profiles: profilesMap.get(p.user_id) || null,
+        plans: plansMap.get(p.plan_id) || null
+    }));
+
+    const recentNotificationsJoined = recentNotifications.map(n => ({
+        ...n,
+        profiles: profilesMap.get(n.site_id) || null
+    }));
+
+    // Decrypt sensitive info recursively
+    const processedPayments = decryptObject(recentPendingPaymentsJoined);
+    const processedNotifications = decryptObject(recentNotificationsJoined);
 
     return NextResponse.json({
         stats: {
