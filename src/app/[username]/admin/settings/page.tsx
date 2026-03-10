@@ -512,9 +512,9 @@ function SettingsContent() {
                                 </h3>
                                 <FormField control={seoForm.control} name="google_analytics_id" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Google Analytics ID</FormLabel>
+                                        <FormLabel>Google Analytics ID (G-XXXXXXX)</FormLabel>
                                         <FormControl><Input placeholder="G-XXXXXXXXXX" {...field} /></FormControl>
-                                        <FormDescription className="text-[10px]">আপনার গুগলের G- আইডিটি এখানে দিন।</FormDescription>
+                                        <FormDescription className="text-[10px]">আপনার গুগল অ্যানালিটিক্স (G-) আইডিটি এখানে দিন। এটি ভিজিটর ডাটা ট্র্যাক করতে ব্যবহৃত হবে।</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )} />

@@ -14,6 +14,7 @@ import bn from '@/locales/bn.json';
 import ThemeInitializer from '@/components/theme-initializer';
 import { notFound } from 'next/navigation';
 import FloatingChatButton from '@/components/floating-chat-button';
+import Script from 'next/script';
 
 const translations = { en, bn };
 
@@ -148,6 +149,47 @@ export default async function UsernameLayout({
 
   return (
     <LanguageProvider translations={translationsToUse}>
+      {/* Google Analytics Rendering */}
+      {settingsData?.google_analytics_id && (
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${settingsData.google_analytics_id}`}
+            strategy="afterInteractive"
+          />
+          <Script id="google-analytics" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${settingsData.google_analytics_id}');
+            `}
+          </Script>
+        </>
+      )}
+
+      {/* Facebook Pixel Rendering */}
+      {settingsData?.facebook_pixel_id && (
+        <Script id="facebook-pixel" strategy="afterInteractive">
+          {`
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '${settingsData.facebook_pixel_id}');
+            fbq('track', 'PageView');
+          `}
+        </Script>
+      )}
+
+      {/* Google Search Console Verification Meta */}
+      {settingsData?.google_search_console_tag && (
+          <div dangerouslySetInnerHTML={{ __html: settingsData.google_search_console_tag }} />
+      )}
+
       <ThemeInitializer defaultMode={settingsData?.theme_mode || 'light'} />
       {themeStyles && <style dangerouslySetInnerHTML={{ __html: themeStyles }} />}
       <div className="flex flex-col min-h-screen">
