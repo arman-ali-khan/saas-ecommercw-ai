@@ -68,11 +68,11 @@ export async function middleware(request: NextRequest) {
         const supabase = createClient(supabaseUrl, supabaseKey);
         const cleanHost = host.replace(/^www\./, '');
         
-        // Query profiles for custom_domain match OR SAM.COM style Sam identifier
+        // Query profiles for custom_domain match
         const { data: profile } = await supabase
           .from('profiles')
           .select('domain')
-          .or(`custom_domain.eq."${host}",custom_domain.eq."${cleanHost}",domain.eq."${cleanHost}"`)
+          .or(`custom_domain.eq.${host},custom_domain.eq.${cleanHost},domain.eq.${cleanHost}`)
           .maybeSingle();
         
         if (profile?.domain) {
