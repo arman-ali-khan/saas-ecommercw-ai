@@ -11,17 +11,16 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const [isStorePage, setIsStorePage] = useState(false);
 
   useEffect(() => {
-    // Detect if we are on a tenant subdomain or custom domain
-    const h = window.location.hostname.toLowerCase();
-    const platformRootDomains = ['dokanbd.shop', 'e-bd.shop', 'localhost'];
+    const h = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
+    // Platform roots
+    const platformRootDomains = ['e-bd.shop', 'localhost'];
     
-    // It's a platform root if it matches exactly or is a dev/preview environment
     const isPlatformRoot = platformRootDomains.some(d => h === d || h === `www.${d}`) || 
                           h.endsWith('.vercel.app') ||
-                          h.includes('cloudworkstations.dev') ||
-                          h.includes('cluster-aic6jbiihrhmyrqafasatvzbwe');
+                          h.includes('cloudworkstations.dev');
     
-    // It's a store page if it's NOT the platform root AND not a system dashboard path
+    // It's a store page if it's on a custom domain OR a subdomain of e-bd.shop
+    // and it's NOT the platform root dashboard
     const isSystemPath = pathname.startsWith('/dashboard');
     setIsStorePage(!isPlatformRoot && !isSystemPath);
   }, [pathname]);
@@ -31,13 +30,12 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     return <>{children}</>;
   }
 
-  // If it's a store page, we only return children. 
-  // Store-specific layout is handled in src/app/[username]/layout.tsx
+  // individual store pages (subdomain or custom domain)
   if (isStorePage) {
     return <>{children}</>;
   }
   
-  // Platform homepage and root pages (About, Login etc) get the SaaS layout
+  // Platform root pages (Landing, About, Login etc)
   return (
     <div className="flex flex-col min-h-screen">
         <SaasHeader />

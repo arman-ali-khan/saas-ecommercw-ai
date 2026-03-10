@@ -4,8 +4,10 @@ import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Enhanced Middleware for Multi-tenant Store Resolution.
- * Prioritizes custom_domain from profiles table, then falls back to subdomain.
+ * Robust Middleware for Multi-tenant Store Resolution.
+ * - Prioritizes custom_domain from profiles table.
+ * - Fallback to sam.e-bd.shop subdomain style.
+ * - Removed dokanbd.shop from subdomain logic.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -24,13 +26,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const platformRootDomains = [
-    'dokanbd.shop',
-    'e-bd.shop',
-    'localhost',
-  ];
-
-  // 2. Identify if it's a Platform Root (e.g., dokanbd.shop or e-bd.shop)
+  // 2. Identify Platform Root (e-bd.shop)
+  // localhost is kept for development purposes
+  const platformRootDomains = ['e-bd.shop', 'localhost'];
   const isPlatformRoot = platformRootDomains.some(d => host === d || host === `www.${d}`);
   
   if (isPlatformRoot) {
@@ -39,7 +37,7 @@ export async function middleware(request: NextRequest) {
 
   let storeUsername = '';
 
-  // 3. CHECK CUSTOM DOMAIN FIRST (Search profiles table)
+  // 3. STEP 1: CHECK CUSTOM DOMAIN (Highest Priority)
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -49,6 +47,7 @@ export async function middleware(request: NextRequest) {
       const cleanHost = host.replace(/^www\./, '');
       
       // Query profiles for custom_domain match
+      // We look for both with and without www
       const { data: profile } = await supabase
         .from('profiles')
         .select('domain')
@@ -63,29 +62,30 @@ export async function middleware(request: NextRequest) {
     console.error('Middleware Custom Domain Resolution Error:', e);
   }
 
-  // 4. FALLBACK TO SUBDOMAIN (if not a custom domain match)
+  // 4. STEP 2: CHECK SUBDOMAIN (Fallback if not a custom domain)
   if (!storeUsername) {
-    const rootMatch = platformRootDomains.find(d => host.endsWith(`.${d}`));
-    
-    if (rootMatch) {
-      // Extract the subdomain (handle www. correctly)
-      const subdomain = host.replace(`.${rootMatch}`, '').replace(/^www\./, '');
-      
-      // Check if it's a valid store subdomain (not a system reserved one)
-      if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {
-        storeUsername = subdomain;
-      }
-    } 
+    // Only check for sam.e-bd.shop (dokanbd.shop is removed)
+    if (host.endsWith('.e-bd.shop')) {
+        const subdomain = host.replace('.e-bd.shop', '').replace(/^www\./, '');
+        if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {
+            storeUsername = subdomain;
+        }
+    } else if (host.includes('localhost') && host.split('.').length > 1) {
+        // Handle sam.localhost for local dev
+        const subdomain = host.split('.')[0];
+        if (subdomain !== 'www' && subdomain !== 'localhost') {
+            storeUsername = subdomain;
+        }
+    }
   }
   
-  // 5. Perform Internal Rewrite to the dynamic [username] folder
+  // 5. Rewrite to the internal [username] folder
   if (storeUsername) {
-    // Avoid double rewrite if the URL already has the rewritten path
+    // Avoid infinite rewrite loop
     if (url.pathname.startsWith(`/${storeUsername}/`) || url.pathname === `/${storeUsername}`) {
       return NextResponse.next();
     }
     
-    // Target path is inside the dynamic [username] route
     const targetPath = `/${storeUsername}${url.pathname}${url.search || ''}`;
     return NextResponse.rewrite(new URL(targetPath, request.url));
   }
