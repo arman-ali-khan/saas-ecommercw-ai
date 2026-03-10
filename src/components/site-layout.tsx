@@ -12,7 +12,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const h = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
-    const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
+    const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop').toLowerCase();
     
     // Platform roots
     const platformRootDomains = [baseDomain, 'localhost'];

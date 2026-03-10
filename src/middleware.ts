@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
   const host = hostname.split(':')[0].toLowerCase();
-  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
+  const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop').toLowerCase();
   
   // 1. Skip core internal paths and common static assets
   if (
