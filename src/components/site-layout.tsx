@@ -12,17 +12,20 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const h = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
-    const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop').toLowerCase();
+    const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop').toLowerCase().trim();
     
-    // Platform roots
+    // Platform roots - strictly landing page domains
     const platformRootDomains = [baseDomain, 'localhost'];
     
+    // A page is a platform root if it's the base domain exactly or a vercel preview
     const isPlatformRoot = platformRootDomains.some(d => h === d || h === `www.${d}`) || 
-                          h.endsWith('.vercel.app') ||
+                          (h.endsWith('.vercel.app') && !h.includes(baseDomain)) ||
                           h.includes('cloudworkstations.dev');
     
     // It's a store page if it's NOT the platform root domain
+    // Also skip internal dashboard system paths
     const isSystemPath = pathname.startsWith('/dashboard');
+    
     setIsStorePage(!isPlatformRoot && !isSystemPath);
   }, [pathname]);
   

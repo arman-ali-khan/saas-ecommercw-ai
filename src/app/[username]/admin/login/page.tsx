@@ -64,6 +64,7 @@ export default function AdminLoginPage() {
         title: 'Redirecting...',
         description: `You are an admin for '${loggedInUser.domain}'. Switching to your store.`,
       });
+      
       if (hostname) {
         const isLocalhost = hostname.includes('localhost');
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
@@ -71,8 +72,9 @@ export default function AdminLoginPage() {
         if (isLocalhost) {
             router.push(`/admin/login`); 
         } else {
-            // Force redirect to store's primary subdomain or their custom domain if we had it cached
-            window.location.href = `${window.location.protocol}//${loggedInUser.domain}.${baseDomain}/admin`;
+            // Priority: use their custom domain if they have one, else subdomain
+            const targetDomain = loggedInUser.custom_domain || `${loggedInUser.domain}.${baseDomain}`;
+            window.location.href = `${window.location.protocol}//${targetDomain}/admin`;
         }
       }
     }
@@ -96,7 +98,7 @@ export default function AdminLoginPage() {
       title: 'Login Successful!',
       description: 'Opening your dashboard...',
     });
-    // Ensure full page reload to sync sessions
+    // Ensure full page reload to sync sessions and apply correct store domain context
     window.location.href = '/admin';
   }
 
