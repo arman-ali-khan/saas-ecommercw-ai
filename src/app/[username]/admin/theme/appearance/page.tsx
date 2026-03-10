@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -47,13 +46,14 @@ const appearanceSchema = z.object({
   theme_border: z.string().optional().or(z.null()),
   theme_input: z.string().optional().or(z.null()),
   theme_destructive: z.string().optional().or(z.null()),
-  font_primary: z.string().min(1).default('Poppins'),
-  font_secondary: z.string().min(1).default('Poppins'),
+  font_primary: z.string().min(1).default('Baloo Da 2'),
+  font_secondary: z.string().min(1).default('Baloo Da 2'),
 });
 
 type AppearanceFormData = z.infer<typeof appearanceSchema>;
 
 const FONT_OPTIONS = [
+    { label: 'Baloo Da 2 (Bengali Rounded)', value: 'Baloo Da 2', type: 'bn' },
     { label: 'Poppins (English Standard)', value: 'Poppins', type: 'en' },
     { label: 'Hind Siliguri (Bengali Clean)', value: 'Hind Siliguri', type: 'bn' },
     { label: 'Noto Sans Bengali (Formal)', value: 'Noto Sans Bengali', type: 'bn' },
@@ -144,8 +144,8 @@ export default function AppearanceManagerPage() {
     resolver: zodResolver(appearanceSchema),
     defaultValues: { 
         theme_mode: 'light', 
-        font_primary: 'Poppins', 
-        font_secondary: 'Poppins' 
+        font_primary: 'Baloo Da 2', 
+        font_secondary: 'Baloo Da 2' 
     },
   });
 
@@ -178,8 +178,8 @@ export default function AppearanceManagerPage() {
                 theme_border: data.theme_border || '',
                 theme_input: data.theme_input || '',
                 theme_destructive: data.theme_destructive || '',
-                font_primary: data.font_primary || 'Poppins',
-                font_secondary: data.font_secondary || 'Poppins',
+                font_primary: data.font_primary || 'Baloo Da 2',
+                font_secondary: data.font_secondary || 'Baloo Da 2',
             });
         }
     } catch (e) { console.error('Error fetching appearance:', e); } finally { setIsLoading(false); }

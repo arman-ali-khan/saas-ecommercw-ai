@@ -1,9 +1,16 @@
-import { Poppins, Hind_Siliguri, Noto_Sans_Bengali, Lato, Roboto, Open_Sans, Orbitron, Montserrat } from 'next/font/google';
+import { Poppins, Hind_Siliguri, Noto_Sans_Bengali, Lato, Roboto, Open_Sans, Orbitron, Montserrat, Baloo_Da_2 } from 'next/font/google';
 
 export const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-poppins',
+  display: 'swap',
+});
+
+export const baloo_da_2 = Baloo_Da_2({
+  subsets: ['bengali', 'latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-baloo-da-2',
   display: 'swap',
 });
 
@@ -51,6 +58,7 @@ export const montserrat = Montserrat({
 });
 
 export const fontMap: Record<string, { variable: string }> = {
+  'Baloo Da 2': baloo_da_2,
   'Poppins': poppins,
   'Hind Siliguri': hind_siliguri,
   'Noto Sans Bengali': noto_sans_bengali,
