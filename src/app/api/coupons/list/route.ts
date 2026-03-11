@@ -2,6 +2,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * Lists all coupons for a specific site.
+ */
+
 export async function POST(request: Request) {
   try {
     const { siteId } = await request.json();
@@ -23,7 +27,7 @@ export async function POST(request: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json({ coupons: data }, { status: 200 });
+    return NextResponse.json({ coupons: data || [] }, { status: 200 });
   } catch (err: any) {
     console.error('List Coupons API Error:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
