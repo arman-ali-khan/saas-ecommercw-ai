@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -8,7 +9,8 @@ import type {
     SeoRequest, 
     Plan, 
     SubscriptionPaymentWithDetails,
-    Page
+    Page,
+    StoreTheme
 } from '@/types';
 
 interface SaasDashboardData {
@@ -38,6 +40,7 @@ interface SaasState {
     seoRequests: SeoRequest[];
     reviews: SaaSReview[];
     pages: Page[];
+    themes: StoreTheme[];
     
     // Fetch Status (Timestamps)
     lastFetched: Record<string, number>;
@@ -52,6 +55,7 @@ interface SaasState {
     setSeoRequests: (requests: SeoRequest[]) => void;
     setReviews: (reviews: SaaSReview[]) => void;
     setPages: (pages: Page[]) => void;
+    setThemes: (themes: StoreTheme[]) => void;
     
     invalidateEntity: (entity: string) => void;
     clearStore: () => void;
@@ -67,6 +71,7 @@ const INITIAL_LAST_FETCHED = {
     seoRequests: 0,
     reviews: 0,
     pages: 0,
+    themes: 0,
 };
 
 export const useSaasStore = create<SaasState>()((set) => ({
@@ -79,6 +84,7 @@ export const useSaasStore = create<SaasState>()((set) => ({
     seoRequests: [],
     reviews: [],
     pages: [],
+    themes: [],
     
     lastFetched: INITIAL_LAST_FETCHED,
 
@@ -127,6 +133,11 @@ export const useSaasStore = create<SaasState>()((set) => ({
         lastFetched: { ...state.lastFetched, pages: Date.now() } 
     })),
 
+    setThemes: (themes) => set((state) => ({ 
+        themes, 
+        lastFetched: { ...state.lastFetched, themes: Date.now() } 
+    })),
+
     invalidateEntity: (entity) => set((state) => ({
         lastFetched: { ...state.lastFetched, [entity]: 0 }
     })),
@@ -141,6 +152,7 @@ export const useSaasStore = create<SaasState>()((set) => ({
         seoRequests: [],
         reviews: [],
         pages: [],
+        themes: [],
         lastFetched: INITIAL_LAST_FETCHED,
     })
 }));

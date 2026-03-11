@@ -550,3 +550,14 @@ export interface Coupon {
   is_active: boolean;
   created_at: string;
 }
+
+export interface StoreTheme {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  preview_link: string | null;
+  image_url: string | null;
+  is_active: boolean;
+  is_default: boolean;
+  created_at: string;
+}

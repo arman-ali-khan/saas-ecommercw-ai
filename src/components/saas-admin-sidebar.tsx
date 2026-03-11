@@ -22,6 +22,7 @@ import {
   Globe,
   LifeBuoy,
   Eye,
+  Palette
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -122,6 +123,7 @@ export default function SaasAdminSidebar({ isMobile = false }: SaasAdminSidebarP
     { href: `/dashboard/plans`, label: 'Plans', icon: Shapes },
     { href: `/dashboard/features`, label: 'Features', icon: Sparkles },
     { href: `/dashboard/landing-page`, label: 'Landing Page', icon: Monitor },
+    { href: `/dashboard/themes`, label: 'Store Themes', icon: Palette },
     { href: `/dashboard/showcase`, label: 'Showcase', icon: GalleryVertical },
     { href: `/dashboard/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/dashboard/pages`, label: 'Pages', icon: FileText },

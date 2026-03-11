@@ -69,6 +69,9 @@ export async function POST(request: Request) {
       case 'pages':
         query = supabaseAdmin.from('saas_pages').select('id, title, slug, is_published, updated_at').order('title', { ascending: true });
         break;
+      case 'themes':
+        query = supabaseAdmin.from('store_themes').select('*').order('created_at', { ascending: false });
+        break;
       case 'settings':
         query = supabaseAdmin.from('saas_settings').select('*').eq('id', 1).single();
         break;
