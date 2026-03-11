@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -12,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Send, ArrowLeft, Loader2, User, RefreshCw, Leaf } from 'lucide-react';
+import { MessageSquare, Send, ArrowLeft, Loader2, User, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { LiveChatMessage } from '@/types';
 
@@ -34,6 +33,16 @@ export default function LiveQuestionsAdminPage() {
 
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   
+  const scrollToBottom = useCallback(() => {
+    if (scrollViewportRef.current) {
+      const scrollContainer = scrollViewportRef.current;
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, []);
+
   const fetchAndGroupMessages = useCallback(async (isInitialLoad: boolean) => {
     if (!userId) return;
     if (isInitialLoad) setIsLoading(true);
@@ -88,7 +97,6 @@ export default function LiveQuestionsAdminPage() {
                 const newMap = new Map(prevMap);
                 const conversation = [...(newMap.get(msg.conversation_id) || [])];
                 
-                // Prevent duplicate messages
                 if (!conversation.find(m => m.id === msg.id)) {
                     conversation.push(msg);
                     newMap.set(msg.conversation_id, conversation);
@@ -97,11 +105,7 @@ export default function LiveQuestionsAdminPage() {
             });
         }
       )
-      .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-              console.log('Realtime chat subscribed for site:', userId);
-          }
-      });
+      .subscribe();
         
     return () => {
       supabase.removeChannel(channel);
@@ -109,16 +113,15 @@ export default function LiveQuestionsAdminPage() {
   }, [authLoading, userId, fetchAndGroupMessages]);
 
 
+  // Effect to scroll to bottom when messages update or conversation is selected
   useEffect(() => {
     if (selectedConversationId) {
-      setTimeout(() => {
-          scrollViewportRef.current?.scrollTo({
-            top: scrollViewportRef.current.scrollHeight,
-            behavior: 'smooth',
-          });
+      const timer = setTimeout(() => {
+        scrollToBottom();
       }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [selectedConversationId, messagesByConversation]);
+  }, [selectedConversationId, messagesByConversation, scrollToBottom]);
 
   const handleSelectConversation = useCallback(async (conversationId: string) => {
     setSelectedConversationId(conversationId);
@@ -263,7 +266,7 @@ export default function LiveQuestionsAdminPage() {
 
         <div
             className={cn(
-            'flex-grow flex-col bg-background',
+            'flex-grow flex flex-col bg-background',
             selectedConversationId ? 'flex' : 'hidden md:flex'
             )}
         >
@@ -292,7 +295,7 @@ export default function LiveQuestionsAdminPage() {
                 </div>
                 
                 <ScrollArea className="flex-grow p-4 sm:p-6" viewportRef={scrollViewportRef}>
-                    <div className="space-y-6">
+                    <div className="space-y-6 pb-4">
                         {selectedConversationMessages.map((message, index) => (
                             <div key={message.id ? `db-${message.id}` : `temp-${index}`} className={cn(
                                 'flex items-end gap-2 max-w-[85%] group animate-in fade-in slide-in-from-bottom-2 duration-300',
