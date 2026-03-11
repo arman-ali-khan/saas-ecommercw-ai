@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -11,6 +12,7 @@ import { Analytics } from "@vercel/analytics/next";
 import Script from 'next/script';
 import SaasPreloader from '@/components/saas-preloader';
 import OfflineWarning from '@/components/offline-warning';
+import ThemeInitializer from '@/components/theme-initializer';
  
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
@@ -68,6 +70,7 @@ export default async function RootLayout({
         <SaasPreloader />
         <CustomTopLoader />
         <Analytics/>
+        <ThemeInitializer defaultMode="light" />
         <AuthProvider>
           <SiteLayout isStorePage={isStorePage}>{children}</SiteLayout>
         </AuthProvider>

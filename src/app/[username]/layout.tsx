@@ -144,8 +144,8 @@ export default async function UsernameLayout({
       secondaryFontVar && `--font-headline: var(${secondaryFontVar});`,
     ].filter(Boolean).join(' ');
 
-    // Layout variables that should typically only apply to light mode unless specified otherwise
-    const lightModeVars = [
+    // Layout variables that should ONLY apply to light mode
+    const lightOnlyVars = [
       settingsData.theme_background && `--background: ${settingsData.theme_background};`,
       settingsData.theme_foreground && `--foreground: ${settingsData.theme_foreground};`,
       settingsData.theme_card && `--card: ${settingsData.theme_card};`,
@@ -156,10 +156,10 @@ export default async function UsernameLayout({
       settingsData.theme_input && `--input: ${settingsData.theme_input};`,
     ].filter(Boolean).join(' ');
 
-    if (brandVars || lightModeVars) {
+    if (brandVars || lightOnlyVars) {
       themeStyles = `
-        :root { ${brandVars} ${lightModeVars} }
-        .dark { ${brandVars} }
+        :root { ${brandVars} }
+        :root:not(.dark) { ${lightOnlyVars} }
       `;
     }
   }
