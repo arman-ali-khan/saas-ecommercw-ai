@@ -111,6 +111,8 @@ export interface Order {
   status: string;
   payment_method: string;
   transaction_id: string | null;
+  coupon_code?: string | null;
+  discount_amount?: number | null;
 }
 
 export interface User {
@@ -531,5 +533,20 @@ export interface Visitor {
   dns_info?: any;
   user_agent?: string;
   referrer?: string;
+  created_at: string;
+}
+
+export interface Coupon {
+  id: number;
+  site_id: string;
+  code: string;
+  discount_type: 'fixed' | 'percentage';
+  discount_value: number;
+  min_order_amount: number;
+  max_discount_amount?: number | null;
+  expiry_date?: string | null;
+  usage_limit?: number | null;
+  used_count: number;
+  is_active: boolean;
   created_at: string;
 }

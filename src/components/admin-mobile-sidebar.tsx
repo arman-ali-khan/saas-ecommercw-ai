@@ -26,6 +26,7 @@ import {
   HelpCircle,
   MessageSquare,
   ImageIcon,
+  Ticket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -116,6 +117,7 @@ export default function AdminMobileSidebar() {
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/images`, label: 'Image Gallery', icon: ImageIcon },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
+    { href: `/admin/coupons`, label: 'Promo Codes', icon: Ticket },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/admin/reviews`, label: 'Reviews', icon: Star, count: sidebarCounts.pendingReviews },
     { href: `/admin/qna`, label: 'Q&A', icon: HelpCircle, count: sidebarCounts.pendingQna },

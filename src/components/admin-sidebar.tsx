@@ -27,6 +27,7 @@ import {
   MessageSquare,
   ImageIcon,
   Wand2,
+  Ticket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -132,6 +133,7 @@ export default function AdminSidebar() {
     { href: `/admin/carousel`, label: 'Carousel', icon: GalleryHorizontal },
     { href: `/admin/images`, label: 'Image Gallery', icon: ImageIcon },
     { href: `/admin/flash-deals`, label: 'Flash Deals', icon: Flame },
+    { href: `/admin/coupons`, label: 'Discount Coupons', icon: Ticket },
     { href: `/admin/featured-products`, label: 'Featured Products', icon: Star },
     { href: `/admin/reviews`, label: 'Reviews', icon: Star, count: sidebarCounts.pendingReviews },
     { href: `/admin/qna`, label: 'Q&A', icon: HelpCircle, count: sidebarCounts.pendingQna },

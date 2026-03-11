@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/stores/cart';
@@ -14,9 +15,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
-import { Loader2, Truck, Wallet, CheckCircle2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { Loader2, Truck, Wallet, CheckCircle2, Plus, Minus, ShoppingBag, Ticket, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { ShippingZone, Address, SaasSettings } from '@/types';
+import type { ShippingZone, Address, SaasSettings, Coupon } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
@@ -70,6 +71,11 @@ export default function CheckoutClient({ siteId, username, shippingZones, paymen
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Coupon State
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -156,8 +162,21 @@ export default function CheckoutClient({ siteId, username, shippingZones, paymen
     const selectedZone = shippingZones.find(zone => zone.id.toString() === selectedShippingZoneId);
     return selectedZone ? selectedZone.price : 0;
   }, [selectedShippingZoneId, shippingZones]);
+
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discount_type === 'fixed') {
+        return Math.min(appliedCoupon.discount_value, cartSubtotal);
+    } else {
+        const pctDiscount = (cartSubtotal * appliedCoupon.discount_value) / 100;
+        if (appliedCoupon.max_discount_amount) {
+            return Math.min(pctDiscount, appliedCoupon.max_discount_amount);
+        }
+        return pctDiscount;
+    }
+  }, [appliedCoupon, cartSubtotal]);
   
-  const cartTotal = useMemo(() => cartSubtotal + shippingCost, [cartSubtotal, shippingCost]);
+  const cartTotal = useMemo(() => cartSubtotal + shippingCost - discountAmount, [cartSubtotal, shippingCost, discountAmount]);
 
   useEffect(() => {
     if (customer) {
@@ -201,6 +220,35 @@ export default function CheckoutClient({ siteId, username, shippingZones, paymen
     toast({ title: t_checkout.addressSelected });
   }
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsValidatingCoupon(true);
+    try {
+        const response = await fetch('/api/coupons/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: couponCode, siteId, subtotal: cartSubtotal }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            setAppliedCoupon(result.coupon);
+            toast({ title: 'Coupon Applied!', description: `You saved ${discountAmount.toFixed(2)} BDT.` });
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Coupon Error', description: e.message });
+    } finally {
+        setIsValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+      setAppliedCoupon(null);
+      setCouponCode('');
+      toast({ title: 'Coupon removed' });
+  };
+
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     setIsSubmitting(true);
 
@@ -234,6 +282,8 @@ export default function CheckoutClient({ siteId, username, shippingZones, paymen
       transaction_id: values.transactionId || null,
       uncompletedOrderId: uncompletedOrderId,
       domain: username,
+      coupon_code: appliedCoupon?.code || null,
+      discount_amount: discountAmount || 0,
     };
 
     try {
@@ -336,6 +386,43 @@ export default function CheckoutClient({ siteId, username, shippingZones, paymen
             </div>
             
             <Separator className="my-6" />
+
+            {/* Promo Code Section */}
+            <div className="mb-6 space-y-3">
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Promo Code</Label>
+                {appliedCoupon ? (
+                    <div className="flex items-center justify-between p-3 bg-green-500/10 border-2 border-green-500/20 rounded-xl animate-in zoom-in-95">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-green-500/20 rounded-lg"><Ticket className="h-4 w-4 text-green-600" /></div>
+                            <div>
+                                <p className="text-xs font-black text-green-700">{appliedCoupon.code}</p>
+                                <p className="text-[10px] text-green-600/80">Coupon applied successfully!</p>
+                            </div>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-700 hover:bg-green-500/20" onClick={removeCoupon}>
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="flex gap-2">
+                        <Input 
+                            placeholder="Enter Code" 
+                            value={couponCode} 
+                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                            className="h-11 rounded-xl uppercase font-bold"
+                        />
+                        <Button 
+                            type="button" 
+                            variant="secondary" 
+                            className="h-11 px-6 rounded-xl font-bold"
+                            onClick={handleApplyCoupon}
+                            disabled={isValidatingCoupon || !couponCode.trim()}
+                        >
+                            {isValidatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                        </Button>
+                    </div>
+                )}
+            </div>
             
             <div className="space-y-3">
                 <div className="flex justify-between text-sm">
@@ -346,6 +433,12 @@ export default function CheckoutClient({ siteId, username, shippingZones, paymen
                     <span className="text-muted-foreground">{t_checkout.shipping}</span>
                     <span className="text-foreground font-bold">{shippingCost.toFixed(2)} BDT</span>
                 </div>
+                {appliedCoupon && (
+                    <div className="flex justify-between text-sm text-green-600 animate-in slide-in-from-top-2">
+                        <span className="flex items-center gap-1.5"><Ticket className="h-3 w-3" /> Discount ({appliedCoupon.code})</span>
+                        <span className="font-bold">- {discountAmount.toFixed(2)} BDT</span>
+                    </div>
+                )}
                 <Separator className="opacity-50" />
                 <div className="flex justify-between items-center pt-2">
                     <span className="font-black text-lg uppercase tracking-tight">{t_checkout.total}</span>

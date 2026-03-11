@@ -158,7 +158,14 @@
     "paymentStep2": "Select the option: ",
     "paymentStep3": "Enter this number: ",
     "paymentStep4": "Enter total amount: ",
-    "paymentStep5": "After successful payment, enter the Transaction ID below."
+    "paymentStep5": "After successful payment, enter the Transaction ID below.",
+    "promoCode": "Promo Code",
+    "apply": "Apply",
+    "discount": "Discount",
+    "couponApplied": "Coupon Applied!",
+    "invalidCoupon": "Invalid coupon code.",
+    "couponExpired": "This coupon has expired.",
+    "minOrderNotMet": "Minimum order amount not met."
   },
   "success": {
     "title": "Your order has been placed!",
