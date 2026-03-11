@@ -244,6 +244,7 @@ export default function AdminMobileSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
+                <SubNavLink href="/admin/theme/themes" label="Themes" />
                 <SubNavLink href="/admin/theme/header" label="Header" />
                 <SubNavLink href="/admin/theme/footer" label="Footer" />
                 <SubNavLink href="/admin/theme/appearance" label="Appearance" />

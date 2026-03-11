@@ -28,6 +28,7 @@ import {
   ImageIcon,
   Wand2,
   Ticket,
+  Layout as LayoutIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
@@ -141,7 +142,6 @@ export default function AdminSidebar() {
     { href: `/admin/section-manager`, label: 'Section Manager', icon: LayoutList },
     { href: `/admin/uncompleted`, label: 'Uncompleted', icon: FileClock, count: sidebarCounts.unviewedUncompleted },
     { href: `/admin/pages`, label: 'Page Manager', icon: FileText },
-    { href: `/admin/advance-pages`, label: 'Visual Builder', icon: Wand2 },
     { href: `/admin/support`, label: 'Support Forum', icon: HelpCircle },
   ];
 
@@ -251,6 +251,7 @@ export default function AdminSidebar() {
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-7 space-y-1 py-1">
+                <SubNavLink href="/admin/theme/themes" label="Themes" />
                 <SubNavLink href="/admin/theme/header" label="Header" />
                 <SubNavLink href="/admin/theme/footer" label="Footer" />
                 <SubNavLink href="/admin/theme/appearance" label="Appearance" />
