@@ -76,6 +76,11 @@ function SuccessPageContent() {
     );
   }
 
+  // Explicit calculation for display
+  const itemsSubtotal = order.cart_items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
+  const shippingCost = order.shipping_info?.shipping_cost || 0;
+  const discountAmount = order.discount_amount || 0;
+
   return (
     <div className="max-w-2xl mx-auto py-8">
       <Card>
@@ -123,16 +128,24 @@ function SuccessPageContent() {
           </div>
           <Separator className="my-4" />
           <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-              <span className="text-muted-foreground">{s.shipping}</span>
-              <span>{(order.shipping_info?.shipping_cost || 0).toFixed(2)} BDT</span>
-            </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">{s.subtotal}</span>
-              <span>{(order.total - (order.shipping_info?.shipping_cost || 0)).toFixed(2)} BDT</span>
+              <span>{itemsSubtotal.toFixed(2)} BDT</span>
+            </div>
+            
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-red-500 font-medium">
+                <span>{s.discount}</span>
+                <span>- {discountAmount.toFixed(2)} BDT</span>
+              </div>
+            )}
+
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{s.shipping}</span>
+              <span>{shippingCost.toFixed(2)} BDT</span>
             </div>
            
-            <div className="flex justify-between font-bold text-base">
+            <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
               <span>{s.total}</span>
               <span>{order.total.toFixed(2)} BDT</span>
             </div>

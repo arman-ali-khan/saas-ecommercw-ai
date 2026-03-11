@@ -76,7 +76,7 @@
     "noSales": "কোনো সেলস ডেটা নেই।",
     "totalSales": "মোট সেলস",
     "orderStatus": "অর্ডারের স্ট্যাটাস",
-    "orderStatusDesc": "নির্বাচিত মাসের জন্য অর্ডার ডিস্ট্রিবিউশন।",
+    "orderStatusDesc": "Order distribution for the selected month.",
     "selectMonth": "মাস নির্বাচন করুন",
     "noOrdersThisMonth": "এই মাসে কোনো অর্ডার নেই।",
     "totalOrders": "মোট অর্ডার",
@@ -147,7 +147,7 @@
     "transactionId": "ট্রানজেকশন আইডি",
     "placeOrder": "অর্ডার নিশ্চিত করুন",
     "placingOrder": "অর্ডার হচ্ছে...",
-    "savedAddresses": "সংরক্ষিত ঠিকানা",
+    "savedAddresses": "saved addresses",
     "addressSelected": "ঠিকানা নির্বাচন করা হয়েছে",
     "noShipping": "কোনো শিপিং পদ্ধতি পাওয়া যায়নি। দয়া করে অ্যাডমিনের সাথে যোগাযোগ করুন।",
     "sendMoney": "সেন্ড মানি (Send Money)",
@@ -158,14 +158,7 @@
     "paymentStep2": "বিকল্পটি সিলেক্ট করুন: ",
     "paymentStep3": "এই নম্বরটি দিন: ",
     "paymentStep4": "মোট টাকার পরিমাণ দিন: ",
-    "paymentStep5": "পেমেন্ট শেষে নিচের বক্সে ট্রানজেকশন আইডি (TxnID) দিন।",
-    "promoCode": "প্রোমো কোড",
-    "apply": "প্রয়োগ করুন",
-    "discount": "ডিসকাউন্ট",
-    "couponApplied": "কুপন সফলভাবে প্রয়োগ করা হয়েছে!",
-    "invalidCoupon": "ভুল কুপন কোড।",
-    "couponExpired": "এই কুপনের মেয়াদ শেষ হয়ে গেছে।",
-    "minOrderNotMet": "ন্যূনতম অর্ডারের পরিমাণ পূরণ হয়নি।"
+    "paymentStep5": "পেমেন্ট শেষে নিচের বক্সে ট্রানজেকশন আইডি (TxnID) দিন。"
   },
   "success": {
     "title": "আপনার অর্ডার সম্পন্ন হয়েছে!",
@@ -174,6 +167,7 @@
     "paymentNote": "টাকা হাতে পেয়ে মূল্য পরিশোধ করুন।",
     "summary": "অর্ডার সারাংশ",
     "shipping": "শিপিং",
+    "discount": "ডিসকাউন্ট",
     "subtotal": "উপমোট",
     "total": "মোট",
     "contactInfo": "যোগাযোগ ও শিপিং",
@@ -316,25 +310,5 @@
     "order": "অর্ডার",
     "placedOn": "অর্ডার দেওয়া হয়েছে:",
     "statusCanceled": "বাতিল করা হয়েছে"
-  },
-  "productCard": {
-    "addToBag": "ব্যাগে যোগ করুন"
-  },
-  "toast": {
-    "addedToBag": "ব্যাগে যোগ করা হয়েছে",
-    "addedToBagDesc": "{quantity} x {productName} আপনার ব্যাগে যোগ করা হয়েছে।",
-    "removedFromBag": "ব্যাগ থেকে সরানো হয়েছে"
-  },
-  "aiShare": {
-    "title": "এআই সোশ্যাল শেয়ার",
-    "description": "আমাদের এআই-কে আপনার বন্ধুদের সাথে {productName} শেয়ার করার জন্য নিখুঁত সোশ্যাল মিডিয়া পোস্ট তৈরি করতে দিন।",
-    "labelInterests": "আগ্রহ",
-    "placeholderInterests": "যেমন: স্বাস্থ্যকর খাবার, মিষ্টি, অর্গানিক",
-    "generateBtn": "পোস্ট তৈরি করুন",
-    "generating": "তৈরি হচ্ছে...",
-    "generatedLabel": "তৈরি করা পোস্ট:",
-    "copyBtn": "লেখা কপি করুন",
-    "copied": "ক্লিপবোর্ডে কপি করা হয়েছে!",
-    "disclaimer": "এআই ভুল করতে পারে। গুরুত্বপূর্ণ তথ্য যাচাই করুন।"
   }
 }

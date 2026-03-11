@@ -158,14 +158,7 @@
     "paymentStep2": "Select the option: ",
     "paymentStep3": "Enter this number: ",
     "paymentStep4": "Enter total amount: ",
-    "paymentStep5": "After successful payment, enter the Transaction ID below.",
-    "promoCode": "Promo Code",
-    "apply": "Apply",
-    "discount": "Discount",
-    "couponApplied": "Coupon Applied!",
-    "invalidCoupon": "Invalid coupon code.",
-    "couponExpired": "This coupon has expired.",
-    "minOrderNotMet": "Minimum order amount not met."
+    "paymentStep5": "After successful payment, enter the Transaction ID below."
   },
   "success": {
     "title": "Your order has been placed!",
@@ -174,6 +167,7 @@
     "paymentNote": "Pay upon receiving the goods.",
     "summary": "Order Summary",
     "shipping": "Shipping",
+    "discount": "Discount",
     "subtotal": "Subtotal",
     "total": "Total",
     "contactInfo": "Contact & Shipping",
@@ -316,25 +310,5 @@
     "order": "Order",
     "placedOn": "Placed on:",
     "statusCanceled": "Canceled"
-  },
-  "productCard": {
-    "addToBag": "Add to Bag"
-  },
-  "toast": {
-    "addedToBag": "Added to Bag",
-    "addedToBagDesc": "{quantity} x {productName} has been added to your bag.",
-    "removedFromBag": "Removed from Bag"
-  },
-  "aiShare": {
-    "title": "AI Social Share",
-    "description": "Let our AI create an engaging social media post for you to share {productName} with friends.",
-    "labelInterests": "Interests",
-    "placeholderInterests": "e.g. healthy food, sweets, organic",
-    "generateBtn": "Generate Post",
-    "generating": "Generating...",
-    "generatedLabel": "Generated Post:",
-    "copyBtn": "Copy Text",
-    "copied": "Copied to clipboard!",
-    "disclaimer": "AI can make mistakes. Verify important info before sharing."
   }
 }
