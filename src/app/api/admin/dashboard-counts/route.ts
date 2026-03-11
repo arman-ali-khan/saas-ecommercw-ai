@@ -22,7 +22,8 @@ export async function POST(request: Request) {
       uncompletedRes,
       customersRes,
       reviewsRes,
-      qnaRes
+      qnaRes,
+      chatsRes
     ] = await Promise.all([
       supabaseAdmin
         .from('orders')
@@ -54,6 +55,12 @@ export async function POST(request: Request) {
         .select('*', { count: 'exact', head: true })
         .eq('site_id', siteId)
         .eq('is_approved', false),
+      supabaseAdmin
+        .from('live_chat_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('site_id', siteId)
+        .eq('sender_type', 'customer')
+        .eq('is_read', false),
     ]);
 
     const counts = {
@@ -63,6 +70,7 @@ export async function POST(request: Request) {
       totalCustomers: customersRes.count || 0,
       pendingReviews: reviewsRes.count || 0,
       pendingQna: qnaRes.count || 0,
+      unreadChats: chatsRes.count || 0,
     };
 
     return NextResponse.json({ counts }, { status: 200 });

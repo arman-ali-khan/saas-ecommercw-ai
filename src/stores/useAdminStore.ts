@@ -42,6 +42,7 @@ interface SidebarCounts {
     totalCustomers: number;
     pendingReviews: number;
     pendingQna: number;
+    unreadChats: number;
 }
 
 interface AdminState {
@@ -119,6 +120,7 @@ const INITIAL_SIDEBAR_COUNTS = {
     totalCustomers: 0,
     pendingReviews: 0,
     pendingQna: 0,
+    unreadChats: 0,
 };
 
 export const useAdminStore = create<AdminState>()((set) => ({

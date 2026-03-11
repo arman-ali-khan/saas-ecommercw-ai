@@ -128,6 +128,7 @@ export default function AdminSidebar() {
     { href: `/admin`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/admin/notifications`, label: 'Notifications', icon: Bell, count: sidebarCounts.unreadNotifications },
     { href: `/admin/categories`, label: 'Categories', icon: Tags },
+    { href: `/admin/live-questions`, label: 'Live Chat', icon: MessageSquare, count: sidebarCounts.unreadChats },
     { href: `/admin/orders`, label: 'Orders', icon: ShoppingBag, count: sidebarCounts.processingOrders },
     { href: `/admin/customers`, label: 'Customers', icon: Users, count: sidebarCounts.totalCustomers, countVariant: 'neutral' as const },
     { href: `/admin/shipping`, label: 'Shipping', icon: Truck },
