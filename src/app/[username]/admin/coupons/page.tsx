@@ -24,11 +24,25 @@ import { Skeleton } from '@/components/ui/skeleton';
 const couponSchema = z.object({
   code: z.string().min(3, 'Code must be at least 3 characters.').max(20),
   discount_type: z.enum(['fixed', 'percentage']),
-  discount_value: z.preprocess((val) => parseFloat(String(val)), z.number().positive()),
-  min_order_amount: z.preprocess((val) => parseFloat(String(val) || '0'), z.number().min(0)),
-  max_discount_amount: z.preprocess((val) => (val === '' ? undefined : parseFloat(String(val))), z.number().positive().optional()),
+  discount_value: z.preprocess((val) => {
+    const parsed = parseFloat(String(val));
+    return isNaN(parsed) ? 0 : parsed;
+  }, z.number().positive('Value must be greater than 0')),
+  min_order_amount: z.preprocess((val) => {
+    const parsed = parseFloat(String(val));
+    return isNaN(parsed) ? 0 : parsed;
+  }, z.number().min(0, 'Minimum order amount cannot be negative')),
+  max_discount_amount: z.preprocess((val) => {
+    if (val === '' || val === undefined || val === null) return undefined;
+    const parsed = parseFloat(String(val));
+    return isNaN(parsed) ? undefined : parsed;
+  }, z.number().positive().optional()),
   expiry_date: z.string().optional().or(z.literal('')),
-  usage_limit: z.preprocess((val) => (val === '' ? undefined : parseInt(String(val))), z.number().positive().optional()),
+  usage_limit: z.preprocess((val) => {
+    if (val === '' || val === undefined || val === null) return undefined;
+    const parsed = parseInt(String(val));
+    return isNaN(parsed) ? undefined : parsed;
+  }, z.number().positive().optional()),
   is_active: z.boolean().default(true),
 });
 
@@ -49,7 +63,7 @@ export default function CouponsAdminPage() {
         defaultValues: {
             code: '',
             discount_type: 'fixed',
-            discount_value: 0,
+            discount_value: undefined as any,
             min_order_amount: 0,
             is_active: true,
         },
@@ -93,7 +107,7 @@ export default function CouponsAdminPage() {
                     is_active: selectedCoupon.is_active,
                 });
             } else {
-                form.reset({ code: '', discount_type: 'fixed', discount_value: 0, min_order_amount: 0, is_active: true });
+                form.reset({ code: '', discount_type: 'fixed', discount_value: undefined as any, min_order_amount: 0, is_active: true });
             }
         }
     }, [isFormOpen, selectedCoupon, form]);
@@ -231,7 +245,10 @@ export default function CouponsAdminPage() {
                         </div>
                         <div className="p-6 overflow-y-auto">
                             <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                <form 
+                                    onSubmit={form.handleSubmit(onSubmit, (err) => console.log("Form Errors:", err))} 
+                                    className="space-y-6"
+                                >
                                     <FormField control={form.control} name="code" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Coupon Code</FormLabel>
@@ -246,7 +263,7 @@ export default function CouponsAdminPage() {
                                                 <FormLabel>Type</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                    <SelectContent>
+                                                    <SelectContent className="z-[110]">
                                                         <SelectItem value="fixed">Fixed Amount (BDT)</SelectItem>
                                                         <SelectItem value="percentage">Percentage (%)</SelectItem>
                                                     </SelectContent>
@@ -255,8 +272,8 @@ export default function CouponsAdminPage() {
                                         )} />
                                         <FormField control={form.control} name="discount_value" render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Value</FormLabel>
-                                                <FormControl><Input type="number" {...field} /></FormControl>
+                                                <FormLabel>Discount Value</FormLabel>
+                                                <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )} />
@@ -266,15 +283,17 @@ export default function CouponsAdminPage() {
                                         <FormField control={form.control} name="min_order_amount" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Min. Subtotal (BDT)</FormLabel>
-                                                <FormControl><Input type="number" {...field} /></FormControl>
+                                                <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                 <FormDescription>Minimum cart value required.</FormDescription>
+                                                <FormMessage />
                                             </FormItem>
                                         )} />
                                         <FormField control={form.control} name="usage_limit" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Usage Limit (Total)</FormLabel>
-                                                <FormControl><Input type="number" {...field} placeholder="No limit" /></FormControl>
+                                                <FormControl><Input type="number" {...field} value={field.value ?? ''} placeholder="No limit" /></FormControl>
                                                 <FormDescription>Max times this can be used.</FormDescription>
+                                                <FormMessage />
                                             </FormItem>
                                         )} />
                                     </div>
@@ -284,6 +303,7 @@ export default function CouponsAdminPage() {
                                             <FormItem>
                                                 <FormLabel>Expiry Date</FormLabel>
                                                 <FormControl><Input type="date" {...field} /></FormControl>
+                                                <FormMessage />
                                             </FormItem>
                                         )} />
                                         <FormField control={form.control} name="is_active" render={({ field }) => (
