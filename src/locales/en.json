@@ -301,6 +301,15 @@
     "seeMore": "See More",
     "seeLess": "See Less"
   },
+  "productCard": {
+    "addToBag": "Add to Bag",
+    "viewOptions": "View Options"
+  },
+  "toast": {
+    "addedToBag": "Added to Bag",
+    "addedToBagDesc": "Added {quantity} x {productName} to your bag.",
+    "removedFromBag": "Removed from Bag"
+  },
   "trackOrder": {
     "title": "Track Your Order",
     "description": "Find out the current status of your order using your Order ID or Transaction ID.",
