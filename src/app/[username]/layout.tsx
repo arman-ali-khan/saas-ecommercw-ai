@@ -133,17 +133,34 @@ export default async function UsernameLayout({
     const primaryFontVar = settingsData.font_primary ? fontMap[settingsData.font_primary]?.variable : null;
     const secondaryFontVar = settingsData.font_secondary ? fontMap[settingsData.font_secondary]?.variable : null;
     
-    const styleVars = [
+    // Core brand variables that should apply to both light and dark modes
+    const brandVars = [
       settingsData.theme_primary && `--primary: ${settingsData.theme_primary};`,
       settingsData.theme_primary_foreground && `--primary-foreground: ${settingsData.theme_primary_foreground};`,
-      settingsData.theme_background && `--background: ${settingsData.theme_background};`,
-      settingsData.theme_foreground && `--foreground: ${settingsData.theme_foreground};`,
+      settingsData.theme_accent && `--accent: ${settingsData.theme_accent};`,
+      settingsData.theme_accent_foreground && `--accent-foreground: ${settingsData.theme_accent_foreground};`,
+      settingsData.theme_destructive && `--destructive: ${settingsData.theme_destructive};`,
       primaryFontVar && `--font-body: var(${primaryFontVar});`,
       secondaryFontVar && `--font-headline: var(${secondaryFontVar});`,
     ].filter(Boolean).join(' ');
 
-    if (styleVars) {
-      themeStyles = `html:not(.dark) { ${styleVars} }`;
+    // Layout variables that should typically only apply to light mode unless specified otherwise
+    const lightModeVars = [
+      settingsData.theme_background && `--background: ${settingsData.theme_background};`,
+      settingsData.theme_foreground && `--foreground: ${settingsData.theme_foreground};`,
+      settingsData.theme_card && `--card: ${settingsData.theme_card};`,
+      settingsData.theme_card_foreground && `--card-foreground: ${settingsData.theme_card_foreground};`,
+      settingsData.theme_muted && `--muted: ${settingsData.theme_muted};`,
+      settingsData.theme_muted_foreground && `--muted-foreground: ${settingsData.theme_muted_foreground};`,
+      settingsData.theme_border && `--border: ${settingsData.theme_border};`,
+      settingsData.theme_input && `--input: ${settingsData.theme_input};`,
+    ].filter(Boolean).join(' ');
+
+    if (brandVars || lightModeVars) {
+      themeStyles = `
+        :root { ${brandVars} ${lightModeVars} }
+        .dark { ${brandVars} }
+      `;
     }
   }
 
