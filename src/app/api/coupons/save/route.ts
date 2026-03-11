@@ -30,6 +30,7 @@ export async function POST(request: Request) {
 
     let result;
     if (id) {
+      // Update existing coupon
       const { data, error } = await supabaseAdmin
         .from('coupons')
         .update(payload)
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       if (error) throw error;
       result = data;
     } else {
+      // Create new coupon
       const { data, error } = await supabaseAdmin
         .from('coupons')
         .insert(payload)
@@ -48,7 +50,7 @@ export async function POST(request: Request) {
       
       if (error) {
         if (error.code === '23505') {
-          return NextResponse.json({ error: 'This coupon code already exists.' }, { status: 409 });
+          return NextResponse.json({ error: 'This coupon code already exists for your store.' }, { status: 409 });
         }
         throw error;
       }
