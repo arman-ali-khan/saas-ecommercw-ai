@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -63,7 +62,7 @@ export default async function RootLayout({
   const isStorePage = !isPlatformRoot || host.endsWith(`.${baseDomain}`);
 
   return (
-    <html lang="en" className={`${allFontVariables} dark`} suppressHydrationWarning>
+    <html lang="en" className={allFontVariables} suppressHydrationWarning>
       <head />
       <body className="font-body antialiased bg-background text-foreground">
         <SaasPreloader />
