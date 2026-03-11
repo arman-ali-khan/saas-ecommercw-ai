@@ -71,8 +71,9 @@ export default function LiveQuestionsAdminPage() {
     
     fetchAndGroupMessages(true);
 
+    const channelName = `admin-chat-${userId}`;
     const channel = supabase
-      .channel(`admin-live-chat-${userId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -85,16 +86,22 @@ export default function LiveQuestionsAdminPage() {
             const msg = payload.new as LiveChatMessage;
             setMessagesByConversation(prevMap => {
                 const newMap = new Map(prevMap);
-                const conversation = newMap.get(msg.conversation_id) || [];
-                // Prevent duplicate messages (especially if sent by admin optimistically)
+                const conversation = [...(newMap.get(msg.conversation_id) || [])];
+                
+                // Prevent duplicate messages
                 if (!conversation.find(m => m.id === msg.id)) {
-                    newMap.set(msg.conversation_id, [...conversation, msg]);
+                    conversation.push(msg);
+                    newMap.set(msg.conversation_id, conversation);
                 }
                 return newMap;
             });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+              console.log('Realtime chat subscribed for site:', userId);
+          }
+      });
         
     return () => {
       supabase.removeChannel(channel);
@@ -171,20 +178,7 @@ export default function LiveQuestionsAdminPage() {
     const content = newMessage.trim();
     setNewMessage('');
 
-    // Mark current customer messages as read locally
-    setMessagesByConversation(prevMap => {
-        const newMap = new Map(prevMap);
-        const conversation = newMap.get(selectedConversationId) || [];
-        const updatedConversationWithRead = conversation.map(msg => 
-            msg.sender_type === 'customer' && !msg.is_read ? { ...msg, is_read: true } : msg
-        );
-        // We don't append optimistically anymore because the realtime listener 
-        // will pick up the DB insert almost instantly. 
-        // Or if we want zero-latency, we can keep it but check for IDs.
-        newMap.set(selectedConversationId, updatedConversationWithRead);
-        return newMap;
-    });
-
+    // Insert to DB
     const { error } = await supabase.from('live_chat_messages').insert({
         conversation_id: selectedConversationId,
         site_id: user.id,
@@ -199,6 +193,7 @@ export default function LiveQuestionsAdminPage() {
         console.error("Error sending chat message:", error);
     }
 
+    // Mark current customer messages as read in DB
     await supabase
         .from('live_chat_messages')
         .update({ is_read: true })
@@ -321,7 +316,7 @@ export default function LiveQuestionsAdminPage() {
                                         "text-[9px] uppercase font-bold tracking-widest px-1 opacity-50", 
                                         message.sender_type === 'agent' ? 'text-right' : 'text-left'
                                     )}>
-                                        {format(new Date(message.created_at!), 'p', { locale: bn })}
+                                        {message.created_at ? format(new Date(message.created_at), 'p', { locale: bn }) : 'Just now'}
                                     </p>
                                 </div>
                             </div>

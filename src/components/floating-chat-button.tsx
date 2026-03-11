@@ -261,8 +261,9 @@ export default function FloatingChatButton() {
   useEffect(() => {
     if (!conversationId) return;
     
+    const channelName = `customer-chat-${conversationId}`;
     const channel = supabase
-      .channel(`chat-channel-${conversationId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         { 
@@ -274,7 +275,7 @@ export default function FloatingChatButton() {
         (payload) => {
             const newMessage = payload.new as LiveChatMessage;
             setChatMessages((prev) => {
-                // Prevent duplicate if already in state (sent by this client)
+                // Prevent duplicate if already in state
                 if (prev.find(m => m.id === newMessage.id)) return prev;
                 return [...prev, newMessage];
             });
@@ -283,9 +284,15 @@ export default function FloatingChatButton() {
             }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+              console.log('Customer chat subscribed:', conversationId);
+          }
+      });
       
-    return () => { supabase.removeChannel(channel); };
+    return () => { 
+        supabase.removeChannel(channel); 
+    };
   }, [conversationId, isOpen]);
 
   useEffect(() => {
