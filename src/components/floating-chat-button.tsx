@@ -66,88 +66,92 @@ const ChatWindow = ({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-40 sm:hidden" onClick={() => setIsOpen(false)} />
+      <div className="fixed inset-0 bg-black/50 z-[100] sm:hidden" onClick={() => setIsOpen(false)} />
       <div
         className={cn(
-          "fixed z-50 flex flex-col bg-background shadow-2xl overflow-hidden",
+          "fixed z-[110] flex flex-col bg-background shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 border-2 border-primary/10",
           "inset-0 rounded-none",
-          "sm:inset-auto sm:w-96 sm:h-auto sm:max-h-[70vh] sm:bottom-24 sm:right-6 sm:rounded-lg"
+          "sm:inset-auto sm:w-96 sm:h-[550px] sm:max-h-[80vh] sm:bottom-24 sm:right-6 sm:rounded-[2rem]"
         )}
       >
-        <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
-          <h4 className="font-bold text-lg">{siteName}-এর সাথে চ্যাট করুন</h4>
-          <div className="flex items-center">
-            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground sm:hidden" onClick={fetchChatData}>
-              <RefreshCw className="h-5 w-5" />
+        <div className="p-5 bg-primary text-primary-foreground flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-xl">
+                <Leaf className="h-5 w-5" />
+            </div>
+            <h4 className="font-bold text-lg truncate max-w-[180px]">{siteName}</h4>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10 rounded-full h-9 w-9" onClick={fetchChatData}>
+              <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground" onClick={() => setIsOpen(false)}>
-              <X className="h-6 w-6" />
+            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10 rounded-full h-9 w-9" onClick={() => setIsOpen(false)}>
+              <X className="h-5 w-5" />
             </Button>
           </div>
         </div>
-        <ScrollArea className="flex-grow bg-background">
-          {isLoading ? (
-            <ChatSkeleton />
-          ) : (
-            <div className="p-4 space-y-4">
-              {chatMessages.map((chat, index) => (
+        
+        <ScrollArea className="flex-grow bg-muted/5">
+          <div className="p-4 pt-6 space-y-6">
+            {isLoading ? (
+              <ChatSkeleton />
+            ) : (
+              chatMessages.map((chat, index) => (
                 <div
-                  key={chat.id ? `db-${chat.id}` : `optimistic-${index}`}
-                  ref={index === chatMessages.length - 1 ? lastMessageRef : null}
+                  key={chat.id ? `db-${chat.id}` : `opt-${index}`}
                   className={cn(
-                    'flex items-end gap-2',
-                    chat.sender_type === 'customer' ? 'justify-end' : 'justify-start'
+                    'flex items-end gap-2 animate-in fade-in slide-in-from-bottom-1',
+                    chat.sender_type === 'customer' ? 'flex-row-reverse' : 'justify-start'
                   )}
                 >
                   {chat.sender_type === 'agent' && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary-foreground border">
-                        <Leaf className="h-5 w-5 text-accent" />
+                    <Avatar className="h-8 w-8 border shadow-sm shrink-0">
+                      <AvatarFallback className="bg-primary/5 text-primary">
+                        <Leaf className="h-4 w-4" />
                       </AvatarFallback>
                     </Avatar>
                   )}
                   <div
                     className={cn(
-                      'max-w-[75%] rounded-lg px-3 py-2 text-xs sm:text-sm shadow-sm break-words',
+                      'max-w-[80%] rounded-2xl px-4 py-2.5 text-sm shadow-sm break-words',
                       chat.sender_type === 'customer'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
+                        ? 'bg-primary text-primary-foreground rounded-tr-none'
+                        : 'bg-background border rounded-tl-none'
                     )}
                   > 
                     {chat.content}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+            <div ref={lastMessageRef} />
+          </div>
         </ScrollArea>
-        <div className="p-2 border-t bg-background flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-muted-foreground hidden sm:inline-flex" onClick={fetchChatData}>
-                <RefreshCw className="h-5 w-5" />
-            </Button>
-            <Input
-              id="chat-message"
-              placeholder="আপনার বার্তা টাইপ করুন..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              className="flex-grow"
-              disabled={isLoading}
-            />
-            <Button
-              onClick={handleSendMessage}
-              size="icon"
-              className="shrink-0"
-              aria-label="বার্তা পাঠান"
-              disabled={isLoading || !message.trim()}
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+
+        <div className="p-3 border-t bg-background shrink-0 pb-6 sm:pb-3">
+            <div className="relative flex items-center gap-2">
+                <Input
+                  placeholder="বার্তা লিখুন..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  className="flex-grow h-11 rounded-2xl border-2 pr-12 focus-visible:ring-primary/20"
+                  disabled={isLoading}
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  size="icon"
+                  className="absolute right-1 top-1 h-9 w-9 rounded-xl shadow-lg shadow-primary/20"
+                  disabled={isLoading || !message.trim()}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+            </div>
         </div>
       </div>
     </>
@@ -167,7 +171,7 @@ export default function FloatingChatButton() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [senderName, setSenderName] = useState('অতিথি');
   const [isLoading, setIsLoading] = useState(true);
-  const [siteName, setSiteName] = useState('Your Store');
+  const [siteName, setSiteName] = useState('Store');
   const [unreadCount, setUnreadCount] = useState(0);
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
 
@@ -179,9 +183,7 @@ export default function FloatingChatButton() {
     if (!hasSeenTooltip) {
       localStorage.setItem('chatTooltipSeen', 'true');
       setIsTooltipOpen(true);
-      const timer = setTimeout(() => {
-        setIsTooltipOpen(false);
-      }, 5000);
+      const timer = setTimeout(() => setIsTooltipOpen(false), 5000);
       return () => clearTimeout(timer);
     }
   }, []);
@@ -196,9 +198,7 @@ export default function FloatingChatButton() {
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error("Error fetching messages:", error);
-    } else {
+    if (!error) {
        if (data && data.length > 0) {
           setChatMessages(data);
         } else {
@@ -208,7 +208,7 @@ export default function FloatingChatButton() {
             site_id: siteId,
             sender_name: siteName,
             sender_type: 'agent',
-            content: `আসসালামু আলাইকুম! আজ আমরা আপনাকে ${siteName}-এ কিভাবে সাহায্য করতে পারি? আমাদের পণ্য বা আপনার অর্ডার সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন।`,
+            content: `আসসালামু আলাইকুম! ${siteName}-এ আপনাকে স্বাগতম। আমরা আপনাকে কিভাবে সাহায্য করতে পারি?`,
             created_at: new Date().toISOString(),
           }]);
         }
@@ -221,18 +221,16 @@ export default function FloatingChatButton() {
   useEffect(() => {
     async function initializeChat() {
       if (!domain) return;
-      const { data, error } = await supabase.from('profiles').select('id, site_name').eq('domain', domain).single();
+      const { data } = await supabase.from('profiles').select('id, site_name').eq('domain', domain).maybeSingle();
       if (data) {
         setSiteId(data.id);
-        setSiteName(data.site_name || 'Your Store');
+        setSiteName(data.site_name || 'Store');
         let convId = localStorage.getItem(`chat_conversation_id_${domain}`);
         if (!convId) {
           convId = uuidv4();
           localStorage.setItem(`chat_conversation_id_${domain}`, convId);
         }
         setConversationId(convId);
-      } else {
-        console.error("Could not find site for domain:", domain, error);
       }
     }
     initializeChat();
@@ -241,7 +239,7 @@ export default function FloatingChatButton() {
   useEffect(() => {
     if (_hasHydrated) {
       if (customer) {
-        setSenderName(customer.full_name || customer.email || 'Registered User');
+        setSenderName(customer.full_name || customer.email || 'User');
       } else {
         let guestName = localStorage.getItem('chat_guest_name');
         if (!guestName) {
@@ -262,19 +260,33 @@ export default function FloatingChatButton() {
 
   useEffect(() => {
     if (!conversationId) return;
+    
     const channel = supabase
-      .channel(`live-chat-${conversationId}`)
+      .channel(`chat-channel-${conversationId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'live_chat_messages', filter: `conversation_id=eq.${conversationId}`},
+        { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'live_chat_messages', 
+            filter: `conversation_id=eq.${conversationId}`
+        },
         (payload) => {
             const newMessage = payload.new as LiveChatMessage;
-            setChatMessages((prev) => [...prev, newMessage]);
+            setChatMessages((prev) => {
+                // Prevent duplicate if already in state (sent by this client)
+                if (prev.find(m => m.id === newMessage.id)) return prev;
+                return [...prev, newMessage];
+            });
+            if (!isOpen && newMessage.sender_type === 'agent') {
+                setUnreadCount(prev => prev + 1);
+            }
         }
       )
       .subscribe();
+      
     return () => { supabase.removeChannel(channel); };
-  }, [conversationId]);
+  }, [conversationId, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -284,46 +296,40 @@ export default function FloatingChatButton() {
     }
   }, [chatMessages, isOpen]);
 
-  if (pathname.includes('/admin')) {
+  if (pathname.includes('/admin') || pathname.startsWith('/dashboard')) {
     return null;
   }
 
-  const markAgentMessagesAsRead = async () => {
-    if (!conversationId) return;
-    setUnreadCount(0);
-    await supabase
-        .from('live_chat_messages')
-        .update({ is_read: true })
-        .eq('conversation_id', conversationId)
-        .eq('sender_type', 'agent')
-        .eq('is_read', false);
-  };
-  
   const handleOpenChat = () => {
     setIsOpen(true);
-    markAgentMessagesAsRead();
+    setUnreadCount(0);
+    if (conversationId) {
+        supabase
+            .from('live_chat_messages')
+            .update({ is_read: true })
+            .eq('conversation_id', conversationId)
+            .eq('sender_type', 'agent')
+            .eq('is_read', false);
+    }
   };
 
   const handleSendMessage = async () => {
     if (!message.trim() || !conversationId || !siteId) return;
 
-    const newMessage: LiveChatMessage = {
+    const content = message.trim();
+    setMessage('');
+
+    const { error } = await supabase.from('live_chat_messages').insert({
       conversation_id: conversationId,
       site_id: siteId,
       sender_id: customer?.id || null,
       sender_name: senderName,
       sender_type: 'customer',
-      content: message.trim(),
-    };
+      content: content,
+      is_read: false
+    });
 
-    setChatMessages((prev) => [...prev, newMessage]);
-    setMessage('');
-
-    const { error } = await supabase.from('live_chat_messages').insert(newMessage);
-    if (error) {
-        console.error('Error sending message:', error);
-    }
-    await markAgentMessagesAsRead();
+    if (error) console.error('Error sending message:', error);
   };
  
   return (
@@ -332,17 +338,20 @@ export default function FloatingChatButton() {
         <TooltipProvider delayDuration={200}>
             <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
                 <TooltipTrigger asChild>
-                    <Button size="icon" className="relative rounded-full sm:w-14 w-10 h-10 sm:h-14 shadow-lg" onClick={isOpen ? () => setIsOpen(false) : handleOpenChat}>
+                    <Button 
+                        size="icon" 
+                        className="relative rounded-full sm:w-14 w-12 h-12 sm:h-14 shadow-2xl hover:scale-110 active:scale-95 transition-all border-2 border-white/20" 
+                        onClick={isOpen ? () => setIsOpen(false) : handleOpenChat}
+                    >
                         {isOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
-                        <span className="sr-only">চ্যাট খুলুন</span>
                         {!isOpen && unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+                            <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-[10px] font-black text-destructive-foreground border-2 border-background animate-in zoom-in duration-300">
                                 {unreadCount}
                             </span>
                         )}
                     </Button>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent side="left" className="font-bold">
                     <p>আমাদের প্রশ্ন করুন</p>
                 </TooltipContent>
             </Tooltip>
@@ -358,7 +367,7 @@ export default function FloatingChatButton() {
         message={message}
         setMessage={setMessage}
         handleSendMessage={handleSendMessage}
-        fetchChatData={() => fetchChatData()}
+        fetchChatData={() => fetchChatData(false)}
       />
     </>
   );
