@@ -1,37 +1,38 @@
 
 # DokanBD (দোকানবিডি) - Modern Multi-tenant E-commerce SaaS
 
-**DokanBD** হলো একটি উচ্চ-ক্ষমতাসম্পন্ন মাল্টি-টিন্যান্ট ই-কমার্স প্ল্যাটফর্ম, যা উদ্যোক্তাদের কোনো কোডিং জ্ঞান ছাড়াই নিজস্ব অনলাইন স্টোর তৈরি করতে সাহায্য করে। এটি Next.js 15, Supabase, Tailwind CSS এবং Genkit AI দিয়ে তৈরি।
+**DokanBD** is a high-performance, AI-integrated multi-tenant e-commerce platform designed to empower entrepreneurs to launch their own online stores without any coding knowledge. Built with Next.js 15, Supabase, and Genkit AI.
 
-## মূল ফিচারসমূহ (Main Features)
+## 🚀 Project Overview (Resume Summary)
+*   **Role:** Full-Stack Developer / Architect
+*   **Tech Stack:** Next.js 15 (App Router), TypeScript, Supabase (Postgres, Auth, Realtime), Tailwind CSS, ShadCN UI, Genkit AI (Gemini), Cloudinary (Media), SSLCommerz & Stripe (Payments), Firebase (Push Notifications).
 
-### ১. প্ল্যাটফর্ম অ্যাডমিন (SaaS Admin)
-*   **সাবস্ক্রিপশন ম্যানেজমেন্ট:** ইউজারদের প্ল্যান (Free, Pro, Enterprise) এবং পেমেন্ট ভেরিফিকেশন।
-*   **কাস্টম ডোমেইন রিভিউ:** ডোমেইন রিকোয়েস্ট চেক করা এবং DNS কনফিগারেশন ইনস্ট্রাকশন প্রদান।
-*   **প্ল্যাটফর্ম কাস্টমাইজেশন:** মেইন ল্যান্ডিং পেজের ফিচার, রিভিউ এবং সেকশন ম্যানেজমেন্ট।
+## 🌟 Key Features
 
-### ২. স্টোর অ্যাডমিন (Store Admin)
-*   **এআই টুলস:** এআই ব্যবহার করে পণ্যের ডেসক্রিপশন এবং সোশ্যাল মিডিয়া পোস্ট জেনারেশন।
-*   **ইনভেন্টরি:** স্টক ম্যানেজমেন্ট এবং ভেরিয়েন্ট ভিত্তিক আলাদা প্রাইসিং।
-*   **অর্ডার প্রসেসিং:** পেন্ডিং থেকে ডেলিভারি পর্যন্ত পূর্ণ লাইফসাইকেল ম্যানেজমেন্ট।
+### 1. Advanced Multi-tenancy
+* Supports dynamic store creation on custom subdomains (e.g., `store.e-bd.shop`) and external custom domains.
+* Individual store owners get a dedicated admin dashboard to manage their specific inventory, customers, and themes.
 
-### ৩. গ্রাহক অভিজ্ঞতা (Customer Experience)
-*   **PWA সাপোর্ট:** স্টোরটি মোবাইলে অ্যাপ হিসেবে ইনস্টল করার সুবিধা।
-*   **অর্ডার ট্র্যাকিং:** ট্রানজেকশন আইডি বা অর্ডার নম্বর দিয়ে সরাসরি ট্র্যাকিং।
+### 2. GenAI Content Engine
+* Integrated **Google Gemini** via Genkit to automatically generate SEO-friendly product descriptions and "Our Story" sections.
+* AI-powered "Smart Share" tool to create high-conversion social media posts for products.
 
-## এনভায়রনমেন্ট ভেরিয়েবল (Vercel/Local)
-**গুরুত্বপূর্ণ:** সাবডোমেইন এবং কাস্টম ডোমেইন কাজ করার জন্য নিচের ভেরিয়েবলগুলো অবশ্যই সেট করুন:
+### 3. Real-time Customer Experience
+* **Live Chat:** Synchronized real-time messaging between store owners and visitors using Supabase Realtime.
+* **Order Tracking:** Instant order status updates with progress indicators using transaction IDs or order numbers.
+* **Push Notifications:** Native browser notifications for new orders and messages powered by Firebase Cloud Messaging.
 
-*   `NEXT_PUBLIC_BASE_DOMAIN`: `e-bd.shop` (Primary SaaS base domain)
-*   `NEXT_PUBLIC_SUPABASE_URL`: আপনার সুপাবেস ইউআরএল।
-*   `NEXT_PUBLIC_SUPABASE_ANON_KEY`: সুপাবেস অ্যানন কি।
-*   `SUPABASE_SERVICE_ROLE_KEY`: সুপাবেস সার্ভিস রোল কি (সিক্রেট)।
-*   `ENCRYPTION_KEY`: ৩০ অক্ষরের সিক্রেট কি।
-*   `OPENROUTER_API_KEY`: এআই ফিচারের জন্য।
+### 4. Robust Inventory & Order Management
+* Support for multi-variant products (size, weight, color) with independent pricing and stock tracking.
+* Automated stock alerts and a comprehensive order fulfillment workflow (Pending -> Processing -> Delivered).
 
-## শুরু করার নিয়ম
-অ্যাপটি লোকাল মেশিনে রান করতে:
+### 5. Seamless Payments
+* Integrated with **SSLCommerz** and **Stripe** for automated checkouts.
+* Custom manual payment workflows for local mobile banking (bKash, Nagad, Rocket) with admin verification.
+
+## 🛠️ Installation & Setup
 1. `npm install`
-2. `npm run dev`
+2. Configure environment variables (Supabase, Cloudinary, OpenAI/Gemini, Stripe).
+3. `npm run dev`
 
-আপনার স্টোর ড্যাশবোর্ড দেখতে `localhost:3000/admin` ভিজিট করুন।
+Visit `localhost:3000/admin` to see the store dashboard or the root domain to view the SaaS landing page.
