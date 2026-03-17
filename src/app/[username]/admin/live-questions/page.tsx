@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -80,7 +81,7 @@ export default function LiveQuestionsAdminPage() {
     
     fetchAndGroupMessages(true);
 
-    const channelName = `admin-chat-${userId}`;
+    const channelName = `admin-realtime-chat-${userId}`;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -97,6 +98,7 @@ export default function LiveQuestionsAdminPage() {
                 const newMap = new Map(prevMap);
                 const conversation = [...(newMap.get(msg.conversation_id) || [])];
                 
+                // Deduplication
                 if (!conversation.find(m => m.id === msg.id)) {
                     conversation.push(msg);
                     newMap.set(msg.conversation_id, conversation);
@@ -105,7 +107,11 @@ export default function LiveQuestionsAdminPage() {
             });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+              console.log('Admin Realtime Subscription Active for site:', userId);
+          }
+      });
         
     return () => {
       supabase.removeChannel(channel);

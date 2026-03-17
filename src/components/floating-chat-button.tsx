@@ -261,7 +261,7 @@ export default function FloatingChatButton() {
   useEffect(() => {
     if (!conversationId) return;
     
-    const channelName = `customer-chat-${conversationId}`;
+    const channelName = `customer-realtime-chat-${conversationId}`;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -284,11 +284,7 @@ export default function FloatingChatButton() {
             }
         }
       )
-      .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-              console.log('Customer chat subscribed:', conversationId);
-          }
-      });
+      .subscribe();
       
     return () => { 
         supabase.removeChannel(channel); 
