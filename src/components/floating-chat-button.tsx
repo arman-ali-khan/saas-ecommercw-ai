@@ -275,8 +275,18 @@ export default function FloatingChatButton() {
         (payload) => {
             const newMessage = payload.new as LiveChatMessage;
             setChatMessages((prev) => {
-                // Prevent duplicate if already in state
-                if (prev.find(m => m.id === newMessage.id)) return prev;
+                // Prevent duplicate if already in state (important for optimistic updates)
+                if (prev.some(m => m.id === newMessage.id)) return prev;
+                
+                // If it's a message from agent, or a message from customer that isn't the temporary one
+                // Actually, just filtering by content and sender for a quick dedupe of optimistic ones
+                const isOptimisticDuplicate = newMessage.sender_type === 'customer' && 
+                    prev.some(m => m.id === undefined && m.content === newMessage.content);
+                
+                if (isOptimisticDuplicate) {
+                    return prev.map(m => (m.id === undefined && m.content === newMessage.content) ? newMessage : m);
+                }
+
                 return [...prev, newMessage];
             });
             if (!isOpen && newMessage.sender_type === 'agent') {
@@ -293,9 +303,10 @@ export default function FloatingChatButton() {
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         lastMessageRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
+      return () => clearTimeout(timer);
     }
   }, [chatMessages, isOpen]);
 
@@ -322,6 +333,18 @@ export default function FloatingChatButton() {
     const content = message.trim();
     setMessage('');
 
+    // Optimistic Update
+    const tempMessage: LiveChatMessage = {
+        conversation_id: conversationId,
+        site_id: siteId,
+        sender_name: senderName,
+        sender_type: 'customer',
+        content: content,
+        created_at: new Date().toISOString(),
+    };
+    
+    setChatMessages(prev => [...prev, tempMessage]);
+
     const { error } = await supabase.from('live_chat_messages').insert({
       conversation_id: conversationId,
       site_id: siteId,
@@ -332,7 +355,11 @@ export default function FloatingChatButton() {
       is_read: false
     });
 
-    if (error) console.error('Error sending message:', error);
+    if (error) {
+        console.error('Error sending message:', error);
+        // Remove optimistic message on error? 
+        setChatMessages(prev => prev.filter(m => m !== tempMessage));
+    }
   };
  
   return (

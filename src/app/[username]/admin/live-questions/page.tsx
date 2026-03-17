@@ -100,18 +100,22 @@ export default function LiveQuestionsAdminPage() {
                 
                 // Deduplication
                 if (!conversation.find(m => m.id === msg.id)) {
-                    conversation.push(msg);
-                    newMap.set(msg.conversation_id, conversation);
+                    // Check for optimistic duplicate
+                    const isOptimisticDuplicate = msg.sender_type === 'agent' && 
+                        conversation.some(m => m.id === undefined && m.content === msg.content);
+                    
+                    if (isOptimisticDuplicate) {
+                        newMap.set(msg.conversation_id, conversation.map(m => (m.id === undefined && m.content === msg.content) ? msg : m));
+                    } else {
+                        conversation.push(msg);
+                        newMap.set(msg.conversation_id, conversation);
+                    }
                 }
                 return newMap;
             });
         }
       )
-      .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-              console.log('Admin Realtime Subscription Active for site:', userId);
-          }
-      });
+      .subscribe();
         
     return () => {
       supabase.removeChannel(channel);
@@ -187,6 +191,26 @@ export default function LiveQuestionsAdminPage() {
     const content = newMessage.trim();
     setNewMessage('');
 
+    // Optimistic Update for Admin
+    const tempMessage: LiveChatMessage = {
+        conversation_id: selectedConversationId,
+        site_id: user.id,
+        sender_id: user.id,
+        sender_name: user.fullName,
+        sender_type: 'agent',
+        content: content,
+        created_at: new Date().toISOString(),
+        is_read: true
+    };
+
+    setMessagesByConversation(prevMap => {
+        const newMap = new Map(prevMap);
+        const conversation = [...(newMap.get(selectedConversationId) || [])];
+        conversation.push(tempMessage);
+        newMap.set(selectedConversationId, conversation);
+        return newMap;
+    });
+
     // Insert to DB
     const { error } = await supabase.from('live_chat_messages').insert({
         conversation_id: selectedConversationId,
@@ -200,6 +224,13 @@ export default function LiveQuestionsAdminPage() {
 
     if (error) {
         console.error("Error sending chat message:", error);
+        // Rollback optimistic message
+        setMessagesByConversation(prevMap => {
+            const newMap = new Map(prevMap);
+            const conversation = (newMap.get(selectedConversationId) || []).filter(m => m !== tempMessage);
+            newMap.set(selectedConversationId, conversation);
+            return newMap;
+        });
     }
 
     // Mark current customer messages as read in DB
