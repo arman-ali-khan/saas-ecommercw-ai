@@ -303,7 +303,7 @@
   },
   "productCard": {
     "addToBag": "Add to Bag",
-    "viewOptions": "View Options"
+    "activeDeals": "Active Deal"
   },
   "toast": {
     "addedToBag": "Added to Bag",
@@ -319,5 +319,17 @@
     "order": "Order",
     "placedOn": "Placed on:",
     "statusCanceled": "Canceled"
+  },
+  "aiShare": {
+    "title": "AI Smart Share",
+    "description": "Generate an engaging social media post for \"{productName}\".",
+    "labelInterests": "Audience Interests (Optional)",
+    "placeholderInterests": "e.g. healthy living, mango lovers, organic food...",
+    "generating": "Generating...",
+    "generateBtn": "Create Magic Post",
+    "generatedLabel": "Generated for you:",
+    "copyBtn": "Copy Text",
+    "disclaimer": "This is an AI-generated draft. Please review before sharing.",
+    "copied": "Copied to clipboard!"
   }
 }

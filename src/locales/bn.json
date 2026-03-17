@@ -35,7 +35,7 @@
   },
   "customers": {
     "title": "কাস্টমার ম্যানেজমেন্ট",
-    "description": "আপনার স্টোরের সব রেজিস্টার্ড কাস্টমারদের লিস্ট।",
+    "description": "আপনার স্টোর-এর সব রেজিস্টার্ড কাস্টমারদের লিস্ট।",
     "totalCustomers": "মোট {count} জন কাস্টমার।",
     "noCustomers": "কোনো রেজিস্টার্ড কাস্টমার পাওয়া যায়নি।",
     "loadingDescription": "আপনার স্টোরে রেজিস্টার্ড কাস্টমারদের দেখুন।",
@@ -76,7 +76,7 @@
     "noSales": "কোনো সেলস ডেটা নেই।",
     "totalSales": "মোট সেলস",
     "orderStatus": "অর্ডারের স্ট্যাটাস",
-    "orderStatusDesc": "Order distribution for the selected month.",
+    "orderStatusDesc": "নির্বাচিত মাসের অর্ডারের বিন্যাস।",
     "selectMonth": "মাস নির্বাচন করুন",
     "noOrdersThisMonth": "এই মাসে কোনো অর্ডার নেই।",
     "totalOrders": "মোট অর্ডার",
@@ -147,7 +147,7 @@
     "transactionId": "ট্রানজেকশন আইডি",
     "placeOrder": "অর্ডার নিশ্চিত করুন",
     "placingOrder": "অর্ডার হচ্ছে...",
-    "savedAddresses": "saved addresses",
+    "savedAddresses": "সংরক্ষিত ঠিকানা",
     "addressSelected": "ঠিকানা নির্বাচন করা হয়েছে",
     "noShipping": "কোনো শিপিং পদ্ধতি পাওয়া যায়নি। দয়া করে অ্যাডমিনের সাথে যোগাযোগ করুন।",
     "sendMoney": "সেন্ড মানি (Send Money)",
@@ -319,5 +319,17 @@
     "order": "অর্ডার",
     "placedOn": "অর্ডার দেওয়া হয়েছে:",
     "statusCanceled": "বাতিল করা হয়েছে"
+  },
+  "aiShare": {
+    "title": "এআই স্মার্ট শেয়ার",
+    "description": "\"{productName}\" এর জন্য একটি আকর্ষণীয় সোশ্যাল মিডিয়া পোস্ট তৈরি করুন।",
+    "labelInterests": "আপনার বন্ধুদের আগ্রহ (ঐচ্ছিক)",
+    "placeholderInterests": "যেমন: সুস্বাস্থ্য, আম প্রেমী, পুষ্টিকর খাবার...",
+    "generating": "তৈরি হচ্ছে...",
+    "generateBtn": "ম্যাজিক পোস্ট তৈরি করুন",
+    "generatedLabel": "আপনার জন্য তৈরি পোস্ট:",
+    "copyBtn": "কপি করুন",
+    "disclaimer": "এটি এআই দ্বারা তৈরি একটি খসড়া। শেয়ার করার আগে চেক করে নিন।",
+    "copied": "কপি করা হয়েছে!"
   }
 }
