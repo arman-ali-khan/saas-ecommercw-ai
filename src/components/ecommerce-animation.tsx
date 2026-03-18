@@ -1,3 +1,4 @@
+
 'use client';
 
 import dynamic from 'next/dynamic';
@@ -18,26 +19,55 @@ interface EcommerceAnimationProps {
  */
 export default function EcommerceAnimation({ className, speed = 1 }: EcommerceAnimationProps) {
   const [animationData, setAnimationData] = useState<any>(null);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    // Fetching a stable high-quality shopping/ecommerce animation
-    fetch('https://assets10.lottiefiles.com/packages/lf20_m9ubp9cv.json')
-      .then((res) => {
-        if (!res.ok) {
-            // Fallback to another stable URL if the first one fails
-            return fetch('https://lottie.host/67ca78a4-09c3-4fa7-9cc1-ec790bc2746d/S8X9ZpIs9O.json').then(r => r.json());
+    // List of fallback URLs for the same or similar animation
+    const urls = [
+      'https://assets10.lottiefiles.com/packages/lf20_m9ubp9cv.json',
+      'https://lottie.host/67ca78a4-09c3-4fa7-9cc1-ec790bc2746d/S8X9ZpIs9O.json'
+    ];
+
+    const loadLottie = async () => {
+      for (const url of urls) {
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+
+          if (!response.ok) continue;
+
+          const text = await response.text();
+          
+          // Basic check to see if it looks like XML/HTML instead of JSON
+          if (text.trim().startsWith('<?xml') || text.trim().startsWith('<')) {
+            console.warn(`Lottie source ${url} returned XML/HTML instead of JSON.`);
+            continue;
+          }
+
+          try {
+            const data = JSON.parse(text);
+            if (data && typeof data === 'object') {
+              setAnimationData(data);
+              return; // Success!
+            }
+          } catch (parseErr) {
+            console.error(`JSON parse error for ${url}:`, parseErr);
+          }
+        } catch (err) {
+          console.error(`Failed to load Lottie from ${url}:`, err);
         }
-        return res.json();
-      })
-      .then((data) => {
-        if (data) setAnimationData(data);
-      })
-      .catch((err) => {
-        console.error("Lottie Animation Load Error:", err);
-      });
+      }
+      setHasError(true);
+    };
+
+    loadLottie();
   }, []);
 
-  if (!animationData) {
+  if (hasError || !animationData) {
     // Return a styled placeholder while loading or on failure
     return (
       <div 
