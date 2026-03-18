@@ -381,7 +381,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                           tier.isFeatured ? "bg-primary" : "bg-muted hover:bg-muted/80 text-foreground"
                         )}
                       >
-                        <Link href={`/get-started?step=subscription&plan=${tier.id}`}>
+                        <Link href={tier.id === 'free' ? `/get-started?step=domain&plan=free` : `/get-started?step=payment&plan=${tier.id}`}>
                           {tier.cta}
                         </Link>
                       </Button>
