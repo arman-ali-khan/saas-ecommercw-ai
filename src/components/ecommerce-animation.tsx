@@ -1,4 +1,3 @@
-
 'use client';
 
 import dynamic from 'next/dynamic';
@@ -15,19 +14,18 @@ interface EcommerceAnimationProps {
 
 /**
  * @fileOverview A reusable Lottie animation component for E-commerce visuals.
- * Fetches a stable animation from a public CDN.
+ * Fetches a stable high-quality animation from a reliable public source.
  */
 export default function EcommerceAnimation({ className, speed = 1 }: EcommerceAnimationProps) {
   const [animationData, setAnimationData] = useState<any>(null);
 
   useEffect(() => {
-    // Fetching a stable high-quality E-commerce shopping animation
-    // Updated to a more reliable URL and added soft error handling
-    fetch('https://lottie.host/67ca78a4-09c3-4fa7-9cc1-ec790bc2746d/S8X9ZpIs9O.json')
+    // Fetching a stable high-quality shopping/ecommerce animation
+    fetch('https://assets10.lottiefiles.com/packages/lf20_m9ubp9cv.json')
       .then((res) => {
         if (!res.ok) {
-            console.warn("Lottie animation could not be fetched, showing placeholder.");
-            return null;
+            // Fallback to another stable URL if the first one fails
+            return fetch('https://lottie.host/67ca78a4-09c3-4fa7-9cc1-ec790bc2746d/S8X9ZpIs9O.json').then(r => r.json());
         }
         return res.json();
       })
@@ -35,7 +33,6 @@ export default function EcommerceAnimation({ className, speed = 1 }: EcommerceAn
         if (data) setAnimationData(data);
       })
       .catch((err) => {
-        // Soft logging instead of throwing to prevent Next.js error overlay
         console.error("Lottie Animation Load Error:", err);
       });
   }, []);
@@ -55,12 +52,13 @@ export default function EcommerceAnimation({ className, speed = 1 }: EcommerceAn
   }
 
   return (
-    <div className={cn("overflow-hidden", className)}>
+    <div className={cn("overflow-hidden flex items-center justify-center", className)}>
       <Lottie 
         animationData={animationData} 
         loop={true} 
         initialSegment={undefined}
         speed={speed}
+        style={{ width: '100%', height: '100%' }}
       />
     </div>
   );

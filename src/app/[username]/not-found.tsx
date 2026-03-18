@@ -1,10 +1,10 @@
-
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { FileQuestion, Home, Search } from 'lucide-react';
+import { Home, Search } from 'lucide-react';
 import { useTranslation } from '@/hooks/use-translation';
+import EcommerceAnimation from '@/components/ecommerce-animation';
 
 export default function NotFound() {
   const t = useTranslation();
@@ -16,9 +16,9 @@ export default function NotFound() {
         {/* Decorative background glow */}
         <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full scale-150 animate-pulse" />
         
-        <div className="relative bg-card border-2 border-primary/10 rounded-[2.5rem] p-10 shadow-2xl overflow-hidden group">
+        <div className="relative bg-card border-2 border-primary/10 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden group w-64 h-64 flex items-center justify-center">
           <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 blur-2xl rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-700" />
-          <FileQuestion className="w-24 h-24 text-primary relative z-10" />
+          <EcommerceAnimation className="w-48 h-48 relative z-10" />
         </div>
       </div>
       
