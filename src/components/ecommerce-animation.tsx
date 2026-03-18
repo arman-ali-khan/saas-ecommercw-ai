@@ -15,24 +15,33 @@ interface EcommerceAnimationProps {
 
 /**
  * @fileOverview A reusable Lottie animation component for E-commerce visuals.
- * Fetches a high-quality animation from a public CDN.
+ * Fetches a stable animation from a public CDN.
  */
 export default function EcommerceAnimation({ className, speed = 1 }: EcommerceAnimationProps) {
   const [animationData, setAnimationData] = useState<any>(null);
 
   useEffect(() => {
-    // Fetching a confirmed high-quality E-commerce shopping bag animation
-    fetch('https://assets2.lottiefiles.com/packages/lf20_m9ubp9cv.json')
+    // Fetching a stable high-quality E-commerce shopping animation
+    // Updated to a more reliable URL and added soft error handling
+    fetch('https://lottie.host/67ca78a4-09c3-4fa7-9cc1-ec790bc2746d/S8X9ZpIs9O.json')
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to load animation');
+        if (!res.ok) {
+            console.warn("Lottie animation could not be fetched, showing placeholder.");
+            return null;
+        }
         return res.json();
       })
-      .then((data) => setAnimationData(data))
-      .catch((err) => console.error("Lottie Animation Load Error:", err));
+      .then((data) => {
+        if (data) setAnimationData(data);
+      })
+      .catch((err) => {
+        // Soft logging instead of throwing to prevent Next.js error overlay
+        console.error("Lottie Animation Load Error:", err);
+      });
   }, []);
 
   if (!animationData) {
-    // Return a styled placeholder while loading
+    // Return a styled placeholder while loading or on failure
     return (
       <div 
         className={cn(
