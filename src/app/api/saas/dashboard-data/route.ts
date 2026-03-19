@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
     const lastWeekDate = startOfDay(subDays(new Date(), 7));
 
-    // Fetch Base Data in Parallel
+    // Fetch Base Data
     const [
         profilesRes,
         paymentsRes,
@@ -73,31 +73,28 @@ export async function GET(request: Request) {
         supabaseAdmin.from('plans').select('id, name')
     ]);
 
-    const allProfiles = profilesRes.data || [];
+    // Decrypt profiles for manual joins
+    const decryptedProfiles = (profilesRes.data || []).map(p => decryptObject(p));
+    const profilesMap = new Map(decryptedProfiles.map(p => [p.id, p]));
+    const plansMap = new Map((plansRes.data || []).map(p => [p.id, p]));
+
     const allPayments = paymentsRes.data || [];
-    const allPlans = plansRes.data || [];
     const recentNotifications = notificationsRes.data || [];
     const weekVisitors = visitorsRes.data || [];
     
-    // Maps for manual joining
-    const profilesMap = new Map(allProfiles.map(p => [p.id, p]));
-    const plansMap = new Map(allPlans.map(p => [p.id, p]));
-
-    // 1. Total Revenue Calculation (Completed only)
+    // 1. Total Revenue
     const totalRevenue = allPayments
         .filter(p => p.status === 'completed')
         .reduce((sum, p) => sum + (parseFloat(String(p.amount)) || 0), 0);
 
-    // 2. Active Subscriptions Count
-    const activeSubscriptions = allProfiles.filter(p => p.subscription_status === 'active').length;
+    // 2. Active Subscriptions
+    const activeSubscriptions = decryptedProfiles.filter(p => p.subscription_status === 'active').length;
 
-    // 3. Pending Subscriptions Count
+    // 3. Pending Subscriptions
     const pendingPaymentsList = allPayments.filter(p => p.status === 'pending' || p.status === 'pending_verification');
-    const pendingSubscriptionsCount = pendingPaymentsList.length;
 
-    // --- Generate Weekly Trends ---
+    // Trends calculation
     const days = Array.from({ length: 7 }, (_, i) => startOfDay(subDays(new Date(), 6 - i)));
-    
     const weeklyTrends = {
         revenue: days.map(day => {
             const amount = allPayments
@@ -115,7 +112,6 @@ export async function GET(request: Request) {
         })
     };
 
-    // Prepare recent data with manual joins
     const recentPendingPaymentsJoined = pendingPaymentsList.slice(0, 5).map(p => ({
         ...p,
         profiles: profilesMap.get(p.user_id) || null,
@@ -127,19 +123,15 @@ export async function GET(request: Request) {
         profiles: profilesMap.get(n.site_id) || null
     }));
 
-    // Decrypt sensitive info recursively
-    const processedPayments = decryptObject(recentPendingPaymentsJoined);
-    const processedNotifications = decryptObject(recentNotificationsJoined);
-
     return NextResponse.json({
         stats: {
             totalRevenue,
             activeSubscriptions,
             pendingReviews: pendingReviewsRes.count || 0,
-            pendingSubscriptions: pendingSubscriptionsCount,
+            pendingSubscriptions: pendingPaymentsList.length,
         },
-        recentPendingPayments: processedPayments,
-        unreadNotifications: processedNotifications,
+        recentPendingPayments: recentPendingPaymentsJoined,
+        unreadNotifications: recentNotificationsJoined,
         weeklyTrends
     });
 

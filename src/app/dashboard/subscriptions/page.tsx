@@ -70,12 +70,9 @@ export default function SubscriptionPaymentsPage() {
         return;
     }
 
-    if (currentStore.subscriptions.length === 0 || force) {
-        setIsLoading(true);
-    }
-
+    setIsLoading(true);
     try {
-        const response = await fetch('/api/saas/subscriptions/list');
+        const response = await fetch('/api/saas/subscriptions/list', { cache: 'no-store' });
         const result = await response.json();
 
         if (response.ok) {
@@ -153,12 +150,10 @@ export default function SubscriptionPaymentsPage() {
       if (!response.ok || !result.success) throw new Error("SMS API fetch failed");
 
       const smsData = result.data || [];
-      // Extract unique TrxIDs from SMS messages
       const extractedTrxIds = new Set<string>();
       
       smsData.forEach((item: any) => {
         const msg = item.message || '';
-        // Regex to find TrxID or TxnID (handles various formats from Nagad/bKash)
         const matches = msg.match(/(?:TrxID|TxnID)[:\s]*([A-Z0-9]+)/gi);
         if (matches) {
             matches.forEach((m: string) => {
@@ -173,7 +168,6 @@ export default function SubscriptionPaymentsPage() {
 
       for (const p of pending) {
         if (p.transaction_id && extractedTrxIds.has(p.transaction_id.toUpperCase())) {
-          // Auto-confirm
           const updateRes = await fetch('/api/saas/subscriptions/update-status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -212,6 +206,7 @@ export default function SubscriptionPaymentsPage() {
   const formatPaymentMethod = (methodValue: string) => {
     if (methodValue === 'mobile_banking') return 'Mobile Banking';
     if (methodValue === 'credit_card') return 'Credit Card';
+    if (methodValue === 'sslcommerz') return 'Online Payment';
     return methodValue || 'Unknown';
   }
 
@@ -286,7 +281,6 @@ export default function SubscriptionPaymentsPage() {
         <CardContent className="p-0">
           {paginatedPayments.length > 0 ? (
             <>
-              {/* Desktop View: Table */}
               <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-muted/30">
@@ -330,7 +324,6 @@ export default function SubscriptionPaymentsPage() {
                 </Table>
               </div>
               
-              {/* Mobile View: Cards */}
               <div className="grid gap-4 md:hidden p-4">
                 {paginatedPayments.map(paymentItem => (
                   <Card key={paymentItem.id} onClick={() => setSelectedPayment(paymentItem)} className="cursor-pointer hover:bg-muted/50 transition-colors border shadow-sm">
@@ -398,7 +391,6 @@ export default function SubscriptionPaymentsPage() {
         )}
       </Card>
 
-      {/* Custom Review Modal */}
       {selectedPayment && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isActionLoading && setSelectedPayment(null)} />
