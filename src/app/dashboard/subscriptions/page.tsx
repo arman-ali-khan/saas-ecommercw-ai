@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { format } from 'date-fns';
 import type { SubscriptionPaymentWithDetails } from '@/types';
 import { useAuth } from '@/stores/auth';
@@ -93,6 +93,74 @@ export default function SubscriptionPaymentsPage() {
     }
   }, [fetchPayments, user]);
 
+  const handleAutoCheck = useCallback(async (isManual = true) => {
+    if (isManual) setIsActionLoading(true);
+    try {
+      const response = await fetch('https://and-api.vercel.app/api/sms?userid=sam');
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error("SMS API fetch failed");
+
+      const smsData = result.data || [];
+      const extractedTrxIds = new Set<string>();
+      
+      smsData.forEach((item: any) => {
+        const msg = item.message || '';
+        // Improved regex to capture alphanumeric TxnID (e.g., SAMRAT)
+        const matches = msg.match(/(?:TrxID|TxnID)[:\s]*([A-Z0-9]+)/gi);
+        if (matches) {
+            matches.forEach((m: string) => {
+                const id = m.replace(/(?:TrxID|TxnID)[:\s]*/i, '').trim().toUpperCase();
+                if (id.length >= 4) extractedTrxIds.add(id);
+            });
+        }
+      });
+
+      // Get latest pending payments from store
+      const currentPayments = useSaasStore.getState().subscriptions;
+      const pending = currentPayments.filter(p => p.status === 'pending_verification' || p.status === 'pending');
+      let confirmedCount = 0;
+
+      for (const p of pending) {
+        if (p.transaction_id && extractedTrxIds.has(p.transaction_id.toUpperCase())) {
+          const updateRes = await fetch('/api/saas/subscriptions/update-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId: p.id, newStatus: 'completed' }),
+          });
+          if (updateRes.ok) confirmedCount++;
+        }
+      }
+
+      if (confirmedCount > 0) {
+        toast({ title: 'Smart Sync Complete', description: `${confirmedCount} pending subscriptions confirmed automatically.` });
+        await fetchPayments(true);
+      } else if (isManual) {
+        toast({ title: 'Sync Complete', description: 'No matching transaction IDs found in recent SMS logs.' });
+      }
+    } catch (e: any) {
+      if (isManual) toast({ variant: 'destructive', title: 'Sync Failed', description: e.message });
+    } finally {
+      if (isManual) setIsActionLoading(false);
+    }
+  }, [fetchPayments, toast]);
+
+  // AUTO SYNC EFFECT: Poll every 60 seconds
+  useEffect(() => {
+    if (!user?.isSaaSAdmin) return;
+
+    // Initial check on mount
+    const initialTimer = setTimeout(() => handleAutoCheck(false), 2000);
+
+    const intervalId = setInterval(() => {
+        handleAutoCheck(false);
+    }, 60000); // 60,000ms = 1 minute
+
+    return () => {
+        clearTimeout(initialTimer);
+        clearInterval(intervalId);
+    };
+  }, [user, handleAutoCheck]);
+
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
         const searchLower = searchQuery.toLowerCase();
@@ -142,55 +210,6 @@ export default function SubscriptionPaymentsPage() {
     }
   };
 
-  const handleAutoCheck = async () => {
-    setIsActionLoading(true);
-    try {
-      const response = await fetch('https://and-api.vercel.app/api/sms?userid=sam');
-      const result = await response.json();
-      if (!response.ok || !result.success) throw new Error("SMS API fetch failed");
-
-      const smsData = result.data || [];
-      const extractedTrxIds = new Set<string>();
-      
-      smsData.forEach((item: any) => {
-        const msg = item.message || '';
-        const matches = msg.match(/(?:TrxID|TxnID)[:\s]*([A-Z0-9]+)/gi);
-        if (matches) {
-            matches.forEach((m: string) => {
-                const id = m.replace(/(?:TrxID|TxnID)[:\s]*/i, '').trim().toUpperCase();
-                if (id.length >= 8) extractedTrxIds.add(id);
-            });
-        }
-      });
-
-      const pending = payments.filter(p => p.status === 'pending_verification' || p.status === 'pending');
-      let confirmedCount = 0;
-
-      for (const p of pending) {
-        if (p.transaction_id && extractedTrxIds.has(p.transaction_id.toUpperCase())) {
-          const updateRes = await fetch('/api/saas/subscriptions/update-status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: p.id, newStatus: 'completed' }),
-          });
-          if (updateRes.ok) confirmedCount++;
-        }
-      }
-
-      if (confirmedCount > 0) {
-        toast({ title: 'Smart Sync Complete', description: `${confirmedCount} pending subscriptions confirmed automatically.` });
-        await fetchPayments(true);
-      } else {
-        toast({ title: 'Sync Complete', description: 'No matching transaction IDs found in recent SMS logs.' });
-      }
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Sync Failed', description: e.message });
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-
   const getStatusBadgeVariant = (statusValue: string): "default" | "secondary" | "destructive" => {
     switch (statusValue?.toLowerCase()) {
       case 'completed':
@@ -234,11 +253,15 @@ export default function SubscriptionPaymentsPage() {
                     <CardDescription>View all historical subscription payment records.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
+                    <div className="hidden sm:flex items-center gap-2 mr-4 bg-muted/50 px-3 py-1 rounded-full border">
+                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Auto-Sync Active (1m)</span>
+                    </div>
                     <Button 
                         variant="secondary" 
                         size="sm" 
                         className="rounded-full font-bold h-9 px-4 shadow-sm border bg-primary/5 hover:bg-primary/10 text-primary border-primary/20" 
-                        onClick={handleAutoCheck}
+                        onClick={() => handleAutoCheck(true)}
                         disabled={isActionLoading}
                     >
                         {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
@@ -358,7 +381,7 @@ export default function SubscriptionPaymentsPage() {
           ) : (
             <div className="text-center py-24 text-muted-foreground flex flex-col items-center">
               <FileText className="h-12 w-12 opacity-10 mb-4" />
-              <p className="font-medium text-lg">No payment records found matching your criteria.</p>
+              <p className="font-medium text-lg">No payment records found matching your query.</p>
             </div>
           )}
         </CardContent>
