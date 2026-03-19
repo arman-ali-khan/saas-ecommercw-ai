@@ -51,16 +51,21 @@ export default async function RootLayout({
   const host = (headerList.get('host') || '').toLowerCase().split(':')[0];
   const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop').toLowerCase().trim();
   
-  // Server-side identification of store vs platform
-  const isPlatformRoot = 
-    host === baseDomain || 
-    host === `www.${baseDomain}` || 
-    host === 'localhost' || 
-    host === 'dokanbd.shop' ||
-    host === 'www.dokanbd.shop' ||
-    host.includes('cloudworkstations.dev') ||
-    (host.endsWith('.vercel.app') && !host.includes(baseDomain));
+  // Refined platform root identification
+  const platformRootDomains = [
+    baseDomain,
+    `www.${baseDomain}`,
+    'dokanbd.shop',
+    'www.dokanbd.shop',
+    'localhost'
+  ];
 
+  const isPlatformRoot = 
+    platformRootDomains.some(d => host === d) || 
+    host.includes('cloudworkstations.dev') || 
+    host.includes('vercel.app');
+
+  // A store page is identified if it's NOT the platform root OR it's explicitly a subdomain
   const isStorePage = !isPlatformRoot || host.endsWith(`.${baseDomain}`);
 
   return (

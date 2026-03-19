@@ -20,6 +20,7 @@ import { useAuth } from '@/stores/auth';
 import { Skeleton } from './ui/skeleton';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { type SaasSettings } from '@/types';
 
 interface SaasHeaderProps {
@@ -58,6 +59,7 @@ const translations = {
 
 export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderProps) {
   const user = useAuth((state) => state.user);
+  const pathname = usePathname();
   const t = translations[lang];
   
   const [isHydrated, setIsHydrated] = useState(false);
@@ -85,19 +87,24 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
     const fetchInfo = async () => {
       if (!initialSettings) {
         setIsLoading(true);
-        const { data } = await supabase
-          .from('saas_settings')
-          .select('platform_name, platform_name_en, logo_url')
-          .eq('id', 1)
-          .single();
-        
-        if (data) {
-          setSiteInfo({
-            name: (lang === 'en' ? data.platform_name_en : data.platform_name) || data.platform_name || 'DokanBD',
-            logoUrl: data.logo_url || null,
-          });
+        try {
+            const { data } = await supabase
+              .from('saas_settings')
+              .select('platform_name, platform_name_en, logo_url')
+              .eq('id', 1)
+              .single();
+            
+            if (data) {
+              setSiteInfo({
+                name: (lang === 'en' ? data.platform_name_en : data.platform_name) || data.platform_name || 'DokanBD',
+                logoUrl: data.logo_url || null,
+              });
+            }
+        } catch (e) {
+            console.error("SaasHeader fetch error:", e);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
       } else {
         setSiteInfo({
             name: (lang === 'en' ? initialSettings.platform_name_en : initialSettings.platform_name) || initialSettings.platform_name,
@@ -125,9 +132,9 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
   };
 
   const navLinks = [
-    { href: '#features', label: t.features },
-    { href: '#pricing', label: t.plans },
-    { href: '#testimonial', label: t.reviews },
+    { href: '/#features', label: t.features },
+    { href: '/#pricing', label: t.plans },
+    { href: '/#testimonial', label: t.reviews },
   ];
 
   const HeaderLogo = () => (
@@ -148,6 +155,11 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
       </Link>
     )
   );
+
+  // Hidden on dashboard/admin specific routes handled elsewhere
+  if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
+    return null;
+  }
 
   return (
     <header className={cn(

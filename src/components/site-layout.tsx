@@ -14,34 +14,30 @@ interface SiteLayoutProps {
 export default function SiteLayout({ children, isStorePage }: SiteLayoutProps) {
   const pathname = usePathname();
   
-  // Platform Admin Dashboard gets no SaaS landing layout
+  // Platform Dashboard never gets the SaaS landing layout
   if (pathname.startsWith('/dashboard')) {
     return <>{children}</>;
   }
 
   /**
-   * Determine if we are on a platform-level page (Landing, About, Login, etc.)
-   * or a tenant-level page (Storefront).
+   * Determine if we should show the SaaS Platform Layout (Header/Footer).
    * 
-   * On production with subdomains, the isStorePage prop (calculated server-side) 
-   * correctly identifies store domains.
-   * 
-   * On dev environments (localhost or cloud workstations), the domain is 
-   * often considered "platformRoot" by default, so we must also check the 
-   * pathname segments to see if we are visiting a store path (e.g., /sam).
+   * isStorePage is calculated server-side in RootLayout.
+   * On dev/local, we also check path segments to avoid wrapping store pages 
+   * that are being accessed via rewritten paths (e.g., localhost:3000/sam).
    */
   const platformSegments = ['about', 'login', 'register', 'get-started', 'leave-a-review', 'p'];
   const firstSegment = pathname.split('/')[1];
+  
+  // It's a platform path if it's root OR starts with a known platform segment
   const isPlatformPath = pathname === '/' || platformSegments.includes(firstSegment);
 
-  // If identified as a store domain (production), 
-  // or if we are on a path that belongs to a store (dev/rewritten),
-  // we return children directly because [username]/layout.tsx handles its own header/footer.
+  // If identified as a store domain, or a store path on the base domain, skip SaaS layout
   if (isStorePage || !isPlatformPath) {
     return <>{children}</>;
   }
   
-  // Main SaaS Landing Page & Platform-level Pages
+  // Main SaaS Platform Layout
   const isLandingPage = pathname === '/';
 
   return (
