@@ -36,6 +36,7 @@ const translations = {
         step3: "নম্বর হিসেবে {num} দিন।",
         step4: "টাকার পরিমাণ হিসেবে ৳{price} লিখুন।",
         step5: "পেমেন্ট শেষে ট্রানজেকশন আইডি নিচের বক্সে দিন।",
+        step6: "আপনার ট্রানজেকশন আইডি সঠিক হলে স্বয়ংক্রিয় ভাবে একাউন্ট এক্টিভ হবে।",
         trxLabel: "Transaction ID",
         back: "পিছে ফিরে যান",
         next: "পরবর্তী ধাপ",
@@ -52,6 +53,7 @@ const translations = {
         step3: "Enter this number: {num}",
         step4: "Enter amount: ৳{price}",
         step5: "After payment, enter the Transaction ID below.",
+        step6: "Your account will be automatically activated if the Transaction ID is correct.",
         trxLabel: "Transaction ID",
         back: "Go Back",
         next: "Next Step",
@@ -132,6 +134,7 @@ export default function PaymentStep({ plan, formData, updateFormData, onNext, on
                             <li>৩. {t.step3.replace('{num}', merchantNumber)}</li>
                             <li>৪. {t.step4.replace('{price}', priceText)}</li>
                             <li>৫. {t.step5}</li>
+                            <li className="text-primary font-bold">৬. {t.step6}</li>
                         </ol>
                     </div>
                     
