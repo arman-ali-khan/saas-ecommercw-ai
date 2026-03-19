@@ -29,8 +29,6 @@ import {
   Smartphone,
   Globe,
 } from 'lucide-react';
-import SaasHeader from '@/components/saas-header';
-import SaasFooter from '@/components/saas-footer';
 import { type SaasFeature, type SaaSReview, type SaasShowcaseItem, type SaasSettings } from '@/types';
 import DynamicIcon from './dynamic-icon';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -187,7 +185,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeIn}
-            className="text-center relative pt-4 md:pt-8"
+            className="text-center relative"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-6 animate-pulse">
               <Zap className="w-3 h-3" />
@@ -488,20 +486,15 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
   };
 
   return (
-    <div id="root-main" className="min-h-screen bg-background selection:bg-primary/30">
-      <SaasHeader initialSettings={settings} lang={lang} />
-      
+    <div id="root-main" className="selection:bg-primary/30">
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
       </div>
 
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-32">
-        <div className="space-y-24 md:space-y-40 py-12 md:py-24">
-          {sections.map(renderSection)}
-        </div>
-      </main>
-      <SaasFooter initialSettings={settings} lang={lang} />
+      <div className="space-y-24 md:space-y-40 py-12 md:py-24">
+        {sections.map(renderSection)}
+      </div>
     </div>
   );
 }
