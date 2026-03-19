@@ -6,6 +6,8 @@ import { cookies } from 'next/headers';
 import { decryptObject } from '@/lib/encryption';
 import { subDays, format, isSameDay, startOfDay } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -133,6 +135,8 @@ export async function GET(request: Request) {
         recentPendingPayments: recentPendingPaymentsJoined,
         unreadNotifications: recentNotificationsJoined,
         weeklyTrends
+    }, {
+        headers: { 'Cache-Control': 'no-store, max-age=0' }
     });
 
   } catch (e: any) {

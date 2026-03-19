@@ -5,6 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { decryptObject } from '@/lib/encryption';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * @fileOverview Secure API for SaaS admins to list all subscription payments.
  * Optimized join logic and decryption.
@@ -53,7 +55,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden: SaaS Admin access required.' }, { status: 403 });
     }
 
-    // 3. Fetch Data
+    // 3. Fetch Data - Use no-cache approach
     const { data: payments, error: paymentsError } = await supabaseAdmin
       .from('subscription_payments')
       .select('*')
@@ -62,7 +64,9 @@ export async function GET(request: Request) {
     if (paymentsError) throw paymentsError;
 
     if (!payments || payments.length === 0) {
-        return NextResponse.json({ payments: [] });
+        return NextResponse.json({ payments: [] }, {
+            headers: { 'Cache-Control': 'no-store, max-age=0' }
+        });
     }
 
     // 4. Manual Join for Related Data
@@ -85,7 +89,9 @@ export async function GET(request: Request) {
         plans: plansMap.get(payment.plan_id) || null
     }));
 
-    return NextResponse.json({ payments: combinedPayments });
+    return NextResponse.json({ payments: combinedPayments }, {
+        headers: { 'Cache-Control': 'no-store, max-age=0' }
+    });
 
   } catch (e: any) {
     console.error('API /saas/subscriptions/list error:', e);
