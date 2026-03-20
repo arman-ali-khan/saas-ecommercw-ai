@@ -155,7 +155,7 @@ export default function RegisterForm() {
         duration: 10000,
       });
       const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
-      const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
+      const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop';
       window.location.href = `${protocol}//${domain}.${rootDomain}/admin/login`;
     } else {
       toast({

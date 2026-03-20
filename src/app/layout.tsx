@@ -49,7 +49,7 @@ export default async function RootLayout({
 }>) {
   const headerList = await headers();
   const host = (headerList.get('host') || '').toLowerCase().split(':')[0];
-  const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop').toLowerCase().trim();
+  const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop').toLowerCase().trim();
   
   // Refined platform root identification
   const platformRootDomains = [

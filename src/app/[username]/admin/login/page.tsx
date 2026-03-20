@@ -67,7 +67,7 @@ export default function AdminLoginPage() {
       
       if (hostname) {
         const isLocalhost = hostname.includes('localhost');
-        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop';
         
         if (isLocalhost) {
             router.push(`/admin/login`); 

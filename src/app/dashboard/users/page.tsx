@@ -69,7 +69,7 @@ export default function UsersAdminPage() {
     const [isBlocking, setIsBlocking] = useState(false);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [baseDomain, setBaseDomain] = useState('e-bd.shop');
+    const [baseDomain, setBaseDomain] = useState('ihut.shop');
     const [currentPage, setCurrentPage] = useState(1);
 
     // Search and Filter State
@@ -519,7 +519,7 @@ export default function UsersAdminPage() {
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="siteName" render={({ field: siteField }) => (<FormItem><FormLabel className="font-bold">Public Store Name</FormLabel><FormControl><Input placeholder="Organic Farm" {...siteField} className="h-11 rounded-xl" /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={form.control} name="domain" render={({ field: domField }) => (<FormItem><FormLabel className="font-bold">Store Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="farm" className="rounded-r-none h-11 rounded-l-xl" {...domField} /></FormControl><span className="bg-muted px-3 h-11 flex items-center border border-l-0 rounded-r-xl text-[10px] font-black text-muted-foreground">.{'e-bd.shop'}</span></div><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="domain" render={({ field: domField }) => (<FormItem><FormLabel className="font-bold">Store Domain</FormLabel><div className="flex items-center"><FormControl><Input placeholder="farm" className="rounded-r-none h-11 rounded-l-xl" {...domField} /></FormControl><span className="bg-muted px-3 h-11 flex items-center border border-l-0 rounded-r-xl text-[10px] font-black text-muted-foreground">.{'ihut.shop'}</span></div><FormMessage /></FormItem>)} />
                                     </div>
                                 </form>
                             </Form>

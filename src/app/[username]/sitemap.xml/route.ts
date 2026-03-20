@@ -30,7 +30,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     }
 
     // Determine the base URL from profile or fallback
-    const host = request.headers.get('host') || `${username}.${profile.base_domain || process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop'}`;
+    const host = request.headers.get('host') || `${username}.${profile.base_domain || process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop'}`;
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
 

@@ -106,7 +106,7 @@ export async function POST(request: Request) {
               orderId: newOrder.id,
               paymentType: dbOrderData.payment_method === 'cod' ? 'cod' : 'paid',
               paymentMethod: dbOrderData.payment_method,
-              domain: `${domain}.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop'}`
+              domain: `${domain}.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop'}`
             }),
           }).catch(err => console.error("External SMS API Hook Error:", err));
         }

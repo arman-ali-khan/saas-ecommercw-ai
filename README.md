@@ -10,7 +10,7 @@
 ## 🌟 Key Features
 
 ### 1. Advanced Multi-tenancy
-* Supports dynamic store creation on custom subdomains (e.g., `store.e-bd.shop`) and external custom domains.
+* Supports dynamic store creation on custom subdomains (e.g., `store.ihut.shop`) and external custom domains.
 * Individual store owners get a dedicated admin dashboard to manage their specific inventory, customers, and themes.
 
 ### 2. GenAI Content Engine

@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
   const host = hostname.split(':')[0].toLowerCase();
   
   // Clean base domain from environment variable
-  const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop')
+  const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop')
     .replace(/^https?:\/\//, '')
     .replace(/^www\./, '')
     .split('/')[0]
@@ -53,7 +53,7 @@ export async function middleware(request: NextRequest) {
 
   let storeUsername = '';
 
-  // 3. Subdomain Resolution (e.g., sam.e-bd.shop)
+  // 3. Subdomain Resolution (e.g., sam.ihut.shop)
   if (host.endsWith(`.${baseDomain}`)) {
     const subdomain = host.replace(`.${baseDomain}`, '').replace(/^www\./, '');
     if (subdomain && !['www', 'api', 'admin', 'dashboard', 'profile'].includes(subdomain)) {

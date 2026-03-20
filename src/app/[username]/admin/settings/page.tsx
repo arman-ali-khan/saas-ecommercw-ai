@@ -225,7 +225,7 @@ function SettingsContent() {
   useEffect(() => {
     if (user) {
         const protocol = window.location.protocol;
-        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop';
         setSitemapUrl(`${protocol}//${user.domain}.${baseDomain}/sitemap.xml`);
         setRobotsUrl(`${protocol}//${user.domain}.${baseDomain}/robots.txt`);
         fetchSettingsData();

@@ -36,7 +36,7 @@ const translations = {
     }
 };
 
-const domainSuffix = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
+const domainSuffix = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop';
 
 export default function SuccessStep({ formData, lang }: SuccessStepProps) {
     const t = translations[lang];

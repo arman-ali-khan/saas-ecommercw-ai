@@ -10,7 +10,7 @@ const CustomTopLoader = () => {
 
     useEffect(() => {
         const hostname = window.location.hostname;
-        const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'e-bd.shop';
+        const rootDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop';
         const domain = hostname.split('.')[0];
         const isStorePage = hostname !== rootDomain && hostname !== `www.${rootDomain}` && domain !== 'www';
 

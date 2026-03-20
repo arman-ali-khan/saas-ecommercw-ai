@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         full_name: encrypt(fullName),
         email: encrypt(email),
         domain,
-        base_domain: 'e-bd.shop', // Ensure new stores use the e-bd.shop domain
+        base_domain: 'ihut.shop', // Ensure new stores use the ihut.shop domain
         site_name: siteName,
         site_description: siteDescription,
         subscription_plan: finalPlanId,
