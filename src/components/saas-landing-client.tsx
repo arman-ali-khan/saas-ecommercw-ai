@@ -37,6 +37,62 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
+// --- Code Writing Animation Component ---
+const CodeWritingAnimation = () => {
+  const codeSnippet = `/**
+ * @file Critical Deployment Engine
+ * Powered by DokanBD AI
+ */
+async function provisionStore(userId, config) {
+  const ai = genkit({ plugins: [googleAI()] });
+  
+  // 1. Generate SEO Optimized Content
+  const { output } = await ai.generate({
+    model: 'gemini-1.5-flash',
+    prompt: \`Setup store for \${config.siteName}\`
+  });
+
+  // 2. Deploy Multi-tenant Infrastructure
+  return await db.provisionTenant({
+    ownerId: userId,
+    subdomain: \`\${config.slug}.ihut.shop\`,
+    seoMeta: output.seo,
+    status: 'live'
+  });
+}`;
+
+  const [displayedCode, setDisplayedCode] = useState('');
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (index < codeSnippet.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedCode((prev) => prev + codeSnippet[index]);
+        setIndex((prev) => prev + 1);
+      }, 30);
+      return () => clearTimeout(timeout);
+    } else {
+      const resetTimeout = setTimeout(() => {
+        setDisplayedCode('');
+        setIndex(0);
+      }, 5000);
+      return () => clearTimeout(resetTimeout);
+    }
+  }, [index, codeSnippet]);
+
+  return (
+    <div className="w-full h-full bg-[#0d1117] p-6 font-mono text-xs sm:text-sm md:text-base overflow-hidden relative">
+      <pre className="text-blue-400 text-left">
+        <code>
+          {displayedCode}
+          <span className="inline-block w-2 h-4 sm:h-5 bg-primary ml-1 animate-pulse align-middle" />
+        </code>
+      </pre>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full" />
+    </div>
+  );
+};
+
 interface SaasLandingClientProps {
   plans: any[];
   features: SaasFeature[];
@@ -228,13 +284,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
                 </div>
                 <div className="aspect-[16/9] relative">
-                  <Image
-                    src={settings?.hero_image_url || "https://images.unsplash.com/photo-1628882139032-a1314387532f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxlY29tbWVyY2UlMjBhcHB8ZW58MHx8fHwxNzcxMDQzODA2fDA&ixlib=rb-4.1.0&q=80&w=1200"}
-                    alt="Platform Dashboard"
-                    fill
-                    className="object-cover"
-                    priority
-                  />
+                  <CodeWritingAnimation />
                 </div>
               </div>
             </motion.div>
