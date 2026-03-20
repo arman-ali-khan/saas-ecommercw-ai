@@ -1,4 +1,3 @@
-
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,8 +50,27 @@ export default function DomainStep({ formData, updateFormData, onNext, onBack, l
     const [status, setStatus] = useState<'checking' | 'available' | 'unavailable' | 'empty' | 'too_short' | 'reserved'>('empty');
     const [debounced, setDebounced] = useState(domain);
     const [isNavigating, setIsNavigating] = useState(false);
-    const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop'; // New addon domain for subdomains
+    const [baseDomain, setBaseDomain] = useState(process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop');
     const t = translations[lang];
+
+    useEffect(() => {
+        const fetchBaseDomain = async () => {
+            try {
+                const response = await fetch('/api/saas/fetch-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ entity: 'settings' }),
+                });
+                const result = await response.json();
+                if (response.ok && result.data?.base_domain) {
+                    setBaseDomain(result.data.base_domain);
+                }
+            } catch (e) {
+                console.error("Failed to fetch base domain:", e);
+            }
+        };
+        fetchBaseDomain();
+    }, []);
 
     useEffect(() => {
         const h = setTimeout(() => setDebounced(domain), 500);

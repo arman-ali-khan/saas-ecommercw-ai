@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -28,12 +27,15 @@ import {
   ShieldCheck,
   Smartphone,
   Globe,
+  X,
+  Maximize2
 } from 'lucide-react';
 import { type SaasFeature, type SaaSReview, type SaasShowcaseItem, type SaasSettings } from '@/types';
 import DynamicIcon from './dynamic-icon';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface SaasLandingClientProps {
   plans: any[];
@@ -110,6 +112,7 @@ const landingTranslations = {
 export default function SaasLandingClient({ plans, features, reviews, showcaseItems, settings, sections }: SaasLandingClientProps) {
   const [lang, setLang] = useState<'bn' | 'en'>('bn');
   const t = landingTranslations[lang];
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     const trackVisitor = async () => {
@@ -148,7 +151,6 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                 ctaText = t.contactUs;
             }
         } else {
-            // BN Overrides
             if (plan.id === 'Unlimited') {
                 ctaText = t.chooseUnlimited;
             }
@@ -289,15 +291,18 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                         <CarouselContent>
                         {showcaseItems.map((item) => (
                             <CarouselItem key={item.id} className="basis-full">
-                            <div className="relative aspect-[16/9] rounded-[2rem] overflow-hidden border-2 border-border/50 shadow-2xl group/item">
+                            <div 
+                                className="relative aspect-[16/9] rounded-[2rem] border-2 border-border/50 shadow-2xl group/item cursor-zoom-in"
+                                onClick={() => item.image_url && setPreviewImage(item.image_url)}
+                            >
                                 {item.image_url ? (
-                                <Image src={item.image_url} alt={item.title} fill className="object-cover transition-transform duration-700 group-hover/item:scale-105" />
+                                <Image src={item.image_url} alt={item.title} fill className="object-cover rounded-[2rem] transition-transform duration-700 group-hover/item:scale-105" />
                                 ) : (
-                                <div className="w-full h-full bg-muted flex items-center justify-center">
+                                <div className="w-full h-full bg-muted flex items-center justify-center rounded-[2rem]">
                                     <DynamicIcon name={item.icon} className="w-20 h-20 text-muted-foreground" />
                                 </div>
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-12 text-white">
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-12 text-white rounded-[2rem]">
                                 <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                                     <h3 className="text-2xl md:text-4xl font-bold font-headline mb-3">
                                         {(lang === 'en' ? (item as any).title_en : item.title) || item.title}
@@ -306,6 +311,9 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                                         {(lang === 'en' ? (item as any).description_en : item.description) || item.description}
                                     </p>
                                 </motion.div>
+                                </div>
+                                <div className="absolute top-6 right-6 p-3 bg-white/10 backdrop-blur-md rounded-full opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                    <Maximize2 className="w-6 h-6 text-white" />
                                 </div>
                             </div>
                             </CarouselItem>
@@ -495,6 +503,32 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
       <div className="space-y-24 md:space-y-40 py-12 md:py-24">
         {sections.map(renderSection)}
       </div>
+
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden border-none bg-black/90 shadow-2xl flex items-center justify-center rounded-[2rem]">
+            <div className="relative w-full h-full flex items-center justify-center p-4">
+                {previewImage && (
+                    <div className="relative w-full h-[80vh]">
+                        <Image 
+                            src={previewImage} 
+                            alt="Full Preview" 
+                            fill 
+                            className="object-contain"
+                            priority
+                        />
+                    </div>
+                )}
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full h-12 w-12"
+                    onClick={() => setPreviewImage(null)}
+                >
+                    <X className="h-8 w-8" />
+                </Button>
+            </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
