@@ -40,6 +40,7 @@ export async function POST(request: Request) {
         logo_url: data.logo_url,
         favicon_url: data.favicon_url,
         base_domain: data.base_domain,
+        preview_domain: data.preview_domain,
         social_facebook: data.social_facebook,
         social_twitter: data.social_twitter,
         social_tiktok: data.social_tiktok,

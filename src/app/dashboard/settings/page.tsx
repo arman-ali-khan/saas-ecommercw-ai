@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -39,6 +40,7 @@ const generalSettingsSchema = z.object({
   logo_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   favicon_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   base_domain: z.string().optional().or(z.literal('')),
+  preview_domain: z.string().optional().or(z.literal('')),
   social_facebook: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_twitter: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   social_tiktok: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
@@ -89,6 +91,7 @@ export default function SaasSettingsPage() {
       logo_url: '',
       favicon_url: '',
       base_domain: '',
+      preview_domain: '',
       social_facebook: '',
       social_twitter: '',
       social_tiktok: '',
@@ -136,6 +139,7 @@ export default function SaasSettingsPage() {
                 logo_url: data.logo_url || '',
                 favicon_url: data.favicon_url || '',
                 base_domain: data.base_domain || '',
+                preview_domain: data.preview_domain || '',
                 social_facebook: data.social_facebook || '',
                 social_twitter: data.social_twitter || '',
                 social_tiktok: data.social_tiktok || '',
@@ -183,6 +187,7 @@ export default function SaasSettingsPage() {
             logo_url: values.logo_url,
             favicon_url: values.favicon_url,
             base_domain: values.base_domain,
+            preview_domain: values.preview_domain,
             social_facebook: values.social_facebook,
             social_twitter: values.social_twitter,
             social_tiktok: values.social_tiktok,
@@ -387,24 +392,41 @@ export default function SaasSettingsPage() {
                     </CardContent>
                   </Card>
 
-                  <FormField
-                    control={generalForm.control}
-                    name="base_domain"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Base Domain URL</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., myapp.com" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          The main domain for user sites (e.g., your-store.myapp.com).
-                          <br />
-                          <strong className="text-destructive">Important:</strong> For routing to work correctly, this value must also be set in an environment variable named <code>NEXT_PUBLIC_BASE_DOMAIN</code> and your server must be restarted.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <FormField
+                        control={generalForm.control}
+                        name="base_domain"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Base Domain URL</FormLabel>
+                            <FormControl>
+                            <Input placeholder="e.g., myapp.com" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                            The main domain for user sites (e.g., your-store.myapp.com).
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={generalForm.control}
+                        name="preview_domain"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Preview Domain URL (Optional)</FormLabel>
+                            <FormControl>
+                            <Input placeholder="e.g., *-git-main-your-app.vercel.app" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                            Secondary base domain for preview/staging environments.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                  </div>
+
                   <FormField
                     control={generalForm.control}
                     name="logo_url"

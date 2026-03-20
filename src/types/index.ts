@@ -412,6 +412,7 @@ export interface SaasSettings {
   favicon_url: string | null;
   pwa_logo_url: string | null;
   base_domain: string | null;
+  preview_domain?: string | null;
   social_facebook: string | null;
   social_twitter: string | null;
   social_tiktok: string | null;
