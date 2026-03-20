@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -24,7 +25,7 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Layout, Palette, Image as ImageIcon, Loader2, Sparkles, X, Globe, Facebook, Twitter } from 'lucide-react';
+import { Layout, Palette, Image as ImageIcon, Loader2, Sparkles, X, Globe, Facebook, Twitter, Code2 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import ImageUploader from '@/components/image-uploader';
 import Image from 'next/image';
@@ -51,6 +52,7 @@ const landingPageSchema = z.object({
   social_facebook: z.string().url().optional().or(z.literal('')),
   social_twitter: z.string().url().optional().or(z.literal('')),
   social_tiktok: z.string().url().optional().or(z.literal('')),
+  landing_hero_code: z.string().optional().or(z.literal('')),
 });
 
 type LandingPageFormData = z.infer<typeof landingPageSchema>;
@@ -86,6 +88,7 @@ export default function LandingPageManager() {
       logo_url: '',
       platform_description: '', platform_description_en: '',
       social_facebook: '', social_twitter: '', social_tiktok: '',
+      landing_hero_code: '',
     },
   });
 
@@ -120,6 +123,7 @@ export default function LandingPageManager() {
                 social_facebook: d.social_facebook || '',
                 social_twitter: d.social_twitter || '',
                 social_tiktok: d.social_tiktok || '',
+                landing_hero_code: d.landing_hero_code || '',
             });
         }
     } catch (e: any) {
@@ -176,8 +180,9 @@ export default function LandingPageManager() {
       <Form {...form}>
         <form className="space-y-8">
           <Tabs defaultValue="hero" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 h-auto">
-              <TabsTrigger value="hero" className="py-2.5">Hero Section</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto">
+              <TabsTrigger value="hero" className="py-2.5">Hero Content</TabsTrigger>
+              <TabsTrigger value="code" className="py-2.5">Hero Code</TabsTrigger>
               <TabsTrigger value="cta" className="py-2.5">CTA Section</TabsTrigger>
               <TabsTrigger value="header" className="py-2.5">Header & Logo</TabsTrigger>
               <TabsTrigger value="footer" className="py-2.5">Footer & Socials</TabsTrigger>
@@ -220,6 +225,35 @@ export default function LandingPageManager() {
                                 <ImageUploader onUpload={(res) => form.setValue('hero_image_url', res.info.secure_url, { shouldValidate: true })} label="Upload New" />
                             </div>
                         </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="code" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Code2 className="h-5 w-5 text-primary" /> Hero Code Animation</CardTitle>
+                  <CardDescription>Customize the javascript snippet that types out automatically in the hero section.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="landing_hero_code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea 
+                            rows={15} 
+                            className="font-mono text-xs bg-[#0d1117] text-blue-400 p-6 rounded-xl border-2 focus-visible:ring-primary/20" 
+                            placeholder="// Enter javascript code here..."
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>Use standard JavaScript syntax. This will be played in a typewriter effect.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

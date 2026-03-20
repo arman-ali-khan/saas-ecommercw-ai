@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
         facebook_pixel_id: data.facebook_pixel_id || data.facebookPixelId,
         google_search_console_tag: data.google_search_console_tag || data.googleSearchConsoleTag,
         robots_txt_content: data.robots_txt_content || data.robotsTxtContent,
+        landing_hero_code: data.landing_hero_code,
     };
 
     const { error } = await supabaseAdmin

@@ -439,6 +439,7 @@ export interface SaasSettings {
   facebook_meta_tag: string | null;
   google_search_console_tag: string | null;
   robots_txt_content: string | null;
+  landing_hero_code: string | null;
 }
 
 export interface CustomDomainRequest {

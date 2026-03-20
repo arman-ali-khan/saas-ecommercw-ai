@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -38,8 +39,8 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 // --- Code Writing Animation Component ---
-const CodeWritingAnimation = () => {
-  const codeSnippet = `/**
+const CodeWritingAnimation = ({ code }: { code?: string | null }) => {
+  const defaultCode = `/**
  * @file Critical Deployment Engine
  * Powered by DokanBD AI
  */
@@ -61,13 +62,14 @@ async function provisionStore(userId, config) {
   });
 }`;
 
+  const snippet = code || defaultCode;
   const [displayedCode, setDisplayedCode] = useState('');
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    if (index < codeSnippet.length) {
+    if (index < snippet.length) {
       const timeout = setTimeout(() => {
-        setDisplayedCode((prev) => prev + codeSnippet[index]);
+        setDisplayedCode((prev) => prev + snippet[index]);
         setIndex((prev) => prev + 1);
       }, 30);
       return () => clearTimeout(timeout);
@@ -78,11 +80,11 @@ async function provisionStore(userId, config) {
       }, 5000);
       return () => clearTimeout(resetTimeout);
     }
-  }, [index, codeSnippet]);
+  }, [index, snippet]);
 
   return (
     <div className="w-full h-full bg-[#0d1117] p-6 font-mono text-xs sm:text-sm md:text-base overflow-hidden relative">
-      <pre className="text-blue-400 text-left">
+      <pre className="text-blue-400 text-left whitespace-pre-wrap">
         <code>
           {displayedCode}
           <span className="inline-block w-2 h-4 sm:h-5 bg-primary ml-1 animate-pulse align-middle" />
@@ -284,7 +286,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
                 </div>
                 <div className="aspect-[16/9] relative">
-                  <CodeWritingAnimation />
+                  <CodeWritingAnimation code={settings?.landing_hero_code} />
                 </div>
               </div>
             </motion.div>
