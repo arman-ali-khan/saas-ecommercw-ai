@@ -567,9 +567,9 @@ export interface StoreTheme {
   category_design: string;
   section_design: string;
   card_design: string;
-  product_page_design?: string;
-  sidebar_design?: string;
-  footer_design?: string;
+  product_page_design: string;
+  sidebar_design: string;
+  footer_design: string;
   is_active: boolean;
   is_default: boolean;
   created_at: string;

@@ -309,25 +309,44 @@ export default function SaasThemesManagerPage() {
                             <div className="p-6">
                                 <Form {...form}>
                                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                                        {/* Basic Info */}
                                         <div className="space-y-4">
                                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
                                                 <Layout className="h-3 w-3" /> Basic Info
                                             </h3>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel className="font-bold text-xs">Theme Title</FormLabel><FormControl><Input placeholder="e.g. Premium Organics" {...field} className="h-11 rounded-xl" /></FormControl><FormMessage /></FormItem>)} />
-                                                <FormField control={form.control} name="preview_link" render={({ field }) => (<FormItem><FormLabel className="font-bold text-xs">Live Preview URL</FormLabel><FormControl><Input placeholder="https://demo.ihut.shop" {...field} className="h-11 rounded-xl font-mono text-xs" /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name="title" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-xs">Theme Title</FormLabel>
+                                                        <FormControl><Input placeholder="e.g. Premium Organics" {...field} className="h-11 rounded-xl" /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="preview_link" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-xs">Live Preview URL</FormLabel>
+                                                        <FormControl><Input placeholder="https://demo.ihut.shop" {...field} className="h-11 rounded-xl font-mono text-xs" /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
                                             </div>
-                                            <FormField control={form.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel className="font-bold text-xs">Description</FormLabel><FormControl><Textarea placeholder="..." {...field} rows={2} className="rounded-xl resize-none" /></FormControl></FormItem>)} />
+                                            <FormField control={form.control} name="subtitle" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-bold text-xs">Description</FormLabel>
+                                                    <FormControl><Textarea placeholder="Theme highlights..." {...field} rows={2} className="rounded-xl resize-none" /></FormControl>
+                                                </FormItem>
+                                            )} />
                                         </div>
 
+                                        {/* Homepage Design Versioning */}
                                         <div className="space-y-4 pt-4 border-t">
                                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                                                <Palette className="h-3 w-3" /> Design Components (Homepage)
+                                                <Palette className="h-3 w-3" /> Homepage Component Designs
                                             </h3>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                                 <FormField control={form.control} name="navbar_design" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Layout className="h-3 w-3"/> Navbar</FormLabel>
+                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Layout className="h-3 w-3"/> Navbar Version</FormLabel>
                                                         <Select onValueChange={field.onChange} value={field.value}>
                                                             <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
                                                             <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
@@ -336,7 +355,7 @@ export default function SaasThemesManagerPage() {
                                                 )} />
                                                 <FormField control={form.control} name="hero_design" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Monitor className="h-3 w-3"/> Hero Section</FormLabel>
+                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Monitor className="h-3 w-3"/> Hero Section Version</FormLabel>
                                                         <Select onValueChange={field.onChange} value={field.value}>
                                                             <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
                                                             <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
@@ -345,7 +364,7 @@ export default function SaasThemesManagerPage() {
                                                 )} />
                                                 <FormField control={form.control} name="category_design" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><List className="h-3 w-3"/> Category Display</FormLabel>
+                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><List className="h-3 w-3"/> Category Display Version</FormLabel>
                                                         <Select onValueChange={field.onChange} value={field.value}>
                                                             <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
                                                             <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
@@ -354,7 +373,7 @@ export default function SaasThemesManagerPage() {
                                                 )} />
                                                 <FormField control={form.control} name="section_design" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Layout className="h-3 w-3"/> Section Container</FormLabel>
+                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Layout className="h-3 w-3"/> Section Container Version</FormLabel>
                                                         <Select onValueChange={field.onChange} value={field.value}>
                                                             <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
                                                             <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
@@ -364,9 +383,10 @@ export default function SaasThemesManagerPage() {
                                             </div>
                                         </div>
 
+                                        {/* Core Element Versioning */}
                                         <div className="space-y-4 pt-4 border-t">
                                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                                                <ShoppingBag className="h-3 w-3" /> Core Elements
+                                                <ShoppingBag className="h-3 w-3" /> Core Product Elements
                                             </h3>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                                 <FormField control={form.control} name="card_design" render={({ field }) => (
@@ -377,7 +397,7 @@ export default function SaasThemesManagerPage() {
                                                             <SelectContent className="z-[110]">
                                                                 <SelectItem value="v1">Classic (v1)</SelectItem>
                                                                 <SelectItem value="v2">Premium (v2)</SelectItem>
-                                                                <SelectItem value="v3">Minimal Shadow (v3)</SelectItem>
+                                                                <SelectItem value="v3">Soft Shadow (v3)</SelectItem>
                                                                 <SelectItem value="v4">Overlay Actions (v4)</SelectItem>
                                                             </SelectContent>
                                                         </Select>
@@ -385,7 +405,7 @@ export default function SaasThemesManagerPage() {
                                                 )} />
                                                 <FormField control={form.control} name="product_page_design" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="font-bold text-xs">Single Product View</FormLabel>
+                                                        <FormLabel className="font-bold text-xs">Single Product View Design</FormLabel>
                                                         <Select onValueChange={field.onChange} value={field.value}>
                                                             <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
                                                             <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
@@ -394,7 +414,7 @@ export default function SaasThemesManagerPage() {
                                                 )} />
                                                 <FormField control={form.control} name="sidebar_design" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="font-bold text-xs">Sidebar Categories</FormLabel>
+                                                        <FormLabel className="font-bold text-xs">Sidebar Categories Version</FormLabel>
                                                         <Select onValueChange={field.onChange} value={field.value}>
                                                             <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
                                                             <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
@@ -403,7 +423,7 @@ export default function SaasThemesManagerPage() {
                                                 )} />
                                                 <FormField control={form.control} name="footer_design" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Footprints className="h-3 w-3"/> Footer Design</FormLabel>
+                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Footprints className="h-3 w-3"/> Footer Design Version</FormLabel>
                                                         <Select onValueChange={field.onChange} value={field.value}>
                                                             <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
                                                             <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
@@ -413,17 +433,20 @@ export default function SaasThemesManagerPage() {
                                             </div>
                                         </div>
                                         
+                                        {/* Thumbnail & Preview */}
                                         <div className="space-y-4 pt-4 border-t">
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                                                <ImageIcon className="h-3 w-3" /> Theme Preview Image
+                                            </h3>
                                             <FormField control={form.control} name="image_url" render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="font-bold text-xs">Cover Preview Image</FormLabel>
                                                     <div className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-xl border-2 border-dashed bg-muted/30">
                                                         <div className="relative h-24 w-full sm:w-40 rounded-lg border bg-muted flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                                                             {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover" /> : <Palette className="h-8 w-8 text-muted-foreground/30" />}
                                                         </div>
                                                         <div className="flex-grow w-full space-y-2">
-                                                            <FormControl><Input placeholder="Paste Image URL" {...field} className="h-9 text-xs font-mono" /></FormControl>
-                                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} label="Upload Screenshot" />
+                                                            <FormControl><Input placeholder="Image URL" {...field} className="h-9 text-xs font-mono" /></FormControl>
+                                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} label="Upload New Preview" />
                                                         </div>
                                                     </div>
                                                     <FormMessage />
@@ -431,6 +454,7 @@ export default function SaasThemesManagerPage() {
                                             )} />
                                         </div>
 
+                                        {/* Status Toggles */}
                                         <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                                             <FormField control={form.control} name="is_active" render={({ field }) => (
                                                 <FormItem className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
@@ -453,10 +477,11 @@ export default function SaasThemesManagerPage() {
                                 </Form>
                             </div>
                         </ScrollArea>
+                        
                         <div className="p-6 border-t flex flex-col sm:flex-row justify-end gap-3 shrink-0 bg-muted/30 pb-10 sm:pb-6">
                             <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSubmitting} className="rounded-xl px-6 order-2 sm:order-1 h-12">Cancel</Button>
                             <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting} className="rounded-xl px-10 font-bold shadow-lg shadow-primary/20 order-1 sm:order-2 h-12">
-                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Design Config</>}
+                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Theme Config</>}
                             </Button>
                         </div>
                     </div>
