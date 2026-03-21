@@ -13,11 +13,56 @@ import { cn } from '@/lib/utils';
 
 interface CategoryCarouselProps {
     categories: Category[];
-    variant?: 'v1' | 'v2';
+    variant?: string;
 }
 
 export default function CategoryCarousel({ categories, variant = 'v1' }: CategoryCarouselProps) {
   const plugin = useRef(Autoplay({ delay: 3500, stopOnInteraction: true }));
+
+  // --- V3: MINIMAL TEXT-ONLY ---
+  if (variant === 'v3') {
+      return (
+        <div className="flex flex-wrap justify-center gap-3">
+            {categories.map(cat => (
+                <Button key={cat.id} variant="outline" asChild className="rounded-full h-12 px-8 font-black uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all">
+                    <Link href={`/products?category=${encodeURIComponent(cat.name)}`}>{cat.name}</Link>
+                </Button>
+            ))}
+        </div>
+      )
+  }
+
+  // --- V4: BENTO GRIDS (Partial) ---
+  if (variant === 'v4') {
+      return (
+        <Carousel
+            opts={{ align: 'start', loop: true }}
+            className="w-full relative px-0 group"
+            plugins={[plugin.current]}
+        >
+            <CarouselContent className="-ml-4">
+                {categories.map(cat => (
+                    <CarouselItem key={cat.id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                        <Link href={`/products?category=${encodeURIComponent(cat.name)}`}>
+                            <div className="relative h-48 rounded-[2.5rem] bg-muted/30 border-2 border-primary/10 overflow-hidden group/bento p-8 flex flex-col justify-between">
+                                <div className="p-3 bg-background rounded-2xl w-fit shadow-sm group-hover/bento:scale-110 transition-transform">
+                                    <DynamicIcon name={cat.icon || 'Package'} className="h-6 w-6 text-primary" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-xl font-black font-headline">{cat.name}</h3>
+                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Browse Collection</p>
+                                </div>
+                                <div className="absolute -bottom-4 -right-4 opacity-10 scale-150 rotate-12 group-hover/bento:scale-[2] transition-all">
+                                    <DynamicIcon name={cat.icon || 'Package'} className="h-24 w-24" />
+                                </div>
+                            </div>
+                        </Link>
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+        </Carousel>
+      )
+  }
 
   return (
     <Carousel

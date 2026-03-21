@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, X, AlertTriangle, ExternalLink, Palette, CheckCircle2, Layout, Smartphone, Monitor } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, X, AlertTriangle, ExternalLink, Palette, CheckCircle2, Layout, Smartphone, Monitor, ShoppingBag, List, Footprints } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ImageUploader from '@/components/image-uploader';
 import { Switch } from '@/components/ui/switch';
@@ -32,22 +32,33 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const themeSchema = z.object({
     title: z.string().min(1, 'Title is required.'),
     subtitle: z.string().optional().or(z.literal('')),
     preview_link: z.string().url('Must be a valid URL').optional().or(z.literal('')),
     image_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-    navbar_design: z.enum(['v1', 'v2']).default('v1'),
-    hero_design: z.enum(['v1', 'v2']).default('v1'),
-    category_design: z.enum(['v1', 'v2']).default('v1'),
-    section_design: z.enum(['v1', 'v2']).default('v1'),
-    card_design: z.enum(['v1', 'v2', 'minimal']).default('v1'),
+    navbar_design: z.string().default('v1'),
+    hero_design: z.string().default('v1'),
+    category_design: z.string().default('v1'),
+    section_design: z.string().default('v1'),
+    card_design: z.string().default('v1'),
+    product_page_design: z.string().default('v1'),
+    sidebar_design: z.string().default('v1'),
+    footer_design: z.string().default('v1'),
     is_active: z.boolean().default(true),
     is_default: z.boolean().default(false),
 });
 
 type ThemeFormData = z.infer<typeof themeSchema>;
+
+const DESIGN_OPTIONS = [
+    { value: 'v1', label: 'Classic (v1)' },
+    { value: 'v2', label: 'Modern (v2)' },
+    { value: 'v3', label: 'Premium (v3)' },
+    { value: 'v4', label: 'Elite (v4)' },
+];
 
 export default function SaasThemesManagerPage() {
     const { user } = useAuth();
@@ -62,7 +73,7 @@ export default function SaasThemesManagerPage() {
 
     const form = useForm<ThemeFormData>({
         resolver: zodResolver(themeSchema),
-        defaultValues: { title: '', subtitle: '', preview_link: '', image_url: '', navbar_design: 'v1', hero_design: 'v1', category_design: 'v1', section_design: 'v1', card_design: 'v1', is_active: true, is_default: false },
+        defaultValues: { title: '', subtitle: '', preview_link: '', image_url: '', navbar_design: 'v1', hero_design: 'v1', category_design: 'v1', section_design: 'v1', card_design: 'v1', product_page_design: 'v1', sidebar_design: 'v1', footer_design: 'v1', is_active: true, is_default: false },
     });
 
     const fetchThemes = useCallback(async (force = false) => {
@@ -109,12 +120,15 @@ export default function SaasThemesManagerPage() {
                     hero_design: selectedTheme.hero_design || 'v1',
                     category_design: selectedTheme.category_design || 'v1',
                     section_design: selectedTheme.section_design || 'v1',
-                    card_design: (selectedTheme as any).card_design || 'v1',
+                    card_design: selectedTheme.card_design || 'v1',
+                    product_page_design: selectedTheme.product_page_design || 'v1',
+                    sidebar_design: selectedTheme.sidebar_design || 'v1',
+                    footer_design: selectedTheme.footer_design || 'v1',
                     is_active: selectedTheme.is_active,
                     is_default: selectedTheme.is_default
                 });
             } else {
-                form.reset({ title: '', subtitle: '', preview_link: '', image_url: '', navbar_design: 'v1', hero_design: 'v1', category_design: 'v1', section_design: 'v1', card_design: 'v1', is_active: true, is_default: false });
+                form.reset({ title: '', subtitle: '', preview_link: '', image_url: '', navbar_design: 'v1', hero_design: 'v1', category_design: 'v1', section_design: 'v1', card_design: 'v1', product_page_design: 'v1', sidebar_design: 'v1', footer_design: 'v1', is_active: true, is_default: false });
             }
         }
     }, [isFormOpen, selectedTheme, form]);
@@ -221,9 +235,8 @@ export default function SaasThemesManagerPage() {
                             </CardDescription>
                             <div className="flex flex-wrap gap-1.5 mt-2">
                                 <Badge variant="secondary" className="text-[8px] h-4 uppercase">Nav: {theme.navbar_design}</Badge>
-                                <Badge variant="secondary" className="text-[8px] h-4 uppercase">Hero: {theme.hero_design}</Badge>
-                                <Badge variant="secondary" className="text-[8px] h-4 uppercase">Sec: {theme.section_design}</Badge>
-                                <Badge variant="secondary" className="text-[8px] h-4 uppercase">Card: {(theme as any).card_design || 'v1'}</Badge>
+                                <Badge variant="secondary" className="text-[8px] h-4 uppercase">Card: {theme.card_design}</Badge>
+                                <Badge variant="secondary" className="text-[8px] h-4 uppercase">P-Page: {theme.product_page_design}</Badge>
                             </div>
                         </CardHeader>
                         <CardFooter className="p-5 pt-0 gap-2 border-t mt-auto">
@@ -255,132 +268,157 @@ export default function SaasThemesManagerPage() {
                         <div className="p-6 border-b flex justify-between items-center shrink-0 bg-muted/30">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-xl"><Palette className="h-5 w-5 text-primary" /></div>
-                                <h2 className="text-lg sm:text-xl font-bold">{selectedTheme ? 'Edit Theme Design' : 'Create New Theme'}</h2>
+                                <h2 className="text-lg sm:text-xl font-bold">{selectedTheme ? 'Edit Theme' : 'Create New Theme'}</h2>
                             </div>
                             <Button variant="ghost" size="icon" className="rounded-full h-10 w-10" onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>
                                 <X className="h-5 w-5" />
                             </Button>
                         </div>
                         
-                        <div className="p-6 overflow-y-auto">
-                            <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                                    <div className="space-y-4">
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                                            <Layout className="h-3 w-3" /> Basic Info
-                                        </h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel className="font-bold text-xs">Theme Title</FormLabel><FormControl><Input placeholder="e.g. Modern Minimal" {...field} className="h-11 rounded-xl" /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField control={form.control} name="preview_link" render={({ field }) => (<FormItem><FormLabel className="font-bold text-xs">Live Preview URL</FormLabel><FormControl><Input placeholder="https://demo.ihut.shop" {...field} className="h-11 rounded-xl font-mono text-xs" /></FormControl><FormMessage /></FormItem>)} />
+                        <ScrollArea className="flex-grow">
+                            <div className="p-6">
+                                <Form {...form}>
+                                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                                        <div className="space-y-4">
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                                                <Layout className="h-3 w-3" /> Basic Info
+                                            </h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel className="font-bold text-xs">Theme Title</FormLabel><FormControl><Input placeholder="e.g. Premium Organics" {...field} className="h-11 rounded-xl" /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name="preview_link" render={({ field }) => (<FormItem><FormLabel className="font-bold text-xs">Live Preview URL</FormLabel><FormControl><Input placeholder="https://demo.ihut.shop" {...field} className="h-11 rounded-xl font-mono text-xs" /></FormControl><FormMessage /></FormItem>)} />
+                                            </div>
+                                            <FormField control={form.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel className="font-bold text-xs">Description</FormLabel><FormControl><Textarea placeholder="..." {...field} rows={2} className="rounded-xl resize-none" /></FormControl></FormItem>)} />
                                         </div>
-                                        <FormField control={form.control} name="subtitle" render={({ field }) => (<FormItem><FormLabel className="font-bold text-xs">Subtitle / Description</FormLabel><FormControl><Textarea placeholder="Briefly describe the look and feel." {...field} rows={2} className="rounded-xl resize-none" /></FormControl></FormItem>)} />
-                                    </div>
 
-                                    <div className="space-y-4 pt-4 border-t">
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                                            <Palette className="h-3 w-3" /> Design Components
-                                        </h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                            <FormField control={form.control} name="navbar_design" render={({ field }) => (
+                                        <div className="space-y-4 pt-4 border-t">
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                                                <Palette className="h-3 w-3" /> Design Components (Homepage)
+                                            </h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                <FormField control={form.control} name="navbar_design" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Layout className="h-3 w-3"/> Navbar</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="hero_design" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Monitor className="h-3 w-3"/> Hero Section</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="category_design" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><List className="h-3 w-3"/> Category Display</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="section_design" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Layout className="h-3 w-3"/> Section Container</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4 pt-4 border-t">
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                                                <ShoppingBag className="h-3 w-3" /> Core Elements
+                                            </h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                <FormField control={form.control} name="card_design" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-xs">Product Card Design</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent className="z-[110]">
+                                                                <SelectItem value="v1">Classic (v1)</SelectItem>
+                                                                <SelectItem value="v2">Premium (v2)</SelectItem>
+                                                                <SelectItem value="v3">Minimal Shadow (v3)</SelectItem>
+                                                                <SelectItem value="v4">Overlay Actions (v4)</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="product_page_design" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-xs">Single Product View</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="sidebar_design" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-xs">Sidebar Categories</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="footer_design" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-bold text-xs flex items-center gap-2"><Footprints className="h-3 w-3"/> Footer Design</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent className="z-[110]">{DESIGN_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="space-y-4 pt-4 border-t">
+                                            <FormField control={form.control} name="image_url" render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="font-bold text-xs">Navbar Design</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
-                                                        <SelectContent className="z-[110]">
-                                                            <SelectItem value="v1">Standard (v1)</SelectItem>
-                                                            <SelectItem value="v2">Premium Centered (v2)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormItem>
-                                            )} />
-                                            <FormField control={form.control} name="hero_design" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="font-bold text-xs">Hero Section Design</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
-                                                        <SelectContent className="z-[110]">
-                                                            <SelectItem value="v1">Full Background (v1)</SelectItem>
-                                                            <SelectItem value="v2">Split Layout (v2)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormItem>
-                                            )} />
-                                            <FormField control={form.control} name="category_design" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="font-bold text-xs">Category Display</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
-                                                        <SelectContent className="z-[110]">
-                                                            <SelectItem value="v1">Square Grid (v1)</SelectItem>
-                                                            <SelectItem value="v2">Circle Icons (v2)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormItem>
-                                            )} />
-                                            <FormField control={form.control} name="section_design" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="font-bold text-xs">Section Container Design</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
-                                                        <SelectContent className="z-[110]">
-                                                            <SelectItem value="v1">Classic (v1)</SelectItem>
-                                                            <SelectItem value="v2">Modern Card (v2)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormItem>
-                                            )} />
-                                            <FormField control={form.control} name="card_design" render={({ field }) => (
-                                                <FormItem className="sm:col-span-2">
-                                                    <FormLabel className="font-bold text-xs">Default Product Card Style</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger></FormControl>
-                                                        <SelectContent className="z-[110]">
-                                                            <SelectItem value="v1">Classic (v1)</SelectItem>
-                                                            <SelectItem value="v2">Premium/Borderless (v2)</SelectItem>
-                                                            <SelectItem value="minimal">Minimalist</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormDescription className="text-[10px]">Sets the initial card style for all product sections in this theme.</FormDescription>
+                                                    <FormLabel className="font-bold text-xs">Cover Preview Image</FormLabel>
+                                                    <div className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-xl border-2 border-dashed bg-muted/30">
+                                                        <div className="relative h-24 w-full sm:w-40 rounded-lg border bg-muted flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+                                                            {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover" /> : <Palette className="h-8 w-8 text-muted-foreground/30" />}
+                                                        </div>
+                                                        <div className="flex-grow w-full space-y-2">
+                                                            <FormControl><Input placeholder="Paste Image URL" {...field} className="h-9 text-xs font-mono" /></FormControl>
+                                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url)} label="Upload Screenshot" />
+                                                        </div>
+                                                    </div>
+                                                    <FormMessage />
                                                 </FormItem>
                                             )} />
                                         </div>
-                                    </div>
-                                    
-                                    <div className="space-y-4 pt-4 border-t">
-                                        <FormField control={form.control} name="image_url" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="font-bold text-xs">Cover Preview Image</FormLabel>
-                                                <div className="flex flex-col sm:flex-row items-start gap-4 p-4 rounded-xl border-2 border-dashed bg-muted/30">
-                                                    <div className="relative h-24 w-full sm:w-40 rounded-lg border bg-muted flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-                                                        {field.value ? <Image src={field.value} alt="Preview" fill className="object-cover" /> : <Palette className="h-8 w-8 text-muted-foreground/30" />}
-                                                    </div>
-                                                    <div className="flex-grow w-full space-y-2">
-                                                        <FormControl><Input placeholder="Paste Image URL" {...field} className="h-9 text-xs font-mono" /></FormControl>
-                                                        <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url)} label="Upload Screenshot" />
-                                                    </div>
-                                                </div>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )} />
-                                    </div>
 
-                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                                        <FormField control={form.control} name="is_active" render={({ field }) => (
-                                            <FormItem className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
-                                                <FormLabel className="font-bold text-xs">Publicly Active</FormLabel>
-                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                            </FormItem>
-                                        )} />
-                                        <FormField control={form.control} name="is_default" render={({ field }) => (
-                                            <FormItem className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
-                                                <FormLabel className="font-bold text-xs">Default Theme</FormLabel>
-                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                            </FormItem>
-                                        )} />
-                                    </div>
-                                </form>
-                            </Form>
-                        </div>
+                                        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                                            <FormField control={form.control} name="is_active" render={({ field }) => (
+                                                <FormItem className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
+                                                    <FormLabel className="font-bold text-xs">Publicly Active</FormLabel>
+                                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="is_default" render={({ field }) => (
+                                                <FormItem className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
+                                                    <FormLabel className="font-bold text-xs">Default Theme</FormLabel>
+                                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                </FormItem>
+                                            )} />
+                                        </div>
+                                    </form>
+                                </Form>
+                            </div>
+                        </ScrollArea>
                         <div className="p-6 border-t flex flex-col sm:flex-row justify-end gap-3 shrink-0 bg-muted/30 pb-10 sm:pb-6">
                             <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSubmitting} className="rounded-xl px-6 order-2 sm:order-1 h-12">Cancel</Button>
                             <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting} className="rounded-xl px-10 font-bold shadow-lg shadow-primary/20 order-1 sm:order-2 h-12">
@@ -399,7 +437,7 @@ export default function SaasThemesManagerPage() {
                             <AlertDialogTitle className="text-xl font-black">Delete Theme?</AlertDialogTitle>
                         </div>
                         <AlertDialogDescription>
-                            Are you sure you want to permanently remove <strong>"{selectedTheme?.title}"</strong>? This action cannot be undone and will affect any store using this theme.
+                            Are you sure you want to permanently remove <strong>"{selectedTheme?.title}"</strong>? This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-6">

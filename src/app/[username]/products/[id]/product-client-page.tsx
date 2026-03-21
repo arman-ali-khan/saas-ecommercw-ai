@@ -30,6 +30,7 @@ import {
   Search,
   Maximize2,
   X,
+  Share2,
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
 import { Separator } from '@/components/ui/separator';
@@ -97,25 +98,6 @@ const ProductImageZoom = ({ src, alt }: { src: string; alt: string }) => {
   );
 };
 
-const TikTokIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12.52.02c1.31-.02 2.61.01 3.91.02.08 1.53.01 3.07.01 4.6 0 1.1.35 2.21 1.22 3.01.91.82 2.1 1.25 3.32 1.19.08 1.5.01 3 .01 4.5a5.42 5.42 0 0 1-5.12 5.14c-1.53.08-3.07.01-4.6.01-1.1 0-2.21-.35-3.01-1.22-.82-.91-1.25-2.1-1.19-3.32-.08-1.5-.01-3-.01-4.5a5.42 5.42 0 0 1 5.12-5.14Z"></path>
-    <path d="M9 8.5h4"></path>
-    <path d="M9 12.5h4"></path>
-    <path d="M13.5 4.5v4"></path>
-  </svg>
-);
-
 const reviewSchema = z.object({
   rating: z.number().min(1, { message: 'Please select a rating.' }).max(5),
   title: z.string().min(3, { message: 'Title must be at least 3 characters.' }).optional().or(z.literal('')),
@@ -167,20 +149,6 @@ const ReviewForm = ({ product, onReviewSubmitted, setDialogOpen }: { product: Pr
             }
 
             toast({ title: 'Review submitted for approval!' });
-            
-            // Create notification for admin
-            await fetch('/api/notifications/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    recipientId: product.site_id,
-                    recipientType: 'admin',
-                    siteId: product.site_id,
-                    message: `New review for "${product.name}" from ${customer.full_name}.`,
-                    link: '/admin/reviews',
-                }),
-            });
-
             form.reset();
             onReviewSubmitted();
             setDialogOpen(false);
@@ -275,20 +243,6 @@ const QnaForm = ({ product, onQuestionSubmitted, setDialogOpen }: { product: Pro
             }
 
             toast({ title: 'Question submitted!', description: 'Your question will be visible once it has been answered.' });
-            
-            // Create notification for admin
-            await fetch('/api/notifications/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    recipientId: product.site_id,
-                    recipientType: 'admin',
-                    siteId: product.site_id,
-                    message: `New question for "${product.name}" from ${customer.full_name}.`,
-                    link: '/admin/qna',
-                }),
-            });
-            
             form.reset();
             onQuestionSubmitted();
             setDialogOpen(false);
@@ -354,7 +308,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
 
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
   const [isQnaFormOpen, setIsQnaFormOpen] = useState(false);
-  const [siteName, setSiteName] = useState('Your Store');
+  const [siteSettings, setSiteSettings] = useState<any>(null);
 
   const fetchReviews = useCallback(async () => {
     setIsLoadingReviews(true);
@@ -369,9 +323,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
             const productReviews = (result.reviews || []).filter((r: any) => r.product_id === product.id && r.is_approved);
             setReviews(productReviews);
         }
-    } catch (error) {
-        console.error("Error fetching reviews", error);
-    }
+    } catch (error) { console.error(error); }
     setIsLoadingReviews(false);
   }, [product.id, product.site_id]);
   
@@ -388,9 +340,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
             const productQna = (result.qna || []).filter((q: any) => q.product_id === product.id && q.is_approved);
             setQna(productQna);
         }
-    } catch (error) {
-        console.error("Error fetching Q&A:", error);
-    }
+    } catch (error) { console.error(error); }
     setIsLoadingQna(false);
   }, [product.id, product.site_id]);
 
@@ -398,9 +348,12 @@ export default function ProductClientPage({ product }: { product: Product }) {
     setShareUrl(window.location.href);
 
     const fetchAdditionalData = async () => {
-        // Fetch Site Name
-        const { data: profile } = await supabase.from('profiles').select('site_name').eq('id', product.site_id).single();
-        if (profile) setSiteName(profile.site_name || 'Your Store');
+        // Fetch Site Theme/Settings
+        const { data: profile } = await supabase.from('profiles').select('active_theme_id, site_name').eq('id', product.site_id).single();
+        if (profile?.active_theme_id) {
+            const { data: theme } = await supabase.from('store_themes').select('*').eq('id', profile.active_theme_id).single();
+            setSiteSettings(theme);
+        }
 
         // Fetch Flash Deal
         try {
@@ -413,13 +366,11 @@ export default function ProductClientPage({ product }: { product: Product }) {
             if (fdRes.ok) {
                 const now = new Date().toISOString();
                 const activeDeal = (fdResult.deals || []).find((d: any) => 
-                    d.product_id === product.id && 
-                    d.is_active && 
-                    d.end_date > now
+                    d.product_id === product.id && d.is_active && d.end_date > now
                 );
                 if (activeDeal) setFlashDeal(activeDeal);
             }
-        } catch (e) { console.error("Flash Deal fetch error", e); }
+        } catch (e) { console.error(e); }
 
         // Fetch Related Products
         try {
@@ -432,12 +383,11 @@ export default function ProductClientPage({ product }: { product: Product }) {
             const pResult = await pRes.json();
             if (pRes.ok) {
                 const filtered = (pResult.products || []).filter((p: Product) => 
-                    p.id !== product.id && 
-                    p.categories?.some(cat => product.categories?.includes(cat))
+                    p.id !== product.id && p.categories?.some(cat => product.categories?.includes(cat))
                 ).slice(0, 4);
                 setRelatedProducts(filtered);
             }
-        } catch (e) { console.error("Related products fetch error", e); }
+        } catch (e) { console.error(e); }
         setIsLoadingRelated(false);
     };
 
@@ -446,13 +396,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
     fetchQna();
   }, [product.id, product.categories, product.site_id, fetchReviews, fetchQna]);
 
-  const onThumbClick = useCallback(
-    (index: number) => {
-      if (!mainApi || !thumbApi) return;
-      mainApi.scrollTo(index);
-    },
-    [mainApi, thumbApi]
-  );
+  const onThumbClick = useCallback((index: number) => mainApi?.scrollTo(index), [mainApi]);
 
   const onSelect = useCallback(() => {
     if (!mainApi || !thumbApi) return;
@@ -472,37 +416,14 @@ export default function ProductClientPage({ product }: { product: Product }) {
     };
   }, [mainApi, onSelect]);
 
-  if (!product) {
-    return null;
-  }
-
-  let longDescContent: any = null;
-  if (product.long_description) {
-    try {
-      longDescContent = JSON.parse(product.long_description);
-    } catch (e) {
-      longDescContent = {
-        type: 'doc',
-        content: [ { type: 'paragraph', content: [ { type: 'text', text: product.long_description, },], },],
-      };
-    }
-  }
-
   const handleAddToCart = () => {
-    // Determine the base product data to add
     let productToAdd = { ...product };
-    
-    // If a variant is selected, update price and selected_unit
     if (selectedVariant) {
         productToAdd.price = selectedVariant.price;
         (productToAdd as any).selected_unit = selectedVariant.unit;
-    }
-
-    // Apply flash deal price if applicable (Flash deal usually applies to the main price)
-    if (flashDeal && !selectedVariant) {
+    } else if (flashDeal) {
         productToAdd.price = flashDeal.discount_price;
     }
-
     addToCart(productToAdd as any, quantity);
     toast({
       title: t_toast.addedToBag,
@@ -510,23 +431,103 @@ export default function ProductClientPage({ product }: { product: Product }) {
     });
   };
 
-  const shareText = `Check out ${product.name} from ${siteName}!`;
-  const images = product.images || [];
-  
-  // Calculate display price: Priority -> Variant > Flash Deal > Main Price
   const displayPrice = selectedVariant ? selectedVariant.price : (flashDeal ? flashDeal.discount_price : product.price);
   const currentStock = selectedVariant ? selectedVariant.stock : (product.stock || 0);
+  const pageDesign = siteSettings?.product_page_design || 'v1';
 
-  const filteredQna = useMemo(() => 
-    qna.filter(item => 
-        item.question.toLowerCase().includes(qnaSearch.toLowerCase()) ||
-        item.answer?.toLowerCase().includes(qnaSearch.toLowerCase())
-    ), [qna, qnaSearch]);
+  let longDescContent: any = null;
+  if (product.long_description) {
+    try {
+      longDescContent = JSON.parse(product.long_description);
+    } catch (e) {
+      longDescContent = { type: 'doc', content: [ { type: 'paragraph', content: [ { type: 'text', text: product.long_description } ] } ] };
+    }
+  }
 
-  const hasOriginOrStory = product.origin || product.story;
+  // --- V2 DESIGN: CENTERED & MOBILE OPTIMIZED ---
+  if (pageDesign === 'v2') {
+      return (
+          <div className="space-y-12">
+              <div className="flex flex-col items-center text-center space-y-6 max-w-3xl mx-auto">
+                  <Badge variant="outline" className="px-6 py-1 rounded-full uppercase tracking-widest text-[10px] font-black border-primary text-primary">Product Details</Badge>
+                  <h1 className="text-4xl sm:text-6xl font-black font-headline tracking-tighter leading-tight">{product.name}</h1>
+                  <p className="text-xl text-muted-foreground leading-relaxed italic">"{product.description}"</p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-12 items-start">
+                  <div className="space-y-4">
+                    <div className="relative aspect-square rounded-[3rem] overflow-hidden border-4 border-primary/5 shadow-2xl bg-muted">
+                        {product.images?.[0] && <Image src={product.images[0].imageUrl} alt={product.name} fill className="object-cover" />}
+                        {flashDeal && <Badge variant="destructive" className="absolute top-8 left-8 h-10 px-6 text-lg font-black rounded-full shadow-2xl">SALE</Badge>}
+                    </div>
+                    {product.images && product.images.length > 1 && (
+                        <div className="flex gap-3 overflow-x-auto pb-4 px-2">
+                            {product.images.map((img, i) => (
+                                <div key={i} className="relative h-24 w-24 rounded-2xl overflow-hidden border-2 border-primary/10 shrink-0 cursor-pointer hover:border-primary transition-all">
+                                    <Image src={img.imageUrl} alt={product.name} fill className="object-cover" />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                  </div>
+
+                  <div className="p-10 rounded-[3rem] border-2 bg-card/50 backdrop-blur-sm shadow-xl space-y-8">
+                      <div className="flex justify-between items-end">
+                          <div className="space-y-1">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Price</p>
+                              <p className="text-5xl font-black text-primary drop-shadow-sm">{displayPrice.toFixed(2)} <span className="text-lg">BDT</span></p>
+                          </div>
+                          {currentStock > 0 ? <Badge className="bg-green-500 text-white font-black">IN STOCK</Badge> : <Badge variant="destructive">OUT OF STOCK</Badge>}
+                      </div>
+
+                      {product.variants && product.variants.length > 0 && (
+                        <div className="space-y-4">
+                            <Label className="font-black uppercase tracking-widest text-xs">Choose Option:</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {product.variants.map((v, i) => (
+                                    <Button key={i} variant={selectedVariant?.unit === v.unit ? 'default' : 'outline'} className="h-12 px-6 rounded-2xl border-2" onClick={() => setSelectedVariant(v)}>{v.unit}</Button>
+                                ))}
+                            </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                          <div className="flex items-center gap-2 bg-background p-2 rounded-2xl border-2 shadow-inner">
+                              <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10" onClick={() => setQuantity(q => Math.max(1, q-1))}><Minus className="h-4 w-4"/></Button>
+                              <span className="flex-1 text-center font-black text-xl">{quantity}</span>
+                              <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10" onClick={() => setQuantity(q => q+1)}><Plus className="h-4 w-4"/></Button>
+                          </div>
+                          <Button size="lg" className="h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20" onClick={handleAddToCart} disabled={currentStock <= 0}>
+                              <ShoppingBag className="mr-2 h-5 w-5" /> {t_product.addToBag}
+                          </Button>
+                      </div>
+
+                      <div className="pt-6 border-t space-y-4">
+                          <h4 className="font-black uppercase tracking-widest text-xs text-muted-foreground">Share Product:</h4>
+                          <div className="flex gap-3">
+                              <Button variant="outline" size="icon" className="rounded-full h-12 w-12 border-2"><Share2 className="h-5 w-5"/></Button>
+                              <Button variant="secondary" className="rounded-full px-8 h-12 font-black" onClick={() => setIsAiModalOpen(true)}><Wand2 className="h-4 w-4 mr-2"/> AI SMART SHARE</Button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              {longDescContent && (
+                  <Card className="rounded-[3rem] border-2 shadow-2xl overflow-hidden mt-20">
+                      <CardHeader className="bg-primary p-10 text-white"><CardTitle className="text-3xl font-black">Explore Detailed Info</CardTitle></CardHeader>
+                      <CardContent className="p-10 lg:p-20 prose dark:prose-invert max-w-full">
+                          <RichTextRenderer content={longDescContent} />
+                      </CardContent>
+                  </Card>
+              )}
+              
+              <AiShareTool product={product} siteName={product.name} open={isAiModalOpen} onOpenChange={setIsAiModalOpen} />
+          </div>
+      )
+  }
 
   return (
-    <div>
+    <div className="pb-20">
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
             <div className="space-y-4">
                 <Carousel className="w-full relative" setApi={setMainApi}>
@@ -554,11 +555,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                 {images.length > 1 && (
                 <Carousel
                     setApi={setThumbApi}
-                    opts={{
-                    align: 'start',
-                    containScroll: 'keepSnaps',
-                    dragFree: true,
-                    }}
+                    opts={{ align: 'start', containScroll: 'keepSnaps', dragFree: true }}
                     className="w-full"
                 >
                     <CarouselContent className="-ml-2">
@@ -576,12 +573,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                                 : 'opacity-60 hover:opacity-100'
                             )}
                         >
-                            <Image
-                            src={image.imageUrl}
-                            alt={`Thumbnail ${index + 1}`}
-                            fill
-                            className="object-cover"
-                            />
+                            <Image src={image.imageUrl} alt={`Thumbnail ${index + 1}`} fill className="object-cover" />
                         </div>
                         </CarouselItem>
                     ))}
@@ -598,9 +590,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
                         <p className="text-lg font-semibold text-muted-foreground line-through">
                             {product.price.toFixed(2)} {product.currency}
                         </p>
-                        <div className="text-sm">
-                        <Countdown endDate={flashDeal.end_date} />
-                        </div>
+                        <div className="text-sm"><Countdown endDate={flashDeal.end_date} /></div>
                     </div>
                 )}
 
@@ -608,7 +598,6 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     {displayPrice.toFixed(2)} {product.currency}
                 </p>
 
-                {/* Variant Selector */}
                 {product.variants && product.variants.length > 0 && (
                     <div className="mt-8 space-y-3">
                         <h3 className="font-bold text-sm uppercase tracking-widest text-muted-foreground">পছন্দসই সাইজ/ইউনিট বেছে নিন:</h3>
@@ -627,71 +616,23 @@ export default function ProductClientPage({ product }: { product: Product }) {
                     </div>
                 )}
 
-                <p className="text-lg text-muted-foreground mt-6 leading-relaxed">
-                    {product.description}
-                </p>
+                <p className="text-lg text-muted-foreground mt-6 leading-relaxed">{product.description}</p>
 
                 <div className="mt-4">
                     {currentStock > 0 ? (
-                        <Badge variant="outline" className="text-green-500 border-green-500/30 bg-green-500/5">স্টক আছে ({currentStock})</Badge>
+                        <Badge variant="outline" className="text-green-500 border-green-500/30 bg-green-500/5">স্টক আছে ({currentStock} টি)</Badge>
                     ) : (
                         <Badge variant="destructive">স্টক আউট</Badge>
                     )}
                 </div>
 
-                {hasOriginOrStory && <Separator className="my-6" />}
-
-                {hasOriginOrStory && (
-                    <div className="space-y-4">
-                        {product.origin && (
-                            <p>
-                                <span className="font-semibold">{t_product.origin}:</span> {product.origin}
-                            </p>
-                        )}
-                        {product.story && (
-                            <p>
-                                <span className="font-semibold">{t_product.story}:</span> {product.story}
-                            </p>
-                        )}
-                    </div>
-                )}
-
                 <div className="mt-10 flex flex-col sm:flex-row gap-4">
                     <div className="flex items-center gap-2">
-                        <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-12 w-12 rounded-xl border-2"
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        aria-label="Decrease quantity"
-                        >
-                        <Minus className="h-5 w-5" />
-                        </Button>
-                        <Input
-                        type="number"
-                        value={quantity}
-                        onChange={(e) =>
-                            setQuantity(Math.max(1, parseInt(e.target.value) || 1))
-                        }
-                        className="w-20 h-12 text-center text-lg font-bold rounded-xl border-2"
-                        min="1"
-                        />
-                        <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-12 w-12 rounded-xl border-2"
-                        onClick={() => setQuantity(quantity + 1)}
-                        aria-label="Increase quantity"
-                        >
-                        <Plus className="h-5 w-5" />
-                        </Button>
+                        <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl border-2" onClick={() => setQuantity(Math.max(1, quantity - 1))}><Minus className="h-5 w-5" /></Button>
+                        <Input type="number" value={quantity} onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} className="w-20 h-12 text-center text-lg font-bold rounded-xl border-2" />
+                        <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl border-2" onClick={() => setQuantity(quantity + 1)}><Plus className="h-5 w-5" /></Button>
                     </div>
-                    <Button 
-                        size="lg" 
-                        onClick={handleAddToCart} 
-                        className="flex-grow h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/20"
-                        disabled={currentStock <= 0}
-                    >
+                    <Button size="lg" onClick={handleAddToCart} className="flex-grow h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/20" disabled={currentStock <= 0}>
                         <ShoppingBag className="mr-2 h-5 w-5" /> {t_product.addToBag}
                     </Button>
                 </div>
@@ -699,41 +640,8 @@ export default function ProductClientPage({ product }: { product: Product }) {
                 <div className="mt-10 p-6 rounded-2xl bg-muted/30 border-2 border-dashed">
                     <h3 className="font-bold mb-3 flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> {t_product.shareThisProduct}</h3>
                     <div className="flex flex-wrap gap-3">
-                        <Button asChild variant="outline" size="icon" className="rounded-full h-10 w-10" disabled={!shareUrl}>
-                        <a
-                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                            shareUrl
-                            )}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="Share on Facebook"
-                        >
-                            <Facebook className="h-5 w-5" />
-                        </a>
-                        </Button>
-                        <Button asChild variant="outline" size="icon" className="rounded-full h-10 w-10" disabled={!shareUrl}>
-                        <a
-                            href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
-                            shareUrl
-                            )}&text=${encodeURIComponent(shareText)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="Share on Twitter"
-                        >
-                            <Twitter className="h-5 w-5" />
-                        </a>
-                        </Button>
-                        <Button variant="outline" size="icon" className="rounded-full h-10 w-10" disabled aria-label="Share on TikTok">
-                            <TikTokIcon />
-                        </Button>
-                        <Button
-                            variant="secondary"
-                            onClick={() => setIsAiModalOpen(true)}
-                            className="rounded-full px-5 h-10 font-bold"
-                        >
-                            <Wand2 className="h-4 w-4 mr-2" />
-                            {t_product.aiShare}
-                        </Button>
+                        <Button variant="outline" size="icon" className="rounded-full h-10 w-10"><Share2 className="h-5 w-5" /></Button>
+                        <Button variant="secondary" onClick={() => setIsAiModalOpen(true)} className="rounded-full px-5 h-10 font-bold"><Wand2 className="h-4 w-4 mr-2" /> {t_product.aiShare}</Button>
                     </div>
                 </div>
             </div>
@@ -746,34 +654,9 @@ export default function ProductClientPage({ product }: { product: Product }) {
                         <CardTitle className="text-2xl font-headline font-bold">{t_product.productDetails}</CardTitle>
                     </CardHeader>
                     <CardContent className="p-6 md:p-10">
-                        <div className="relative">
-                            <div
-                                className={cn(
-                                    'prose dark:prose-invert max-w-full transition-all duration-500 overflow-hidden',
-                                    !isDescriptionExpanded ? 'max-h-48' : 'max-h-none'
-                                )}
-                            >
-                                <RichTextRenderer content={longDescContent} />
-                            </div>
-                            {!isDescriptionExpanded && (
-                               <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-background to-transparent pointer-events-none" />
-                            )}
+                        <div className="prose dark:prose-invert max-w-full">
+                            <RichTextRenderer content={longDescContent} />
                         </div>
-                        <Button
-                            variant="secondary"
-                            className="mt-6 rounded-full px-8 mx-auto flex"
-                            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                        >
-                            {isDescriptionExpanded ? (
-                                <>
-                                    {t_product.seeLess} <ChevronUp className="ml-1 h-4 w-4" />
-                                </>
-                            ) : (
-                                <>
-                                    {t_product.seeMore} <ChevronDown className="ml-1 h-4 w-4" />
-                                </>
-                            )}
-                        </Button>
                     </CardContent>
                 </Card>
             </div>
@@ -783,17 +666,7 @@ export default function ProductClientPage({ product }: { product: Product }) {
             <div>
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-headline font-bold">{t_product.customerReviews}</h2>
-                    <Dialog open={isReviewFormOpen} onOpenChange={setIsReviewFormOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" className="rounded-xl">{t_product.leaveReview}</Button>
-                        </DialogTrigger>
-                        <DialogContent className="rounded-[2rem]">
-                            <DialogHeader>
-                                <DialogTitle>{t_product.leaveReview}</DialogTitle>
-                            </DialogHeader>
-                            <ReviewForm product={product} onReviewSubmitted={fetchReviews} setDialogOpen={setIsReviewFormOpen} />
-                        </DialogContent>
-                    </Dialog>
+                    <Button variant="outline" onClick={() => setIsReviewFormOpen(true)} className="rounded-xl">{t_product.leaveReview}</Button>
                 </div>
                 {isLoadingReviews ? <Skeleton className="h-40 w-full rounded-2xl" /> : (
                     reviews.length > 0 ? (
@@ -801,16 +674,18 @@ export default function ProductClientPage({ product }: { product: Product }) {
                             {reviews.map(review => (
                                 <Card key={review.id} className="rounded-2xl border-2">
                                     <CardHeader className="flex flex-row items-center gap-4">
-                                        <div className="flex items-center gap-1">
-                                            {Array.from({ length: 5 }).map((_, i) => (
-                                                <Star key={i} className={cn("h-5 w-5", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
-                                            ))}
+                                        <Avatar><AvatarFallback>{review.customer_name.charAt(0)}</AvatarFallback></Avatar>
+                                        <div>
+                                            <h4 className="font-semibold">{review.customer_name}</h4>
+                                            <div className="flex items-center gap-0.5">
+                                                {Array.from({ length: 5 }).map((_, i) => (
+                                                    <Star key={i} className={cn("h-3 w-3", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/30")} />
+                                                ))}
+                                            </div>
                                         </div>
-                                        <h4 className="font-semibold">{review.title}</h4>
                                     </CardHeader>
                                     <CardContent>
-                                        <p className="text-muted-foreground italic">"{review.review_text}"</p>
-                                        <p className="text-sm font-semibold mt-4 text-primary">- {review.customer_name}</p>
+                                        <p className="text-muted-foreground italic text-sm">"{review.review_text}"</p>
                                     </CardContent>
                                 </Card>
                             ))}
@@ -822,91 +697,31 @@ export default function ProductClientPage({ product }: { product: Product }) {
             <div>
                  <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-headline font-bold">{t_product.qna}</h2>
-                    <Dialog open={isQnaFormOpen} onOpenChange={setIsQnaFormOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" className="rounded-xl">{t_product.askQuestion}</Button>
-                        </DialogTrigger>
-                        <DialogContent className="rounded-[2rem]">
-                             <DialogHeader>
-                                <DialogTitle>{t_product.askQuestion}</DialogTitle>
-                            </DialogHeader>
-                            <QnaForm product={product} onQuestionSubmitted={fetchQna} setDialogOpen={setIsQnaFormOpen} />
-                        </DialogContent>
-                    </Dialog>
+                    <Button variant="outline" onClick={() => setIsQnaFormOpen(true)} className="rounded-xl">{t_product.askQuestion}</Button>
                 </div>
                  {isLoadingQna ? <Skeleton className="h-60 w-full rounded-2xl" /> : (
-                    <>
-                        <div className="relative mb-6">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <input 
-                                placeholder={t_product.searchQna}
-                                value={qnaSearch}
-                                onChange={(e) => setQnaSearch(e.target.value)}
-                                className="w-full h-12 rounded-xl border-2 border-input bg-background pl-10 pr-4 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            />
-                        </div>
-                        {filteredQna.length > 0 ? (
-                            <Accordion type="single" collapsible className="w-full space-y-4">
-                                {filteredQna.map(item => (
-                                    <AccordionItem value={item.id} key={item.id} className="border-2 rounded-2xl bg-card overflow-hidden">
-                                        <AccordionTrigger className="text-left font-semibold p-4 hover:no-underline">
-                                            <div className="flex items-start gap-3">
-                                                <div className="bg-primary/10 rounded-full p-2 mt-1">
-                                                    <HelpCircle className="h-5 w-5 text-primary"/>
-                                                </div>
-                                                <div>
-                                                    {item.question}
-                                                    <p className="text-xs text-muted-foreground font-normal mt-1">Asked by {item.customer_name}</p>
-                                                </div>
-                                            </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent className="p-4 pt-0 pl-14 text-muted-foreground leading-relaxed">
-                                            <div className="p-4 rounded-xl bg-muted/30 italic">
-                                                {item.answer || "এই প্রশ্নের উত্তর এখনো দেওয়া হয়নি।"}
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                ))}
-                            </Accordion>
-                        ) : (
-                            <p className="text-muted-foreground text-center py-12 border-2 border-dashed rounded-2xl">{t_product.noQna}</p>
-                        )}
-                    </>
+                    <div className="space-y-4">
+                        {qna.length > 0 ? (
+                            qna.map(item => (
+                                <div key={item.id} className="p-4 rounded-2xl border-2 bg-muted/5 space-y-2">
+                                    <p className="font-bold flex items-center gap-2"><HelpCircle className="h-4 w-4 text-primary" /> {item.question}</p>
+                                    <div className="p-3 rounded-xl bg-card border text-sm italic">{item.answer || "এই প্রশ্নের উত্তর এখনো দেওয়া হয়নি।"}</div>
+                                </div>
+                            ))
+                        ) : <p className="text-muted-foreground text-center py-12 border-2 border-dashed rounded-2xl">{t_product.noQna}</p>}
+                    </div>
                 )}
             </div>
         </div>
 
-        <div className="mt-20">
-            <h2 className="text-3xl font-headline font-bold mb-10 text-center">{t_product.relatedProducts}</h2>
-            {isLoadingRelated ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="space-y-3">
-                            <Skeleton className="h-56 w-full rounded-2xl" />
-                            <Skeleton className="h-6 w-3/4" />
-                            <Skeleton className="h-4 w-1/2" />
-                        </div>
-                    ))}
-                </div>
-            ) : relatedProducts.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {relatedProducts.map((p) => (
-                        <ProductCard key={p.id} product={p} />
-                    ))}
-                </div>
-            ) : (
-                <p className="text-muted-foreground text-center py-12">{t_product.noRelated}</p>
-            )}
-        </div>
+        <Dialog open={isReviewFormOpen} onOpenChange={setIsReviewFormOpen}>
+            <DialogContent className="rounded-[2rem]"><DialogHeader><DialogTitle>{t_product.leaveReview}</DialogTitle></DialogHeader><ReviewForm product={product} onReviewSubmitted={fetchReviews} setDialogOpen={setIsReviewFormOpen} /></DialogContent>
+        </Dialog>
+        <Dialog open={isQnaFormOpen} onOpenChange={setIsQnaFormOpen}>
+            <DialogContent className="rounded-[2rem]"><DialogHeader><DialogTitle>{t_product.askQuestion}</DialogTitle></DialogHeader><QnaForm product={product} onQuestionSubmitted={fetchQna} setDialogOpen={setIsQnaFormOpen} /></DialogContent>
+        </Dialog>
         
-        {product && (
-            <AiShareTool
-            product={product}
-            siteName={siteName}
-            open={isAiModalOpen}
-            onOpenChange={setIsAiModalOpen}
-            />
-        )}
+        <AiShareTool product={product} siteName={product.name} open={isAiModalOpen} onOpenChange={setIsAiModalOpen} />
     </div>
   );
 }

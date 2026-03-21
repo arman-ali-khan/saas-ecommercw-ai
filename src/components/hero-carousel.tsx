@@ -11,11 +11,12 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, PlayCircle } from 'lucide-react';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
 import Autoplay from 'embla-carousel-autoplay';
 import { useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { Badge } from './ui/badge';
 
 type HeroSlide = {
   id: string;
@@ -28,11 +29,68 @@ type HeroSlide = {
 
 interface HeroCarouselProps {
   slides: HeroSlide[];
-  variant?: 'v1' | 'v2';
+  variant?: string;
 }
 
 export default function HeroCarousel({ slides, variant = 'v1' }: HeroCarouselProps) {
   const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
+
+  // --- V3: PRODUCT FOCUS / MINIMAL ---
+  if (variant === 'v3') {
+      return (
+        <Carousel className="w-full" opts={{ loop: true }} plugins={[plugin.current]}>
+            <CarouselContent>
+                {slides.map((slide) => (
+                    <CarouselItem key={slide.id}>
+                        <div className="relative w-full aspect-[21/9] flex items-center bg-muted/10 overflow-hidden">
+                            <div className="container mx-auto px-6 flex flex-col items-center justify-center text-center z-10 space-y-6">
+                                <h1 className="text-4xl md:text-6xl font-black font-headline uppercase leading-none drop-shadow-sm">{slide.title}</h1>
+                                <p className="text-muted-foreground text-sm md:text-lg max-w-lg">{slide.description}</p>
+                                <Button asChild size="lg" className="rounded-full px-10 h-14 font-black text-lg">
+                                    <Link href={slide.link}>{slide.linkText}</Link>
+                                </Button>
+                            </div>
+                            <div className="absolute inset-0 opacity-20 flex items-center justify-center pointer-events-none">
+                                {slide.image && <Image src={slide.image.imageUrl} alt="Abstract" fill className="object-cover blur-xl" />}
+                            </div>
+                        </div>
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+        </Carousel>
+      )
+  }
+
+  // --- V4: ELITE SLIDER ---
+  if (variant === 'v4') {
+      return (
+        <Carousel className="w-full h-screen sm:h-[80vh]" opts={{ loop: true }} plugins={[plugin.current]}>
+            <CarouselContent className="h-full">
+                {slides.map((slide) => (
+                    <CarouselItem key={slide.id} className="h-full">
+                        <div className="relative w-full h-full">
+                            {slide.image && <Image src={slide.image.imageUrl} alt={slide.title} fill className="object-cover" priority />}
+                            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center p-6 space-y-8">
+                                <Badge className="bg-white/20 backdrop-blur-md text-white border-white/30 text-xs px-6 py-1 rounded-full font-black uppercase tracking-[0.3em]">{slide.linkText}</Badge>
+                                <h1 className="text-5xl md:text-8xl font-black font-headline drop-shadow-2xl">{slide.title}</h1>
+                                <p className="max-w-2xl text-lg md:text-xl font-medium opacity-90">{slide.description}</p>
+                                <div className="flex gap-4">
+                                    <Button asChild size="lg" className="h-16 px-12 rounded-full text-xl font-black shadow-2xl transition-all hover:scale-105 active:scale-95">
+                                        <Link href={slide.link}>SHOP THE COLLECTION</Link>
+                                    </Button>
+                                    <Button size="lg" variant="outline" className="h-16 w-16 rounded-full border-2 bg-white/10 backdrop-blur-md p-0">
+                                        <PlayCircle className="h-8 w-8" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+        </Carousel>
+      )
+  }
 
   if (variant === 'v2') {
     return (
@@ -49,7 +107,7 @@ export default function HeroCarousel({ slides, variant = 'v1' }: HeroCarouselPro
                                     <h1 className="text-4xl md:text-7xl font-black font-headline leading-none text-foreground drop-shadow-sm">
                                         {slide.title}
                                     </h1>
-                                    <p className="text-lg text-muted-foreground leading-relaxed max-w-lg">
+                                    <p className="text-lg text-muted-foreground leading-relaxed max-lg">
                                         {slide.description}
                                     </p>
                                     <div className="flex gap-4 pt-4">
@@ -131,5 +189,3 @@ export default function HeroCarousel({ slides, variant = 'v1' }: HeroCarouselPro
     </Carousel>
   );
 }
-
-import { Badge } from './ui/badge';

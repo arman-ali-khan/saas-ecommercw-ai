@@ -17,12 +17,13 @@ import FeaturesCarousel from '@/components/features-carousel';
 import ReviewsCarousel from '@/components/reviews-carousel';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
-import DynamicIcon from '@/components/dynamic-icon';
+import DynamicIcon from './dynamic-icon';
 import CategoriesGrid from '@/components/categories-grid';
 import FeaturedProductsList from '@/components/featured-products-list';
 import FeaturedCarousel from '@/components/featured-carousel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,7 +54,7 @@ const getGridClass = (view?: string) => {
     }
 };
 
-function SectionTitle({ title, isFirst, isHeroPresent, variant = 'v1' }: { title: string, isFirst: boolean, isHeroPresent: boolean, variant?: 'v1' | 'v2' }) {
+function SectionTitle({ title, isFirst, isHeroPresent, variant = 'v1' }: { title: string, isFirst: boolean, isHeroPresent: boolean, variant?: string }) {
     if (variant === 'v2') {
         return (
             <div className="space-y-2 mb-10">
@@ -65,13 +66,29 @@ function SectionTitle({ title, isFirst, isHeroPresent, variant = 'v1' }: { title
             </div>
         );
     }
+    if (variant === 'v3') {
+        return (
+            <div className="flex flex-col items-center text-center space-y-4 mb-12">
+                <Badge variant="outline" className="px-6 py-1 rounded-full uppercase tracking-widest text-[10px] font-black border-primary text-primary">Explore</Badge>
+                <h2 className="text-3xl md:text-5xl font-black font-headline tracking-tighter italic">{title}</h2>
+            </div>
+        );
+    }
+    if (variant === 'v4') {
+        return (
+            <div className="flex items-end justify-between mb-12 border-b-4 border-black dark:border-white pb-4">
+                <h2 className="text-4xl md:text-6xl font-black font-headline uppercase tracking-tighter leading-none">{title}</h2>
+                <div className="hidden md:block text-[10px] font-black uppercase tracking-[0.5em] opacity-20">Premium Selection</div>
+            </div>
+        );
+    }
     if (isFirst && !isHeroPresent) {
         return <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-headline font-bold">{title}</h1>;
     }
     return <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{title}</h2>;
 }
 
-function FlashDeals({ deals, section, t, isFirst, isHeroPresent, design = 'v1' }: { deals: FlashDeal[], section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
+function FlashDeals({ deals, section, t, isFirst, isHeroPresent, design = 'v1' }: { deals: FlashDeal[], section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: string }) {
   if (deals.length === 0) return null;
   
   return (
@@ -85,7 +102,7 @@ function FlashDeals({ deals, section, t, isFirst, isHeroPresent, design = 'v1' }
   );
 }
 
-function CategoriesSection({ categories, section, t, isFirst, isHeroPresent, design = 'v1' }: { categories: Category[], section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
+function CategoriesSection({ categories, section, t, isFirst, isHeroPresent, design = 'v1' }: { categories: Category[], section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: string }) {
     const selectedNames = section.selectedCategories || [];
     const filteredCategories = selectedNames.length > 0 
         ? categories.filter(c => selectedNames.includes(c.name))
@@ -98,7 +115,7 @@ function CategoriesSection({ categories, section, t, isFirst, isHeroPresent, des
 
     return (
         <section>
-            <div className="text-center mb-8">
+            <div className="mb-8">
                 <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} variant={design} />
             </div>
             {isCarousel ? (
@@ -133,7 +150,7 @@ function CategoriesSection({ categories, section, t, isFirst, isHeroPresent, des
     );
 }
 
-function FeaturedProducts({ products, section, siteId, t, isFirst, isHeroPresent, design = 'v1' }: { products: Product[], section: Section, siteId: string, t: any, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
+function FeaturedProducts({ products, section, siteId, t, isFirst, isHeroPresent, design = 'v1', cardVariant = 'v1' }: { products: Product[], section: Section, siteId: string, t: any, isFirst: boolean, isHeroPresent: boolean, design?: string, cardVariant?: string }) {
   if (products.length === 0) return null;
   
   return (
@@ -143,15 +160,15 @@ function FeaturedProducts({ products, section, siteId, t, isFirst, isHeroPresent
         <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
       {section.isCarousel ? (
-          <FeaturedCarousel products={products} section={section} />
+          <FeaturedCarousel products={products} section={{...section, cardDesignDesktop: cardVariant}} />
       ) : (
-          <FeaturedProductsList initialProducts={products} siteId={siteId} section={section} t={t} />
+          <FeaturedProductsList initialProducts={products} siteId={siteId} section={{...section, cardDesignDesktop: cardVariant}} t={t} />
       )}
     </section>
   );
 }
 
-async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent, design = 'v1' }: { siteId: string, section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
+async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent, design = 'v1', cardVariant = 'v1' }: { siteId: string, section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: string, cardVariant?: string }) {
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -205,7 +222,7 @@ async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent, d
         <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
       {section.isCarousel ? (
-          <FeaturedCarousel products={sortedProducts} section={section} />
+          <FeaturedCarousel products={sortedProducts} section={{...section, cardDesignDesktop: cardVariant}} />
       ) : (
           <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
             {sortedProducts.map((product) => (
@@ -213,7 +230,7 @@ async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent, d
                     key={product.id} 
                     product={product} 
                     isList={section.mobileView === 'list'} 
-                    variant={section.cardDesignDesktop || 'v1'}
+                    variant={cardVariant}
                 />
             ))}
           </div>
@@ -222,10 +239,10 @@ async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent, d
   );
 }
 
-function WhyUs({ features, section, isFirst, isHeroPresent, design = 'v1' }: { features: StoreFeature[], section: Section, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
+function WhyUs({ features, section, isFirst, isHeroPresent, design = 'v1' }: { features: StoreFeature[], section: Section, isFirst: boolean, isHeroPresent: boolean, design?: string }) {
     return (
         <section>
-            <div className="text-center mb-8">
+            <div className="mb-8">
                 <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} variant={design} />
             </div>
             <FeaturesCarousel features={features} />
@@ -233,11 +250,11 @@ function WhyUs({ features, section, isFirst, isHeroPresent, design = 'v1' }: { f
     );
 }
 
-function CustomerReviews({ reviews, section, isFirst, isHeroPresent, design = 'v1' }: { reviews: ProductReview[], section: Section, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
+function CustomerReviews({ reviews, section, isFirst, isHeroPresent, design = 'v1' }: { reviews: ProductReview[], section: Section, isFirst: boolean, isHeroPresent: boolean, design?: string }) {
     if (reviews.length === 0) return null;
     return (
         <section>
-            <div className="text-center mb-8">
+            <div className="mb-8">
                 <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} variant={design} />
             </div>
             <ReviewsCarousel reviews={reviews} />
@@ -245,7 +262,7 @@ function CustomerReviews({ reviews, section, isFirst, isHeroPresent, design = 'v
     );
 }
 
-async function DynamicSectionProducts({ siteId, section, t, isFirst, isHeroPresent, design = 'v1' }: { siteId: string, section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
+async function DynamicSectionProducts({ siteId, section, t, isFirst, isHeroPresent, design = 'v1', cardVariant = 'v1' }: { siteId: string, section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: string, cardVariant?: string }) {
   const cookieStore = await cookies();
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
@@ -281,7 +298,7 @@ async function DynamicSectionProducts({ siteId, section, t, isFirst, isHeroPrese
         </Button>
       </div>
       {section.isCarousel ? (
-          <FeaturedCarousel products={products} section={section} />
+          <FeaturedCarousel products={products} section={{...section, cardDesignDesktop: cardVariant}} />
       ) : (
           <div className={cn("grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4", gridClass)}>
             {products.map((product) => (
@@ -289,7 +306,7 @@ async function DynamicSectionProducts({ siteId, section, t, isFirst, isHeroPrese
                     key={product.id} 
                     product={product} 
                     isList={section.mobileView === 'list'} 
-                    variant={section.cardDesignDesktop || 'v1'}
+                    variant={cardVariant}
                 />
             ))}
           </div>
@@ -380,6 +397,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     const firstVisibleIdx = visibleEnabledSections.findIndex(s => s.id !== 'hero');
     const isFirstNonHero = section.id !== 'hero' && visibleEnabledSections[firstVisibleIdx]?.id === section.id;
     const sectionDesign = activeTheme?.section_design || 'v1';
+    const cardVariant = activeTheme?.card_design || 'v1';
+    const sidebarDesign = activeTheme?.sidebar_design || 'v1';
 
     switch (section.id) {
       case 'hero':
@@ -394,8 +413,11 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                 section.showSideCategories && "md:grid md:grid-cols-[280px_1fr] md:gap-4 md:bg-transparent"
             )}>
               {section.showSideCategories && (
-                  <div className="hidden md:flex flex-col bg-card border-2 rounded-xl overflow-hidden shadow-sm">
-                      <div className="bg-primary/10 p-4 border-b">
+                  <div className={cn(
+                      "hidden md:flex flex-col bg-card overflow-hidden shadow-sm border-2",
+                      sidebarDesign === 'v2' ? "rounded-3xl border-primary/20" : "rounded-xl"
+                  )}>
+                      <div className={cn("p-4 border-b", sidebarDesign === 'v2' ? "bg-primary text-white" : "bg-primary/10")}>
                           <h3 className="font-bold flex items-center gap-2"><List className="h-4 w-4" /> সকল ক্যাটাগরি</h3>
                       </div>
                       <ScrollArea className="flex-1 max-h-[400px]">
@@ -483,13 +505,13 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       case 'top_selling':
         return (
             <Suspense key={section.id} fallback={<SectionSkeleton />}>
-                <TopSellingSection siteId={siteId} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} />
+                <TopSellingSection siteId={siteId} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} cardVariant={cardVariant} />
             </Suspense>
         );
       case 'featured':
         const initialFeatured = (featuredProductsResult.data as Product[]) || [];
         const limitedFeatured = initialFeatured.slice(0, section.productLimit || 10);
-        return <FeaturedProducts key={section.id} products={limitedFeatured} section={section} siteId={siteId} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} />;
+        return <FeaturedProducts key={section.id} products={limitedFeatured} section={section} siteId={siteId} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} cardVariant={cardVariant} />;
       case 'why-us':
         return <WhyUs key={section.id} features={(storeFeaturesResult.data as StoreFeature[]) || []} section={section} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} />;
       case 'customer-reviews':
@@ -497,7 +519,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       default:
         return (
             <Suspense key={section.id} fallback={<SectionSkeleton />}>
-                <DynamicSectionProducts siteId={siteId} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} />
+                <DynamicSectionProducts siteId={siteId} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} cardVariant={cardVariant} />
             </Suspense>
         );
     }

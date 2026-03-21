@@ -6,7 +6,7 @@ import Link from 'next/link';
 import type { Product, FlashDeal, ProductVariant } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Button } from './ui/button';
-import { ShoppingBag, Star, X, Plus, Minus, CheckCircle2, Eye, Flame, Clock } from 'lucide-react';
+import { ShoppingBag, Star, X, Plus, Minus, CheckCircle2, Eye, Flame, Clock, Heart } from 'lucide-react';
 import { useCart } from '@/stores/cart';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from './ui/badge';
@@ -21,7 +21,7 @@ interface ProductCardProps {
   product: Product;
   flashDeal?: FlashDeal;
   isList?: boolean;
-  variant?: 'v1' | 'v2' | 'minimal';
+  variant?: string;
 }
 
 export default function ProductCard({ product, flashDeal, isList = false, variant = 'v1' }: ProductCardProps) {
@@ -36,7 +36,12 @@ export default function ProductCard({ product, flashDeal, isList = false, varian
   );
   const [quantity, setQuantity] = useState(1);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e?: React.MouseEvent) => {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
     if (product.variants && product.variants.length > 0 && !isQuickViewOpen) {
         setIsQuickViewOpen(true);
         return;
@@ -132,7 +137,7 @@ export default function ProductCard({ product, flashDeal, isList = false, varian
                                                 size="sm"
                                                 className={cn(
                                                     "h-11 rounded-xl px-4 border-2 transition-all font-bold", 
-                                                    selectedVariant?.unit === v.unit ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/50"
+                                                    selectedVariant?.unit === v.unit ? "border-primary ring-2 ring-primary/10" : "hover:border-primary/50"
                                                 )}
                                                 onClick={() => setSelectedVariant(v)}
                                             >
@@ -199,7 +204,69 @@ export default function ProductCard({ product, flashDeal, isList = false, varian
     );
   }
 
-  // MINIMAL VARIANT
+  // --- V3: SOFT SHADOW CARD ---
+  if (variant === 'v3') {
+      return (
+        <>
+        <Card className="flex flex-col h-full border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(var(--primary),0.1)] transition-all duration-500 rounded-[2rem] overflow-hidden group/v3">
+            <div className="relative aspect-square overflow-hidden bg-muted">
+                <Image src={product.images[0]?.imageUrl} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover/v3:scale-110" />
+                <div className="absolute top-4 right-4 flex flex-col gap-2 translate-x-12 opacity-0 group-hover/v3:translate-x-0 group-hover/v3:opacity-100 transition-all duration-500">
+                    <Button variant="secondary" size="icon" className="rounded-full shadow-lg" onClick={(e) => { e.preventDefault(); setIsQuickViewOpen(true); }}><Eye className="h-4 w-4" /></Button>
+                    <Button variant="secondary" size="icon" className="rounded-full shadow-lg text-primary" onClick={handleAddToCart}><ShoppingBag className="h-4 w-4" /></Button>
+                </div>
+                {flashDeal && <Badge className="absolute top-4 left-4 bg-primary font-black uppercase text-[10px]">Offer</Badge>}
+            </div>
+            <CardContent className="p-5 flex-grow">
+                <Link href={productUrl} className="font-bold text-lg hover:text-primary transition-colors line-clamp-1 block">{product.name}</Link>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{product.description}</p>
+                <div className="flex items-center justify-between mt-4">
+                    <span className="text-xl font-black text-primary">{priceDisplay}</span>
+                    <div className="flex items-center gap-0.5">
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        <span className="text-[10px] font-bold">{product.avg_rating || '5.0'}</span>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+        <QuickViewDialog />
+        </>
+      )
+  }
+
+  // --- V4: IMAGE FOCUS WITH OVERLAY ACTIONS ---
+  if (variant === 'v4') {
+      return (
+        <>
+        <div className="relative group/v4 h-full flex flex-col">
+            <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden border-2 border-border/50 bg-muted shadow-sm">
+                <Image src={product.images[0]?.imageUrl} alt={product.name} fill className="object-cover transition-all duration-700 group-hover/v4:scale-110 group-hover/v4:blur-[2px]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/v4:opacity-100 transition-all duration-500 flex flex-col items-center justify-center gap-4">
+                    <Button size="lg" className="rounded-full px-8 font-black uppercase text-xs tracking-widest shadow-2xl" onClick={handleAddToCart}>
+                        <ShoppingBag className="mr-2 h-4 w-4" /> Add to Bag
+                    </Button>
+                    <Button variant="outline" className="rounded-full px-8 bg-white/10 text-white border-white/20 backdrop-blur-md font-bold text-xs" onClick={() => setIsQuickViewOpen(true)}>
+                        Quick View
+                    </Button>
+                </div>
+                {flashDeal && <div className="absolute top-6 left-6 rotate-[-15deg]"><Badge variant="destructive" className="px-4 py-1.5 rounded-full font-black text-xs shadow-xl animate-pulse">SALE</Badge></div>}
+            </div>
+            <div className="mt-4 px-2 space-y-1">
+                <Link href={productUrl} className="text-base font-black uppercase tracking-tight line-clamp-1 block hover:text-primary transition-colors">{product.name}</Link>
+                <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-muted-foreground">{priceDisplay}</p>
+                    <div className="flex gap-1">
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                        <div className="h-2 w-2 rounded-full bg-primary/30" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        <QuickViewDialog />
+        </>
+      )
+  }
+
   if (variant === 'minimal') {
       return (
         <>

@@ -252,8 +252,8 @@ export interface Section {
   isCarousel?: boolean;
   productLimit?: number;
   showSideCategories?: boolean;
-  cardDesignDesktop?: 'v1' | 'v2' | 'minimal';
-  cardDesignMobile?: 'v1' | 'v2' | 'list' | 'minimal';
+  cardDesignDesktop?: string;
+  cardDesignMobile?: string;
 }
 
 export interface LiveChatMessage {
@@ -562,11 +562,14 @@ export interface StoreTheme {
   subtitle: string | null;
   preview_link: string | null;
   image_url: string | null;
-  navbar_design: 'v1' | 'v2';
-  hero_design: 'v1' | 'v2';
-  category_design: 'v1' | 'v2';
-  section_design: 'v1' | 'v2';
-  card_design: 'v1' | 'v2' | 'minimal';
+  navbar_design: string;
+  hero_design: string;
+  category_design: string;
+  section_design: string;
+  card_design: string;
+  product_page_design?: string;
+  sidebar_design?: string;
+  footer_design?: string;
   is_active: boolean;
   is_default: boolean;
   created_at: string;

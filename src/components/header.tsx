@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, User, LogOut, LayoutDashboard, Bell, Sun, Moon, ArrowLeft, Search, ShoppingBag } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Bell, Sun, Moon, ArrowLeft, Search, ShoppingBag, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { Button } from './ui/button';
@@ -14,6 +14,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
+  SheetClose,
 } from '@/components/ui/sheet';
 import {
   DropdownMenu,
@@ -53,7 +54,7 @@ interface HeaderProps {
     siteInfo: SiteInfo;
     navLinks: HeaderLink[];
     isLoading: boolean;
-    variant?: 'v1' | 'v2';
+    variant?: string;
 }
 
 function CustomerNotificationBell() {
@@ -191,9 +192,13 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
   const [searchQuery, setSearchQuery] = useState('');
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'));
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const toggleTheme = () => {
@@ -296,11 +301,37 @@ export default function Header({ siteInfo, navLinks, isLoading: isSiteInfoLoadin
     );
   }
 
-  // V2 Layout: Centered Logo, Floating Look
-  if (variant === 'v2') {
+  // --- V3: MINIMAL / TRANSPARENT ---
+  if (variant === 'v3') {
+      return (
+        <header className={cn("sticky top-0 z-50 w-full border-b transition-all duration-300", scrolled ? "bg-background shadow-sm py-2" : "bg-transparent py-4 border-transparent")}>
+            <div className="container mx-auto flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
+                <HeaderLogo />
+                <nav className="hidden md:flex items-center gap-10">
+                    {navLinks.map(link => <NavLink key={link.id} {...link} className="text-sm font-bold uppercase tracking-widest" />)}
+                </nav>
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)} className="rounded-full"><Search className="h-5 w-5" /></Button>
+                    <ShoppingCart />
+                    {currentUser ? (
+                        <Button variant="ghost" size="icon" asChild className="rounded-full"><Link href="/profile"><User className="h-5 w-5"/></Link></Button>
+                    ) : (
+                        <Button asChild size="sm" variant="outline" className="rounded-full px-6"><Link href="/login">Login</Link></Button>
+                    )}
+                </div>
+            </div>
+        </header>
+      )
+  }
+
+  // --- V4: STICKY GLASS / FLOATING ---
+  if (variant === 'v4' || variant === 'v2') {
     return (
         <header className="sticky top-4 z-50 w-full px-4 sm:px-6 lg:px-8">
-            <div className="container mx-auto h-16 sm:h-20 bg-background/80 backdrop-blur-xl border-2 border-primary/10 rounded-[2rem] shadow-xl flex items-center justify-between px-4 sm:px-8">
+            <div className={cn(
+                "container mx-auto h-16 sm:h-20 bg-background/80 backdrop-blur-xl border-2 border-primary/10 shadow-xl flex items-center justify-between px-4 sm:px-8 transition-all duration-500",
+                variant === 'v4' ? "rounded-full" : "rounded-[2rem]"
+            )}>
                 <div className="flex items-center gap-2 md:w-1/3">
                     <div className="md:hidden">
                         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
