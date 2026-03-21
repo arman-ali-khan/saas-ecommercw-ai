@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * Enhanced Middleware for Multi-tenant Store Resolution.
- * Optimized for Vercel wildcard subdomains and custom domains.
+ * Optimized for Vercel wildcard subdomains, custom domains, and preview domains.
  */
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -46,11 +46,11 @@ export async function middleware(request: NextRequest) {
   const platformRootDomains = [
     baseDomain,
     `www.${baseDomain}`,
-    'dokan-bd.vercel.app',
-    'localhost',
     'dokanbd.shop',
-    'www.dokanbd.shop'
+    'www.dokanbd.shop',
+    'localhost'
   ];
+  
   if (previewDomain) {
       platformRootDomains.push(previewDomain);
       platformRootDomains.push(`www.${previewDomain}`);
@@ -58,8 +58,11 @@ export async function middleware(request: NextRequest) {
 
   const isPlatformRoot = platformRootDomains.includes(host) || host.includes('cloudworkstations.dev');
 
-  // If it's the platform root, don't rewrite (just handle standard routing)
-  if (isPlatformRoot && !host.endsWith(`.${baseDomain}`) && (!previewDomain || !host.endsWith(`.${previewDomain}`))) {
+  // If it's the platform root exactly (and not a subdomain of it), don't rewrite
+  const isExactBaseDomain = host === baseDomain || host === `www.${baseDomain}`;
+  const isExactPreviewDomain = previewDomain && (host === previewDomain || host === `www.${previewDomain}`);
+
+  if (isPlatformRoot && (isExactBaseDomain || isExactPreviewDomain || host.includes('cloudworkstations.dev'))) {
     return NextResponse.next();
   }
 

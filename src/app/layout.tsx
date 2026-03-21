@@ -49,7 +49,18 @@ export default async function RootLayout({
 }>) {
   const headerList = await headers();
   const host = (headerList.get('host') || '').toLowerCase().split(':')[0];
-  const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop').toLowerCase().trim();
+  const cookieStore = await cookies();
+  
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { get: (name) => cookieStore.get(name)?.value } }
+  );
+
+  const { data: saasSettings } = await supabase.from('saas_settings').select('base_domain, preview_domain').eq('id', 1).maybeSingle();
+  
+  const baseDomain = (saasSettings?.base_domain || process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop').toLowerCase().trim();
+  const previewDomain = saasSettings?.preview_domain?.toLowerCase().trim();
   
   // Refined platform root identification
   const platformRootDomains = [
@@ -59,14 +70,15 @@ export default async function RootLayout({
     'www.dokanbd.shop',
     'localhost'
   ];
+  if (previewDomain) {
+      platformRootDomains.push(previewDomain);
+      platformRootDomains.push(`www.${previewDomain}`);
+  }
 
-  const isPlatformRoot = 
-    platformRootDomains.some(d => host === d) || 
-    host.includes('cloudworkstations.dev') || 
-    host.includes('vercel.app');
+  const isPlatformRoot = platformRootDomains.includes(host) || host.includes('cloudworkstations.dev') || host.includes('vercel.app');
 
-  // A store page is identified if it's NOT the platform root OR it's explicitly a subdomain
-  const isStorePage = !isPlatformRoot || host.endsWith(`.${baseDomain}`);
+  // A store page is identified if it's NOT the platform root (base or preview)
+  const isStorePage = !isPlatformRoot || (host.includes('.') && !platformRootDomains.includes(host));
 
   return (
     <html lang="en" className={allFontVariables} suppressHydrationWarning>

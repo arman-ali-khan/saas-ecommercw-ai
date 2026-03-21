@@ -26,10 +26,14 @@ export default function SiteLayout({ children, isStorePage }: SiteLayoutProps) {
   const isPlatformPath = pathname === '/' || platformSegments.includes(firstSegment);
 
   // 3. Conditional Rendering
-  // If it's a store page (detected via domain or explicit subpath), don't show SaaS layout.
-  // We prioritize the path check for platform segments.
-  // CRUCIAL: Always show SaaS layout on the root path (/) of the platform.
-  if (!isPlatformPath || (isStorePage && pathname !== '/')) {
+  // If it's a store page (detected via host), we should NOT show SaaS layout,
+  // regardless of the path being a "platform path" like '/'.
+  if (isStorePage) {
+    return <>{children}</>;
+  }
+
+  // If it's not a platform path (e.g. some other rewritten path), don't wrap.
+  if (!isPlatformPath) {
     return <>{children}</>;
   }
   
