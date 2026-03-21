@@ -366,17 +366,17 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                                     <DynamicIcon name={item.icon} className="w-20 h-20 text-muted-foreground" />
                                 </div>
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-12 text-white rounded-[2rem]">
+                                <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12 text-white rounded-[2rem]">
                                 <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                                    <h3 className="text-2xl md:text-4xl font-bold font-headline mb-3">
+                                    <h3 className="text-2xl md:text-4xl font-bold font-headline mb-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                                         {(lang === 'en' ? (item as any).title_en : item.title) || item.title}
                                     </h3>
-                                    <p className="text-white/80 text-sm md:text-lg max-w-3xl line-clamp-2 md:line-clamp-none leading-relaxed">
+                                    <p className="text-white text-sm md:text-lg max-w-3xl line-clamp-2 md:line-clamp-none leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] font-medium">
                                         {(lang === 'en' ? (item as any).description_en : item.description) || item.description}
                                     </p>
                                 </motion.div>
                                 </div>
-                                <div className="absolute top-6 right-6 p-3 bg-white/10 backdrop-blur-md rounded-full opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                <div className="absolute top-6 right-6 p-3 bg-black/40 backdrop-blur-md rounded-full opacity-0 group-hover/item:opacity-100 transition-opacity">
                                     <Maximize2 className="w-6 h-6 text-white" />
                                 </div>
                             </div>
