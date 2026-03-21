@@ -96,7 +96,7 @@ async function startSellingOnline() {
 
   return (
     <div className="w-full h-full bg-[#0d1117] p-6 font-mono text-xs sm:text-sm md:text-base overflow-hidden relative">
-      <pre className="text-blue-400 text-left whitespace-pre-wrap">
+      <pre className="text-blue-400 text-left ms:leading-[2.4] whitespace-pre-wrap">
         <code>
           {displayedCode}
           <span className="inline-block w-2 h-4 sm:h-5 bg-primary ml-1 animate-pulse align-middle" />
