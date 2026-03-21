@@ -66,6 +66,7 @@ export default function FeaturedCarousel({ products, section }: FeaturedCarousel
                     key={product.id}
                     product={product}
                     isList={true}
+                    variant={section.cardDesignMobile || 'v1'}
                   />
                 ))}
               </div>
@@ -85,7 +86,8 @@ export default function FeaturedCarousel({ products, section }: FeaturedCarousel
             >
               <ProductCard
                 product={product}
-                isList={isListMode} // ProductCard handles md:hidden internally
+                isList={isListMode} 
+                variant={isMobile ? (section.cardDesignMobile || 'v1') : (section.cardDesignDesktop || 'v1')}
               />
             </CarouselItem>
           ))

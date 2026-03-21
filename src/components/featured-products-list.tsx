@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Product, Section } from '@/types';
 import ProductCard from './product-card';
 import { Button } from './ui/button';
@@ -29,6 +29,14 @@ export default function FeaturedProductsList({ initialProducts, siteId, section,
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialProducts.length >= (section.productLimit || 10));
   const [offset, setOffset] = useState(initialProducts.length);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const loadMore = async () => {
     setIsLoading(true);
@@ -73,6 +81,7 @@ export default function FeaturedProductsList({ initialProducts, siteId, section,
             key={product.id} 
             product={product} 
             isList={section.mobileView === 'list'} 
+            variant={isMobile ? (section.cardDesignMobile || 'v1') : (section.cardDesignDesktop || 'v1')}
           />
         ))}
       </div>

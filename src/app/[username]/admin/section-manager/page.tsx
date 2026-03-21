@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/accordion';
 import { useAuth } from '@/stores/auth';
 import type { Product, Section, Category, ProductAttribute } from '@/types';
-import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X, Smartphone, LayoutGrid, List, GalleryHorizontal, Layout, CheckSquare } from 'lucide-react';
+import { ArrowUp, ArrowDown, Loader2, GripVertical, Plus, Trash2, X, Smartphone, LayoutGrid, List, GalleryHorizontal, Layout, CheckSquare, Monitor } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { v4 as uuidv4 } from 'uuid';
@@ -92,7 +92,6 @@ export default function SectionManagerPage() {
         setBrands(allAttributes.filter(a => a.type === 'brand').map(a => a.value));
         setColors(allAttributes.filter(a => a.type === 'color').map(a => a.value));
         
-        // Extract unique origins from products
         const uniqueOrigins = Array.from(new Set(fetchedProducts.map(p => p.origin).filter(Boolean)));
         setOrigins(uniqueOrigins);
 
@@ -104,7 +103,9 @@ export default function SectionManagerPage() {
                 isCarousel: s.isCarousel ?? (s.id === 'categories' || s.id === 'flash_deals' || s.id === 'top_selling'),
                 productLimit: s.productLimit || (s.id === 'featured' ? 10 : (s.isCategorySection ? 8 : (s.id === 'top_selling' ? 10 : undefined))),
                 showSideCategories: s.showSideCategories || false,
-                selectedCategories: s.selectedCategories || []
+                selectedCategories: s.selectedCategories || [],
+                cardDesignDesktop: s.cardDesignDesktop || 'v1',
+                cardDesignMobile: s.cardDesignMobile || 'v1'
             }));
             
             if (!currentSections.find(s => s.id === 'categories')) {
@@ -117,9 +118,9 @@ export default function SectionManagerPage() {
             currentSections = [
               { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col', showSideCategories: false },
               { id: 'categories', title: 'Shop By Category', enabled: true, isCategorySection: false, mobileView: 'list', isCarousel: true, selectedCategories: [] },
-              { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true },
-              { id: 'top_selling', title: 'সেরা বিক্রিত পণ্য', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true, productLimit: 10 },
-              { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col', productLimit: 10 },
+              { id: 'flash_deals', title: 'Flash Deals', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true, cardDesignDesktop: 'v1', cardDesignMobile: 'v1' },
+              { id: 'top_selling', title: 'সেরা বিক্রিত পণ্য', enabled: true, isCategorySection: false, mobileView: '2-col', isCarousel: true, productLimit: 10, cardDesignDesktop: 'v1', cardDesignMobile: 'v1' },
+              { id: 'featured', title: 'Featured Products', enabled: true, isCategorySection: false, mobileView: '2-col', productLimit: 10, cardDesignDesktop: 'v1', cardDesignMobile: 'v1' },
               { id: 'why-us', title: 'Why We Are Different', enabled: true, isCategorySection: false, mobileView: '2-col' },
               { id: 'customer-reviews', title: 'Customer Reviews', enabled: true, isCategorySection: false, mobileView: '2-col' },
             ];
@@ -163,6 +164,19 @@ export default function SectionManagerPage() {
   const handleMobileViewChange = (sectionId: string, view: '1-col' | '2-col' | 'list') => {
     setSections((prev) =>
       prev.map((s) => (s.id === sectionId ? { ...s, mobileView: view } : s))
+    );
+  };
+
+  const handleCardDesignChange = (sectionId: string, type: 'desktop' | 'mobile', design: string) => {
+    setSections((prev) =>
+      prev.map((s) => {
+          if (s.id === sectionId) {
+              return type === 'desktop' 
+                ? { ...s, cardDesignDesktop: design as any } 
+                : { ...s, cardDesignMobile: design as any };
+          }
+          return s;
+      })
     );
   };
 
@@ -238,12 +252,13 @@ export default function SectionManagerPage() {
           maxPrice: parseInt(maxPrice) || 50000,
           mobileView: newMobileView,
           productLimit: parseInt(newProductLimit) || 8,
+          cardDesignDesktop: 'v1',
+          cardDesignMobile: 'v1'
       };
 
       setSections(prev => [...prev, newSection]);
       setIsCreateOpen(false);
       
-      // Reset
       setNewTitle('');
       setNewCategory('all');
       setSelectedTags([]);
@@ -251,7 +266,7 @@ export default function SectionManagerPage() {
       setNewOrigin('all');
       setNewColor('all');
       setMinPrice('0');
-      setMaxPrice('10000');
+      setMaxPrice('50000');
       setNewMobileView('2-col');
       setNewProductLimit('8');
       
@@ -352,26 +367,8 @@ export default function SectionManagerPage() {
                                     <Badge variant="outline" className="text-[10px] py-0 gap-1">
                                         <Smartphone className="h-2 w-2" /> {section.mobileView || 'Auto'}
                                     </Badge>
-                                    {section.id === 'hero' && section.showSideCategories && (
-                                        <Badge variant="outline" className="text-[10px] py-0 gap-1">
-                                            <List className="h-2 w-2" /> Side Categories (Desktop)
-                                        </Badge>
-                                    )}
-                                    {section.id === 'categories' && (section.selectedCategories?.length || 0) > 0 && (
-                                        <Badge variant="secondary" className="text-[10px] py-0">{section.selectedCategories?.length} Categories Selected</Badge>
-                                    )}
-                                    {section.productLimit !== undefined && (
-                                        <Badge variant="secondary" className="text-[10px] py-0">Limit: {section.productLimit}</Badge>
-                                    )}
-                                    {section.isCategorySection && (
-                                        <>
-                                            {section.category && <Badge variant="secondary" className="text-[10px] py-0">{section.category}</Badge>}
-                                            {section.brand && <Badge variant="secondary" className="text-[10px] py-0">Brand: {section.brand}</Badge>}
-                                            {section.origin && <Badge variant="secondary" className="text-[10px] py-0">Origin: {section.origin}</Badge>}
-                                            {section.color && <Badge variant="secondary" className="text-[10px] py-0">Color: {section.color}</Badge>}
-                                            {section.tags?.map(t => <Badge key={t} variant="outline" className="text-[10px] py-0">{t}</Badge>)}
-                                            {(section.minPrice !== undefined || section.maxPrice !== undefined) && <Badge variant="outline" className="text-[10px] py-0">৳{section.minPrice ?? 0}-{section.maxPrice ?? '∞'}</Badge>}
-                                        </>
+                                    {section.id !== 'hero' && section.id !== 'categories' && section.id !== 'why-us' && section.id !== 'customer-reviews' && (
+                                        <Badge variant="secondary" className="text-[10px] py-0">Card: {section.cardDesignDesktop}/{section.cardDesignMobile}</Badge>
                                     )}
                                 </div>
                             </div>
@@ -385,10 +382,10 @@ export default function SectionManagerPage() {
                 </AccordionTrigger>
                 <AccordionContent>
                     <div className="p-6 pt-2 border-t grid gap-6">
-                        <div className="grid sm:grid-cols-2 gap-6">
-                            <div className="space-y-4">
+                        <div className="grid sm:grid-cols-2 gap-8">
+                            <div className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label>Visibility</Label>
+                                    <Label className="font-bold">Visibility</Label>
                                     <div className="flex items-center space-x-2 pt-1">
                                         <Switch
                                             id={`switch-${section.id}`}
@@ -397,15 +394,15 @@ export default function SectionManagerPage() {
                                             handleToggle(section.id, checked)
                                             }
                                         />
-                                        <Label htmlFor={`switch-${section.id}`} className="font-normal text-xs">
-                                            {section.enabled ? "Section is enabled." : "Section is disabled."}
+                                        <Label htmlFor={`switch-${section.id}`} className="font-normal text-xs text-muted-foreground">
+                                            {section.enabled ? "Section is visible on store home." : "Section is hidden."}
                                         </Label>
                                     </div>
                                 </div>
 
                                 {(section.id === 'categories' || section.id === 'flash_deals' || section.id === 'top_selling' || section.id === 'featured' || section.isCategorySection) && (
                                     <div className="space-y-2">
-                                        <Label>Carousel Mode</Label>
+                                        <Label className="font-bold">Display Mode</Label>
                                         <div className="flex items-center space-x-2 pt-1">
                                             <Switch
                                                 id={`carousel-${section.id}`}
@@ -414,8 +411,8 @@ export default function SectionManagerPage() {
                                                     handleCarouselToggle(section.id, checked)
                                                 }
                                             />
-                                            <Label htmlFor={`carousel-${section.id}`} className="font-normal text-xs">
-                                                {section.isCarousel ? "Slider layout." : "Fixed grid layout."}
+                                            <Label htmlFor={`carousel-${section.id}`} className="font-normal text-xs text-muted-foreground">
+                                                {section.isCarousel ? "Carousel Slider (Horizontal)" : "Fixed Grid (Vertical)"}
                                             </Label>
                                         </div>
                                     </div>
@@ -423,7 +420,7 @@ export default function SectionManagerPage() {
 
                                 {section.id === 'hero' && (
                                     <div className="space-y-2">
-                                        <Label className="flex items-center gap-2"><List className="h-4 w-4" /> Side Category Menu</Label>
+                                        <Label className="flex items-center gap-2 font-bold"><List className="h-4 w-4" /> Side Category Menu</Label>
                                         <div className="flex items-center space-x-2 pt-1">
                                             <Switch
                                                 id={`side-cat-${section.id}`}
@@ -432,34 +429,68 @@ export default function SectionManagerPage() {
                                                     handleSideCategoriesToggle(section.id, checked)
                                                 }
                                             />
-                                            <Label htmlFor={`side-cat-${section.id}`} className="font-normal text-xs">
-                                                Show category list on the left side of carousel (Desktop only).
+                                            <Label htmlFor={`side-cat-${section.id}`} className="font-normal text-xs text-muted-foreground">
+                                                Show category list on left side (Desktop only).
                                             </Label>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {section.id !== 'hero' && section.id !== 'categories' && section.id !== 'why-us' && section.id !== 'customer-reviews' && (
+                                    <div className="pt-4 border-t space-y-4">
+                                        <Label className="font-bold text-primary flex items-center gap-2"><Palette className="h-4 w-4" /> Card Designs</Label>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] uppercase font-black text-muted-foreground flex items-center gap-1.5"><Monitor className="h-3 w-3" /> Desktop Card</Label>
+                                                <Select value={section.cardDesignDesktop || 'v1'} onValueChange={(val) => handleCardDesignChange(section.id, 'desktop', val)}>
+                                                    <SelectTrigger className="h-10 rounded-xl">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="z-[110]">
+                                                        <SelectItem value="v1">Classic (v1)</SelectItem>
+                                                        <SelectItem value="v2">Premium (v2)</SelectItem>
+                                                        <SelectItem value="minimal">Minimalist</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] uppercase font-black text-muted-foreground flex items-center gap-1.5"><Smartphone className="h-3 w-3" /> Mobile Card</Label>
+                                                <Select value={section.cardDesignMobile || 'v1'} onValueChange={(val) => handleCardDesignChange(section.id, 'mobile', val)}>
+                                                    <SelectTrigger className="h-10 rounded-xl">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="z-[110]">
+                                                        <SelectItem value="v1">Classic (v1)</SelectItem>
+                                                        <SelectItem value="v2">Premium (v2)</SelectItem>
+                                                        <SelectItem value="minimal">Minimalist</SelectItem>
+                                                        <SelectItem value="list">Horizontal List</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> View Layout (Non-Carousel)</Label>
+                                    <Label className="flex items-center gap-2 font-bold"><Smartphone className="h-4 w-4" /> Grid Layout (Non-Carousel)</Label>
                                     <Select 
                                         value={section.mobileView || '2-col'} 
                                         onValueChange={(val: any) => handleMobileViewChange(section.id, val)}
                                         disabled={section.isCarousel && section.id !== 'categories'}
                                     >
-                                        <SelectTrigger className="h-9">
+                                        <SelectTrigger className="h-10 rounded-xl">
                                             <SelectValue placeholder="Select Layout" />
                                         </SelectTrigger>
                                         <SelectContent className="z-[110]">
                                             {section.id !== 'categories' && (
-                                                <SelectItem value="1-col"><div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /> 1 Column (Large)</div></SelectItem>
+                                                <SelectItem value="1-col"><div className="flex items-center gap-2">1 Column (Large)</div></SelectItem>
                                             )}
-                                            <SelectItem value="2-col"><div className="flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> 2 Columns (Grid)</div></SelectItem>
+                                            <SelectItem value="2-col"><div className="flex items-center gap-2">2 Columns (Standard)</div></SelectItem>
                                             <SelectItem value="list">
                                                 <div className="flex items-center gap-2">
-                                                    {section.id === 'categories' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
-                                                    {section.id === 'categories' ? 'List View (Image on Left)' : 'List View (Stacked)'}
+                                                    {section.id === 'categories' ? 'Compact List' : 'Vertical List'}
                                                 </div>
                                             </SelectItem>
                                         </SelectContent>
@@ -468,42 +499,35 @@ export default function SectionManagerPage() {
 
                                 {(section.id === 'featured' || section.id === 'top_selling' || section.isCategorySection) && (
                                     <div className="space-y-2">
-                                        <Label className="text-sm">{section.id === 'featured' ? 'Initial Products to Show' : 'Products to Show'}</Label>
+                                        <Label className="font-bold">Products Display Limit</Label>
                                         <Input 
                                             type="number" 
                                             value={section.productLimit || ''} 
                                             onChange={(e) => handleLimitChange(section.id, e.target.value)} 
-                                            className="h-9"
+                                            className="h-10 rounded-xl"
                                         />
-                                        {(section.id === 'featured' || section.id === 'top_selling') && <p className="text-[10px] text-muted-foreground">After this limit, a "Load More" button will appear.</p>}
+                                        <p className="text-[10px] text-muted-foreground italic">Sets initial count before "Load More".</p>
                                     </div>
                                 )}
+
+                                <div className="space-y-2">
+                                    <Label className="font-bold">Internal Label</Label>
+                                    <Input
+                                        value={section.title}
+                                        onChange={(e) => handleTitleChange(section.id, e.target.value)}
+                                        className="h-10 rounded-xl"
+                                    />
+                                </div>
                             </div>
                         </div>
 
                         {section.id === 'categories' && (
-                            <div className="space-y-4 animate-in fade-in duration-500">
+                            <div className="space-y-4 animate-in fade-in duration-500 border-t pt-6">
                                 <div className="flex items-center justify-between">
                                     <Label className="font-bold flex items-center gap-2"><CheckSquare className="h-4 w-4 text-primary" /> Select Categories to Display</Label>
                                     <div className="flex gap-2">
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="h-7 text-[10px] uppercase font-black"
-                                            onClick={() => handleSelectAllCategories(section.id, true)}
-                                        >
-                                            Select All
-                                        </Button>
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="h-7 text-[10px] uppercase font-black"
-                                            onClick={() => handleSelectAllCategories(section.id, false)}
-                                        >
-                                            Clear All
-                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] uppercase font-black" onClick={() => handleSelectAllCategories(section.id, true)}>Select All</Button>
+                                        <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] uppercase font-black" onClick={() => handleSelectAllCategories(section.id, false)}>Clear All</Button>
                                     </div>
                                 </div>
                                 <Card className="border-2 bg-muted/10">
@@ -516,61 +540,25 @@ export default function SectionManagerPage() {
                                                         checked={section.selectedCategories?.includes(cat.name)}
                                                         onCheckedChange={(checked) => handleCategorySelection(section.id, cat.name, !!checked)}
                                                     />
-                                                    <label 
-                                                        htmlFor={`cat-select-${section.id}-${cat.id}`} 
-                                                        className="text-xs font-medium leading-none cursor-pointer truncate"
-                                                    >
-                                                        {cat.name}
-                                                    </label>
+                                                    <label htmlFor={`cat-select-${section.id}-${cat.id}`} className="text-xs font-medium leading-none cursor-pointer truncate">{cat.name}</label>
                                                 </div>
                                             ))}
                                         </div>
                                     </ScrollArea>
                                 </Card>
-                                <p className="text-[10px] text-muted-foreground italic">If no categories are selected, all categories will be displayed.</p>
                             </div>
                         )}
 
-                        <div className="space-y-2">
-                        <Label>Position</Label>
+                        <div className="space-y-2 border-t pt-6">
+                            <Label className="font-bold">Ordering</Label>
                             <div className="flex items-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={index === 0}
-                                    onClick={() => moveSection(index, 'up')}
-                                >
-                                    <ArrowUp className="mr-2 h-4 w-4" /> Move Up
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={index === sections.length - 1}
-                                    onClick={() => moveSection(index, 'down')}
-                                >
-                                    <ArrowDown className="mr-2 h-4 w-4" /> Move Down
-                                </Button>
+                                <Button variant="outline" size="sm" disabled={index === 0} onClick={() => moveSection(index, 'up')} className="rounded-lg"><ArrowUp className="mr-2 h-4 w-4" /> Move Up</Button>
+                                <Button variant="outline" size="sm" disabled={index === sections.length - 1} onClick={() => moveSection(index, 'down')} className="rounded-lg"><ArrowDown className="mr-2 h-4 w-4" /> Move Down</Button>
+                                {!CORE_SECTION_IDS.includes(section.id) && (
+                                    <Button variant="destructive" size="sm" onClick={() => handleRemoveSection(section.id)} className="ml-auto rounded-lg"><Trash2 className="mr-2 h-4 w-4" /> Delete Section</Button>
+                                )}
                             </div>
                         </div>
-
-                        <div className="space-y-2">
-                        <Label htmlFor={`title-${section.id}`}>
-                            Section Title
-                        </Label>
-                        <Input
-                            id={`title-${section.id}`}
-                            value={section.title}
-                            onChange={(e) =>
-                            handleTitleChange(section.id, e.target.value)
-                            }
-                        />
-                        </div>
-
-                        {!CORE_SECTION_IDS.includes(section.id) && (
-                            <Button variant="destructive" size="sm" onClick={() => handleRemoveSection(section.id)} className="w-fit">
-                                <Trash2 className="mr-2 h-4 w-4" /> Remove Section
-                            </Button>
-                        )}
                     </div>
                 </AccordionContent>
                 </AccordionItem>
@@ -578,9 +566,8 @@ export default function SectionManagerPage() {
             </Accordion>
         </CardContent>
         <CardFooter className="flex justify-end gap-4 bg-muted/20 p-6 rounded-b-lg border-t">
-            <Button onClick={handleSaveChanges} disabled={isSaving} className="min-w-[150px]">
-                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSaving ? 'Saving...' : 'Save All Changes'}
+            <Button onClick={handleSaveChanges} disabled={isSaving} className="min-w-[180px] rounded-xl h-12 shadow-lg shadow-primary/20">
+                {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save All Changes'}
             </Button>
         </CardFooter>
         </Card>
@@ -591,30 +578,22 @@ export default function SectionManagerPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCreateOpen(false)} />
             <div className="relative w-full max-w-lg bg-background rounded-2xl shadow-2xl border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
-                <div className="p-6 border-b shrink-0">
-                    <h2 className="text-xl font-bold">নতুন ডাইনামিক সেকশন তৈরি করুন</h2>
-                    <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsCreateOpen(false)}>
-                        <X className="h-5 w-5" />
-                    </Button>
+                <div className="p-6 border-b shrink-0 flex items-center justify-between">
+                    <h2 className="text-xl font-bold flex items-center gap-2"><Plus className="h-5 w-5 text-primary" /> নতুন ডাইনামিক সেকশন</h2>
+                    <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsCreateOpen(false)}><X className="h-5 w-5" /></Button>
                 </div>
                 
                 <div className="p-6 overflow-y-auto space-y-6">
                     <div className="space-y-2">
-                        <Label>সেকশন শিরোনাম (Title)</Label>
-                        <Input 
-                            placeholder="যেমন: সেরা অফার" 
-                            value={newTitle}
-                            onChange={(e) => setNewTitle(e.target.value)}
-                        />
+                        <Label className="font-bold">সেকশন শিরোনাম (Title)</Label>
+                        <Input placeholder="যেমন: সেরা অফার" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="h-11 rounded-xl" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>ক্যাটাগরি ফিল্টার</Label>
+                            <Label className="font-bold">ক্যাটাগরি ফিল্টার</Label>
                             <Select value={newCategory} onValueChange={setNewCategory}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="সব ক্যাটাগরি" />
-                                </SelectTrigger>
+                                <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="সব ক্যাটাগরি" /></SelectTrigger>
                                 <SelectContent className="z-[110]">
                                     <SelectItem value="all">সব ক্যাটাগরি</SelectItem>
                                     {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
@@ -622,11 +601,9 @@ export default function SectionManagerPage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label>ব্র্যান্ড ফিল্টার</Label>
+                            <Label className="font-bold">ব্র্যান্ড ফিল্টার</Label>
                             <Select value={newBrand} onValueChange={setNewBrand}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="সব ব্র্যান্ড" />
-                                </SelectTrigger>
+                                <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="সব ব্র্যান্ড" /></SelectTrigger>
                                 <SelectContent className="z-[110]">
                                     <SelectItem value="all">সব ব্র্যান্ড</SelectItem>
                                     {brands.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
@@ -637,46 +614,13 @@ export default function SectionManagerPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>অরিজিন ফিল্টার</Label>
-                            <Select value={newOrigin} onValueChange={setNewOrigin}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="সব অরিজিন" />
-                                </SelectTrigger>
-                                <SelectContent className="z-[110]">
-                                    <SelectItem value="all">সব অরিজিন</SelectItem>
-                                    {origins.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            <Label className="font-bold">পণ্য সংখ্যা (Limit)</Label>
+                            <Input type="number" value={newProductLimit} onChange={(e) => setNewProductLimit(e.target.value)} className="h-11 rounded-xl" />
                         </div>
                         <div className="space-y-2">
-                            <Label>কালার ফিল্টার</Label>
-                            <Select value={newColor} onValueChange={setNewColor}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="সব কালার" />
-                                </SelectTrigger>
-                                <SelectContent className="z-[110]">
-                                    <SelectItem value="all">সব কালার</SelectItem>
-                                    {colors.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>পণ্য সংখ্যা (Limit)</Label>
-                            <Input 
-                                type="number" 
-                                value={newProductLimit}
-                                onChange={(e) => setNewProductLimit(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Mobile View Layout</Label>
+                            <Label className="font-bold">Mobile View Layout</Label>
                             <Select value={newMobileView} onValueChange={(val: any) => setNewMobileView(val)}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
+                                <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
                                 <SelectContent className="z-[110]">
                                     <SelectItem value="2-col">2 Column Grid</SelectItem>
                                     <SelectItem value="1-col">1 Column Grid</SelectItem>
@@ -687,17 +631,11 @@ export default function SectionManagerPage() {
                     </div>
 
                     <div className="space-y-3">
-                        <Label>ট্যাগ ফিল্টার (Tags)</Label>
-                        <div className="grid grid-cols-2 gap-2 p-3 rounded-lg border bg-muted/20">
+                        <Label className="font-bold">ট্যাগ ফিল্টার (Tags)</Label>
+                        <div className="grid grid-cols-2 gap-2 p-3 rounded-xl border bg-muted/20">
                             {tags.length > 0 ? tags.map(tag => (
                                 <div key={tag} className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id={`tag-${tag}`} 
-                                        checked={selectedTags.includes(tag)}
-                                        onCheckedChange={(checked) => {
-                                            setSelectedTags(prev => checked ? [...prev, tag] : prev.filter(t => t !== tag));
-                                        }}
-                                    />
+                                    <Checkbox id={`tag-${tag}`} checked={selectedTags.includes(tag)} onCheckedChange={(checked) => setSelectedTags(prev => checked ? [...prev, tag] : prev.filter(t => t !== tag))} />
                                     <label htmlFor={`tag-${tag}`} className="text-sm font-medium leading-none cursor-pointer">{tag}</label>
                                 </div>
                             )) : <p className="text-xs text-muted-foreground col-span-2">কোনো ট্যাগ পাওয়া যায়নি।</p>}
@@ -705,25 +643,23 @@ export default function SectionManagerPage() {
                     </div>
 
                     <div className="space-y-3">
-                        <Label>মূল্য পরিসীমা (Price Range)</Label>
+                        <Label className="font-bold">মূল্য পরিসীমা (Price Range)</Label>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <span className="text-[10px] uppercase font-bold text-muted-foreground">Min Price</span>
-                                <Input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} />
+                                <span className="text-[10px] uppercase font-black text-muted-foreground">Min</span>
+                                <Input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} className="h-10 rounded-xl" />
                             </div>
                             <div className="space-y-1">
-                                <span className="text-[10px] uppercase font-bold text-muted-foreground">Max Price</span>
-                                <Input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+                                <span className="text-[10px] uppercase font-black text-muted-foreground">Max</span>
+                                <Input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="h-10 rounded-xl" />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-6 border-t flex justify-end gap-3 shrink-0">
-                    <Button variant="outline" onClick={() => setIsCreateOpen(false)}>বাতিল</Button>
-                    <Button onClick={handleAddDynamicSection} className="shadow-lg shadow-primary/20">
-                        সেকশন যোগ করুন
-                    </Button>
+                <div className="p-6 border-t flex justify-end gap-3 shrink-0 bg-muted/30">
+                    <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="rounded-xl h-12 px-6">বাতিল</Button>
+                    <Button onClick={handleAddDynamicSection} className="rounded-xl h-12 px-10 shadow-lg shadow-primary/20 font-bold">সেকশন যোগ করুন</Button>
                 </div>
             </div>
         </div>

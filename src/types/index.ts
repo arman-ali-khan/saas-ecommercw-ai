@@ -252,6 +252,8 @@ export interface Section {
   isCarousel?: boolean;
   productLimit?: number;
   showSideCategories?: boolean;
+  cardDesignDesktop?: 'v1' | 'v2' | 'minimal';
+  cardDesignMobile?: 'v1' | 'v2' | 'list' | 'minimal';
 }
 
 export interface LiveChatMessage {

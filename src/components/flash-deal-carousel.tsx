@@ -67,6 +67,7 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
                     product={deal.products}
                     flashDeal={deal}
                     isList={true}
+                    variant={section.cardDesignMobile || 'v1'}
                   />
                 ))}
               </div>
@@ -88,6 +89,7 @@ export default function FlashDealCarousel({ deals, section }: FlashDealCarouselP
                 product={deal.products}
                 flashDeal={deal}
                 isList={isListMode}
+                variant={isMobile ? (section.cardDesignMobile || 'v1') : (section.cardDesignDesktop || 'v1')}
               />
             </CarouselItem>
           ))

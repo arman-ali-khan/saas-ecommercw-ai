@@ -213,6 +213,7 @@ async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent, d
                     key={product.id} 
                     product={product} 
                     isList={section.mobileView === 'list'} 
+                    variant={section.cardDesignDesktop || 'v1'}
                 />
             ))}
           </div>
@@ -288,6 +289,7 @@ async function DynamicSectionProducts({ siteId, section, t, isFirst, isHeroPrese
                     key={product.id} 
                     product={product} 
                     isList={section.mobileView === 'list'} 
+                    variant={section.cardDesignDesktop || 'v1'}
                 />
             ))}
           </div>

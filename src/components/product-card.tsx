@@ -6,7 +6,7 @@ import Link from 'next/link';
 import type { Product, FlashDeal, ProductVariant } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Button } from './ui/button';
-import { ShoppingBag, Star, X, Plus, Minus, CheckCircle2, Eye } from 'lucide-react';
+import { ShoppingBag, Star, X, Plus, Minus, CheckCircle2, Eye, Flame, Clock } from 'lucide-react';
 import { useCart } from '@/stores/cart';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from './ui/badge';
@@ -21,9 +21,10 @@ interface ProductCardProps {
   product: Product;
   flashDeal?: FlashDeal;
   isList?: boolean;
+  variant?: 'v1' | 'v2' | 'minimal';
 }
 
-export default function ProductCard({ product, flashDeal, isList = false }: ProductCardProps) {
+export default function ProductCard({ product, flashDeal, isList = false, variant = 'v1' }: ProductCardProps) {
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
   const t = useTranslation();
@@ -198,12 +199,40 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
     );
   }
 
+  // MINIMAL VARIANT
+  if (variant === 'minimal') {
+      return (
+        <>
+        <div className={cn("h-full", isList && "md:block")}>
+            <Card className="flex flex-col h-full border-none shadow-none bg-transparent group/minimal">
+                <Link href={productUrl} className="relative aspect-square rounded-2xl overflow-hidden mb-3 bg-muted block">
+                    <Image src={product.images[0]?.imageUrl || 'https://placehold.co/400x400'} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover/minimal:scale-110" />
+                    {flashDeal && <div className="absolute top-2 left-2 bg-destructive text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg">SALE</div>}
+                    <Button variant="secondary" size="icon" className="absolute bottom-2 right-2 h-8 w-8 rounded-full opacity-0 group-hover/minimal:opacity-100 transition-opacity shadow-lg" onClick={(e) => { e.preventDefault(); setIsQuickViewOpen(true); }}><Eye className="h-4 w-4" /></Button>
+                </Link>
+                <div className="space-y-1">
+                    <Link href={productUrl} className="text-sm font-bold truncate block hover:text-primary transition-colors">{product.name}</Link>
+                    <div className="flex items-center justify-between">
+                        <p className="font-black text-primary">{priceDisplay}</p>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 text-primary" onClick={handleAddToCart}><Plus className="h-4 w-4" /></Button>
+                    </div>
+                </div>
+            </Card>
+        </div>
+        <QuickViewDialog />
+        </>
+      )
+  }
+
   return (
     <>
-      {/* Mobile List View - Only shown if isList is true and screen is small */}
+      {/* Mobile List View */}
       {isList && (
         <div className="md:hidden">
-          <Card className="flex flex-row h-32 sm:h-40 overflow-hidden transition-all duration-300 hover:shadow-md group border-2">
+          <Card className={cn(
+              "flex flex-row h-32 sm:h-40 overflow-hidden transition-all duration-300 border-2",
+              variant === 'v2' ? "rounded-3xl border-primary/10 bg-primary/[0.02]" : "rounded-2xl"
+          )}>
               <div className="relative w-32 sm:w-48 shrink-0 bg-muted">
                   <Link href={productUrl} className="block relative h-full">
                       <Image
@@ -221,7 +250,6 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
                       className="absolute top-1 left-1 z-20 h-7 w-7 rounded-full bg-background/90 shadow-sm border"
                       onClick={(e) => {
                           e.preventDefault();
-                          e.stopPropagation();
                           setIsQuickViewOpen(true);
                       }}
                   >
@@ -247,7 +275,7 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
                       <Button 
                           size="sm" 
                           onClick={handleAddToCart} 
-                          className="h-8 px-3 text-[10px] font-bold rounded-lg shadow-sm"
+                          className={cn("h-8 px-3 text-[10px] font-bold shadow-sm", variant === 'v2' ? "rounded-xl" : "rounded-lg")}
                           disabled={currentStock <= 0}
                       >
                           <ShoppingBag className="w-3 h-3 mr-1.5" />
@@ -259,9 +287,12 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
         </div>
       )}
 
-      {/* Standard Grid View - Shown always on desktop, and on mobile only if NOT isList */}
+      {/* Grid View */}
       <div className={cn("h-full", isList ? "hidden md:block" : "block")}>
-        <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group">
+        <Card className={cn(
+            "flex flex-col h-full overflow-hidden transition-all duration-300 group border-2 shadow-sm",
+            variant === 'v2' ? "rounded-[2rem] border-primary/5 bg-gradient-to-b from-card to-primary/[0.02]" : "rounded-2xl"
+        )}>
           <div className="relative">
             <Button 
                 variant="secondary" 
@@ -269,7 +300,6 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
                 className="absolute top-2 left-2 z-20 h-8 w-8 rounded-full bg-background/90 backdrop-blur-sm shadow-md border border-primary/10"
                 onClick={(e) => {
                     e.preventDefault();
-                    e.stopPropagation();
                     setIsQuickViewOpen(true);
                 }}
             >
@@ -278,61 +308,69 @@ export default function ProductCard({ product, flashDeal, isList = false }: Prod
             
             <Link href={productUrl} className="block relative">
                 <CardHeader className="p-0">
-                <div className="relative w-full aspect-[6/5]">
+                <div className={cn("relative w-full aspect-[6/5]", variant === 'v2' && "p-2")}>
                     <Image
                     src={product.images[0]?.imageUrl || 'https://placehold.co/400x300'}
                     alt={product.name}
-                    data-ai-hint={product.images[0]?.imageHint || 'product image'}
                     fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+                    className={cn("object-cover transition-transform duration-500 group-hover:scale-110", variant === 'v2' && "rounded-[1.5rem]")}
+                    sizes="(max-width: 768px) 50vw, 300px"
                     />
                 </div>
-                {flashDeal && <Badge className="absolute top-2 right-2" variant="destructive">Sale</Badge>}
-                </CardHeader>
-                <CardContent className="p-1 sm:p-4 flex-grow">
-                <h3 className="text-sm sm:text-lg font-headline font-semibold line-clamp-1">{product.name}</h3>
-                {product.review_count && product.review_count > 0 && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                    <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                        <Star
-                            key={i}
-                            className={cn(
-                            "h-4 w-4",
-                            product.avg_rating && i < Math.round(product.avg_rating)
-                                ? "fill-primary text-primary"
-                                : "text-muted-foreground/30"
-                            )}
-                        />
-                        ))}
-                    </div>
-                    <span className="text-xs text-muted-foreground">({product.review_count})</span>
+                {flashDeal && (
+                    <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                        <Badge variant="destructive" className="animate-pulse shadow-lg h-6">OFFER</Badge>
                     </div>
                 )}
-                <p className="text-muted-foreground mt-1 text-xs sm:text-sm line-clamp-2">{product.description}</p>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-4 flex-grow">
+                <h3 className={cn("text-sm sm:text-lg font-headline font-bold line-clamp-1", variant === 'v2' && "text-primary")}>{product.name}</h3>
+                {product.review_count && product.review_count > 0 && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                        <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                            <Star
+                                key={i}
+                                className={cn(
+                                "h-3 w-3",
+                                product.avg_rating && i < Math.round(product.avg_rating)
+                                    ? "fill-amber-400 text-amber-400"
+                                    : "text-muted-foreground/30"
+                                )}
+                            />
+                            ))}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">({product.review_count})</span>
+                    </div>
+                )}
+                <p className="text-muted-foreground mt-1 text-[10px] sm:text-xs line-clamp-2 leading-relaxed">{product.description}</p>
                 {flashDeal && (
-                    <div className="mt-2">
-                    <Countdown endDate={flashDeal.end_date} />
+                    <div className="mt-3 flex items-center gap-2 text-[10px] font-bold text-destructive bg-destructive/5 p-1 rounded-lg border border-destructive/10">
+                        <Clock className="h-3 w-3" />
+                        <Countdown endDate={flashDeal.end_date} />
                     </div> 
                 )}
                 </CardContent>
             </Link>
           </div>
-          <CardFooter className="p-1 block sm:p-4 !pt-1 sm:mt-auto items-center">
-            <div className="flex flex-col w-full mb-3">
+          <CardFooter className="p-3 sm:p-4 !pt-0 sm:mt-auto flex flex-col gap-3">
+            <div className="flex flex-col w-full">
                 {flashDeal && !product.variants?.length && (
-                    <p className="text-xs font-bold text-muted-foreground line-through">
+                    <p className="text-[10px] font-bold text-muted-foreground/60 line-through">
                         {product.price.toFixed(2)} {product.currency}
                     </p>
                 )}
-                <p className="text-sm sm:text-lg font-bold text-primary">
+                <p className="text-sm sm:text-xl font-black text-primary tracking-tight">
                     {priceDisplay}
                 </p>
             </div>
             <Button 
                 onClick={handleAddToCart} 
-                className="w-full h-9 sm:h-10 text-xs sm:text-sm"
+                className={cn(
+                    "w-full h-10 sm:h-11 text-xs sm:text-sm font-bold transition-all shadow-sm",
+                    variant === 'v2' ? "rounded-xl shadow-primary/10" : "rounded-xl",
+                    product.variants && product.variants.length > 0 ? "variant-btn" : ""
+                )}
                 variant={product.variants && product.variants.length > 0 ? "outline" : "default"}
             >
               <ShoppingBag className="w-4 h-4 mr-2" />
