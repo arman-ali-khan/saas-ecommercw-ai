@@ -41,26 +41,38 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 // --- Code Writing Animation Component ---
 const CodeWritingAnimation = ({ code }: { code?: string | null }) => {
   const defaultCode = `/**
- * @file Critical Deployment Engine
- * Powered by DokanBD AI
+ * @file দোকানবিডি (DokanBD) - দ্রুত ও সহজ ই-কমার্স সমাধান
+ * কিভাবে শুরু করবেন? আমাদের গাইড ফলো করুন:
  */
-async function provisionStore(userId, config) {
-  const ai = genkit({ plugins: [googleAI()] });
-  
-  // 1. Generate SEO Optimized Content
-  const { output } = await ai.generate({
-    model: 'gemini-1.5-flash',
-    prompt: \`Setup store for \${config.siteName}\`
+
+async function startSellingOnline() {
+  // ধাপ ১: শুরু করুন
+  // প্রথমে "ফ্রি ট্রায়াল শুরু করুন" বাটনে ক্লিক করুন।
+  await platform.initiate('Get Started');
+
+  // ধাপ ২: প্ল্যান নির্বাচন
+  // আপনার ব্যবসার প্রয়োজন অনুযায়ী সেরা সাবস্ক্রিপশন প্ল্যানটি বেছে নিন।
+  const plan = await user.selectPlan('Pro' || 'Enterprise');
+
+  // ধাপ ৩: ডোমেইন সেটআপ
+  // আপনার দোকানের জন্য একটি ইউনিক ডোমেইন নাম দিন।
+  const url = 'myshop.ihut.shop';
+
+  // ধাপ ৪: দোকানের তথ্য
+  // দোকানের নাম ও সংক্ষিপ্ত বিবরণ দিয়ে সেটআপ সম্পন্ন করুন।
+  const store = await platform.provision({
+    name: 'আপনার দোকানের নাম',
+    design: 'আধুনিক ও প্রিমিয়াম থিম'
   });
 
-  // 2. Deploy Multi-tenant Infrastructure
-  return await db.provisionTenant({
-    ownerId: userId,
-    subdomain: \`\${config.slug}.ihut.shop\`,
-    seoMeta: output.seo,
-    status: 'live'
-  });
-}`;
+  // অভিনন্দন! আপনার সুন্দর ওয়েবসাইট এখন লাইভ।
+  return {
+    status: 'সফলভাবে তৈরি হয়েছে!',
+    message: 'ড্যাশবোর্ড থেকে পণ্য যোগ করুন এবং বিক্রি শুরু করুন।'
+  };
+}
+
+// আজই যোগ দিন এবং আপনার ব্র্যান্ডকে নতুন উচ্চতায় নিয়ে যান।`;
 
   const snippet = code || defaultCode;
   const [displayedCode, setDisplayedCode] = useState('');
