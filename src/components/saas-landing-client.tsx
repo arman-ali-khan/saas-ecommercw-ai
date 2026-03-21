@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -564,7 +563,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
       </div>
 
-      <div className="space-y-24 md:space-y-40 py-12 md:py-24">
+      <div className="space-y-24 md:space-y-40 pt-32 pb-12 md:pt-48 md:pb-24">
         {sections.map(renderSection)}
       </div>
 
