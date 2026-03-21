@@ -17,7 +17,7 @@ import FeaturesCarousel from '@/components/features-carousel';
 import ReviewsCarousel from '@/components/reviews-carousel';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
-import DynamicIcon from './dynamic-icon';
+import DynamicIcon from '@/components/dynamic-icon';
 import CategoriesGrid from '@/components/categories-grid';
 import FeaturedProductsList from '@/components/featured-products-list';
 import FeaturedCarousel from '@/components/featured-carousel';
