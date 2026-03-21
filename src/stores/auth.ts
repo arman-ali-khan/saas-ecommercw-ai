@@ -73,6 +73,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
           fullName: adminProfile.full_name,
           email: adminProfile.email,
           domain: adminProfile.domain,
+          custom_domain: adminProfile.custom_domain,
+          active_theme_id: adminProfile.active_theme_id,
           siteName: adminProfile.site_name,
           siteDescription: adminProfile.site_description,
           subscriptionPlan: adminProfile.subscription_plan,

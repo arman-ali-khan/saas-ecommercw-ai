@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Layout, CheckCircle2, Eye, Loader2, Palette, ExternalLink } from 'lucide-react';
+import { Layout, CheckCircle2, Eye, Loader2, Palette, ExternalLink, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -14,10 +14,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 export default function ThemesPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const [themes, setThemes] = useState<StoreTheme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isApplying, setIsApplying] = useState<string | null>(null);
 
   const fetchThemes = useCallback(async () => {
     setIsLoading(true);
@@ -39,6 +40,35 @@ export default function ThemesPage() {
   useEffect(() => {
     fetchThemes();
   }, [fetchThemes]);
+
+  const handleApplyTheme = async (themeId: string) => {
+    if (!user?.id) return;
+    
+    setIsApplying(themeId);
+    try {
+        const response = await fetch('/api/themes/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                siteId: user.id,
+                themeId: themeId
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            toast({ title: 'থিম সক্রিয় হয়েছে!', description: 'আপনার স্টোরফ্রন্টে নতুন ডিজাইন অ্যাপ্লাই করা হয়েছে।' });
+            await refreshUser(); // Update local auth state to reflect new theme
+        } else {
+            throw new Error(result.error || 'থিম অ্যাপ্লাই করতে সমস্যা হয়েছে।');
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: error.message });
+    } finally {
+        setIsApplying(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -72,18 +102,16 @@ export default function ThemesPage() {
         <h1 className="text-2xl font-bold font-headline flex items-center gap-2">
           <Layout className="h-6 w-6 text-primary" /> Store Themes
         </h1>
-        <p className="text-muted-foreground text-sm">Choose and customize the look of your online store.</p>
+        <p className="text-muted-foreground text-sm">আপনার স্টোরের জন্য সেরা ডিজাইনটি বেছে নিন এবং কাস্টমাইজ করুন।</p>
       </div>
 
       {themes.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {themes.map((theme) => {
-            // Check if this is the active theme for the store
-            // In a real scenario, we'd check user.current_theme_id
-            const isActive = theme.is_default; 
+            const isActive = theme.id === user?.active_theme_id || (theme.is_default && !user?.active_theme_id); 
 
             return (
-              <Card key={theme.id} className={cn("overflow-hidden border-2 transition-all group flex flex-col", isActive ? "border-primary ring-2 ring-primary/10 shadow-lg" : "hover:border-primary/20")}>
+              <Card key={theme.id} className={cn("overflow-hidden border-2 transition-all group flex flex-col", isActive ? "border-primary ring-4 ring-primary/5 shadow-xl" : "hover:border-primary/20")}>
                 <div className="relative aspect-video bg-muted border-b overflow-hidden">
                   {theme.image_url ? (
                     <Image 
@@ -99,17 +127,20 @@ export default function ThemesPage() {
                   )}
                   
                   {isActive && (
-                    <div className="absolute top-3 left-3">
+                    <div className="absolute top-3 left-3 animate-in zoom-in duration-300">
                       <Badge className="bg-primary text-primary-foreground font-black uppercase text-[10px] tracking-widest px-3 py-1 shadow-lg">
-                        <CheckCircle2 className="mr-1.5 h-3 w-3" /> Active
+                        <CheckCircle2 className="mr-1.5 h-3 w-3" /> ACTIVE
                       </Badge>
                     </div>
                   )}
                 </div>
                 <CardHeader className="p-5">
-                  <CardTitle className="text-lg">{theme.title}</CardTitle>
-                  <CardDescription className="text-xs line-clamp-2">
-                    {theme.subtitle || 'A professional design for your store.'}
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{theme.title}</CardTitle>
+                    {theme.is_default && !isActive && <Badge variant="outline" className="text-[8px] font-black uppercase">Standard</Badge>}
+                  </div>
+                  <CardDescription className="text-xs line-clamp-2 mt-1">
+                    {theme.subtitle || 'আপনার স্টোরের জন্য একটি প্রফেশনাল এবং আধুনিক ডিজাইন।'}
                   </CardDescription>
                 </CardHeader>
                 <CardFooter className="p-5 pt-0 gap-3 mt-auto">
@@ -124,8 +155,12 @@ export default function ThemesPage() {
                       No Preview
                     </Button>
                   )}
-                  <Button className="flex-1 rounded-xl h-10 text-xs font-bold" disabled={isActive}>
-                    {isActive ? 'Active' : 'Apply Theme'}
+                  <Button 
+                    className="flex-1 rounded-xl h-10 text-xs font-bold shadow-lg shadow-primary/10" 
+                    disabled={isActive || isApplying !== null}
+                    onClick={() => handleApplyTheme(theme.id)}
+                  >
+                    {isApplying === theme.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isActive ? 'Active' : 'Apply Theme'}
                   </Button>
                 </CardFooter>
               </Card>
@@ -139,7 +174,6 @@ export default function ThemesPage() {
         </div>
       )}
       
-      {/* Footer Placeholder for future expansion */}
       <div className="pt-8 border-t border-dashed mt-12 flex items-center justify-center">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
