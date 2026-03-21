@@ -132,7 +132,7 @@ export default function SaasThemesManagerPage() {
                 toast({ title: selectedTheme ? 'Theme Updated' : 'Theme Created' });
                 await fetchThemes(true);
                 setIsFormOpen(false);
-                setSelectedItem(null);
+                setSelectedTheme(null);
             } else {
                 const result = await response.json();
                 throw new Error(result.error || 'Failed to save theme');
@@ -223,7 +223,7 @@ export default function SaasThemesManagerPage() {
                                 <Badge variant="secondary" className="text-[8px] h-4 uppercase">Nav: {theme.navbar_design}</Badge>
                                 <Badge variant="secondary" className="text-[8px] h-4 uppercase">Hero: {theme.hero_design}</Badge>
                                 <Badge variant="secondary" className="text-[8px] h-4 uppercase">Sec: {theme.section_design}</Badge>
-                                <Badge variant="secondary" className="text-[8px] h-4 uppercase">Card: {theme.card_design || 'v1'}</Badge>
+                                <Badge variant="secondary" className="text-[8px] h-4 uppercase">Card: {(theme as any).card_design || 'v1'}</Badge>
                             </div>
                         </CardHeader>
                         <CardFooter className="p-5 pt-0 gap-2 border-t mt-auto">
