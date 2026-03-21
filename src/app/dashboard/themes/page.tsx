@@ -109,7 +109,7 @@ export default function SaasThemesManagerPage() {
                     hero_design: selectedTheme.hero_design || 'v1',
                     category_design: selectedTheme.category_design || 'v1',
                     section_design: selectedTheme.section_design || 'v1',
-                    card_design: selectedTheme.card_design || 'v1',
+                    card_design: (selectedTheme as any).card_design || 'v1',
                     is_active: selectedTheme.is_active,
                     is_default: selectedTheme.is_default
                 });
@@ -132,7 +132,7 @@ export default function SaasThemesManagerPage() {
                 toast({ title: selectedTheme ? 'Theme Updated' : 'Theme Created' });
                 await fetchThemes(true);
                 setIsFormOpen(false);
-                setSelectedTheme(null);
+                setSelectedItem(null);
             } else {
                 const result = await response.json();
                 throw new Error(result.error || 'Failed to save theme');
@@ -368,12 +368,14 @@ export default function SaasThemesManagerPage() {
                                         <FormField control={form.control} name="is_active" render={({ field }) => (
                                             <FormItem className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
                                                 <FormLabel className="font-bold text-xs">Publicly Active</FormLabel>
-                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormItem>
+                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                            </FormItem>
                                         )} />
                                         <FormField control={form.control} name="is_default" render={({ field }) => (
                                             <FormItem className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
                                                 <FormLabel className="font-bold text-xs">Default Theme</FormLabel>
-                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormItem>
+                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                            </FormItem>
                                         )} />
                                     </div>
                                 </form>
