@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, X, AlertTriangle, ExternalLink, Palette, CheckCircle2, Layout, Smartphone, Monitor, ShoppingBag, List, Footprints } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, X, AlertTriangle, ExternalLink, Palette, CheckCircle2, Layout, Smartphone, Monitor, ShoppingBag, List, Footprints, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ImageUploader from '@/components/image-uploader';
 import { Switch } from '@/components/ui/switch';
@@ -73,7 +73,22 @@ export default function SaasThemesManagerPage() {
 
     const form = useForm<ThemeFormData>({
         resolver: zodResolver(themeSchema),
-        defaultValues: { title: '', subtitle: '', preview_link: '', image_url: '', navbar_design: 'v1', hero_design: 'v1', category_design: 'v1', section_design: 'v1', card_design: 'v1', product_page_design: 'v1', sidebar_design: 'v1', footer_design: 'v1', is_active: true, is_default: false },
+        defaultValues: { 
+            title: '', 
+            subtitle: '', 
+            preview_link: '', 
+            image_url: '', 
+            navbar_design: 'v1', 
+            hero_design: 'v1', 
+            category_design: 'v1', 
+            section_design: 'v1', 
+            card_design: 'v1', 
+            product_page_design: 'v1', 
+            sidebar_design: 'v1', 
+            footer_design: 'v1', 
+            is_active: true, 
+            is_default: false 
+        },
     });
 
     const fetchThemes = useCallback(async (force = false) => {
@@ -128,7 +143,22 @@ export default function SaasThemesManagerPage() {
                     is_default: selectedTheme.is_default
                 });
             } else {
-                form.reset({ title: '', subtitle: '', preview_link: '', image_url: '', navbar_design: 'v1', hero_design: 'v1', category_design: 'v1', section_design: 'v1', card_design: 'v1', product_page_design: 'v1', sidebar_design: 'v1', footer_design: 'v1', is_active: true, is_default: false });
+                form.reset({ 
+                    title: '', 
+                    subtitle: '', 
+                    preview_link: '', 
+                    image_url: '', 
+                    navbar_design: 'v1', 
+                    hero_design: 'v1', 
+                    category_design: 'v1', 
+                    section_design: 'v1', 
+                    card_design: 'v1', 
+                    product_page_design: 'v1', 
+                    sidebar_design: 'v1', 
+                    footer_design: 'v1', 
+                    is_active: true, 
+                    is_default: false 
+                });
             }
         }
     }, [isFormOpen, selectedTheme, form]);
@@ -393,7 +423,7 @@ export default function SaasThemesManagerPage() {
                                                         </div>
                                                         <div className="flex-grow w-full space-y-2">
                                                             <FormControl><Input placeholder="Paste Image URL" {...field} className="h-9 text-xs font-mono" /></FormControl>
-                                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url)} label="Upload Screenshot" />
+                                                            <ImageUploader onUpload={(res) => form.setValue('image_url', res.info.secure_url, { shouldValidate: true })} label="Upload Screenshot" />
                                                         </div>
                                                     </div>
                                                     <FormMessage />
@@ -405,13 +435,17 @@ export default function SaasThemesManagerPage() {
                                             <FormField control={form.control} name="is_active" render={({ field }) => (
                                                 <FormItem className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
                                                     <FormLabel className="font-bold text-xs">Publicly Active</FormLabel>
-                                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                    <FormControl>
+                                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                    </FormControl>
                                                 </FormItem>
                                             )} />
                                             <FormField control={form.control} name="is_default" render={({ field }) => (
                                                 <FormItem className="flex items-center justify-between p-4 border rounded-xl bg-muted/10">
                                                     <FormLabel className="font-bold text-xs">Default Theme</FormLabel>
-                                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                    <FormControl>
+                                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                    </FormControl>
                                                 </FormItem>
                                             )} />
                                         </div>
@@ -422,7 +456,7 @@ export default function SaasThemesManagerPage() {
                         <div className="p-6 border-t flex flex-col sm:flex-row justify-end gap-3 shrink-0 bg-muted/30 pb-10 sm:pb-6">
                             <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSubmitting} className="rounded-xl px-6 order-2 sm:order-1 h-12">Cancel</Button>
                             <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting} className="rounded-xl px-10 font-bold shadow-lg shadow-primary/20 order-1 sm:order-2 h-12">
-                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Save Design Config</>}
+                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Design Config</>}
                             </Button>
                         </div>
                     </div>
