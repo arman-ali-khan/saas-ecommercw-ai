@@ -566,6 +566,7 @@ export interface StoreTheme {
   hero_design: 'v1' | 'v2';
   category_design: 'v1' | 'v2';
   section_design: 'v1' | 'v2';
+  card_design: 'v1' | 'v2' | 'minimal';
   is_active: boolean;
   is_default: boolean;
   created_at: string;

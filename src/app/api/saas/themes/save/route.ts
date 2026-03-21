@@ -41,6 +41,7 @@ export async function POST(request: Request) {
         hero_design: data.hero_design || 'v1',
         category_design: data.category_design || 'v1',
         section_design: data.section_design || 'v1',
+        card_design: data.card_design || 'v1',
         is_active: data.is_active ?? true,
         is_default: data.is_default ?? false,
         updated_at: new Date().toISOString()
