@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Loader2, X, AlertTriangle, ExternalLink, Palette, CheckCircle2, Layout, Smartphone, Monitor, ShoppingBag, List, Footprints, Save } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, X, AlertTriangle, ExternalLink, Palette, CheckCircle2, Layout, Smartphone, Monitor, ShoppingBag, List, Footprints, Save,ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ImageUploader from '@/components/image-uploader';
 import { Switch } from '@/components/ui/switch';
