@@ -34,7 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Loader2, User, CreditCard, FileText, X, CheckCircle2, ShieldAlert, Search, Filter, RefreshCw, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, Loader2, User, CreditCard, FileText, X, CheckCircle2, ShieldAlert, Search, Filter, RefreshCw, Zap, ChevronLeft, ChevronRight, AlertTriangle, Save } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -55,6 +55,7 @@ export default function SubscriptionPaymentsPage() {
 
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPaymentWithDetails | null>(null);
+  const [updatedTrxId, setUpdatedTrxId] = useState('');
 
   // Search and Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,41 +102,61 @@ export default function SubscriptionPaymentsPage() {
       if (!response.ok || !result.success) throw new Error("SMS API fetch failed");
 
       const smsData = result.data || [];
-      const extractedTrxIds = new Set<string>();
+      const paymentLogs = new Map<string, number>(); // Map<TrxID, Amount>
       
       smsData.forEach((item: any) => {
         const msg = item.message || '';
-        // Improved regex to capture alphanumeric TxnID (e.g., SAMRAT)
-        const matches = msg.match(/(?:TrxID|TxnID)[:\s]*([A-Z0-9]+)/gi);
-        if (matches) {
-            matches.forEach((m: string) => {
+        const trxMatches = msg.match(/(?:TrxID|TxnID)[:\s]*([A-Z0-9]+)/gi);
+        const amountMatch = msg.match(/Amount: Tk ([\d.]+)/i);
+        
+        if (trxMatches && amountMatch) {
+            const amount = parseFloat(amountMatch[1]);
+            trxMatches.forEach((m: string) => {
                 const id = m.replace(/(?:TrxID|TxnID)[:\s]*/i, '').trim().toUpperCase();
-                if (id.length >= 4) extractedTrxIds.add(id);
+                if (id.length >= 4) paymentLogs.set(id, amount);
             });
         }
       });
 
-      // Get latest pending payments from store
       const currentPayments = useSaasStore.getState().subscriptions;
       const pending = currentPayments.filter(p => p.status === 'pending_verification' || p.status === 'pending');
-      let confirmedCount = 0;
+      let processedCount = 0;
 
       for (const p of pending) {
-        if (p.transaction_id && extractedTrxIds.has(p.transaction_id.toUpperCase())) {
-          const updateRes = await fetch('/api/saas/subscriptions/update-status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: p.id, newStatus: 'completed' }),
-          });
-          if (updateRes.ok) confirmedCount++;
+        const submittedId = p.transaction_id?.toUpperCase();
+        if (submittedId && paymentLogs.has(submittedId)) {
+          const smsAmount = paymentLogs.get(submittedId) || 0;
+          const requiredAmount = p.amount;
+
+          if (smsAmount >= requiredAmount) {
+            const updateRes = await fetch('/api/saas/subscriptions/update-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId: p.id, newStatus: 'completed' }),
+            });
+            if (updateRes.ok) processedCount++;
+          } else {
+            // Notify user of partial payment
+            await fetch('/api/notifications/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipientId: p.user_id,
+                    recipientType: 'admin',
+                    siteId: p.user_id,
+                    message: `Your subscription auto-verify failed. Paid: ${smsAmount} BDT, but ${requiredAmount} BDT need to pay. Please check or contact support.`,
+                    link: '/admin/settings',
+                }),
+            });
+          }
         }
       }
 
-      if (confirmedCount > 0) {
-        toast({ title: 'Smart Sync Complete', description: `${confirmedCount} pending subscriptions confirmed automatically.` });
+      if (processedCount > 0) {
+        toast({ title: 'Smart Sync Complete', description: `${processedCount} subscriptions verified.` });
         await fetchPayments(true);
       } else if (isManual) {
-        toast({ title: 'Sync Complete', description: 'No matching transaction IDs found in recent SMS logs.' });
+        toast({ title: 'Sync Complete', description: 'No new verifiable payments found.' });
       }
     } catch (e: any) {
       if (isManual) toast({ variant: 'destructive', title: 'Sync Failed', description: e.message });
@@ -144,21 +165,10 @@ export default function SubscriptionPaymentsPage() {
     }
   }, [fetchPayments, toast]);
 
-  // AUTO SYNC EFFECT: Poll every 60 seconds
   useEffect(() => {
     if (!user?.isSaaSAdmin) return;
-
-    // Initial check on mount
-    const initialTimer = setTimeout(() => handleAutoCheck(false), 2000);
-
-    const intervalId = setInterval(() => {
-        handleAutoCheck(false);
-    }, 60000); // 60,000ms = 1 minute
-
-    return () => {
-        clearTimeout(initialTimer);
-        clearInterval(intervalId);
-    };
+    const intervalId = setInterval(() => handleAutoCheck(false), 60000);
+    return () => clearInterval(intervalId);
   }, [user, handleAutoCheck]);
 
   const filteredPayments = useMemo(() => {
@@ -168,22 +178,21 @@ export default function SubscriptionPaymentsPage() {
             (p.profiles?.full_name || '').toLowerCase().includes(searchLower) ||
             (p.transaction_id || '').toLowerCase().includes(searchLower) ||
             (p.plans?.name || '').toLowerCase().includes(searchLower);
-        
         const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
-        
         return matchesSearch && matchesStatus;
     });
   }, [payments, searchQuery, statusFilter]);
 
-  const totalPages = Math.ceil(filteredPayments.length / PAYMENTS_PER_PAGE);
   const paginatedPayments = filteredPayments.slice(
     (currentPage - 1) * PAYMENTS_PER_PAGE,
     currentPage * PAYMENTS_PER_PAGE
   );
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
+    if (selectedPayment) {
+        setUpdatedTrxId(selectedPayment.transaction_id || '');
+    }
+  }, [selectedPayment]);
 
   const handleUpdateStatus = async (paymentId: string, newPaymentStatus: 'completed' | 'canceled') => {
     setIsActionLoading(true);
@@ -191,7 +200,11 @@ export default function SubscriptionPaymentsPage() {
         const response = await fetch('/api/saas/subscriptions/update-status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId, newStatus: newPaymentStatus }),
+            body: JSON.stringify({ 
+                paymentId, 
+                newStatus: newPaymentStatus,
+                updatedTransactionId: updatedTrxId !== selectedPayment?.transaction_id ? updatedTrxId : undefined
+            }),
         });
 
         const result = await response.json();
@@ -210,37 +223,11 @@ export default function SubscriptionPaymentsPage() {
     }
   };
 
-  const getStatusBadgeVariant = (statusValue: string): "default" | "secondary" | "destructive" => {
-    switch (statusValue?.toLowerCase()) {
-      case 'completed':
-        return 'default';
-      case 'pending':
-      case 'pending_verification':
-        return 'secondary';
-      default:
-        return 'destructive';
-    }
-  };
-
   const formatPaymentMethod = (methodValue: string) => {
     if (methodValue === 'mobile_banking') return 'Mobile Banking';
     if (methodValue === 'credit_card') return 'Credit Card';
     if (methodValue === 'sslcommerz') return 'Online Payment';
     return methodValue || 'Unknown';
-  }
-
-  if (isLoading && payments.length === 0) {
-      return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Subscription Payments</CardTitle>
-                <CardDescription>Loading payment history from the database...</CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center items-center py-16">
-                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-            </CardContent>
-        </Card>
-      )
   }
 
   return (
@@ -253,10 +240,6 @@ export default function SubscriptionPaymentsPage() {
                     <CardDescription>View all historical subscription payment records.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="hidden sm:flex items-center gap-2 mr-4 bg-muted/50 px-3 py-1 rounded-full border">
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Auto-Sync Active (1m)</span>
-                    </div>
                     <Button 
                         variant="secondary" 
                         size="sm" 
@@ -294,130 +277,58 @@ export default function SubscriptionPaymentsPage() {
                         <SelectItem value="canceled">Canceled</SelectItem>
                     </SelectContent>
                 </Select>
-                {(searchQuery || statusFilter !== 'all') && (
-                    <Button variant="ghost" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} className="h-11 w-11 rounded-xl">
-                        <X className="h-4 w-4" />
-                    </Button>
-                )}
             </div>
         </CardHeader>
         <CardContent className="p-0">
-          {paginatedPayments.length > 0 ? (
-            <>
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/30">
-                    <TableRow>
-                      <TableHead className="pl-6">User</TableHead>
-                      <TableHead>Plan</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right pr-6">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedPayments.map(paymentItem => (
-                      <TableRow key={paymentItem.id} className="hover:bg-muted/10 transition-colors">
-                        <TableCell className="font-medium pl-6 py-4">
-                            <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8 ring-2 ring-background">
-                                    <AvatarFallback className="font-bold text-[10px] bg-primary/5 text-primary">{paymentItem.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-sm">{paymentItem.profiles?.full_name || 'Deleted User'}</span>
-                                    <span className="text-[10px] text-muted-foreground font-black uppercase tracking-tighter">@{paymentItem.profiles?.username || 'unknown'}</span>
-                                </div>
-                            </div>
-                        </TableCell>
-                        <TableCell><Badge variant="secondary" className="text-[10px] font-bold h-5">{paymentItem.plans?.name || 'N/A'}</Badge></TableCell>
-                        <TableCell className="text-sm font-black text-primary">৳{paymentItem.amount.toFixed(2)}</TableCell>
-                        <TableCell className="font-mono truncate max-w-[100px] text-xs font-bold text-muted-foreground">{paymentItem.transaction_id || 'N/A'}</TableCell>
-                        <TableCell className="text-[10px] text-muted-foreground font-bold">{format(new Date(paymentItem.created_at), 'PP')}</TableCell>
-                        <TableCell><Badge variant={getStatusBadgeVariant(paymentItem.status)} className="text-[10px] h-5 px-2 uppercase font-black">{paymentItem.status}</Badge></TableCell>
-                        <TableCell className="text-right pr-6">
-                          <Button variant="ghost" size="sm" onClick={() => setSelectedPayment(paymentItem)} className="h-8 text-[10px] font-black uppercase px-3 rounded-lg border hover:bg-muted">
-                            <Eye className="mr-1.5 h-3 w-3" /> Review
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              
-              <div className="grid gap-4 md:hidden p-4">
-                {paginatedPayments.map(paymentItem => (
-                  <Card key={paymentItem.id} onClick={() => setSelectedPayment(paymentItem)} className="cursor-pointer hover:bg-muted/50 transition-colors border shadow-sm">
-                      <CardHeader className="p-4 pb-2">
-                        <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                                <Avatar className="h-9 w-9">
-                                    <AvatarFallback className="font-bold bg-primary/5 text-primary">{paymentItem.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <CardTitle className="text-sm font-bold">{paymentItem.profiles?.full_name || 'Deleted User'}</CardTitle>
-                                    <CardDescription className="text-[10px] font-black uppercase tracking-widest">@{paymentItem.profiles?.username || 'unknown'}</CardDescription>
-                                </div>
-                            </div>
-                             <Badge variant={getStatusBadgeVariant(paymentItem.status)} className="text-[8px] h-4 font-black uppercase">{paymentItem.status}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-2 flex justify-between items-center">
-                          <div className="space-y-1">
-                            <Badge variant="secondary" className="text-[10px] h-5 font-bold">{paymentItem.plans?.name || 'N/A'}</Badge>
-                            <p className="text-[10px] text-muted-foreground font-bold">{format(new Date(paymentItem.created_at), 'PP')}</p>
+          <Table>
+            <TableHeader className="bg-muted/30">
+              <TableRow>
+                <TableHead className="pl-6">User</TableHead>
+                <TableHead>Plan</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Transaction ID</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right pr-6">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedPayments.map(paymentItem => (
+                <TableRow key={paymentItem.id} className="hover:bg-muted/10">
+                  <TableCell className="font-medium pl-6 py-4">
+                      <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                              <AvatarFallback className="font-bold text-[10px] bg-primary/5 text-primary">{paymentItem.profiles?.full_name?.charAt(0) || '?'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                              <span className="font-bold text-sm">{paymentItem.profiles?.full_name || 'Deleted User'}</span>
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-tighter">@{paymentItem.profiles?.username || 'unknown'}</span>
                           </div>
-                          <div className="text-right">
-                            <p className="font-black text-primary text-base">৳{paymentItem.amount.toFixed(2)}</p>
-                            {paymentItem.transaction_id && <p className="text-[8px] font-mono text-muted-foreground mt-0.5">{paymentItem.transaction_id}</p>}
-                          </div>
-                      </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-24 text-muted-foreground flex flex-col items-center">
-              <FileText className="h-12 w-12 opacity-10 mb-4" />
-              <p className="font-medium text-lg">No payment records found matching your query.</p>
-            </div>
-          )}
+                      </div>
+                  </TableCell>
+                  <TableCell><Badge variant="secondary" className="text-[10px] font-bold h-5">{paymentItem.plans?.name || 'N/A'}</Badge></TableCell>
+                  <TableCell className="text-sm font-black text-primary">৳{paymentItem.amount.toFixed(2)}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">{paymentItem.transaction_id || 'N/A'}</TableCell>
+                  <TableCell>
+                    <Badge variant={paymentItem.status === 'completed' ? 'default' : paymentItem.status === 'canceled' ? 'destructive' : 'secondary'} className="text-[10px] h-5 px-2 uppercase font-black">
+                        {paymentItem.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right pr-6">
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedPayment(paymentItem)} className="h-8 text-[10px] font-black uppercase px-3 rounded-lg border hover:bg-muted">
+                      <Eye className="mr-1.5 h-3 w-3" /> Review
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
-        {totalPages > 1 && (
-            <CardFooter className="justify-center border-t py-6 bg-muted/10">
-                <div className="flex items-center gap-4 text-xs sm:text-sm">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prevPage => Math.max(1, prevPage - 1))}
-                        disabled={currentPage === 1}
-                        className="rounded-lg h-9"
-                    >
-                        <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                    </Button>
-                    <span className="text-muted-foreground font-black uppercase tracking-tighter">
-                        Page {currentPage} of {totalPages}
-                    </span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prevPage => Math.min(totalPages, prevPage + 1))}
-                        disabled={currentPage === totalPages}
-                        className="rounded-lg h-9"
-                    >
-                        Next <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                </div>
-            </CardFooter>
-        )}
       </Card>
 
       {selectedPayment && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isActionLoading && setSelectedPayment(null)} />
-            <div className="relative w-full max-w-lg bg-background rounded-[2rem] shadow-2xl border-2 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isActionLoading && setSelectedPayment(null)} />
+            <div className="relative w-full max-w-lg bg-background rounded-[2rem] shadow-2xl border-2 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
                 <div className="p-6 border-b flex justify-between items-center shrink-0 bg-muted/30">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary/10 rounded-xl"><Eye className="h-5 w-5 text-primary" /></div>
@@ -427,61 +338,61 @@ export default function SubscriptionPaymentsPage() {
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
-                <div className="p-6 overflow-y-auto">
-                    <div className="space-y-6">
-                        <div className="space-y-2 p-5 rounded-2xl border-2 bg-muted/10">
-                            <h4 className="font-black flex items-center gap-2 text-primary text-[10px] uppercase tracking-[0.2em] mb-3"><User className="h-3.5 w-3.5" /> Admin Info</h4>
-                            <div className="flex items-center gap-4">
-                                <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
-                                    <AvatarFallback className="font-bold">{selectedPayment.profiles?.full_name?.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div className="grid gap-0.5">
-                                    <p className="font-black text-base">{selectedPayment.profiles?.full_name || 'Deleted User'}</p>
-                                    <p className="text-xs text-muted-foreground font-bold">@{selectedPayment.profiles?.username || 'unknown'} • {(selectedPayment.profiles as any)?.email}</p>
-                                </div>
+                <div className="p-6 overflow-y-auto space-y-6">
+                    <div className="space-y-2 p-5 rounded-2xl border-2 bg-muted/10">
+                        <h4 className="font-black text-primary text-[10px] uppercase tracking-[0.2em] mb-3">Admin Info</h4>
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+                                <AvatarFallback className="font-bold">{selectedPayment.profiles?.full_name?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="grid gap-0.5">
+                                <p className="font-black text-base">{selectedPayment.profiles?.full_name || 'Deleted User'}</p>
+                                <p className="text-xs text-muted-foreground font-bold">@{selectedPayment.profiles?.username || 'unknown'}</p>
                             </div>
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-5 rounded-2xl border-2 bg-muted/10 space-y-1">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Selected Plan</Label>
-                                <p className="font-black text-lg text-foreground">{selectedPayment.plans?.name || 'N/A'}</p>
-                            </div>
-                            <div className="p-5 rounded-2xl border-2 bg-primary/5 border-primary/10 space-y-1">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Amount Paid</Label>
-                                <p className="font-black text-xl text-primary">৳{selectedPayment.amount.toFixed(2)}</p>
-                            </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-5 rounded-2xl border-2 bg-muted/10 space-y-1">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Required Amount</Label>
+                            <p className="font-black text-lg text-primary">৳{selectedPayment.amount.toFixed(2)}</p>
                         </div>
+                        <div className="p-5 rounded-2xl border-2 bg-muted/10 space-y-1">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Plan</Label>
+                            <p className="font-bold text-sm">{selectedPayment.plans?.name || 'N/A'}</p>
+                        </div>
+                    </div>
 
-                        <div className="space-y-2 p-5 rounded-2xl border-2 bg-muted/10">
-                            <h4 className="font-black flex items-center gap-2 text-primary text-[10px] uppercase tracking-[0.2em] mb-4"><CreditCard className="h-3.5 w-3.5" /> Transaction Metadata</h4>
-                            <div className="grid grid-cols-2 gap-y-5 gap-x-4">
-                                <div className="space-y-1">
-                                    <label className="text-muted-foreground font-bold text-[10px] uppercase block">Method</label>
-                                    <p className="font-black text-xs">{formatPaymentMethod(selectedPayment.payment_method)}</p>
+                    <div className="space-y-4 p-5 rounded-2xl border-2 bg-muted/10">
+                        <h4 className="font-black text-primary text-[10px] uppercase tracking-[0.2em] mb-2">Transaction Details</h4>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold">Transaction ID</Label>
+                                <div className="flex gap-2">
+                                    <Input 
+                                        value={updatedTrxId} 
+                                        onChange={(e) => setUpdatedTrxId(e.target.value.toUpperCase())}
+                                        placeholder="Enter TrxID"
+                                        className="h-11 rounded-xl font-mono text-lg font-bold"
+                                    />
+                                    {updatedTrxId !== selectedPayment.transaction_id && (
+                                        <div className="flex items-center text-[10px] text-amber-600 font-bold animate-pulse">Modified</div>
+                                    )}
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-muted-foreground font-bold text-[10px] uppercase block">Transaction ID</label>
-                                    <code className="font-mono font-black text-xs bg-muted px-2 py-1 rounded-lg border block w-fit">{selectedPayment.transaction_id || 'N/A'}</code>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-muted-foreground font-bold text-[10px] uppercase block">Current Status</label>
-                                    <Badge variant={getStatusBadgeVariant(selectedPayment.status)} className="font-black uppercase text-[8px] h-5 px-2">{selectedPayment.status}</Badge>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-muted-foreground font-bold text-[10px] uppercase block">Submitted On</label>
-                                    <p className="text-xs font-bold">{format(new Date(selectedPayment.created_at), 'PPpp')}</p>
-                                </div>
+                            </div>
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="text-muted-foreground">Payment Method:</span>
+                                <span className="font-black">{formatPaymentMethod(selectedPayment.payment_method)}</span>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className="p-6 border-t flex flex-col sm:flex-row gap-3 shrink-0 bg-muted/30 pb-10 sm:pb-6">
+                <div className="p-6 border-t flex flex-col sm:flex-row gap-3 shrink-0 bg-muted/30 pb-10">
                     <div className="grid grid-cols-2 gap-3 w-full sm:order-2">
                         <Button 
                             onClick={() => handleUpdateStatus(selectedPayment.id.toString(), 'completed')} 
                             disabled={isActionLoading || selectedPayment.status === 'completed'}
-                            className="h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black shadow-lg shadow-green-900/20"
+                            className="h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black"
                         >
                             {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                             APPROVE
@@ -490,7 +401,7 @@ export default function SubscriptionPaymentsPage() {
                             variant="destructive" 
                             onClick={() => handleUpdateStatus(selectedPayment.id.toString(), 'canceled')} 
                             disabled={isActionLoading || selectedPayment.status === 'canceled'}
-                            className="h-12 rounded-xl font-black shadow-lg shadow-destructive/20"
+                            className="h-12 rounded-xl font-black"
                         >
                             {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
                             REJECT

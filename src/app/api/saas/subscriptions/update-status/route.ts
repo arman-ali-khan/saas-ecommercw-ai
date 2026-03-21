@@ -7,7 +7,7 @@ import { addMonths, addYears } from 'date-fns';
 
 export async function POST(request: Request) {
   try {
-    const { paymentId, newStatus } = await request.json();
+    const { paymentId, newStatus, updatedTransactionId } = await request.json();
 
     if (!paymentId || !newStatus) {
       return NextResponse.json({ error: 'Payment ID and Status are required' }, { status: 400 });
@@ -32,6 +32,7 @@ export async function POST(request: Request) {
     const { data: callerProfile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
     if (callerProfile?.role !== 'saas_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    // Fetch existing payment record
     const { data: payment, error: fetchError } = await supabaseAdmin
       .from('subscription_payments')
       .select('*, plans(*)')
@@ -40,9 +41,37 @@ export async function POST(request: Request) {
 
     if (fetchError || !payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
 
+    const trxIdToUse = updatedTransactionId || payment.transaction_id;
+
+    // 1. DUPLICATE CHECK (Only when completing)
+    if (newStatus === 'completed' && trxIdToUse) {
+        const { data: existingTrx } = await supabaseAdmin
+            .from('subscription_payments')
+            .select('id')
+            .eq('transaction_id', trxIdToUse)
+            .eq('status', 'completed')
+            .neq('id', Number(paymentId))
+            .maybeSingle();
+        
+        if (existingTrx) {
+            // Notify store admin about duplication
+            await supabaseAdmin.from('notifications').insert({
+                recipient_id: payment.user_id,
+                recipient_type: 'admin',
+                site_id: payment.user_id,
+                message: `Your subscription auto-verify failed. This Transaction ID (${trxIdToUse}) has already been used. Please provide a correct ID.`,
+                link: '/admin/settings',
+            });
+            return NextResponse.json({ error: 'This Transaction ID is already used in another account.' }, { status: 400 });
+        }
+    }
+
+    const updatePayload: any = { status: newStatus };
+    if (updatedTransactionId) updatePayload.transaction_id = updatedTransactionId;
+
     const { error: paymentUpdateError } = await supabaseAdmin
       .from('subscription_payments')
-      .update({ status: newStatus })
+      .update(updatePayload)
       .eq('id', Number(paymentId));
 
     if (paymentUpdateError) throw paymentUpdateError;
@@ -61,10 +90,10 @@ export async function POST(request: Request) {
         subscription_plan: payment.plan_id,
         subscription_end_date: endDate ? endDate.toISOString() : null
       };
-      notificationMessage = `আপনার ${payment.plans?.name || 'প্ল্যান'} পেমেন্ট সফলভাবে যাচাই করা হয়েছে।`;
+      notificationMessage = `আপনার ${payment.plans?.name || 'প্ল্যান'} পেমেন্ট সফলভাবে যাচাই করা হয়েছে। আপনার স্টোর এখন লাইভ!`;
     } else {
       profileUpdate = { subscription_status: newStatus === 'failed' ? 'failed' : 'inactive' };
-      notificationMessage = `আপনার সাবস্ক্রিপশন পেমেন্ট স্ট্যাটাস আপডেট করা হয়েছে: ${newStatus}`;
+      notificationMessage = `আপনার সাবস্ক্রিপশন পেমেন্ট রিভিউ করা হয়েছে। বর্তমান স্ট্যাটাস: ${newStatus.toUpperCase()}. কোনো সমস্যা থাকলে আমাদের সাথে যোগাযোগ করুন।`;
     }
 
     if (Object.keys(profileUpdate).length > 0) {
