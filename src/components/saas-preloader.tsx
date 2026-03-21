@@ -7,11 +7,17 @@ import EcommerceAnimation from './ecommerce-animation';
 export default function SaasPreloader() {
   const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(true);
-
-  // We only want the preloader on the main SaaS landing page
-  const isHomePage = pathname === '/';
+  const [isPlatformRoot, setIsPlatformRoot] = useState(false);
 
   useEffect(() => {
+    const host = window.location.hostname.toLowerCase();
+    const base = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop').toLowerCase();
+    
+    const isRoot = host === base || host === `www.${base}` || host === 'e-bd.shop' || host === 'www.e-bd.shop' || host.includes('localhost') || host.includes('cloudworkstations.dev');
+    setIsPlatformRoot(isRoot);
+
+    const isHomePage = pathname === '/' && isRoot;
+
     if (!isHomePage) {
       document.body.classList.add('loaded');
       setIsVisible(false);
@@ -22,10 +28,9 @@ export default function SaasPreloader() {
     setIsVisible(true);
 
     const handleLoad = () => {
-      // Allow the Lottie animation to play for at least a brief moment
       setTimeout(() => {
         document.body.classList.add('loaded');
-        setTimeout(() => setIsVisible(false), 600); // Smooth fade out
+        setTimeout(() => setIsVisible(false), 600);
       }, 1200);
     };
     
@@ -36,7 +41,6 @@ export default function SaasPreloader() {
       return () => window.removeEventListener('load', handleLoad);
     }
 
-    // Safety fallback: ensure preloader hides after 5 seconds no matter what
     const fallbackTimer = setTimeout(() => {
         if (!document.body.classList.contains('loaded')) {
             document.body.classList.add('loaded');
@@ -46,15 +50,14 @@ export default function SaasPreloader() {
 
     return () => clearTimeout(fallbackTimer);
 
-  }, [pathname, isHomePage]);
+  }, [pathname]);
 
-  if (!isHomePage || !isVisible) return null;
+  if (!isPlatformRoot || pathname !== '/' || !isVisible) return null;
 
   return (
     <div id="preloader" className="flex flex-col items-center justify-center bg-background fixed inset-0 z-[99999] transition-opacity duration-700 ease-in-out">
       <div className="flex flex-col items-center gap-2">
         <div className="relative">
-          {/* Decorative background glow for the animation */}
           <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-full scale-150 animate-pulse" />
           <div className="relative z-10">
             <EcommerceAnimation className="w-64 h-64 sm:w-80 sm:h-80" />

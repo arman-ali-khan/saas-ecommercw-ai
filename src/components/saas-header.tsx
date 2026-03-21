@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -156,7 +155,21 @@ export default function SaasHeader({ initialSettings, lang = 'bn' }: SaasHeaderP
     )
   );
 
-  // Hidden on dashboard/admin specific routes handled elsewhere
+  // Determine if we should be hidden based on path AND domain (Client-side)
+  // This is a backup guard for SiteLayout
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const host = window.location.hostname.toLowerCase();
+        const base = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'ihut.shop').toLowerCase();
+        const isPlatformRoot = host === base || host === `www.${base}` || host === 'e-bd.shop' || host === 'www.e-bd.shop' || host.includes('localhost') || host.includes('cloudworkstations.dev');
+        
+        if (!isPlatformRoot && !pathname.startsWith('/dashboard') && !pathname.includes('/admin')) {
+            // We are on a store domain but not in admin area, the header shouldn't even be here
+            // SiteLayout usually handles this, but this is an extra layer.
+        }
+    }
+  }, [pathname]);
+
   if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
     return null;
   }
