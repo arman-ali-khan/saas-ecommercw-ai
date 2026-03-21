@@ -7,7 +7,7 @@ import { ArrowRight, SearchX, List, ChevronRight, Layers } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Section, Category, FlashDeal, StoreFeature, Product, ProductReview } from '@/types';
+import type { Section, Category, FlashDeal, StoreFeature, Product, ProductReview, StoreTheme } from '@/types';
 import FlashDealCarousel from '@/components/flash-deal-carousel';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -53,20 +53,31 @@ const getGridClass = (view?: string) => {
     }
 };
 
-function SectionTitle({ title, isFirst, isHeroPresent }: { title: string, isFirst: boolean, isHeroPresent: boolean }) {
+function SectionTitle({ title, isFirst, isHeroPresent, variant = 'v1' }: { title: string, isFirst: boolean, isHeroPresent: boolean, variant?: 'v1' | 'v2' }) {
+    if (variant === 'v2') {
+        return (
+            <div className="space-y-2 mb-10">
+                <div className="flex items-center gap-3">
+                    <div className="h-1 w-12 bg-primary rounded-full" />
+                    <h2 className="text-xl md:text-4xl font-black font-headline uppercase tracking-tight">{title}</h2>
+                </div>
+                <div className="h-px w-full bg-border" />
+            </div>
+        );
+    }
     if (isFirst && !isHeroPresent) {
         return <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-headline font-bold">{title}</h1>;
     }
     return <h2 className="text-sm sm:text-md md:text-xl lg:text-3xl font-headline font-bold">{title}</h2>;
 }
 
-function FlashDeals({ deals, section, t, isFirst, isHeroPresent }: { deals: FlashDeal[], section: Section, t: any, isFirst: boolean, isHeroPresent: boolean }) {
+function FlashDeals({ deals, section, t, isFirst, isHeroPresent, design = 'v1' }: { deals: FlashDeal[], section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
   if (deals.length === 0) return null;
   
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
-        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
+        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} variant={design} />
         <Button asChild variant="ghost"><Link href={`/flash-deals`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
       <FlashDealCarousel deals={deals} section={section} />
@@ -74,7 +85,7 @@ function FlashDeals({ deals, section, t, isFirst, isHeroPresent }: { deals: Flas
   );
 }
 
-function CategoriesSection({ categories, section, t, isFirst, isHeroPresent }: { categories: Category[], section: Section, t: any, isFirst: boolean, isHeroPresent: boolean }) {
+function CategoriesSection({ categories, section, t, isFirst, isHeroPresent, design = 'v1' }: { categories: Category[], section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
     const selectedNames = section.selectedCategories || [];
     const filteredCategories = selectedNames.length > 0 
         ? categories.filter(c => selectedNames.includes(c.name))
@@ -88,10 +99,10 @@ function CategoriesSection({ categories, section, t, isFirst, isHeroPresent }: {
     return (
         <section>
             <div className="text-center mb-8">
-                <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
+                <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} variant={design} />
             </div>
             {isCarousel ? (
-                <CategoryCarousel categories={filteredCategories} />
+                <CategoryCarousel categories={filteredCategories} variant={design} />
             ) : isListView ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredCategories.map(cat => (
@@ -122,13 +133,13 @@ function CategoriesSection({ categories, section, t, isFirst, isHeroPresent }: {
     );
 }
 
-function FeaturedProducts({ products, section, siteId, t, isFirst, isHeroPresent }: { products: Product[], section: Section, siteId: string, t: any, isFirst: boolean, isHeroPresent: boolean }) {
+function FeaturedProducts({ products, section, siteId, t, isFirst, isHeroPresent, design = 'v1' }: { products: Product[], section: Section, siteId: string, t: any, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
   if (products.length === 0) return null;
   
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
-        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
+        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} variant={design} />
         <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
       {section.isCarousel ? (
@@ -140,7 +151,7 @@ function FeaturedProducts({ products, section, siteId, t, isFirst, isHeroPresent
   );
 }
 
-async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent }: { siteId: string, section: Section, t: any, isFirst: boolean, isHeroPresent: boolean }) {
+async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent, design = 'v1' }: { siteId: string, section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -190,7 +201,7 @@ async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent }:
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
-        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
+        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} variant={design} />
         <Button asChild variant="ghost"><Link href={`/products`}>{t.homepage.viewAll} <ArrowRight className="ml-2" /></Link></Button>
       </div>
       {section.isCarousel ? (
@@ -210,30 +221,30 @@ async function TopSellingSection({ siteId, section, t, isFirst, isHeroPresent }:
   );
 }
 
-function WhyUs({ features, section, isFirst, isHeroPresent }: { features: StoreFeature[], section: Section, isFirst: boolean, isHeroPresent: boolean }) {
+function WhyUs({ features, section, isFirst, isHeroPresent, design = 'v1' }: { features: StoreFeature[], section: Section, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
     return (
         <section>
             <div className="text-center mb-8">
-                <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
+                <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} variant={design} />
             </div>
             <FeaturesCarousel features={features} />
         </section>
     );
 }
 
-function CustomerReviews({ reviews, section, isFirst, isHeroPresent }: { reviews: ProductReview[], section: Section, isFirst: boolean, isHeroPresent: boolean }) {
+function CustomerReviews({ reviews, section, isFirst, isHeroPresent, design = 'v1' }: { reviews: ProductReview[], section: Section, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
     if (reviews.length === 0) return null;
     return (
         <section>
             <div className="text-center mb-8">
-                <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
+                <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} variant={design} />
             </div>
             <ReviewsCarousel reviews={reviews} />
         </section>
     );
 }
 
-async function DynamicSectionProducts({ siteId, section, t, isFirst, isHeroPresent }: { siteId: string, section: Section, t: any, isFirst: boolean, isHeroPresent: boolean }) {
+async function DynamicSectionProducts({ siteId, section, t, isFirst, isHeroPresent, design = 'v1' }: { siteId: string, section: Section, t: any, isFirst: boolean, isHeroPresent: boolean, design?: 'v1' | 'v2' }) {
   const cookieStore = await cookies();
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
@@ -261,7 +272,7 @@ async function DynamicSectionProducts({ siteId, section, t, isFirst, isHeroPrese
   return (
     <section>
       <div className="flex justify-between items-center mb-8">
-        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} />
+        <SectionTitle title={section.title} isFirst={isFirst} isHeroPresent={isHeroPresent} variant={design} />
         <Button asChild variant="ghost">
             <Link href={`/products?${section.category ? `category=${encodeURIComponent(section.category)}` : ''}`}>
                 {t.homepage.viewAll} <ArrowRight className="ml-2" />
@@ -319,7 +330,8 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     flashDealsResult,
     featuredProductsResult,
     storeFeaturesResult,
-    reviewsResult
+    reviewsResult,
+    themeResult
   ] = await Promise.all([
       supabase.from('store_settings').select('homepage_sections').eq('site_id', siteId).maybeSingle(),
       supabase.from('carousel_slides').select('*').eq('site_id', siteId).eq('is_enabled', true).order('order', { ascending: true }),
@@ -327,9 +339,12 @@ export default async function UserPage({ params }: { params: Promise<{ username:
       supabase.from('flash_deals').select('*, products!inner(*)').eq('site_id', siteId).eq('is_active', true).gt('end_date', new Date().toISOString()),
       supabase.from('products').select('*').eq('site_id', siteId).eq('is_featured', true).limit(10),
       supabase.from('store_features').select('*').eq('site_id', siteId).order('order', { ascending: true }),
-      supabase.from('product_reviews').select('*').eq('site_id', siteId).eq('is_approved', true).limit(10).order('created_at', { ascending: false })
+      supabase.from('product_reviews').select('*').eq('site_id', siteId).eq('is_approved', true).limit(10).order('created_at', { ascending: false }),
+      profile.active_theme_id ? supabase.from('store_themes').select('*').eq('id', profile.active_theme_id).maybeSingle() : Promise.resolve({ data: null })
   ]);
   
+  const activeTheme = themeResult.data as StoreTheme | null;
+
   const sectionsToRender: Section[] = (() => {
     const dbSections = settingsResult.data?.homepage_sections;
     if (Array.isArray(dbSections)) return dbSections as Section[];
@@ -360,9 +375,9 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   const renderSection = (section: Section, index: number) => {
     if (!section.enabled) return null;
     
-    // Check if this is the first visible non-hero section
     const firstVisibleIdx = visibleEnabledSections.findIndex(s => s.id !== 'hero');
     const isFirstNonHero = section.id !== 'hero' && visibleEnabledSections[firstVisibleIdx]?.id === section.id;
+    const sectionDesign = activeTheme?.section_design || 'v1';
 
     switch (section.id) {
       case 'hero':
@@ -452,7 +467,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
                   </div>
               )}
               <div className="w-full">
-                {heroSlides.length > 0 ? <HeroCarousel slides={heroSlides} /> : (
+                {heroSlides.length > 0 ? <HeroCarousel slides={heroSlides} variant={activeTheme?.hero_design || 'v1'} /> : (
                   <div className="aspect-video bg-muted rounded-lg flex items-center justify-center"><p className="text-muted-foreground">Welcome to the store!</p></div>
                 )}
               </div>
@@ -460,27 +475,27 @@ export default async function UserPage({ params }: { params: Promise<{ username:
           </section>
         );
       case 'categories':
-        return <CategoriesSection key={section.id} categories={(categoriesResult.data as Category[]) || []} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />;
+        return <CategoriesSection key={section.id} categories={(categoriesResult.data as Category[]) || []} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={activeTheme?.category_design || 'v1'} />;
       case 'flash_deals':
-        return <FlashDeals key={section.id} deals={(flashDealsResult.data as FlashDeal[]) || []} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />;
+        return <FlashDeals key={section.id} deals={(flashDealsResult.data as FlashDeal[]) || []} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} />;
       case 'top_selling':
         return (
             <Suspense key={section.id} fallback={<SectionSkeleton />}>
-                <TopSellingSection siteId={siteId} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />
+                <TopSellingSection siteId={siteId} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} />
             </Suspense>
         );
       case 'featured':
         const initialFeatured = (featuredProductsResult.data as Product[]) || [];
         const limitedFeatured = initialFeatured.slice(0, section.productLimit || 10);
-        return <FeaturedProducts key={section.id} products={limitedFeatured} section={section} siteId={siteId} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />;
+        return <FeaturedProducts key={section.id} products={limitedFeatured} section={section} siteId={siteId} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} />;
       case 'why-us':
-        return <WhyUs key={section.id} features={(storeFeaturesResult.data as StoreFeature[]) || []} section={section} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />;
+        return <WhyUs key={section.id} features={(storeFeaturesResult.data as StoreFeature[]) || []} section={section} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} />;
       case 'customer-reviews':
-        return <CustomerReviews key={section.id} reviews={(reviewsResult.data as ProductReview[]) || []} section={section} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />;
+        return <CustomerReviews key={section.id} reviews={(reviewsResult.data as ProductReview[]) || []} section={section} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} />;
       default:
         return (
             <Suspense key={section.id} fallback={<SectionSkeleton />}>
-                <DynamicSectionProducts siteId={siteId} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} />
+                <DynamicSectionProducts siteId={siteId} section={section} t={t} isFirst={isFirstNonHero} isHeroPresent={isHeroPresent} design={sectionDesign} />
             </Suspense>
         );
     }

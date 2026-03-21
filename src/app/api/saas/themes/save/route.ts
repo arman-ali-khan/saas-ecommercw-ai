@@ -37,6 +37,10 @@ export async function POST(request: Request) {
         subtitle: data.subtitle,
         preview_link: data.preview_link,
         image_url: data.image_url,
+        navbar_design: data.navbar_design || 'v1',
+        hero_design: data.hero_design || 'v1',
+        category_design: data.category_design || 'v1',
+        section_design: data.section_design || 'v1',
         is_active: data.is_active ?? true,
         is_default: data.is_default ?? false,
         updated_at: new Date().toISOString()

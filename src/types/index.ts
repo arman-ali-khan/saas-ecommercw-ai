@@ -122,6 +122,7 @@ export interface User {
   email: string;
   domain: string;
   custom_domain?: string | null;
+  active_theme_id?: string | null;
   siteName: string;
   siteDescription: string | null;
   subscriptionPlan: string | null;
@@ -559,6 +560,10 @@ export interface StoreTheme {
   subtitle: string | null;
   preview_link: string | null;
   image_url: string | null;
+  navbar_design: 'v1' | 'v2';
+  hero_design: 'v1' | 'v2';
+  category_design: 'v1' | 'v2';
+  section_design: 'v1' | 'v2';
   is_active: boolean;
   is_default: boolean;
   created_at: string;

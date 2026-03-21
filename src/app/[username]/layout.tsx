@@ -7,7 +7,7 @@ import Header from '@/components/header';
 import Footer from '@/components/footer';
 import FixedCartButton from '@/components/fixed-cart-button';
 import BottomNav from '@/components/BottomNav';
-import type { HeaderLink, FooterLinkCategory, SocialLink } from '@/types';
+import type { HeaderLink, FooterLinkCategory, SocialLink, StoreTheme } from '@/types';
 import LanguageProvider from '@/components/language-provider';
 import en from '@/locales/en.json';
 import bn from '@/locales/bn.json';
@@ -83,7 +83,7 @@ export default async function UsernameLayout({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, site_name, site_description')
+    .select('id, site_name, site_description, active_theme_id')
     .eq('domain', username)
     .maybeSingle();
 
@@ -95,13 +95,17 @@ export default async function UsernameLayout({
     { data: settingsData },
     { data: headerLinksData },
     { data: footerCatData },
-    { data: socialData }
+    { data: socialData },
+    { data: themeData }
   ] = await Promise.all([
     supabase.from('store_settings').select('*').eq('site_id', siteId).maybeSingle(),
     supabase.from('header_links').select('*').eq('site_id', siteId).order('order'),
     supabase.from('footer_link_categories').select('*, footer_links(*)').eq('site_id', siteId).order('order'),
-    supabase.from('social_links').select('*').eq('site_id', siteId)
+    supabase.from('social_links').select('*').eq('site_id', siteId),
+    profile.active_theme_id ? supabase.from('store_themes').select('*').eq('id', profile.active_theme_id).maybeSingle() : Promise.resolve({ data: null })
   ]);
+
+  const activeTheme = themeData as StoreTheme | null;
 
   const siteInfo = {
     id: profile.id,
@@ -133,7 +137,6 @@ export default async function UsernameLayout({
     const primaryFontVar = settingsData.font_primary ? fontMap[settingsData.font_primary]?.variable : null;
     const secondaryFontVar = settingsData.font_secondary ? fontMap[settingsData.font_secondary]?.variable : null;
     
-    // Core brand variables that should apply to both light and dark modes
     const brandVars = [
       settingsData.theme_primary && `--primary: ${settingsData.theme_primary};`,
       settingsData.theme_primary_foreground && `--primary-foreground: ${settingsData.theme_primary_foreground};`,
@@ -144,7 +147,6 @@ export default async function UsernameLayout({
       secondaryFontVar && `--font-headline: var(${secondaryFontVar});`,
     ].filter(Boolean).join(' ');
 
-    // Layout variables that should ONLY apply to light mode
     const lightOnlyVars = [
       settingsData.theme_background && `--background: ${settingsData.theme_background};`,
       settingsData.theme_foreground && `--foreground: ${settingsData.theme_foreground};`,
@@ -166,43 +168,21 @@ export default async function UsernameLayout({
 
   return (
     <LanguageProvider translations={translationsToUse}>
-      {/* Google Analytics Rendering */}
       {settingsData?.google_analytics_id && (
         <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${settingsData.google_analytics_id}`}
-            strategy="afterInteractive"
-          />
+          <Script src={`https://www.googletagmanager.com/gtag/js?id=${settingsData.google_analytics_id}`} strategy="afterInteractive" />
           <Script id="google-analytics" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${settingsData.google_analytics_id}');
-            `}
+            {`window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${settingsData.google_analytics_id}');`}
           </Script>
         </>
       )}
 
-      {/* Facebook Pixel Rendering */}
       {settingsData?.facebook_pixel_id && (
         <Script id="facebook-pixel" strategy="afterInteractive">
-          {`
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${settingsData.facebook_pixel_id}');
-            fbq('track', 'PageView');
-          `}
+          {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '${settingsData.facebook_pixel_id}');fbq('track', 'PageView');`}
         </Script>
       )}
 
-      {/* Google Search Console Verification Meta */}
       {settingsData?.google_search_console_tag && (
           <div dangerouslySetInnerHTML={{ __html: settingsData.google_search_console_tag }} />
       )}
@@ -210,7 +190,7 @@ export default async function UsernameLayout({
       <ThemeInitializer defaultMode={settingsData?.theme_mode || 'light'} />
       {themeStyles && <style dangerouslySetInnerHTML={{ __html: themeStyles }} />}
       <div className="flex flex-col min-h-screen">
-        <Header siteInfo={siteInfo} navLinks={headerLinks} isLoading={false} />
+        <Header siteInfo={siteInfo} navLinks={headerLinks} isLoading={false} variant={activeTheme?.navbar_design || 'v1'} />
         <main className="flex-grow container mx-auto px-1 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
           {children}
         </main>
