@@ -297,7 +297,7 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                   <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
                 </div>
-                <div className="aspect-[16/9] relative">
+                <div className="aspect-[16/16] sm:aspect-[16/9] relative">
                   <CodeWritingAnimation code={settings?.landing_hero_code} />
                 </div>
               </div>
