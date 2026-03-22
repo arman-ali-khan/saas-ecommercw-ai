@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Layout, CheckCircle2, Eye, Loader2, Palette, ExternalLink, Upload, Download, FileJson, AlertCircle, Trash2 } from 'lucide-react';
+import { Layout, CheckCircle2, Eye, Loader2, Palette,Plus, ExternalLink, Upload, Download, FileJson, AlertCircle, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
