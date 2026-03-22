@@ -13,6 +13,7 @@ import type { StoreTheme } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
 
 export default function ThemesPage() {
   const { user, refreshUser } = useAuth();
