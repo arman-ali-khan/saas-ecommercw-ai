@@ -240,6 +240,7 @@ export interface Section {
   title: string;
   enabled: boolean;
   isCategorySection: boolean;
+  type?: 'hero' | 'categories' | 'flash_deals' | 'top_selling' | 'featured' | 'why-us' | 'customer-reviews' | 'banner' | 'custom_carousel';
   category?: string;
   selectedCategories?: string[];
   tags?: string[];
@@ -254,6 +255,9 @@ export interface Section {
   showSideCategories?: boolean;
   cardDesignDesktop?: string;
   cardDesignMobile?: string;
+  bannerImage?: string;
+  bannerLink?: string;
+  carouselSlides?: { image: string; link: string; title?: string }[];
 }
 
 export interface LiveChatMessage {
@@ -444,6 +448,7 @@ export interface SaasSettings {
   google_search_console_tag: string | null;
   robots_txt_content: string | null;
   landing_hero_code: string | null;
+  theme_config?: any;
 }
 
 export interface CustomDomainRequest {

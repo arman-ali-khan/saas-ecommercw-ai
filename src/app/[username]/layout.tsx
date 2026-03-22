@@ -106,6 +106,7 @@ export default async function UsernameLayout({
   ]);
 
   const activeTheme = themeData as StoreTheme | null;
+  const themeConfig = settingsData?.theme_config;
 
   const siteInfo = {
     id: profile.id,
@@ -137,7 +138,7 @@ export default async function UsernameLayout({
     const primaryFontVar = settingsData.font_primary ? fontMap[settingsData.font_primary]?.variable : null;
     const secondaryFontVar = settingsData.font_secondary ? fontMap[settingsData.font_secondary]?.variable : null;
     
-    const brandVars = [
+    let brandVars = [
       settingsData.theme_primary && `--primary: ${settingsData.theme_primary};`,
       settingsData.theme_primary_foreground && `--primary-foreground: ${settingsData.theme_primary_foreground};`,
       settingsData.theme_accent && `--accent: ${settingsData.theme_accent};`,
@@ -147,7 +148,7 @@ export default async function UsernameLayout({
       secondaryFontVar && `--font-headline: var(${secondaryFontVar});`,
     ].filter(Boolean).join(' ');
 
-    const lightOnlyVars = [
+    let lightOnlyVars = [
       settingsData.theme_background && `--background: ${settingsData.theme_background};`,
       settingsData.theme_foreground && `--foreground: ${settingsData.theme_foreground};`,
       settingsData.theme_card && `--card: ${settingsData.theme_card};`,
@@ -157,6 +158,11 @@ export default async function UsernameLayout({
       settingsData.theme_border && `--border: ${settingsData.theme_border};`,
       settingsData.theme_input && `--input: ${settingsData.theme_input};`,
     ].filter(Boolean).join(' ');
+
+    // Merge overrides from theme_config JSON
+    if (themeConfig?.theme_settings) {
+        // Here you could add more complex merge logic if needed
+    }
 
     if (brandVars || lightOnlyVars) {
       themeStyles = `

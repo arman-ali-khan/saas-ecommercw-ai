@@ -3,11 +3,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import ProductCard from '@/components/product-card';
-import { ArrowRight, SearchX, List, ChevronRight, Layers } from 'lucide-react';
+import { ArrowRight, SearchX, List, ChevronRight, Layers, Carousel as CarouselIcon, Image as ImageIcon } from 'lucide-react';
 import HeroCarousel from '@/components/hero-carousel';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Section, Category, FlashDeal, StoreFeature, Product, ProductReview, StoreTheme } from '@/types';
+import type { Section, Category, FlashDeal, StoreFeature, Product, ProductReview, StoreTheme, SaasSettings } from '@/types';
 import FlashDealCarousel from '@/components/flash-deal-carousel';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -315,6 +315,28 @@ async function DynamicSectionProducts({ siteId, section, t, isFirst, isHeroPrese
   );
 }
 
+// --- Dynamic Theme Block Component ---
+function CustomBannerSection({ section }: { section: Section }) {
+    return (
+        <section className="my-12">
+            <Link href={section.bannerLink || '#'}>
+                <div className="relative aspect-[21/9] w-full rounded-[2.5rem] overflow-hidden border-2 border-border/50 shadow-xl group">
+                    {section.bannerImage ? (
+                        <Image src={section.bannerImage} alt={section.title} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                    ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <ImageIcon className="h-12 w-12 text-muted-foreground opacity-20" />
+                        </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/20 flex flex-col justify-center px-10">
+                        <h2 className="text-white text-3xl sm:text-5xl font-black font-headline drop-shadow-lg">{section.title}</h2>
+                    </div>
+                </div>
+            </Link>
+        </section>
+    );
+}
+
 export default async function UserPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
   const t = await getTranslations(username);
@@ -352,7 +374,7 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     reviewsResult,
     themeResult
   ] = await Promise.all([
-      supabase.from('store_settings').select('homepage_sections').eq('site_id', siteId).maybeSingle(),
+      supabase.from('store_settings').select('homepage_sections, theme_config').eq('site_id', siteId).maybeSingle(),
       supabase.from('carousel_slides').select('*').eq('site_id', siteId).eq('is_enabled', true).order('order', { ascending: true }),
       supabase.from('categories').select('*').eq('site_id', siteId).order('name', { ascending: true }),
       supabase.from('flash_deals').select('*, products!inner(*)').eq('site_id', siteId).eq('is_active', true).gt('end_date', new Date().toISOString()),
@@ -363,11 +385,19 @@ export default async function UserPage({ params }: { params: Promise<{ username:
   ]);
   
   const activeTheme = themeResult.data as StoreTheme | null;
+  const themeConfig = settingsResult.data?.theme_config;
 
   const sectionsToRender: Section[] = (() => {
+    // 1. If JSON config exists, prioritize it
+    if (themeConfig?.homepage_sections && Array.isArray(themeConfig.homepage_sections)) {
+        return themeConfig.homepage_sections as Section[];
+    }
+
+    // 2. Fallback to Standard Section Manager data
     const dbSections = settingsResult.data?.homepage_sections;
     if (Array.isArray(dbSections)) return dbSections as Section[];
     
+    // 3. Absolute Fallback
     return [
       { id: 'hero', title: 'Hero Carousel', enabled: true, isCategorySection: false, mobileView: '2-col', showSideCategories: false },
       { id: 'categories', title: t.homepage.shopByCategory, enabled: true, isCategorySection: false, mobileView: 'carousel', isCarousel: true },
@@ -399,6 +429,11 @@ export default async function UserPage({ params }: { params: Promise<{ username:
     const sectionDesign = activeTheme?.section_design || 'v1';
     const cardVariant = activeTheme?.card_design || 'v1';
     const sidebarDesign = activeTheme?.sidebar_design || 'v1';
+
+    // Handle Custom Types from JSON Config
+    if (section.type === 'banner') {
+        return <CustomBannerSection key={section.id} section={section} />;
+    }
 
     switch (section.id) {
       case 'hero':
