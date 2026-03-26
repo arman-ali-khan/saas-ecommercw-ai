@@ -8,6 +8,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Card, CardFooter } from '@/components/ui/card';
 import Autoplay from 'embla-carousel-autoplay';
 import DynamicIcon from './dynamic-icon';
+import { Button } from '@/components/ui/button';
 import type { Category } from '@/types';
 import { cn } from '@/lib/utils';
 

@@ -33,6 +33,8 @@ import {
   Share2,
 } from 'lucide-react';
 import { AiShareTool } from '@/components/ai-share-tool';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import type { Product, FlashDeal, ProductReview, ProductQna, ProductVariant } from '@/types';
 import { cn } from '@/lib/utils';
@@ -280,6 +282,7 @@ const QnaForm = ({ product, onQuestionSubmitted, setDialogOpen }: { product: Pro
 }
 
 export default function ProductClientPage({ product }: { product: Product }) {
+  const images = product.images || [];
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     product.variants && product.variants.length > 0 ? product.variants[0] : null

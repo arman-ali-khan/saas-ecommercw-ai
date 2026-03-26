@@ -361,7 +361,6 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                             >
                                 {item.image_url ? (
                                 <Image 
-                                    loader={cloudinaryLoader} 
                                     src={item.image_url} 
                                     alt={item.title} 
                                     fill 
