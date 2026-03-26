@@ -1,5 +1,5 @@
 
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -194,3 +194,4 @@ export async function PageBlock({ block, username, siteId }: { block: any, usern
       );
   }
 }
+

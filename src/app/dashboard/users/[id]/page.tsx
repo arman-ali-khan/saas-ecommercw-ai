@@ -42,7 +42,7 @@ import {
     Store
 } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 
 const ITEMS_PER_PAGE = 5;
 

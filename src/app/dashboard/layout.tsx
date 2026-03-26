@@ -9,7 +9,8 @@ import { useAuth } from '@/stores/auth';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2, Bell, X } from 'lucide-react';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { Notification } from '@/types';

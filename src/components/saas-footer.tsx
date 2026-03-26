@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Facebook, Twitter, Shield, Heart } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
+
 import { Skeleton } from './ui/skeleton';
 import { type SaasSettings } from '@/types';
 

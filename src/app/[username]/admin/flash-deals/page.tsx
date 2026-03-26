@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2, Loader2, Flame, MoreHorizontal, X, AlertTriangle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function FlashDealsAdminPage() {

@@ -28,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Layout, Palette, Image as ImageIcon, Loader2, Sparkles, X, Globe, Facebook, Twitter, Code2 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import ImageUploader from '@/components/image-uploader';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { useAuth } from '@/stores/auth';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -390,3 +390,4 @@ export default function LandingPageManager() {
     </div>
   );
 }
+

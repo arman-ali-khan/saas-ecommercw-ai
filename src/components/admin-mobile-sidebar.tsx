@@ -37,7 +37,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from './ui/badge';
 import DynamicIcon from './dynamic-icon';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
+
 import { Skeleton } from './ui/skeleton';
 import {
   Collapsible,

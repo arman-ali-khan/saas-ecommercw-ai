@@ -22,7 +22,8 @@ import {
 } from '@/components/ui/sheet';
 import SaasAdminSidebar from './saas-admin-sidebar';
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
+
 import { supabase } from '@/lib/supabase/client';
 
 export default function SaasBottomNav() {

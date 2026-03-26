@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Cloudinary Custom Loader for Next.js Image Component.
  * Offloads image optimization from Vercel to Cloudinary.

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Carousel as ShadCarousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import Autoplay from 'embla-carousel-autoplay';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -180,3 +180,4 @@ export function ReviewsCarouselBlock({ reviews }: { reviews: ReviewItem[] }) {
         </ShadCarousel>
     );
 }
+

@@ -31,7 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import ImageUploader from '@/components/image-uploader';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { useAuth } from '@/stores/auth';
 
 const generalSettingsSchema = z.object({
@@ -803,3 +803,4 @@ export default function SaasSettingsPage() {
     </div>
   );
 }
+

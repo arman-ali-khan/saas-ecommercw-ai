@@ -12,7 +12,7 @@ import { ArrowRight, Eye, Star, AlertTriangle, TrendingUp, Users, MessageCircle,
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { Order, ProductReview, ProductQna, Product } from '@/types';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 
 interface DashboardTablesProps {
   pendingOrders: Order[];
@@ -341,3 +341,4 @@ export default function DashboardTables({
     </div>
   );
 }
+

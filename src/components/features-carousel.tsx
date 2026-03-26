@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import Link from 'next/link';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -93,3 +93,4 @@ export default function FeaturesCarousel({ features }: { features: StoreFeature[
     </Carousel>
   );
 }
+

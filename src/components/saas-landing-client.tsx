@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -359,7 +360,13 @@ export default function SaasLandingClient({ plans, features, reviews, showcaseIt
                                 onClick={() => item.image_url && setPreviewImage(item.image_url)}
                             >
                                 {item.image_url ? (
-                                <Image src={item.image_url} alt={item.title} fill className="object-cover rounded-[2rem] transition-transform duration-700 group-hover/item:scale-105" />
+                                <Image 
+                                    loader={cloudinaryLoader} 
+                                    src={item.image_url} 
+                                    alt={item.title} 
+                                    fill 
+                                    className="object-cover rounded-[2rem] transition-transform duration-700 group-hover/item:scale-105" 
+                                />
                                 ) : (
                                 <div className="w-full h-full bg-muted flex items-center justify-center rounded-[2rem]">
                                     <DynamicIcon name={item.icon} className="w-20 h-20 text-muted-foreground" />

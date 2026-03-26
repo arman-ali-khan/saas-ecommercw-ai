@@ -34,7 +34,7 @@ import { Loader2, Copy, Sparkles, CheckCircle, Palette, Trash2, Globe, BarChart,
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import IconPicker from '@/components/icon-picker';
 import ImageUploader from '@/components/image-uploader';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import DynamicIcon from '@/components/dynamic-icon';
 import { type SeoRequest, type Plan } from '@/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';

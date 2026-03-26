@@ -18,7 +18,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/stores/auth';
 import { Skeleton } from './ui/skeleton';
 import { supabase } from '@/lib/supabase/client';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
+
 import { usePathname } from 'next/navigation';
 import { type SaasSettings } from '@/types';
 

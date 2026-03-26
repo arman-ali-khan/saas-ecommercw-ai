@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Facebook, Twitter, Instagram, Linkedin, Youtube } from 'lucide-react';
 import type { FooterLinkCategory, SocialLink } from '@/types';
 import DynamicIcon from './dynamic-icon';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
+
 import { Skeleton } from './ui/skeleton';
 
 type SiteInfo = {

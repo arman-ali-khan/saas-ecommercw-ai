@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Layout, CheckCircle2, Eye, Loader2, Palette,Plus, ExternalLink, Upload, Download, FileJson, AlertCircle, Trash2 } from 'lucide-react';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import type { StoreTheme } from '@/types';

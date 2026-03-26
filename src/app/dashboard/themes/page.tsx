@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import type { StoreTheme } from '@/types';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
@@ -305,8 +305,8 @@ export default function SaasThemesManagerPage() {
                             </Button>
                         </div>
                         
-                        <ScrollArea className="flex-grow">
-                            <div className="p-6">
+                        <div className="flex-1 overflow-y-auto min-h-0 p-6 scrollbar-thin">
+                            <div>
                                 <Form {...form}>
                                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                                         {/* Basic Info */}
@@ -476,7 +476,7 @@ export default function SaasThemesManagerPage() {
                                     </form>
                                 </Form>
                             </div>
-                        </ScrollArea>
+                        </div>
                         
                         <div className="p-6 border-t flex flex-col sm:flex-row justify-end gap-3 shrink-0 bg-muted/30 pb-10 sm:pb-6">
                             <Button variant="outline" onClick={() => setIsFormOpen(false)} disabled={isSubmitting} className="rounded-xl px-6 order-2 sm:order-1 h-12">Cancel</Button>
@@ -510,3 +510,4 @@ export default function SaasThemesManagerPage() {
         </div>
     );
 }
+

@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import type { Category } from '@/types';
 import { useCart } from '@/stores/cart';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { ScrollArea } from './ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useCustomerAuth } from '@/stores/useCustomerAuth';
@@ -233,3 +233,4 @@ export default function BottomNav() {
     </div>
   );
 }
+

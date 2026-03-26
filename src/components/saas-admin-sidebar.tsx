@@ -32,7 +32,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
+
 
 interface SaasAdminSidebarProps {
     isMobile?: boolean;

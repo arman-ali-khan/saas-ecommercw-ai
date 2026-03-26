@@ -3,7 +3,7 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Card, CardFooter } from '@/components/ui/card';
 import Autoplay from 'embla-carousel-autoplay';
@@ -120,3 +120,4 @@ export default function CategoryCarousel({ categories, variant = 'v1' }: Categor
     </Carousel>
   );
 }
+

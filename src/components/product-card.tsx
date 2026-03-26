@@ -1,7 +1,8 @@
 
 'use client';
 
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
+
 import Link from 'next/link';
 import type { Product, FlashDeal, ProductVariant } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';

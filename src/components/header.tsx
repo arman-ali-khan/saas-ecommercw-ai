@@ -37,7 +37,8 @@ import { type Notification, type HeaderLink } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import DynamicIcon from './dynamic-icon';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
+
 import { useSearchStore } from '@/stores/useSearchStore';
 import { Input } from './ui/input';
 

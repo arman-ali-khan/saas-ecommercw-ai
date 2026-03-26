@@ -2,7 +2,7 @@
 'use client';
 
 import { Users, Zap, ShieldCheck, Smartphone, Globe, ArrowLeft, ArrowRight, Heart } from 'lucide-react';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -152,3 +152,4 @@ export default function AboutPage() {
     </div>
   );
 }
+

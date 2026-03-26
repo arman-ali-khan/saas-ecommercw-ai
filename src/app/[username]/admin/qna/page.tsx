@@ -5,7 +5,7 @@ import { useAuth } from '@/stores/auth';
 import { useToast } from '@/hooks/use-toast';
 import type { ProductQna } from '@/types';
 import { format } from 'date-fns';
-import Image from 'next/image';
+import { OptimizedImage as Image } from '@/components/ui/optimized-image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
